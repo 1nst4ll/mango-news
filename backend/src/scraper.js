@@ -4,10 +4,10 @@ const cron = require('node-cron'); // Import node-cron for scheduling
 
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
-  user: 'mango_admin',
-  host: 'news.hoffmanntci.com',
+  user: 'hoffma24_mangoadmin',
+  host: 'localhost',
   database: 'hoffma24_mangonews',
-  password: 'o2,TC2Kz08pU',
+  password: 'R3d3d0ndr0N',
   port: 5432, // Default PostgreSQL port
 });
 

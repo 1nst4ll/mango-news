@@ -6,10 +6,10 @@ const port = process.env.PORT || 3000;
 
 // Database connection pool
 const pool = new Pool({
-  user: 'mango_admin',
-  host: 'news.hoffmanntci.com',
+  user: 'hoffma24_mangoadmin',
+  host: 'localhost',
   database: 'hoffma24_mangonews',
-  password: 'o2,TC2Kz08pU',
+  password: 'R3d3d0ndr0N',
   port: 5432, // Default PostgreSQL port
 });
 
