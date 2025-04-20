@@ -1,7 +1,6 @@
 const { Pool } = require('pg');
-// Assuming Firecrawl MCP server is available and can be called from Node.js
-// This might require a wrapper function or a dedicated client library if not directly callable
-// For now, we'll outline the logic and assume a mechanism to trigger and receive results from MCP tools.
+const { FirecrawlApp } = require('firecrawl'); // Import FirecrawlApp
+const cron = require('node-cron'); // Import node-cron for scheduling
 
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
@@ -10,6 +9,11 @@ const pool = new Pool({
   database: 'hoffma24_mangonews',
   password: 'o2,TC2Kz08pU',
   port: 5432, // Default PostgreSQL port
+});
+
+// Initialize FirecrawlApp with API key
+const firecrawl = new FirecrawlApp({
+  apiKey: 'fc-58bcd9ad048d45c6aad0e90ed451a089', // Use the provided API key
 });
 
 async function getActiveSources() {
@@ -22,83 +26,83 @@ async function getActiveSources() {
   }
 }
 
-// This function will be called to trigger the Firecrawl scrape tool
-async function triggerScrapeTool(source) {
-async function triggerScrapeTool(source) {
-  console.log(`Triggering Firecrawl scrape tool for source: ${source.name} (${source.url})`);
+// This function will call the Firecrawl scrape tool
+async function scrapeSource(source) {
+  console.log(`Scraping source: ${source.name} (${source.url})`);
+  try {
+    // Call Firecrawl scrape tool using the SDK
+    const scrapedResult = await firecrawl.scrapeUrl(source.url, {
+      params: {
+        formats: ['markdown'], // Request markdown content
+        onlyMainContent: true // Try to get only the main article content
+      }
+    });
 
-  // Instruct the system to use the Firecrawl scrape tool.
-  // The system will execute this tool and return the result, which will then be
-  // passed to the `processScrapedData` function along with the source object.
-  // The system needs to be configured to recognize this pattern and execute the tool.
-  // This is a conceptual representation of the tool call within the code.
-  /*
-  <use_mcp_tool>
-  <server_name>github.com/mendableai/firecrawl-mcp-server</server_name>
-  <tool_name>firecrawl_scrape</tool_name>
-  <arguments>
-  {
-    "url": "${source.url}",
-    "formats": ["markdown"],
-    "onlyMainContent": true
-  }
-  </arguments>
-  </use_mcp_tool>
-  */
-
-  // For now, we will simulate a successful tool call result for testing the processing logic.
-  // In a real scenario, the system would handle the actual tool execution and callback.
-  console.log(`Simulating Firecrawl scrape tool call for ${source.url}`);
-  const simulatedResult = {
-    success: true,
-    data: {
-      title: `Simulated Article from ${source.name}`,
-      url: source.url + '/simulated-article-path-' + Date.now(),
-      content: `This is simulated raw content scraped from ${source.name}. This content would be much longer in a real scrape.`,
-      publication_date: new Date().toISOString(),
-      topics: ['simulated', 'news', source.name.toLowerCase().replace(/\s+/g, '-')]
+    if (scrapedResult && scrapedResult.data) {
+      console.log(`Successfully scraped: ${scrapedResult.data.title || 'No Title'}`);
+      await processScrapedData(source, scrapedResult.data);
+    } else {
+      console.error(`Failed to scrape source: ${source.name}`, scrapedResult ? scrapedResult.error : 'No result');
     }
-  };
 
-  // In a real scenario, the system would call processScrapedData with the actual tool result.
-  // For simulation, we call it directly here.
-  await processScrapedData(source, simulatedResult);
+  } catch (err) {
+    console.error(`Error during scraping for source ${source.name}:`, err);
+  }
 }
 
-// This function is a placeholder for generating AI summaries
+// This function generates AI summaries using the Groq API
 async function generateAISummary(content) {
-  console.log('Generating AI summary...');
-  // TODO: Implement actual call to an LLM API for summarization
-  // This is a placeholder for the LLM API call.
-  /*
+  console.log('Generating AI summary using Groq...');
   try {
-    const summaryResult = await callLLMAPI(content); // Assuming a function callLLMAPI
-    return summaryResult.summary; // Assuming the API returns a summary field
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "Summarize the following news article content concisely."
+        },
+        {
+          role: "user",
+          content: content,
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
+      temperature: 0.7, // Adjust temperature as needed
+      max_tokens: 150, // Adjust max tokens for summary length
+    });
+
+    return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
+
   } catch (llmErr) {
-    console.error('Error generating AI summary:', llmErr);
+    console.error('Error generating AI summary with Groq:', llmErr);
     return "Summary generation failed."; // Return a default or error message
   }
-  */
-  return "TODO: AI generated summary"; // Placeholder
 }
 
 
-// This function will be called by the system after a Firecrawl tool execution result is received
-// It needs to receive the source information along with the result.
-async function processScrapedData(source, scrapedResult) {
+// This function will process the scraped data and save it to the database
+async function processScrapedData(source, scrapedData) {
   console.log(`Processing scraped data for source: ${source.name}`);
   try {
-    if (scrapedResult && scrapedResult.data && scrapedResult.data.content) {
-      const scrapedData = scrapedResult.data;
+    if (scrapedData && scrapedData.content) {
       console.log(`Successfully scraped: ${scrapedData.title || 'No Title'}`);
 
-      // TODO: Extract publication date and topics from scrapedData if available
-      // Firecrawl's 'extract' format might be useful here with a defined schema.
-      const publication_date = scrapedData.publication_date || new Date().toISOString(); // Use scraped date or current date
-      const topics = scrapedData.topics || []; // Use scraped topics or empty array
-      const title = scrapedData.title || 'No Title';
+      // Extract data from scrapedResult.data and metadata
+      const title = scrapedData.title || scrapedData.metadata?.title || 'No Title';
       const raw_content = scrapedData.content;
       const source_url = scrapedData.url || source.url; // Use scraped URL if available, otherwise source URL
+      // Attempt to extract publication date from metadata or use current date
+      const publication_date = scrapedData.metadata?.publication_date || scrapedData.metadata?.published_date || new Date().toISOString();
+      // Attempt to extract topics/keywords from metadata
+      const topics = scrapedData.metadata?.keywords ? scrapedData.metadata.keywords.split(',').map(topic => topic.trim()) : [];
+
+
+      // Check if article with the same URL from the same source already exists
+      const existingArticle = await pool.query('SELECT id FROM articles WHERE source_id = $1 AND source_url = $2', [source.id, source_url]);
+
+      if (existingArticle.rows.length > 0) {
+        console.log(`Article with URL ${source_url} from source ${source.name} already exists. Skipping.`);
+        return; // Skip saving if article already exists
+      }
 
       // Generate AI summary
       const summary = await generateAISummary(raw_content);
@@ -126,10 +130,10 @@ async function processScrapedData(source, scrapedResult) {
         await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
       }
 
-      console.log(`Article "${title}" saved to database with ID: ${articleId}`);
+      console.log(`Article "${title}" saved to database with ID: ${articleId}.`);
 
     } else {
-      console.error(`Failed to process scraped data for source: ${source.name}`, scrapedResult ? scrapedResult.error : 'No result or missing data');
+      console.error(`Failed to process scraped data for source: ${source.name}`, scrapedData ? 'Missing content' : 'No data received');
     }
   } catch (err) {
     console.error(`Error processing scraped data for source ${source.name}:`, err);
@@ -142,19 +146,25 @@ async function runScraper() {
   const activeSources = await getActiveSources();
 
   for (const source of activeSources) {
-    // Trigger the Firecrawl scrape tool for each source.
-    // The results will be processed by the `processScrapedData` function
-    // when they are returned by the system.
-    await triggerScrapeTool(source);
+    await scrapeSource(source);
   }
 
-  console.log('News scraping process initiated for all active sources.');
-  // TODO: Implement scheduling mechanism to run this function periodically (e.g., using node-cron)
-  // For now, the scraper can be run manually or triggered externally.
+  console.log('News scraping process finished.');
 }
 
-// Example of how to run the scraper manually
+// Schedule the scraper to run periodically (e.g., every hour)
+// TODO: Adjust the cron schedule as needed
+cron.schedule('0 * * * *', () => {
+  console.log('Running scheduled scraping job...');
+  runScraper();
+});
+
+console.log('News scraper scheduled to run.');
+
+// Optional: Run the scraper immediately when the script starts
 // runScraper();
 
-// TODO: Implement scheduling (e.g., using node-cron)
-// For now, the scraper can be run manually or triggered externally.
+// Export the runScraper function if you want to trigger it manually or from another script
+module.exports = {
+  runScraper,
+};

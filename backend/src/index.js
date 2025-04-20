@@ -120,14 +120,15 @@ app.get('/api/articles', async (req, res) => {
   }
 
   if (startDate && endDate) {
+    // Ensure dates are treated as timestamps for BETWEEN
     conditions.push(`a.publication_date BETWEEN $${values.length + 1} AND $${values.length + 2}`);
-    values.push(startDate, endDate);
+    values.push(new Date(startDate).toISOString(), new Date(endDate).toISOString());
   } else if (startDate) {
     conditions.push(`a.publication_date >= $${values.length + 1}`);
-    values.push(startDate);
+    values.push(new Date(startDate).toISOString());
   } else if (endDate) {
     conditions.push(`a.publication_date <= $${values.length + 1}`);
-    values.push(endDate);
+    values.push(new Date(endDate).toISOString());
   }
 
   if (conditions.length > 0) {
