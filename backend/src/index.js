@@ -13,18 +13,19 @@ const pool = new Pool({
   port: 5432, // Default PostgreSQL port
 });
 
-// Test database connection
-pool.connect((err, client, done) => {
-  if (err) {
-    console.error('Error connecting to the database:', err);
-  } else {
-    console.log('Database connected successfully!');
-    client.release(); // Release the client back to the pool
-  }
-  done();
+app.use(express.json()); // Middleware to parse JSON request bodies
+
+// Optional: Log database connection status on startup
+pool.on('connect', () => {
+  console.log('Database pool connected successfully!');
 });
 
-app.use(express.json()); // Middleware to parse JSON request bodies
+pool.on('error', (err) => {
+  console.error('Database pool error:', err);
+});
+
+
+// API Routes
 
 // API Routes
 app.get('/api/sources', async (req, res) => {
