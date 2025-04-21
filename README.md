@@ -67,8 +67,9 @@ This structure separates the backend, database, and frontend concerns into disti
         *   `GET /api/topics`: Retrieve a list of all topics.
 *   **Scraping Logic (`backend/src/scraper.js`):**
     *   Implemented logic to fetch active sources from the database.
-    *   Refactored scraping to first extract article links from a source's main page using Firecrawl's `extract` format.
-    *   Implemented logic to then scrape each individual article page using Firecrawl.
+    *   Uses Firecrawl's `extract` format on source main pages to discover article links.
+    *   Scrapes individual article pages using Firecrawl's `scrapeUrl` with `onlyMainContent: true`.
+    *   Includes post-processing logic to clean up unwanted header/footer text and related article links from the scraped markdown content.
     *   Integrated Groq SDK for AI summary generation with content truncation to avoid API limits.
     *   Includes basic scheduling using `node-cron`.
 *   **Backend API (`backend/src/index.js`):**

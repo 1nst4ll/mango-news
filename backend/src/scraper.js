@@ -87,7 +87,7 @@ async function generateAISummary(content) {
     return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
 
   } catch (llmErr) {
-    console.error('Error generating AI summary with Groq:', llllmErr);
+    console.error('Error generating AI summary with Groq:', llmErr);
     return "Summary generation failed."; // Return a default or error message
   }
 }
@@ -97,15 +97,30 @@ async function generateAISummary(content) {
 async function processScrapedData(source, markdownContent, metadata) { // Updated function signature
   console.log(`Processing scraped data for source: ${source.name}`);
   try {
-    if (markdownContent) { // Check if markdown content is available
-      console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`); // Log processed title
-      console.log('--- Filtered Markdown Content ---');
-      console.log(markdownContent);
-      console.log('-------------------------------');
+    if (markdownContent) {
+      console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`);
+
+      // Clean up unwanted content from the markdown
+      let cleanedContent = markdownContent;
+
+      // Remove unwanted lines at the beginning
+      const lines = cleanedContent.split('\n');
+      const cleanedLines = lines.filter(line =>
+        !line.trim().startsWith('top of page') &&
+        !line.trim().startsWith('Skip to Main Content') &&
+        !line.trim().startsWith('Search')
+      );
+      cleanedContent = cleanedLines.join('\n');
+
+      // Remove content from "Back to Top" to the end
+      const backToTopIndex = cleanedContent.indexOf('### [Back to Top]');
+      if (backToTopIndex !== -1) {
+        cleanedContent = cleanedContent.substring(0, backToTopIndex).trim();
+      }
 
       // Extract data from arguments
       const title = metadata?.title || 'No Title'; // Get title from metadata
-      const raw_content = markdownContent; // Use markdownContent
+      const raw_content = cleanedContent; // Use cleanedContent
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
       const publication_date = metadata?.publication_date || metadata?.published_date || new Date().toISOString(); // Get date from metadata
@@ -164,8 +179,7 @@ async function scrapeArticlePage(source, articleUrl) {
   try {
     const scrapedResult = await firecrawl.scrapeUrl(articleUrl, {
       formats: ['markdown'], // Request markdown content
-      includeTags: ['div#mvp-content-main'], // Include only the main content div
-      excludeTags: ['div.sharedaddy', 'iframe', 'a img'] // Exclude social sharing div, iframes, and images within links within the main content
+      onlyMainContent: true // Try to get only the main article content
     });
 
     if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
@@ -202,29 +216,31 @@ async function runScraper() {
                   properties: {
                     title: {"type": "string"},
                     url: {"type": "string"},
-                    date: {"type": "string"}, // Keep date for potential use, though individual scrape will get more accurate date
+                    date: {"type": "string"} // Keep date for potential use, though individual scrape will get more accurate date
                   }
                 }
               }
             },
-            prompt: "Extract a list of recent news article links from the page, including their title and URL." // Simplified prompt
-          }
-        });
-
-        if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
-          console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
-          for (const article of extractedData.extract.articles) { // Iterate over the correct array
-            if (article.url) {
-              await scrapeArticlePage(source, article.url);
-            }
-          }
-        } else {
-          console.error(`Failed to extract article list from source: ${source.name}`, extractedData);
+          },
+          prompt: "Extract a list of recent news article links from the page, including their title and URL." // Simplified prompt
         }
+      });
 
-      } catch (err) {
-        console.error(`Error discovering articles for source ${source.name}:`, err);
+      // Check if the extraction was successful and articles list is available
+      if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
+        console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
+        for (const article of extractedData.extract.articles) { // Iterate over the correct array
+          if (article.url) {
+            // Scrape each individual article page
+            await scrapeArticlePage(source, article.url);
+          }
+        }
+      } else {
+        console.error(`Failed to extract article list from source: ${source.name}`, extractedData);
       }
+
+    } catch (err) {
+      console.error(`Error discovering articles for source ${source.name}:`, err);
     }
   }
 
@@ -264,7 +280,7 @@ async function runScraperForSource(sourceId) {
                     properties: {
                       title: {"type": "string"},
                       url: {"type": "string"},
-                      date: {"type": "string"},
+                      date: {"type": "string"}
                     }
                   }
                 }

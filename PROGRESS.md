@@ -6,6 +6,16 @@ This document tracks the development progress of the Turks and Caicos News Aggre
 
 ### Current Status
 
+Audited the existing scraping process and reevaluated the strategy using the Firecrawl tool. Updated the scraper logic to improve content extraction by removing specific HTML tag filtering and adding post-processing to clean the scraped markdown content.
+
+### Completed Tasks Checklist
+
+- [x] Audited scraping process and refined strategy based on Firecrawl tool testing.
+
+## Latest Update - 2025-04-21
+
+### Current Status
+
 Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
@@ -82,7 +92,7 @@ The project can be organized into the following phases:
 *   **Avoid Repetition:** Do not duplicate detailed information across multiple documentation files. Each file should serve a specific purpose (e.g., `README.md` for overview, `PROGRESS.md` for development log, `db/schema.sql` for schema details).
 *   **Complementary Information:** Ensure documentation files complement each other, providing different levels of detail or focusing on specific aspects of the project.
 
-**Recent Work:** Implemented content filtering in the backend scraper (`backend/src/scraper.js`) to include only the main article content and exclude social sharing sections, iframes, and images within links. Updated the frontend `ArticleDetail.tsx` component to use `react-markdown` to render the scraped content.
+**Recent Work:** Implemented content filtering in the backend scraper (`backend/src/scraper.js`) to include only the main article content and exclude social sharing sections, iframes, and images within links. Updated the frontend `ArticleDetail.tsx` component to use `react-markdown` to render the scraped content. Refined the scraping strategy by removing specific HTML tag filtering and adding post-processing logic to clean unwanted header/footer text and related article links from the scraped markdown.
 
 **Unresolved Issues:** Currently experiencing a persistent file corruption issue with `backend/src/scraper.js` that prevents reliable saving of changes. Also encountering Groq API rate limits during scraping.
 
