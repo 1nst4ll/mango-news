@@ -40,10 +40,10 @@ The initial project structure is complete, and the backend scraping logic using 
 - [x] Frontend `main.tsx` entry file created (`frontend/src/main.tsx`).
 - [x] Frontend build process successful (`npm run build`).
 - [x] Add full article detail view on the frontend.
+- [x] Develop the administrative interface components (frontend) and backend routes for managing sources.
 
 ### Pending Tasks Checklist
 
-- [ ] Develop the administrative interface components (frontend) and backend routes for managing sources.
 - [ ] Configure the project for deployment on your Inmotion Hosting environment.
 - [ ] Implement trending news logic.
 - [ ] Add user authentication (if required for admin interface).
@@ -55,21 +55,19 @@ The project can be organized into the following phases:
 1.  **Core Data & API:** Set up the database, backend API for sources and articles, and basic frontend display. (Completed)
 2.  **Scraping & AI Integration:** Implement the news scraping logic using Firecrawl and integrate the LLM for summaries. (Completed)
 3.  **Frontend Enhancements:** Add filtering (date range), improve UI/UX with Tailwind/DaisyUI, and create article detail view. (Completed)
-4.  **Admin Interface:** Develop the administrative section for managing sources.
+4.  **Admin Interface:** Develop the administrative section for managing sources. (Completed)
 5.  **Automation & Deployment:** Implement scraping scheduling and configure the project for hosting. (Scheduling Implemented, Deployment Pending)
 6.  **Advanced Features:** Implement trending news and potentially user authentication.
 
-### Detailed Steps for Pending Tasks (Phase 4: Admin Interface)
+### Detailed Steps for Pending Tasks (Phase 5: Automation & Deployment)
 
-*   **Task: Develop Administrative Interface**
-    *   **Step 4.1.1:** Create new frontend components for the admin interface (e.g., `AdminDashboard.tsx`, `SourceManagement.tsx`).
-    *   **Step 4.1.2:** Implement routing in the frontend for the admin section (e.g., `/admin`).
-    *   **Step 4.1.3:** In the `SourceManagement.tsx` component, fetch and display the list of existing news sources using the `GET /api/sources` endpoint.
-    *   **Step 4.1.4:** Add forms and logic to the `SourceManagement.tsx` component for adding new sources (`POST /api/sources`).
-    *   **Step 4.1.5:** Add functionality to edit existing sources (`PUT /api/sources/:id`).
-    *   **Step 4.1.6:** Add functionality to delete sources (`DELETE /api/sources/:id`).
-    *   **Step 4.1.7:** Implement basic validation and error handling for admin actions.
-    *   **Step 4.1.8:** Consider adding a simple navigation link or button in the main `App.tsx` to access the admin interface (perhaps conditionally rendered).
+*   **Task: Configure Project for Deployment**
+    *   **Step 5.1.1:** Review Inmotion Hosting environment details and requirements (e.g., Node.js version, PostgreSQL access, Nginx configuration).
+    *   **Step 5.1.2:** Update backend configuration (e.g., database connection string) to use environment variables suitable for the hosting environment.
+    *   **Step 5.1.3:** Configure Nginx on the hosting server to serve the frontend static files and proxy API requests to the backend Node.js application.
+    *   **Step 5.1.4:** Ensure the `node-cron` scheduler in `backend/src/scraper.js` is configured to run persistently on the server.
+    *   **Step 5.1.5:** Deploy the backend and frontend code to the hosting environment.
+    *   **Step 5.1.6:** Test the deployed application to ensure both frontend and backend are functioning correctly and can connect to the database.
 
 ### Documentation Guidelines
 

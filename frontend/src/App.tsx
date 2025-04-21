@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom'; // Import routing components
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'; // Import routing components
 import NewsFeed from './components/NewsFeed';
 import TopicFilter from './components/TopicFilter';
 import DateRangeFilter from './components/DateRangeFilter'; // Import DateRangeFilter
 import ArticleDetail from './components/ArticleDetail'; // Import ArticleDetail component
+import AdminDashboard from './components/AdminDashboard'; // Import AdminDashboard component
+import SourceManagement from './components/SourceManagement'; // Import SourceManagement component
 import './index.css'; // Import Tailwind CSS
 
 function App() {
@@ -24,7 +26,10 @@ function App() {
   return (
     <BrowserRouter> {/* Wrap the application with BrowserRouter */}
       <div className="container mx-auto p-4"> {/* Added Tailwind container and padding */}
-        <h1 className="text-3xl font-bold mb-4">Turks and Caicos News Aggregator</h1> {/* Added Tailwind classes */}
+        <h1 className="text-3xl font-bold mb-4">
+          Turks and Caicos News Aggregator
+          <Link to="/admin" className="ml-4 text-blue-500 hover:underline text-sm">Admin</Link>
+        </h1> {/* Added Tailwind classes */}
 
         <Routes> {/* Define routes */}
           <Route path="/" element={
@@ -38,6 +43,18 @@ function App() {
             </>
           } />
           <Route path="/article/:id" element={<ArticleDetail />} /> {/* Route for ArticleDetail */}
+          <Route path="/admin" element={
+            <>
+              <Link to="/" className="text-blue-500 hover:underline mb-4 inline-block">Back to News Feed</Link>
+              <AdminDashboard />
+            </>
+          } /> {/* Route for AdminDashboard */}
+          <Route path="/admin/sources" element={
+            <>
+              <Link to="/admin" className="text-blue-500 hover:underline mb-4 inline-block">Back to Admin Dashboard</Link>
+              <SourceManagement />
+            </>
+          } /> {/* Route for SourceManagement */}
         </Routes>
       </div>
     </BrowserRouter>
