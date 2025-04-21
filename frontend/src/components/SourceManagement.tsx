@@ -26,6 +26,7 @@ const SourceManagement: React.FC = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log('Fetched sources:', data); // Log fetched data
         // Ensure fetched sources have enable_ai_summary property, default to true if missing
         setSources(data.map((source: Source) => ({
           ...source,
@@ -64,6 +65,7 @@ const SourceManagement: React.FC = () => {
       alert('Please enter both source name and URL.');
       return;
     }
+    console.log('Adding new source:', newSource); // Log data being sent
     try {
       const response = await fetch('/api/sources', {
         method: 'POST',
@@ -76,6 +78,7 @@ const SourceManagement: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const addedSource = await response.json();
+      console.log('Added source response:', addedSource); // Log response data
       setSources([...sources, addedSource]);
       setNewSource({ name: '', url: '', enable_ai_summary: true }); // Clear form and reset toggle
     } catch (error: any) {
@@ -116,6 +119,7 @@ const SourceManagement: React.FC = () => {
       return;
     }
 
+    console.log('Editing source:', editingSource); // Log data being sent
     try {
       const response = await fetch(`/api/sources/${editingSource.id}`, {
         method: 'PUT',
@@ -128,6 +132,7 @@ const SourceManagement: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const updatedSource = await response.json();
+      console.log('Updated source response:', updatedSource); // Log response data
       setSources(sources.map(source => source.id === updatedSource.id ? updatedSource : source));
       setEditingSource(null); // Close edit form
     } catch (error: any) {

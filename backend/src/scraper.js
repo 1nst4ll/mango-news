@@ -126,7 +126,7 @@ async function generateAISummary(content) {
 
 
 // This function will process the scraped data and save it to the database
-async function processScrapedData(source, markdownContent, metadata) { // Updated function signature
+async function processScrapedData(source, markdownContent, metadata, enableGlobalAiSummary = undefined) { // Accept global toggle state
   console.log(`Processing scraped data for source: ${source.name}`);
   try {
     if (markdownContent) {
@@ -153,9 +153,11 @@ async function processScrapedData(source, markdownContent, metadata) { // Update
         return; // Skip saving if article already exists
       }
 
-      // Generate AI summary only if enabled for the source
+      // Generate AI summary only if enabled for the source or globally
       let summary = null; // Initialize summary as null
-      if (source.enable_ai_summary) {
+      const shouldGenerateSummary = enableGlobalAiSummary !== undefined ? enableGlobalAiSummary : source.enable_ai_summary;
+
+      if (shouldGenerateSummary) {
         summary = await generateAISummary(raw_content);
       }
 
@@ -194,7 +196,7 @@ async function processScrapedData(source, markdownContent, metadata) { // Update
 
 
 // Function to scrape a single article page
-async function scrapeArticlePage(source, articleUrl) {
+async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = undefined) { // Accept global toggle state
   console.log(`Scraping individual article page: ${articleUrl}`);
   try {
     const scrapedResult = await firecrawl.scrapeUrl(articleUrl, {
@@ -204,8 +206,8 @@ async function scrapeArticlePage(source, articleUrl) {
 
     if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
       console.log(`Successfully scraped article: ${scrapedResult.metadata?.title || 'No Title'}`);
-      // Pass the relevant data to processScrapedData
-      await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata);
+      // Pass the relevant data and global toggle state to processScrapedData
+      await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata, enableGlobalAiSummary);
     } else {
       console.error(`Failed to scrape article page: ${articleUrl}`, scrapedResult);
     }
@@ -215,7 +217,7 @@ async function scrapeArticlePage(source, articleUrl) {
 }
 
 
-async function runScraper() {
+async function runScraper(enableGlobalAiSummary = undefined) { // Accept global toggle state
   console.log('Starting news scraping process...');
   const activeSources = await getActiveSources();
 
@@ -251,8 +253,8 @@ async function runScraper() {
         console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
         for (const article of extractedData.extract.articles) { // Iterate over the correct array
           if (article.url) {
-            // Scrape each individual article page
-            await scrapeArticlePage(source, article.url);
+            // Scrape each individual article page, passing the global toggle state
+            await scrapeArticlePage(source, article.url, enableGlobalAiSummary);
           }
         }
       } else {
@@ -314,6 +316,7 @@ async function runScraperForSource(sourceId) {
           console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
           for (const article of extractedData.extract.articles) {
             if (article.url) {
+              // Scrape each individual article page (global toggle is not applicable here as it's per-source trigger)
               await scrapeArticlePage(source, article.url);
             }
           }

@@ -31,9 +31,10 @@ pool.on('error', (err) => {
 
 // Endpoint to manually trigger the scraper
 app.post('/api/scrape/run', async (req, res) => {
+  const { enableGlobalAiSummary } = req.body; // Accept global toggle state
   try {
-    console.log('Manual scraper trigger requested.');
-    runScraper(); // Call the scraper function
+    console.log(`Manual scraper trigger requested. Global AI Summary: ${enableGlobalAiSummary}`);
+    runScraper(enableGlobalAiSummary); // Pass the global toggle state to the scraper function
     res.status(200).json({ message: 'Scraper triggered successfully. Check backend logs for progress.' });
   } catch (err) {
     console.error('Error triggering scraper manually:', err);

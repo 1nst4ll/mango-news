@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
@@ -6,6 +6,17 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [purgeStatus, setPurgeStatus] = useState<string | null>(null); // New state for purge status
   const [purgeLoading, setPurgeLoading] = useState<boolean>(false); // New state for purge loading
+  // State for global AI summary toggle, initialized from localStorage or default to true
+  const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(() => {
+    const saved = localStorage.getItem('enableGlobalAiSummary');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  // Effect to save the toggle state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('enableGlobalAiSummary', JSON.stringify(enableGlobalAiSummary));
+  }, [enableGlobalAiSummary]);
+
 
   const handleTriggerScraper = async () => {
     setLoading(true);
@@ -13,12 +24,16 @@ const AdminDashboard: React.FC = () => {
     try {
       const response = await fetch('/api/scrape/run', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enableGlobalAiSummary }), // Send the toggle state
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'Failed to trigger scraper');
       }
-      setScrapingStatus(data.message || 'Scraper triggered successfully.');
+      setScrapingStatus(data.message || 'Scraper triggered successfully. Check backend logs for progress.');
     } catch (error: any) {
       setScrapingStatus(`Error: ${error.message}`);
     } finally {
@@ -57,20 +72,33 @@ const AdminDashboard: React.FC = () => {
           <li>
             <Link to="/admin/sources" className="text-blue-500 hover:underline">Manage Sources</Link>
           </li>
-          <li className="mt-2"> {/* Added margin top */}
+          <li className="mt-2">
+            <div className="flex items-center"> {/* Use flex to align checkbox and label */}
+              <input
+                type="checkbox"
+                id="enableGlobalAiSummary"
+                name="enableGlobalAiSummary"
+                checked={enableGlobalAiSummary}
+                onChange={(e) => setEnableGlobalAiSummary(e.target.checked)}
+                className="form-checkbox h-5 w-5 text-blue-600 mr-2" // Added margin right
+              />
+              <label htmlFor="enableGlobalAiSummary" className="text-gray-700 text-sm font-bold">Enable AI Summaries for this scrape</label> {/* Added label */}
+            </div>
+          </li>
+          <li className="mt-2">
             <button
               onClick={handleTriggerScraper}
               disabled={loading}
-              className={`btn btn-primary ${loading ? 'loading' : ''}`} // Added DaisyUI button classes
+              className={`btn btn-primary ${loading ? 'loading' : ''}`}
             >
               {loading ? 'Triggering...' : 'Trigger Scraper'}
             </button>
           </li>
-          <li className="mt-2"> {/* Added margin top */}
+          <li className="mt-2">
             <button
-              onClick={handlePurgeArticles} // New handler for purge
-              disabled={purgeLoading} // New loading state for purge
-              className={`btn btn-sm btn-error ${purgeLoading ? 'loading' : ''}`} // Added DaisyUI button classes
+              onClick={handlePurgeArticles}
+              disabled={purgeLoading}
+              className={`btn btn-sm btn-error ${purgeLoading ? 'loading' : ''}`}
             >
               {purgeLoading ? 'Purging...' : 'Purge All Articles'}
             </button>
@@ -78,12 +106,12 @@ const AdminDashboard: React.FC = () => {
         </ul>
       </nav>
       {scrapingStatus && (
-        <div className={`mt-4 alert ${scrapingStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added DaisyUI alert classes */}
+        <div className={`mt-4 alert ${scrapingStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}>
           {scrapingStatus}
         </div>
       )}
-       {purgeStatus && ( // Display purge status
-        <div className={`mt-4 alert ${purgeStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added DaisyUI alert classes */}
+       {purgeStatus && (
+        <div className={`mt-4 alert ${purgeStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}>
           {purgeStatus}
         </div>
       )}
