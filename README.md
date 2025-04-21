@@ -10,7 +10,7 @@ This project aims to build a centralized platform for accessing local news from 
 
 **Note:** This section and the "Implemented Functionality" and "Next Steps" sections should be updated regularly to reflect the current state and plan of the project. Refer to the [Project Progress Log](./PROGRESS.md) for detailed updates and task checklists.
 
-The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript, styled with Tailwind CSS and DaisyUI, and includes routing for navigating between pages. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page has been implemented.
+The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript, styled with Tailwind CSS and DaisyUI, and includes routing for navigating between pages. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page and the administrative interface for managing sources have been implemented.
 
 ## Technology Stack
 
@@ -53,20 +53,29 @@ This structure separates the backend, database, and frontend concerns into disti
 
 *   **Database Schema:** The database schema is defined in [`db/schema.sql`](./db/schema.sql), including tables for `sources`, `articles`, ``topics`, and `article_topics` to store news data and relationships.
 *   **Backend API (`backend/src/index.js`):**
-    *   Configured connection to the PostgreSQL database using the provided credentials.
+    *   Configured connection to the PostgreSQL database using the details provided in the "Database Details" section.
     *   Implemented REST API endpoints for managing news sources:
         *   `GET /api/sources`: Retrieve a list of all news sources.
         *   `POST /api/sources`: Add a new news source.
         *   `PUT /api/sources/:id`: Update an existing news source.
         *   `DELETE /api/sources/:id`: Remove a news source.
     *   Implemented an API endpoint for fetching news articles:
-        *   `GET /api/articles`: Retrieve a list of articles, with basic filtering by topic supported via query parameters (`?topic=`).
+        *   `GET /api/articles`: Retrieve a list of articles, with filtering by topic, start date, and end date supported via query parameters (`?topic=`, `?startDate=`, `?endDate=`).
+    *   Implemented an API endpoint for fetching a single article by ID:
+        *   `GET /api/articles/:id`: Retrieve a single article by its ID.
     *   Implemented an API endpoint for fetching available topics:
         *   `GET /api/topics`: Retrieve a list of all topics.
 *   **Scraping Logic (`backend/src/scraper.js`):**
-    *   The basic structure for the news scraping process is outlined.
-    *   Includes logic to fetch active sources from the database.
-    *   Contains placeholder functions (`triggerScrapeTool`, `processScrapedData`, `generateAISummary`) indicating where integration with the Firecrawl MCP server and an LLM for AI summaries will be implemented. **Note:** Actual integration requires specific API or client library details for the Firecrawl MCP server and the chosen LLM, which are currently pending.
+    *   Implemented logic to fetch active sources from the database.
+    *   Refactored scraping to first extract article links from a source's main page using Firecrawl's `extract` format.
+    *   Implemented logic to then scrape each individual article page using Firecrawl.
+    *   Integrated Groq SDK for AI summary generation with content truncation to avoid API limits.
+    *   Includes basic scheduling using `node-cron`.
+*   **Backend API (`backend/src/index.js`):**
+    *   ... (previous API endpoints remain the same)
+    *   Added endpoint `POST /api/scrape/run` to trigger a full scrape of all active sources.
+    *   Added endpoint `POST /api/scrape/run/:sourceId` to trigger a scrape for a specific source.
+    *   Added endpoint `POST /api/articles/purge` to delete all articles, topics, and article links from the database.
 *   **Frontend UI (`frontend/src/`):**
     *   The frontend is set up using Vite, React, and TypeScript, providing a modern and type-safe development environment.
     *   Tailwind CSS and DaisyUI are configured for streamlined styling.
@@ -74,14 +83,18 @@ This structure separates the backend, database, and frontend concerns into disti
     *   `NewsFeed.tsx`: A component responsible for fetching news articles from the backend API and rendering them in a list. It updates automatically when the selected topic changes and includes links to the article detail page.
     *   `TopicFilter.tsx`: A component that fetches available topics from the backend and provides a dropdown menu for users to filter the news feed by topic.
     *   `ArticleDetail.tsx`: A new component to fetch and display the full content of a single news article based on its ID from the URL, including a back button to return to the news feed.
+    *   Implemented the administrative interface components (`frontend/src/components/AdminDashboard.tsx`, `frontend/src/components/SourceManagement.tsx`) and backend routes for managing sources (`backend/src/index.js`).
+    *   Added "Trigger Scraper" button to Admin Dashboard to initiate a full scrape.
+    *   Added "Scrape Now" buttons next to each source in Source Management to trigger scraping for individual sources.
+    *   Added "Purge All Articles" button to Admin Dashboard to clear the article database.
 
 ## Database Details
 
 *   **Type:** PostgreSQL
-*   **Host:** `news.hoffmanntci.com`
+*   **Host:** `localhost`
 *   **Database Name:** `hoffma24_mangonews`
-*   **Username:** `mango_admin`
-*   **Password:** `o2,TC2Kz08pU`
+*   **Username:** `hoffma24_mangoadmin`
+*   **Password:** `your_password`
 
 ## Setup Instructions
 
@@ -90,7 +103,7 @@ To get the project up and running on your local machine, follow these steps:
 1.  **Clone the repository:** (Instructions will be added later - replace with actual clone command)
 2.  **Database Setup:**
     *   Ensure you have access to the PostgreSQL database using the details provided above.
-    *   Apply the schema defined in [`db/schema.sql`](./db/schema.sql) to your database. You can typically do this using a PostgreSQL client or command-line tools.
+    *   The schema defined in [`db/schema.sql`](./db/schema.sql) has been applied to the database.
 3.  **Backend Setup:**
     *   Navigate to the `backend` directory in your terminal: `cd backend`
     *   Install backend dependencies: `npm install`

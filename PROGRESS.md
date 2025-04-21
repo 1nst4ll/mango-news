@@ -2,11 +2,11 @@
 
 This document tracks the development progress of the Turks and Caicos News Aggregator project. It complements the main `README.md` by providing a detailed log of completed tasks, current status, and planned work, organized into development phases. Avoid repeating information already present in `README.md` where possible, and instead reference it.
 
-## Latest Update - 2025-04-20
+## Latest Update - 2025-04-21
 
 ### Current Status
 
-The initial project structure is complete, and the backend scraping logic using the Firecrawl Node.js SDK and AI summary generation using the Groq SDK have been implemented. Date range filtering has been added to the frontend and backend. Basic styling has been applied to the filter components, and the frontend build process is now successful. The article detail view and frontend routing using `react-router-dom` have been implemented. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
+Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
 
@@ -41,6 +41,13 @@ The initial project structure is complete, and the backend scraping logic using 
 - [x] Frontend build process successful (`npm run build`).
 - [x] Add full article detail view on the frontend.
 - [x] Develop the administrative interface components (frontend) and backend routes for managing sources.
+- [x] Refactor scraper to extract and process individual articles from source pages.
+- [x] Add backend endpoint `POST /api/scrape/run` to trigger full scrape.
+- [x] Add backend endpoint `POST /api/scrape/run/:sourceId` to trigger scrape for individual source.
+- [x] Add backend endpoint `POST /api/articles/purge` to purge articles.
+- [x] Add "Trigger Scraper" button to Admin Dashboard.
+- [x] Add "Scrape Now" buttons for individual sources in Source Management.
+- [x] Add "Purge All Articles" button to Admin Dashboard.
 
 ### Pending Tasks Checklist
 

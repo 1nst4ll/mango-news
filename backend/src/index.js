@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
-
+const cors = require('cors'); // Import cors middleware
+const { runScraper, runScraperForSource } = require('./scraper'); // Import scraper functions
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -13,6 +14,7 @@ const pool = new Pool({
   port: 5432, // Default PostgreSQL port
 });
 
+app.use(cors()); // Use cors middleware
 app.use(express.json()); // Middleware to parse JSON request bodies
 
 // Optional: Log database connection status on startup
@@ -26,6 +28,37 @@ pool.on('error', (err) => {
 
 
 // API Routes
+
+// Endpoint to manually trigger the scraper
+app.post('/api/scrape/run', async (req, res) => {
+  try {
+    console.log('Manual scraper trigger requested.');
+    runScraper(); // Call the scraper function
+    res.status(200).json({ message: 'Scraper triggered successfully. Check backend logs for progress.' });
+  } catch (err) {
+    console.error('Error triggering scraper manually:', err);
+    res.status(500).json({ error: 'Failed to trigger scraper.' });
+  }
+});
+
+// Endpoint to manually trigger scraper for a specific source
+app.post('/api/scrape/run/:sourceId', async (req, res) => {
+  const { sourceId } = req.params;
+  try {
+    console.log(`Manual scraper trigger requested for source ID: ${sourceId}`);
+    // Ensure sourceId is a number
+    const id = parseInt(sourceId, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid source ID.' });
+    }
+    runScraperForSource(id); // Call the scraper function for a specific source
+    res.status(200).json({ message: `Scraper triggered successfully for source ID ${sourceId}. Check backend logs for progress.` });
+  } catch (err) {
+    console.error(`Error triggering scraper manually for source ID ${sourceId}:`, err);
+    res.status(500).json({ error: 'Failed to trigger scraper for source.' });
+  }
+});
+
 
 // API Routes
 app.get('/api/sources', async (req, res) => {
@@ -183,4 +216,20 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
   console.log(`Backend listening at http://localhost:${port}`);
+});
+
+// Endpoint to purge all articles, topics, and article_topics
+app.post('/api/articles/purge', async (req, res) => {
+  try {
+    console.log('Purge articles requested.');
+    // Delete from linking table first due to foreign key constraints
+    await pool.query('DELETE FROM article_topics;');
+    // Then delete from articles and topics tables
+    await pool.query('DELETE FROM articles;');
+    await pool.query('DELETE FROM topics;');
+    res.status(200).json({ message: 'All articles, topics, and article links purged successfully.' });
+  } catch (err) {
+    console.error('Error purging articles:', err);
+    res.status(500).json({ error: 'Failed to purge articles.' });
+  }
 });

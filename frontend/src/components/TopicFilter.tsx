@@ -19,8 +19,7 @@ function TopicFilter({ onSelectTopic }: TopicFilterProps) {
       setLoading(true); // Set loading to true on each fetch
       setError(null); // Clear previous errors
       try {
-        // TODO: Replace with your actual backend API URL
-        const response = await fetch('http://localhost:3000/api/topics');
+        const response = await fetch('/api/topics'); // Use relative path to go through Vite proxy
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

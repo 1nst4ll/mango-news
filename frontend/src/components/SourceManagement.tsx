@@ -12,6 +12,9 @@ const SourceManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [newSource, setNewSource] = useState({ name: '', url: '' });
   const [editingSource, setEditingSource] = useState<Source | null>(null);
+  const [scrapingStatus, setScrapingStatus] = useState<{ [key: number]: string | null }>({}); // State to track scraping status per source
+  const [scrapingLoading, setScrapingLoading] = useState<{ [key: number]: boolean }>({}); // State to track loading state per source
+
 
   useEffect(() => {
     const fetchSources = async () => {
@@ -119,6 +122,26 @@ const SourceManagement: React.FC = () => {
     }
   };
 
+  const handleTriggerScraperForSource = async (sourceId: number) => {
+    setScrapingLoading(prev => ({ ...prev, [sourceId]: true }));
+    setScrapingStatus(prev => ({ ...prev, [sourceId]: null }));
+    try {
+      const response = await fetch(`/api/scrape/run/${sourceId}`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to trigger scraper for source');
+      }
+      setScrapingStatus(prev => ({ ...prev, [sourceId]: data.message || 'Scraper triggered successfully.' }));
+    } catch (error: any) {
+      setScrapingStatus(prev => ({ ...prev, [sourceId]: `Error: ${error.message}` }));
+    } finally {
+      setScrapingLoading(prev => ({ ...prev, [sourceId]: false }));
+    }
+  };
+
+
   return (
     <div>
       <h3>Manage Sources</h3>
@@ -127,9 +150,17 @@ const SourceManagement: React.FC = () => {
           <li key={source.id} className="mb-2 flex justify-between items-center">
             <span>{source.name} ({source.url})</span>
             <div>
+              <button onClick={() => handleTriggerScraperForSource(source.id)} disabled={scrapingLoading[source.id]} className={`btn btn-sm btn-info mr-2 ${scrapingLoading[source.id] ? 'loading' : ''}`}> {/* Added DaisyUI button classes */}
+                {scrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
+              </button>
               <button onClick={() => setEditingSource(source)} className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded mr-2 text-sm">Edit</button>
               <button onClick={() => handleDeleteSource(source.id)} className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm">Delete</button>
             </div>
+            {scrapingStatus[source.id] && (
+              <div className={`mt-2 alert alert-sm ${scrapingStatus[source.id]?.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added DaisyUI alert classes */}
+                {scrapingStatus[source.id]}
+              </div>
+            )}
           </li>
         ))}
       </ul>

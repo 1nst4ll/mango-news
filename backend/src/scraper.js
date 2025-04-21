@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
-const { FirecrawlApp } = require('firecrawl'); // Import FirecrawlApp
+const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting .default)
 const cron = require('node-cron'); // Import node-cron for scheduling
+const Groq = require('groq-sdk'); // Import Groq SDK
 
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
@@ -8,11 +9,16 @@ const pool = new Pool({
   host: 'localhost',
   database: 'hoffma24_mangonews',
   password: 'R3d3d0ndr0N',
-  port: 8081, // Changed port to 8081
+  port: 5432, // Default PostgreSQL port
 });
 
-// Initialize FirecrawlApp with API key
-const firecrawl = new FirecrawlApp({
+// Initialize Groq SDK (replace with your actual API key or environment variable)
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY // Assuming API key is in environment variable
+});
+
+// Initialize Firecrawl client with API key
+const firecrawl = new Firecrawl({
   apiKey: 'fc-58bcd9ad048d45c6aad0e90ed451a089', // Use the provided API key
 });
 
@@ -32,27 +38,35 @@ async function scrapeSource(source) {
   try {
     // Call Firecrawl scrape tool using the SDK
     const scrapedResult = await firecrawl.scrapeUrl(source.url, {
-      params: {
-        formats: ['markdown'], // Request markdown content
-        onlyMainContent: true // Try to get only the main article content
-      }
+      // Removed 'params' key based on API error
+      formats: ['markdown'], // Request markdown content
+      onlyMainContent: true // Try to get only the main article content
     });
 
-    if (scrapedResult && scrapedResult.data) {
-      console.log(`Successfully scraped: ${scrapedResult.data.title || 'No Title'}`);
-      await processScrapedData(source, scrapedResult.data);
+    // Check if the scrape was successful and data is available
+    if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
+      console.log(`Successfully scraped: ${scrapedResult.metadata?.title || 'No Title'}`);
+      // Pass the relevant data to processScrapedData
+      await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata);
     } else {
-      console.error(`Failed to scrape source: ${source.name}`, scrapedResult ? scrapedResult.error : 'No result');
+      console.error(`Failed to scrape source: ${source.name}`, scrapedResult); // Log the full result object
     }
 
   } catch (err) {
-    console.error(`Error during scraping for source ${source.name}:`, err);
+    console.error(`Error during scraping for source ${source.name}:`, err); // Log the full error object
   }
 }
 
 // This function generates AI summaries using the Groq API
 async function generateAISummary(content) {
   console.log('Generating AI summary using Groq...');
+  const maxContentLength = 10000; // Define max content length to avoid hitting token limits
+
+  // Truncate content if it's too long
+  const truncatedContent = content.length > maxContentLength
+    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
+    : content;
+
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: [
@@ -62,7 +76,7 @@ async function generateAISummary(content) {
         },
         {
           role: "user",
-          content: content,
+          content: truncatedContent, // Use truncated content
         }
       ],
       model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
@@ -80,20 +94,20 @@ async function generateAISummary(content) {
 
 
 // This function will process the scraped data and save it to the database
-async function processScrapedData(source, scrapedData) {
+async function processScrapedData(source, markdownContent, metadata) { // Updated function signature
   console.log(`Processing scraped data for source: ${source.name}`);
   try {
-    if (scrapedData && scrapedData.content) {
-      console.log(`Successfully scraped: ${scrapedData.title || 'No Title'}`);
+    if (markdownContent) { // Check if markdown content is available
+      console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`); // Log processed title
 
-      // Extract data from scrapedResult.data and metadata
-      const title = scrapedData.title || scrapedData.metadata?.title || 'No Title';
-      const raw_content = scrapedData.content;
-      const source_url = scrapedData.url || source.url; // Use scraped URL if available, otherwise source URL
+      // Extract data from arguments
+      const title = metadata?.title || 'No Title'; // Get title from metadata
+      const raw_content = markdownContent; // Use markdownContent
+      const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
-      const publication_date = scrapedData.metadata?.publication_date || scrapedData.metadata?.published_date || new Date().toISOString();
+      const publication_date = metadata?.publication_date || metadata?.published_date || new Date().toISOString(); // Get date from metadata
       // Attempt to extract topics/keywords from metadata
-      const topics = scrapedData.metadata?.keywords ? scrapedData.metadata.keywords.split(',').map(topic => topic.trim()) : [];
+      const topics = metadata?.keywords ? metadata.keywords.split(',').map(topic => topic.trim()) : []; // Get topics from metadata
 
 
       // Check if article with the same URL from the same source already exists
@@ -141,12 +155,75 @@ async function processScrapedData(source, scrapedData) {
 }
 
 
+// Function to scrape a single article page
+async function scrapeArticlePage(source, articleUrl) {
+  console.log(`Scraping individual article page: ${articleUrl}`);
+  try {
+    const scrapedResult = await firecrawl.scrapeUrl(articleUrl, {
+      formats: ['markdown'], // Request markdown content
+      onlyMainContent: true // Try to get only the main article content
+    });
+
+    if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
+      console.log(`Successfully scraped article: ${scrapedResult.metadata?.title || 'No Title'}`);
+      // Pass the relevant data to processScrapedData
+      await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata);
+    } else {
+      console.error(`Failed to scrape article page: ${articleUrl}`, scrapedResult);
+    }
+  } catch (err) {
+    console.error(`Error during scraping article page ${articleUrl}:`, err);
+  }
+}
+
+
 async function runScraper() {
   console.log('Starting news scraping process...');
   const activeSources = await getActiveSources();
 
   for (const source of activeSources) {
-    await scrapeSource(source);
+    console.log(`Discovering articles from source: ${source.name} (${source.url})`);
+    try {
+      // Use extract format to get a list of articles from the main page
+      const extractedData = await firecrawl.scrapeUrl(source.url, {
+        formats: ['extract'],
+        extract: {
+          schema: {
+            type: "object",
+            properties: {
+              articles: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: {"type": "string"},
+                    url: {"type": "string"},
+                    date: {"type": "string"} // Keep date for potential use, though individual scrape will get more accurate date
+                  }
+                }
+              }
+            }
+          },
+          prompt: "Extract a list of recent news article links from the page, including their title and URL." // Simplified prompt
+        }
+      });
+
+      // Check if the extraction was successful and articles list is available
+      if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
+        console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
+        for (const article of extractedData.extract.articles) { // Iterate over the correct array
+          if (article.url) {
+            // Scrape each individual article page
+            await scrapeArticlePage(source, article.url);
+          }
+        }
+      } else {
+        console.error(`Failed to extract article list from source: ${source.name}`, extractedData);
+      }
+
+    } catch (err) {
+      console.error(`Error discovering articles for source ${source.name}:`, err);
+    }
   }
 
   console.log('News scraping process finished.');
@@ -161,10 +238,70 @@ cron.schedule('0 * * * *', () => {
 
 console.log('News scraper scheduled to run.');
 
+// Function to run the scraper for a specific source ID
+async function runScraperForSource(sourceId) {
+  console.log(`Starting news scraping process for source ID: ${sourceId}`);
+  try {
+    const result = await pool.query('SELECT * FROM sources WHERE id = $1 AND is_active = TRUE', [sourceId]);
+    const source = result.rows[0];
+
+    if (source) {
+      console.log(`Discovering articles from source: ${source.name} (${source.url})`);
+      try {
+        // Use extract format to get a list of articles from the main page
+        const extractedData = await firecrawl.scrapeUrl(source.url, {
+          formats: ['extract'],
+          extract: {
+            schema: {
+              type: "object",
+              properties: {
+                articles: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      title: {"type": "string"},
+                      url: {"type": "string"},
+                      date: {"type": "string"}
+                    }
+                  }
+                }
+              }
+            },
+            prompt: "Extract a list of recent news article links from the page, including their title and URL."
+          }
+        });
+
+        if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
+          console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
+          for (const article of extractedData.extract.articles) {
+            if (article.url) {
+              await scrapeArticlePage(source, article.url);
+            }
+          }
+        } else {
+          console.error(`Failed to extract article list from source: ${source.name}`, extractedData);
+        }
+
+      } catch (err) {
+        console.error(`Error discovering articles for source ${source.name}:`, err);
+      }
+    } else {
+      console.log(`Source with ID ${sourceId} not found or is not active.`);
+    }
+  } catch (err) {
+    console.error(`Error fetching source with ID ${sourceId}:`, err);
+  }
+
+  console.log(`News scraping process finished for source ID: ${sourceId}.`);
+}
+
+
 // Optional: Run the scraper immediately when the script starts
 // runScraper();
 
 // Export the runScraper function if you want to trigger it manually or from another script
 module.exports = {
   runScraper,
+  runScraperForSource, // Export the new function
 };
