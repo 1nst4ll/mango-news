@@ -202,7 +202,7 @@ async function runScraper() {
                   properties: {
                     title: {"type": "string"},
                     url: {"type": "string"},
-                    date: {"type": "string"} // Keep date for potential use, though individual scrape will get more accurate date
+                    date: {"type": "string"}, // Keep date for potential use, though individual scrape will get more accurate date
                   }
                 }
               }
@@ -264,7 +264,7 @@ async function runScraperForSource(sourceId) {
                     properties: {
                       title: {"type": "string"},
                       url: {"type": "string"},
-                      date: {"type": "string"}
+                      date: {"type": "string"},
                     }
                   }
                 }
