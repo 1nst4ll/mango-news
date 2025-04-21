@@ -100,7 +100,7 @@ const AdminDashboard: React.FC = () => {
             <button
               onClick={handlePurgeArticles}
               disabled={purgeLoading}
-              className={'btn btn-error ' + (purgeLoading ? 'loading' : '')} {/* Changed to btn-error */}
+              className={`btn btn-error ${purgeLoading ? 'loading' : ''}`}
             >
               {purgeLoading ? 'Purging...' : 'Purge All Articles'}
             </button>
