@@ -105,7 +105,12 @@ async function processScrapedData(source, markdownContent, metadata, enableGloba
       console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`);
 
       // The cleaning is now handled by Firecrawl using source-specific selectors
-      const cleanedContent = markdownContent; // Use the markdown directly as it should be cleaned by Firecrawl
+      let cleanedContent = markdownContent; // Use the markdown directly as it should be cleaned by Firecrawl
+
+      // Add a text cleaning step to remove lines containing only "Search"
+      const lines = cleanedContent.split('\n');
+      const linesWithoutSearch = lines.filter(line => line.trim() !== 'Search');
+      cleanedContent = linesWithoutSearch.join('\n');
 
       // Extract data from arguments
       const title = metadata?.title || 'No Title'; // Get title from metadata

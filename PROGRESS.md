@@ -58,6 +58,7 @@ Significant progress has been made on the scraping and administrative features. 
 - [x] Add "Trigger Scraper" button to Admin Dashboard.
 - [x] Add "Scrape Now" buttons for individual sources in Source Management.
 - [x] Add "Purge All Articles" button to Admin Dashboard.
+- [x] Installed `lucide-react` in the frontend.
 
 ### Pending Tasks Checklist
 

@@ -18,6 +18,7 @@ CREATE TABLE articles (
     title VARCHAR(255) NOT NULL,
     source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
     source_url VARCHAR(255), -- Store source URL directly for easier access
+    thumbnail_url VARCHAR(255), -- Add column for thumbnail image URL
     publication_date TIMESTAMP WITH TIME ZONE,
     raw_content TEXT,
     summary TEXT, -- AI-generated summary
