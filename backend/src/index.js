@@ -64,7 +64,7 @@ app.post('/api/scrape/run/:sourceId', async (req, res) => {
 // API Routes
 app.get('/api/sources', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, url, is_active, enable_ai_summary, created_at FROM sources ORDER BY name'); // Include enable_ai_summary
+    const result = await pool.query('SELECT id, name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, created_at FROM sources ORDER BY name'); // Include new selector settings
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching sources:', err);
@@ -73,7 +73,7 @@ app.get('/api/sources', async (req, res) => {
 });
 
 app.post('/api/sources', async (req, res) => {
-  const { name, url, enable_ai_summary } = req.body; // Accept enable_ai_summary
+  const { name, url, enable_ai_summary, include_selectors, exclude_selectors } = req.body; // Accept new selector settings
 
   if (!name || !url) {
     return res.status(400).json({ error: 'Source name and URL are required' });
@@ -81,8 +81,8 @@ app.post('/api/sources', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO sources (name, url, enable_ai_summary) VALUES ($1, $2, $3) RETURNING *', // Include enable_ai_summary in INSERT
-      [name, url, enable_ai_summary]
+      'INSERT INTO sources (name, url, enable_ai_summary, include_selectors, exclude_selectors) VALUES ($1, $2, $3, $4, $5) RETURNING *', // Include new selector settings in INSERT
+      [name, url, enable_ai_summary, include_selectors, exclude_selectors]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -97,16 +97,16 @@ app.post('/api/sources', async (req, res) => {
 
 app.put('/api/sources/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, url, is_active, enable_ai_summary } = req.body; // Accept enable_ai_summary
+  const { name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors } = req.body; // Accept new selector settings
 
-  if (!name || !url || is_active === undefined || enable_ai_summary === undefined) { // Check for enable_ai_summary
-    return res.status(400).json({ error: 'Source name, URL, active status, and AI summary toggle status are required' });
+  if (!name || !url || is_active === undefined || enable_ai_summary === undefined || include_selectors === undefined || exclude_selectors === undefined) { // Check for all required fields
+    return res.status(400).json({ error: 'Source name, URL, active status, AI summary toggle status, and selector settings are required' });
   }
 
   try {
     const result = await pool.query(
-      'UPDATE sources SET name = $1, url = $2, is_active = $3, enable_ai_summary = $4 WHERE id = $5 RETURNING *', // Include enable_ai_summary in UPDATE
-      [name, url, is_active, enable_ai_summary, id]
+      'UPDATE sources SET name = $1, url = $2, is_active = $3, enable_ai_summary = $4, include_selectors = $5, exclude_selectors = $6 WHERE id = $7 RETURNING *', // Include new selector settings in UPDATE
+      [name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, id]
     );
 
     if (result.rows.length === 0) {

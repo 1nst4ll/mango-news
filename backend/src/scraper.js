@@ -22,40 +22,9 @@ const firecrawl = new Firecrawl({
   apiKey: 'fc-58bcd9ad048d45c6aad0e90ed451a089', // Use the provided API key
 });
 
-// Function to clean unwanted content from markdown
-function cleanMarkdownContent(markdownContent) {
-  let cleanedContent = markdownContent;
-
-  // Remove unwanted lines at the beginning
-  const lines = cleanedContent.split('\n');
-  const cleanedLines = lines.filter(line =>
-    !line.trim().startsWith('top of page') &&
-    !line.trim().startsWith('Skip to Main Content') &&
-    !line.trim().startsWith('Search')
-  );
-  cleanedContent = cleanedLines.join('\n');
-
-  // Remove lines containing unwanted image links and regular links (related articles)
-  const linesAfterInitialClean = cleanedContent.split('\n');
-  const linesWithoutRelated = linesAfterInitialClean.filter(line =>
-    !line.trim().match(/^\[!\[.*\]\(.*\)\]\(.*\)$/) && // Remove image links wrapped in links like [![...](...)](...)
-    !line.trim().match(/^\[.*\]\(.*\)$/) // Remove regular links like [...]()
-  );
-  cleanedContent = linesWithoutRelated.join('\n');
-
-  // Remove content from "Back to Top" to the end, and the "bottom of page" line
-  const backToTopRegex = /### \[Back to Top\][\s\S]*/;
-  cleanedContent = cleanedContent.replace(backToTopRegex, '').trim();
-
-  // Remove the "bottom of page" line if it still exists
-  cleanedContent = cleanedContent.replace(/bottom of page\s*$/, '').trim();
-
-  return cleanedContent;
-}
-
-
 async function getActiveSources() {
   try {
+    // Select all columns including the new selector settings
     const result = await pool.query('SELECT * FROM sources WHERE is_active = TRUE');
     return result.rows;
   } catch (err) {
@@ -68,11 +37,14 @@ async function getActiveSources() {
 async function scrapeSource(source) {
   console.log(`Scraping source: ${source.name} (${source.url})`);
   try {
-    // Call Firecrawl scrape tool using the SDK
+    // Call Firecrawl scrape tool using the SDK, passing source settings
     const scrapedResult = await firecrawl.scrapeUrl(source.url, {
       // Removed 'params' key based on API error
       formats: ['markdown'], // Request markdown content
-      onlyMainContent: true // Try to get only the main article content
+      onlyMainContent: true, // Try to get only the main article content
+      // Pass source-specific selectors to Firecrawl
+      includeTags: source.include_selectors ? source.include_selectors.split(',').map(s => s.trim()) : undefined,
+      excludeTags: source.exclude_selectors ? source.exclude_selectors.split(',').map(s => s.trim()) : undefined,
     });
 
     // Check if the scrape was successful and data is available
@@ -132,8 +104,8 @@ async function processScrapedData(source, markdownContent, metadata, enableGloba
     if (markdownContent) {
       console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`);
 
-      // Clean up unwanted content from the markdown using the dedicated function
-      const cleanedContent = cleanMarkdownContent(markdownContent);
+      // The cleaning is now handled by Firecrawl using source-specific selectors
+      const cleanedContent = markdownContent; // Use the markdown directly as it should be cleaned by Firecrawl
 
       // Extract data from arguments
       const title = metadata?.title || 'No Title'; // Get title from metadata
@@ -199,9 +171,12 @@ async function processScrapedData(source, markdownContent, metadata, enableGloba
 async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = undefined) { // Accept global toggle state
   console.log(`Scraping individual article page: ${articleUrl}`);
   try {
+    // Pass source-specific selectors to Firecrawl
     const scrapedResult = await firecrawl.scrapeUrl(articleUrl, {
       formats: ['markdown'], // Request markdown content
-      onlyMainContent: true // Try to get only the main article content
+      onlyMainContent: true, // Try to get only the main article content
+      includeTags: source.include_selectors ? source.include_selectors.split(',').map(s => s.trim()) : undefined,
+      excludeTags: source.exclude_selectors ? source.exclude_selectors.split(',').map(s => s.trim()) : undefined,
     });
 
     if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
@@ -282,6 +257,7 @@ console.log('News scraper scheduled to run.');
 async function runScraperForSource(sourceId) {
   console.log(`Starting news scraping process for source ID: ${sourceId}`);
   try {
+    // Select all columns including the new selector settings
     const result = await pool.query('SELECT * FROM sources WHERE id = $1 AND is_active = TRUE', [sourceId]);
     const source = result.rows[0];
 

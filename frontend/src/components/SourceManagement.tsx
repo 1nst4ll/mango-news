@@ -6,13 +6,16 @@ interface Source {
   url: string;
   is_active: boolean; // Added is_active based on backend
   enable_ai_summary: boolean; // Added enable_ai_summary
+  include_selectors: string | null; // Added include_selectors
+  exclude_selectors: string | null; // Added exclude_selectors
 }
 
 const SourceManagement: React.FC = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [newSource, setNewSource] = useState({ name: '', url: '', enable_ai_summary: true }); // Added enable_ai_summary with default true
+  // Added new selector settings with default null
+  const [newSource, setNewSource] = useState({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null });
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [scrapingStatus, setScrapingStatus] = useState<{ [key: number]: string | null }>({}); // State to track scraping status per source
   const [scrapingLoading, setScrapingLoading] = useState<{ [key: number]: boolean }>({}); // State to track loading state per source
@@ -27,11 +30,13 @@ const SourceManagement: React.FC = () => {
         }
         const data = await response.json();
         console.log('Fetched sources:', data); // Log fetched data
-        // Ensure fetched sources have enable_ai_summary property, default to true if missing
+        // Ensure fetched sources have all properties, default to appropriate values if missing
         setSources(data.map((source: Source) => ({
           ...source,
           enable_ai_summary: source.enable_ai_summary !== undefined ? source.enable_ai_summary : true,
-          is_active: source.is_active !== undefined ? source.is_active : true, // Ensure is_active is also present
+          is_active: source.is_active !== undefined ? source.is_active : true,
+          include_selectors: source.include_selectors !== undefined ? source.include_selectors : null, // Default to null
+          exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null, // Default to null
         })));
       } catch (error: any) {
         setError(error.message);
@@ -51,8 +56,10 @@ const SourceManagement: React.FC = () => {
     return <div>Error loading sources: {error}</div>;
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { // Allow textarea changes
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked; // Cast to HTMLInputElement to access checked
+
     setNewSource({
       ...newSource,
       [name]: type === 'checkbox' ? checked : value,
@@ -80,7 +87,8 @@ const SourceManagement: React.FC = () => {
       const addedSource = await response.json();
       console.log('Added source response:', addedSource); // Log response data
       setSources([...sources, addedSource]);
-      setNewSource({ name: '', url: '', enable_ai_summary: true }); // Clear form and reset toggle
+      // Clear form and reset toggles/inputs to default values
+      setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null });
     } catch (error: any) {
       setError(error.message);
     }
@@ -100,8 +108,10 @@ const SourceManagement: React.FC = () => {
     }
   };
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { // Allow textarea changes
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked; // Cast to HTMLInputElement to access checked
+
     if (editingSource) {
       setEditingSource({
         ...editingSource,
@@ -197,6 +207,15 @@ const SourceManagement: React.FC = () => {
           <label htmlFor="enable_ai_summary" className="block text-gray-700 text-sm font-bold mb-2">Enable AI Summary:</label>
           <input type="checkbox" id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onChange={handleInputChange} className="form-checkbox h-5 w-5 text-blue-600" /> {/* Added checkbox */}
         </div>
+        {/* Added new cleaning settings text areas */}
+        <div className="mb-4">
+          <label htmlFor="include_selectors" className="block text-gray-700 text-sm font-bold mb-2">Include Selectors (comma-separated):</label>
+          <textarea id="include_selectors" name="include_selectors" value={newSource.include_selectors || ''} onChange={handleInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+        </div>
+        <div className="mb-4">
+          <label htmlFor="exclude_selectors" className="block text-gray-700 text-sm font-bold mb-2">Exclude Selectors (comma-separated):</label>
+          <textarea id="exclude_selectors" name="exclude_selectors" value={newSource.exclude_selectors || ''} onChange={handleInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+        </div>
         <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Add Source</button>
       </form>
 
@@ -219,6 +238,15 @@ const SourceManagement: React.FC = () => {
             <div className="mb-4">
               <label htmlFor="edit-enable_ai_summary" className="block text-gray-700 text-sm font-bold mb-2">Enable AI Summary:</label>
               <input type="checkbox" id="edit-enable_ai_summary" name="enable_ai_summary" checked={editingSource.enable_ai_summary} onChange={handleEditInputChange} className="form-checkbox h-5 w-5 text-blue-600" /> {/* Added enable_ai_summary toggle */}
+            </div>
+            {/* Added new cleaning settings text areas */}
+            <div className="mb-4">
+              <label htmlFor="edit-include_selectors" className="block text-gray-700 text-sm font-bold mb-2">Include Selectors (comma-separated):</label>
+              <textarea id="edit-include_selectors" name="include_selectors" value={editingSource.include_selectors || ''} onChange={handleEditInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+            </div>
+            <div className="mb-4">
+              <label htmlFor="edit-exclude_selectors" className="block text-gray-700 text-sm font-bold mb-2">Exclude Selectors (comma-separated):</label>
+              <textarea id="edit-exclude_selectors" name="exclude_selectors" value={editingSource.exclude_selectors || ''} onChange={handleEditInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
             </div>
             <button type="submit" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2 focus:outline-none focus:shadow-outline">Save Changes</button>
             <button type="button" onClick={() => setEditingSource(null)} className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Cancel</button>

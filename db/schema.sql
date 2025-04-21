@@ -7,6 +7,8 @@ CREATE TABLE sources (
     url VARCHAR(255) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     enable_ai_summary BOOLEAN DEFAULT TRUE, -- Add column for AI summary toggle
+    include_selectors TEXT, -- Add column for comma-separated CSS selectors to include
+    exclude_selectors TEXT, -- Add column for comma-separated CSS selectors to exclude
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
