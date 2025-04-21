@@ -10,12 +10,12 @@ This project aims to build a centralized platform for accessing local news from 
 
 **Note:** This section and the "Implemented Functionality" and "Next Steps" sections should be updated regularly to reflect the current state and plan of the project. Refer to the [Project Progress Log](./PROGRESS.md) for detailed updates and task checklists.
 
-The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript, styled with Tailwind CSS and DaisyUI. The backend uses Node.js with Express.js and connects to a PostgreSQL database.
+The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript, styled with Tailwind CSS and DaisyUI, and includes routing for navigating between pages. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page has been implemented.
 
 ## Technology Stack
 
 *   **Backend:** Node.js, Express.js, PostgreSQL
-*   **Frontend:** React, Vite, TypeScript, Tailwind CSS, DaisyUI
+*   **Frontend:** React, Vite, TypeScript, Tailwind CSS, DaisyUI, React Router DOM
 *   **Scraping:** Firecrawl MCP Server (integration pending)
 *   **AI Summaries:** LLM API Integration (pending)
 
@@ -42,6 +42,7 @@ The initial project structure has been set up, and core components for the backe
 │       ├── index.css         # Tailwind CSS directives and global styles
 │       ├── main.tsx          # Frontend entry point (renders App component)
 │       └── components/       # Reusable React components
+│           ├── ArticleDetail.tsx # Component to display a single news article
 │           ├── NewsFeed.tsx    # Component to display news articles
 │           └── TopicFilter.tsx # Component for filtering news by topic
 └── README.md                 # Project overview and main documentation
@@ -69,9 +70,10 @@ This structure separates the backend, database, and frontend concerns into disti
 *   **Frontend UI (`frontend/src/`):**
     *   The frontend is set up using Vite, React, and TypeScript, providing a modern and type-safe development environment.
     *   Tailwind CSS and DaisyUI are configured for streamlined styling.
-    *   `App.tsx`: The main application component that orchestrates the display of the news feed and filtering options.
-    *   `NewsFeed.tsx`: A component responsible for fetching news articles from the backend API and rendering them in a list. It updates automatically when the selected topic changes.
+    *   `App.tsx`: The main application component that orchestrates the display of the news feed and filtering options, now including routing with `react-router-dom`.
+    *   `NewsFeed.tsx`: A component responsible for fetching news articles from the backend API and rendering them in a list. It updates automatically when the selected topic changes and includes links to the article detail page.
     *   `TopicFilter.tsx`: A component that fetches available topics from the backend and provides a dropdown menu for users to filter the news feed by topic.
+    *   `ArticleDetail.tsx`: A new component to fetch and display the full content of a single news article based on its ID from the URL, including a back button to return to the news feed.
 
 ## Database Details
 

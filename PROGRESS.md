@@ -6,7 +6,7 @@ This document tracks the development progress of the Turks and Caicos News Aggre
 
 ### Current Status
 
-The initial project structure is complete, and the backend scraping logic using the Firecrawl Node.js SDK and AI summary generation using the Groq SDK have been implemented. Date range filtering has been added to the frontend and backend. Basic styling has been applied to the filter components, and the frontend build process is now successful. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
+The initial project structure is complete, and the backend scraping logic using the Firecrawl Node.js SDK and AI summary generation using the Groq SDK have been implemented. Date range filtering has been added to the frontend and backend. Basic styling has been applied to the filter components, and the frontend build process is now successful. The article detail view and frontend routing using `react-router-dom` have been implemented. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
 
@@ -39,12 +39,12 @@ The initial project structure is complete, and the backend scraping logic using 
 - [x] Frontend `index.html` entry point created (`frontend/index.html`).
 - [x] Frontend `main.tsx` entry file created (`frontend/src/main.tsx`).
 - [x] Frontend build process successful (`npm run build`).
+- [x] Add full article detail view on the frontend.
 
 ### Pending Tasks Checklist
 
 - [ ] Develop the administrative interface components (frontend) and backend routes for managing sources.
 - [ ] Configure the project for deployment on your Inmotion Hosting environment.
-- [ ] Add full article detail view on the frontend.
 - [ ] Implement trending news logic.
 - [ ] Add user authentication (if required for admin interface).
 
@@ -54,19 +54,22 @@ The project can be organized into the following phases:
 
 1.  **Core Data & API:** Set up the database, backend API for sources and articles, and basic frontend display. (Completed)
 2.  **Scraping & AI Integration:** Implement the news scraping logic using Firecrawl and integrate the LLM for summaries. (Completed)
-3.  **Frontend Enhancements:** Add filtering (date range), improve UI/UX with Tailwind/DaisyUI, and create article detail view. (Date Range Filtering, Basic Styling, and Build Process Completed, Detail View Pending)
+3.  **Frontend Enhancements:** Add filtering (date range), improve UI/UX with Tailwind/DaisyUI, and create article detail view. (Completed)
 4.  **Admin Interface:** Develop the administrative section for managing sources.
 5.  **Automation & Deployment:** Implement scraping scheduling and configure the project for hosting. (Scheduling Implemented, Deployment Pending)
 6.  **Advanced Features:** Implement trending news and potentially user authentication.
 
-### Detailed Steps for Pending Tasks (Phase 3: Frontend Enhancements - Detail View)
+### Detailed Steps for Pending Tasks (Phase 4: Admin Interface)
 
-*   **Task: Add Full Article Detail View**
-    *   **Step 3.2.1:** Create a new frontend component (e.g., `ArticleDetail.tsx`) to display the full content and details of a single article.
-    *   **Step 3.2.2:** Implement routing in the frontend (e.g., using `react-router-dom`) to navigate from the news feed list to the article detail view, passing the article ID as a parameter.
-    *   **Step 3.2.3:** In the `ArticleDetail.tsx` component, fetch the specific article data from the backend API using the article ID from the route parameters (`GET /api/articles/:id`).
-    *   **Step 3.2.4:** Render the full article title, source, date, summary, and raw content in the `ArticleDetail.tsx` component.
-    *   **Step 3.2.5:** Update the `NewsFeed.tsx` component to include links (e.g., using React Router's `Link` component) on each article title or card that navigate to the corresponding article detail view.
+*   **Task: Develop Administrative Interface**
+    *   **Step 4.1.1:** Create new frontend components for the admin interface (e.g., `AdminDashboard.tsx`, `SourceManagement.tsx`).
+    *   **Step 4.1.2:** Implement routing in the frontend for the admin section (e.g., `/admin`).
+    *   **Step 4.1.3:** In the `SourceManagement.tsx` component, fetch and display the list of existing news sources using the `GET /api/sources` endpoint.
+    *   **Step 4.1.4:** Add forms and logic to the `SourceManagement.tsx` component for adding new sources (`POST /api/sources`).
+    *   **Step 4.1.5:** Add functionality to edit existing sources (`PUT /api/sources/:id`).
+    *   **Step 4.1.6:** Add functionality to delete sources (`DELETE /api/sources/:id`).
+    *   **Step 4.1.7:** Implement basic validation and error handling for admin actions.
+    *   **Step 4.1.8:** Consider adding a simple navigation link or button in the main `App.tsx` to access the admin interface (perhaps conditionally rendered).
 
 ### Documentation Guidelines
 

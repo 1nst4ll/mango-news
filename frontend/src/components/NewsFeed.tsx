@@ -93,10 +93,8 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) { // Acc
               </p>
               <p className="text-gray-800">{article.summary}</p> {/* Adjusted text color */}
             </div>
-            {/* TODO: Add link to full article details */}
             <div className="card-actions justify-end mt-4"> {/* DaisyUI card actions */}
-              {/* Example link button - replace with actual routing later */}
-              <button className="btn btn-primary btn-sm">Read More</button>
+              <a href={`/article/${article.id}`} className="btn btn-primary btn-sm">Read More</a> {/* Link to article detail page */}
             </div>
           </div>
         </div>

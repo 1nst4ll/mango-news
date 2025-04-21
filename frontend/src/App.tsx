@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'; // Import routing components
 import NewsFeed from './components/NewsFeed';
 import TopicFilter from './components/TopicFilter';
 import DateRangeFilter from './components/DateRangeFilter'; // Import DateRangeFilter
+import ArticleDetail from './components/ArticleDetail'; // Import ArticleDetail component
 import './index.css'; // Import Tailwind CSS
 
 function App() {
@@ -20,22 +22,25 @@ function App() {
   };
 
   return (
-    <div className="container mx-auto p-4"> {/* Added Tailwind container and padding */}
-      
+    <BrowserRouter> {/* Wrap the application with BrowserRouter */}
+      <div className="container mx-auto p-4"> {/* Added Tailwind container and padding */}
         <h1 className="text-3xl font-bold mb-4">Turks and Caicos News Aggregator</h1> {/* Added Tailwind classes */}
-      
-      
-        {/* News Feed and Filtering components will go here */}
-        
-          <h2 className="text-2xl font-semibold mb-4">News Feed</h2> {/* Added Tailwind classes */}
-          <div className="flex flex-wrap gap-4 mb-4"> {/* Added flex container for filters */}
-            <TopicFilter onSelectTopic={handleTopicSelect} /> {/* Add TopicFilter */}
-            <DateRangeFilter onSelectDateRange={handleDateRangeSelect} /> {/* Add DateRangeFilter */}
-          </div>
-        
-        <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} /> {/* Pass filter states to NewsFeed */}
-      
-    </div> // Changed fragment to div and added Tailwind classes
+
+        <Routes> {/* Define routes */}
+          <Route path="/" element={
+            <> {/* Use a fragment for multiple elements */}
+              <h2 className="text-2xl font-semibold mb-4">News Feed</h2> {/* Added Tailwind classes */}
+              <div className="flex flex-wrap gap-4 mb-4"> {/* Added flex container for filters */}
+                <TopicFilter onSelectTopic={handleTopicSelect} /> {/* Add TopicFilter */}
+                <DateRangeFilter onSelectDateRange={handleDateRangeSelect} /> {/* Add DateRangeFilter */}
+              </div>
+              <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} /> {/* Pass filter states to NewsFeed */}
+            </>
+          } />
+          <Route path="/article/:id" element={<ArticleDetail />} /> {/* Route for ArticleDetail */}
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
