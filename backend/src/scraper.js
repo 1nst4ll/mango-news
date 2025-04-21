@@ -3,95 +3,9 @@ const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting 
 const cron = require('node-cron'); // Import node-cron for scheduling
 const Groq = require('groq-sdk'); // Import Groq SDK
 
-// Database connection pool (using the same pool as the API)
-const pool = new Pool({
-  user: 'hoffma24_mangoadmin',
-  host: 'localhost',
-  database: 'hoffma24_mangonews',
-  password: 'R3d3d0ndr0N',
-  port: 5432, // Default PostgreSQL port
-});
-
-// Initialize Groq SDK (replace with your actual API key or environment variable)
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY // Assuming API key is in environment variable
-});
-
-// Initialize Firecrawl client with API key
-const firecrawl = new Firecrawl({
-  apiKey: 'fc-58bcd9ad048d45c6aad0e90ed451a089', // Use the provided API key
-});
-
-async function getActiveSources() {
-  try {
-    const result = await pool.query('SELECT * FROM sources WHERE is_active = TRUE');
-    return result.rows;
-  } catch (err) {
-    console.error('Error fetching active sources:', err);
-    return [];
-  }
-}
-
-// This function will call the Firecrawl scrape tool
-async function scrapeSource(source) {
-  console.log(`Scraping source: ${source.name} (${source.url})`);
-  try {
-    // Call Firecrawl scrape tool using the SDK
-    const scrapedResult = await firecrawl.scrapeUrl(source.url, {
-      // Removed 'params' key based on API error
-      formats: ['markdown'], // Request markdown content
-      onlyMainContent: true // Try to get only the main article content
-    });
-
-    // Check if the scrape was successful and data is available
-    if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
-      console.log(`Successfully scraped: ${scrapedResult.metadata?.title || 'No Title'}`);
-      // Pass the relevant data to processScrapedData
-      await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata);
-    } else {
-      console.error(`Failed to scrape source: ${source.name}`, scrapedResult); // Log the full result object
-    }
-
-  } catch (err) {
-    console.error(`Error during scraping for source ${source.name}:`, err); // Log the full error object
-  }
-}
-
-// This function generates AI summaries using the Groq API
-async function generateAISummary(content) {
-  console.log('Generating AI summary using Groq...');
-  const maxContentLength = 10000; // Define max content length to avoid hitting token limits
-
-  // Truncate content if it's too long
-  const truncatedContent = content.length > maxContentLength
-    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
-    : content;
-
-  try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: "Summarize the following news article content concisely."
-        },
-        {
-          role: "user",
-          content: truncatedContent, // Use truncated content
-        }
-      ],
-      model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
-      temperature: 0.7, // Adjust temperature as needed
-      max_tokens: 150, // Adjust max tokens for summary length
-    });
-
-    return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
-
-  } catch (llmErr) {
-    console.error('Error generating AI summary with Groq:', llmErr);
-    return "Summary generation failed."; // Return a default or error message
-  }
-}
-
+let pool;
+let groq;
+let firecrawl;
 
 // This function will process the scraped data and save it to the database
 async function processScrapedData(source, markdownContent, metadata) { // Updated function signature
@@ -112,11 +26,12 @@ async function processScrapedData(source, markdownContent, metadata) { // Update
       );
       cleanedContent = cleanedLines.join('\n');
 
-      // Remove content from "Back to Top" to the end
-      const backToTopIndex = cleanedContent.indexOf('### [Back to Top]');
-      if (backToTopIndex !== -1) {
-        cleanedContent = cleanedContent.substring(0, backToTopIndex).trim();
-      }
+      // Remove content from "Back to Top" to the end, and the "bottom of page" line
+      const backToTopRegex = /### \[Back to Top\][\s\S]*/;
+      cleanedContent = cleanedContent.replace(backToTopRegex, '').trim();
+
+      // Remove the "bottom of page" line if it still exists
+      cleanedContent = cleanedContent.replace(/bottom of page\s*$/, '').trim();
 
       // Extract data from arguments
       const title = metadata?.title || 'No Title'; // Get title from metadata
@@ -195,6 +110,16 @@ async function scrapeArticlePage(source, articleUrl) {
 }
 
 
+async function getActiveSources() {
+  try {
+    const result = await pool.query('SELECT * FROM sources WHERE is_active = TRUE');
+    return result.rows;
+  } catch (err) {
+    console.error('Error fetching active sources:', err);
+    return [];
+  }
+}
+
 async function runScraper() {
   console.log('Starting news scraping process...');
   const activeSources = await getActiveSources();
@@ -246,15 +171,6 @@ async function runScraper() {
 
   console.log('News scraping process finished.');
 }
-
-// Schedule the scraper to run periodically (e.g., every hour)
-// TODO: Adjust the cron schedule as needed
-cron.schedule('0 * * * *', () => {
-  console.log('Running scheduled scraping job...');
-  runScraper();
-});
-
-console.log('News scraper scheduled to run.');
 
 // Function to run the scraper for a specific source ID
 async function runScraperForSource(sourceId) {
@@ -323,3 +239,35 @@ module.exports = {
   runScraper,
   runScraperForSource, // Export the new function
 };
+
+if (!module.parent) {
+  // This block runs only when the script is executed directly
+
+  // Database connection pool (using the same pool as the API)
+  pool = new Pool({
+    user: 'hoffma24_mangoadmin',
+    host: 'localhost',
+    database: 'hoffma24_mangonews',
+    password: 'R3d3d0ndr0N',
+    port: 5432, // Default PostgreSQL port
+  });
+
+  // Initialize Groq SDK (replace with your actual API key or environment variable)
+  groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY // Assuming API key is in environment variable
+  });
+
+  // Initialize Firecrawl client with API key
+  firecrawl = new Firecrawl({
+    apiKey: 'fc-58bcd9ad048d45c6aad0e90ed451a089', // Use the provided API key
+  });
+
+  // Schedule the scraper to run periodically (e.g., every hour)
+  // TODO: Adjust the cron schedule as needed
+  cron.schedule('0 * * * *', () => {
+    console.log('Running scheduled scraping job...');
+    runScraper();
+  });
+
+  console.log('News scraper scheduled to run.');
+}
