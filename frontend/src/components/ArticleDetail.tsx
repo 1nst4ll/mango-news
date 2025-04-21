@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; // Import useParams and useNavigate
+import ReactMarkdown from 'react-markdown'; // Import ReactMarkdown
+import remarkGfm from 'remark-gfm'; // Import remark-gfm
 
 interface Article {
   id: number;
@@ -86,8 +88,8 @@ function ArticleDetail() {
         Source: <span className="font-semibold">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
       </p>
       <div className="prose max-w-none"> {/* Use prose class for basic typography */}
-        {/* Display raw_content - consider using a library to render markdown/HTML if needed */}
-        <p>{article.raw_content}</p>
+        {/* Display raw_content using ReactMarkdown */}
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
       </div>
     </div>
   );

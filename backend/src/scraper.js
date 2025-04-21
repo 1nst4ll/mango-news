@@ -87,7 +87,7 @@ async function generateAISummary(content) {
     return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
 
   } catch (llmErr) {
-    console.error('Error generating AI summary with Groq:', llmErr);
+    console.error('Error generating AI summary with Groq:', llllmErr);
     return "Summary generation failed."; // Return a default or error message
   }
 }
@@ -99,6 +99,9 @@ async function processScrapedData(source, markdownContent, metadata) { // Update
   try {
     if (markdownContent) { // Check if markdown content is available
       console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`); // Log processed title
+      console.log('--- Filtered Markdown Content ---');
+      console.log(markdownContent);
+      console.log('-------------------------------');
 
       // Extract data from arguments
       const title = metadata?.title || 'No Title'; // Get title from metadata
@@ -161,7 +164,8 @@ async function scrapeArticlePage(source, articleUrl) {
   try {
     const scrapedResult = await firecrawl.scrapeUrl(articleUrl, {
       formats: ['markdown'], // Request markdown content
-      onlyMainContent: true // Try to get only the main article content
+      includeTags: ['div#mvp-content-main'], // Include only the main content div
+      excludeTags: ['div.sharedaddy', 'iframe', 'a img'] // Exclude social sharing div, iframes, and images within links within the main content
     });
 
     if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
@@ -202,27 +206,25 @@ async function runScraper() {
                   }
                 }
               }
-            }
-          },
-          prompt: "Extract a list of recent news article links from the page, including their title and URL." // Simplified prompt
-        }
-      });
-
-      // Check if the extraction was successful and articles list is available
-      if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
-        console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
-        for (const article of extractedData.extract.articles) { // Iterate over the correct array
-          if (article.url) {
-            // Scrape each individual article page
-            await scrapeArticlePage(source, article.url);
+            },
+            prompt: "Extract a list of recent news article links from the page, including their title and URL." // Simplified prompt
           }
-        }
-      } else {
-        console.error(`Failed to extract article list from source: ${source.name}`, extractedData);
-      }
+        });
 
-    } catch (err) {
-      console.error(`Error discovering articles for source ${source.name}:`, err);
+        if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
+          console.log(`Found ${extractedData.extract.articles.length} potential articles from ${source.name}.`);
+          for (const article of extractedData.extract.articles) { // Iterate over the correct array
+            if (article.url) {
+              await scrapeArticlePage(source, article.url);
+            }
+          }
+        } else {
+          console.error(`Failed to extract article list from source: ${source.name}`, extractedData);
+        }
+
+      } catch (err) {
+        console.error(`Error discovering articles for source ${source.name}:`, err);
+      }
     }
   }
 

@@ -82,7 +82,7 @@ This structure separates the backend, database, and frontend concerns into disti
     *   `App.tsx`: The main application component that orchestrates the display of the news feed and filtering options, now including routing with `react-router-dom`.
     *   `NewsFeed.tsx`: A component responsible for fetching news articles from the backend API and rendering them in a list. It updates automatically when the selected topic changes and includes links to the article detail page.
     *   `TopicFilter.tsx`: A component that fetches available topics from the backend and provides a dropdown menu for users to filter the news feed by topic.
-    *   `ArticleDetail.tsx`: A new component to fetch and display the full content of a single news article based on its ID from the URL, including a back button to return to the news feed.
+    *   `ArticleDetail.tsx`: A new component to fetch and display the full content of a single news article based on its ID from the URL. This component now uses `react-markdown` to render the markdown content fetched from the backend, and includes a back button to return to the news feed.
     *   Implemented the administrative interface components (`frontend/src/components/AdminDashboard.tsx`, `frontend/src/components/SourceManagement.tsx`) and backend routes for managing sources (`backend/src/index.js`).
     *   Added "Trigger Scraper" button to Admin Dashboard to initiate a full scrape.
     *   Added "Scrape Now" buttons next to each source in Source Management to trigger scraping for individual sources.

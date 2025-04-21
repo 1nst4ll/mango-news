@@ -82,6 +82,10 @@ The project can be organized into the following phases:
 *   **Avoid Repetition:** Do not duplicate detailed information across multiple documentation files. Each file should serve a specific purpose (e.g., `README.md` for overview, `PROGRESS.md` for development log, `db/schema.sql` for schema details).
 *   **Complementary Information:** Ensure documentation files complement each other, providing different levels of detail or focusing on specific aspects of the project.
 
+**Recent Work:** Implemented content filtering in the backend scraper (`backend/src/scraper.js`) to include only the main article content and exclude social sharing sections, iframes, and images within links. Updated the frontend `ArticleDetail.tsx` component to use `react-markdown` to render the scraped content.
+
+**Unresolved Issues:** Currently experiencing a persistent file corruption issue with `backend/src/scraper.js` that prevents reliable saving of changes. Also encountering Groq API rate limits during scraping.
+
 ---
 
 **Instructions for Updating this Log:**
