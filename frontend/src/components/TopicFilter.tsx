@@ -65,7 +65,7 @@ function TopicFilter({ onSelectTopic }: TopicFilterProps) {
       <label className="label"> {/* Added label classes */}
         <span className="label-text">Filter by Topic:</span> {/* Added label text classes */}
       </label>
-      <select id="topic-select" onChange={handleSelectChange} className="select select-bordered"> {/* Added DaisyUI select classes */}
+      <select id="topic-select" onChange={handleSelectChange} className="select select-bordered select-sm"> {/* Added DaisyUI select classes and size */}
         <option value="">All Topics</option>
         {topics.map(topic => (
           <option key={topic.id} value={topic.name}>
