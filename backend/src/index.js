@@ -63,7 +63,7 @@ app.post('/api/scrape/run/:sourceId', async (req, res) => {
 // API Routes
 app.get('/api/sources', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM sources ORDER BY name');
+    const result = await pool.query('SELECT id, name, url, is_active, enable_ai_summary, created_at FROM sources ORDER BY name'); // Include enable_ai_summary
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching sources:', err);
@@ -72,7 +72,7 @@ app.get('/api/sources', async (req, res) => {
 });
 
 app.post('/api/sources', async (req, res) => {
-  const { name, url } = req.body;
+  const { name, url, enable_ai_summary } = req.body; // Accept enable_ai_summary
 
   if (!name || !url) {
     return res.status(400).json({ error: 'Source name and URL are required' });
@@ -80,8 +80,8 @@ app.post('/api/sources', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO sources (name, url) VALUES ($1, $2) RETURNING *',
-      [name, url]
+      'INSERT INTO sources (name, url, enable_ai_summary) VALUES ($1, $2, $3) RETURNING *', // Include enable_ai_summary in INSERT
+      [name, url, enable_ai_summary]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -96,16 +96,16 @@ app.post('/api/sources', async (req, res) => {
 
 app.put('/api/sources/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, url, is_active } = req.body;
+  const { name, url, is_active, enable_ai_summary } = req.body; // Accept enable_ai_summary
 
-  if (!name || !url || is_active === undefined) {
-    return res.status(400).json({ error: 'Source name, URL, and active status are required' });
+  if (!name || !url || is_active === undefined || enable_ai_summary === undefined) { // Check for enable_ai_summary
+    return res.status(400).json({ error: 'Source name, URL, active status, and AI summary toggle status are required' });
   }
 
   try {
     const result = await pool.query(
-      'UPDATE sources SET name = $1, url = $2, is_active = $3 WHERE id = $4 RETURNING *',
-      [name, url, is_active, id]
+      'UPDATE sources SET name = $1, url = $2, is_active = $3, enable_ai_summary = $4 WHERE id = $5 RETURNING *', // Include enable_ai_summary in UPDATE
+      [name, url, is_active, enable_ai_summary, id]
     );
 
     if (result.rows.length === 0) {

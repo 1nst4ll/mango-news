@@ -6,6 +6,7 @@ CREATE TABLE sources (
     name VARCHAR(255) NOT NULL,
     url VARCHAR(255) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
+    enable_ai_summary BOOLEAN DEFAULT TRUE, -- Add column for AI summary toggle
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
