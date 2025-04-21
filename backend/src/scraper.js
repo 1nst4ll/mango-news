@@ -8,7 +8,7 @@ const pool = new Pool({
   host: 'localhost',
   database: 'hoffma24_mangonews',
   password: 'R3d3d0ndr0N',
-  port: 5432, // Default PostgreSQL port
+  port: 8081, // Changed port to 8081
 });
 
 // Initialize FirecrawlApp with API key

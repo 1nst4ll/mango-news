@@ -2,7 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8081; // Changed port to 8081
 
 // Database connection pool
 const pool = new Pool({
