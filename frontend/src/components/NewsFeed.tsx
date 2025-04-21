@@ -85,7 +85,7 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) { // Acc
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Increased gap */}
       {articles.map(article => (
         <div key={article.id} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300 flex flex-col"> {/* Added hover effect and flex for layout */}
-          <div className="card-body flex flex-col justify-between"> {/* Added flex for layout */}
+          <div className="card-body flex flex-col justify-between p-4 sm:p-6"> {/* Added flex for layout, adjusted padding */}
             <div> {/* Container for title, source, date, summary */}
               <h3 className="card-title text-xl font-bold mb-2">{article.title}</h3> {/* Ensured bold title */}
               <p className="text-sm text-gray-600 mb-2"> {/* Adjusted text color */}

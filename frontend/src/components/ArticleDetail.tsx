@@ -79,12 +79,12 @@ function ArticleDetail() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 sm:p-6"> {/* Adjusted padding for mobile */}
       <button onClick={handleBackClick} className="btn btn-ghost btn-sm mb-4"> {/* Added back button */}
         &larr; Back to News Feed
       </button>
-      <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
-      <p className="text-sm text-gray-600 mb-4">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4">{article.title}</h1> {/* Adjusted title size for mobile */}
+      <p className="text-xs sm:text-sm text-gray-600 mb-4"> {/* Adjusted text size for mobile */}
         Source: <span className="font-semibold">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
       </p>
       <div className="prose max-w-none"> {/* Use prose class for basic typography */}

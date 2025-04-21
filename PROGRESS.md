@@ -12,12 +12,13 @@ Audited the existing scraping process and reevaluated the strategy using the Fir
 
 - [x] Audited scraping process and refined strategy based on Firecrawl tool testing.
 - [x] Applied DaisyUI styling to frontend components (`App.tsx`, `NewsFeed.tsx`, `TopicFilter.tsx`, `DateRangeFilter.tsx`, `ArticleDetail.tsx`, `AdminDashboard.tsx`, `SourceManagement.tsx`).
+- [x] Implemented mobile-first responsive design for frontend components (`NewsFeed.tsx`, `ArticleDetail.tsx`, `SourceManagement.tsx`).
 
 ## Latest Update - 2025-04-21
 
 ### Current Status
 
-Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
+Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. Applied DaisyUI styling and implemented mobile-first responsive design for the frontend components. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
 
