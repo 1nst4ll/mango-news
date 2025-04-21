@@ -6,7 +6,7 @@ This document tracks the development progress of the Turks and Caicos News Aggre
 
 ### Current Status
 
-The initial project structure is complete, and the backend scraping logic using the Firecrawl Node.js SDK and AI summary generation using the Groq SDK have been implemented. Date range filtering has been added to the frontend and backend. Basic styling has been applied to the filter components. The frontend build process is now successful. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
+The initial project structure is complete, and the backend scraping logic using the Firecrawl Node.js SDK and AI summary generation using the Groq SDK have been implemented. Date range filtering has been added to the frontend and backend. Basic styling has been applied to the filter components, and the frontend build process is now successful. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
 
