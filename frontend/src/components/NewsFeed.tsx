@@ -82,19 +82,19 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) { // Acc
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Increased gap */}
+    <div>
       {articles.map(article => (
-        <div key={article.id} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300 flex flex-col"> {/* Added hover effect and flex for layout */}
-          <div className="card-body flex flex-col justify-between p-4 sm:p-6"> {/* Added flex for layout, adjusted padding */}
-            <div> {/* Container for title, source, date, summary */}
-              <h3 className="card-title text-xl font-bold mb-2">{article.title}</h3> {/* Ensured bold title */}
-              <p className="text-sm text-gray-600 mb-2"> {/* Adjusted text color */}
-                Source: <span className="font-semibold">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()} {/* Highlighted source */}
+        <div key={article.id}>
+          <div>
+            <div>
+              <h3>{article.title}</h3>
+              <p>
+                Source: <span>{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
               </p>
-              <p className="text-gray-800">{article.summary}</p> {/* Adjusted text color */}
+              <p>{article.summary}</p>
             </div>
-            <div className="card-actions justify-end mt-4"> {/* DaisyUI card actions */}
-              <a href={`/article/${article.id}`} className="btn btn-primary btn-sm">Read More</a> {/* Link to article detail page */}
+            <div>
+              <a href={`/article/${article.id}`}>Read More</a>
             </div>
           </div>
         </div>

@@ -65,24 +65,23 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-4"> {/* Added padding */}
-      <h2 className="text-2xl font-bold mb-4">Admin Dashboard</h2> {/* Added text size and bold */}
-      <nav className="mt-4">
-        <ul className="space-y-2"> {/* Added space between list items */}
+    <div>
+      <h2>Admin Dashboard</h2>
+      <nav>
+        <ul>
           <li>
-            <Link to="/admin/sources" className="btn btn-link">Manage Sources</Link> {/* DaisyUI link button */}
+            <Link to="/admin/sources">Manage Sources</Link>
           </li>
           <li>
-            <div className="form-control"> {/* DaisyUI form control */}
-              <label className="label cursor-pointer"> {/* DaisyUI label */}
-                <span className="label-text">Enable AI Summaries for this scrape</span> {/* DaisyUI label text */}
+            <div>
+              <label>
+                <span>Enable AI Summaries for this scrape</span>
                 <input
                   type="checkbox"
                   id="enableGlobalAiSummary"
                   name="enableGlobalAiSummary"
                   checked={enableGlobalAiSummary}
                   onChange={(e) => setEnableGlobalAiSummary(e.target.checked)}
-                  className="toggle toggle-primary" // DaisyUI toggle switch
                 />
               </label>
             </div>
@@ -91,7 +90,6 @@ const AdminDashboard: React.FC = () => {
             <button
               onClick={handleTriggerScraper}
               disabled={loading}
-              className={`btn btn-primary ${loading ? 'loading' : ''}`}
             >
               {loading ? 'Triggering...' : 'Trigger Scraper'}
             </button>
@@ -100,7 +98,6 @@ const AdminDashboard: React.FC = () => {
             <button
               onClick={handlePurgeArticles}
               disabled={purgeLoading}
-              className={`btn btn-error ${purgeLoading ? 'loading' : ''}`}
             >
               {purgeLoading ? 'Purging...' : 'Purge All Articles'}
             </button>
@@ -108,12 +105,12 @@ const AdminDashboard: React.FC = () => {
         </ul>
       </nav>
       {scrapingStatus && (
-        <div role="alert" className={`alert mt-4 ${scrapingStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added role="alert" and DaisyUI alert classes */}
+        <div>
           {scrapingStatus}
         </div>
       )}
        {purgeStatus && (
-        <div role="alert" className={`alert mt-4 ${purgeStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added role="alert" and DaisyUI alert classes */}
+        <div>
           {purgeStatus}
         </div>
       )}
