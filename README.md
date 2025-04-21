@@ -84,7 +84,6 @@ This structure separates the backend, database, and frontend concerns into disti
     *   `NewsFeed.tsx`: A component responsible for fetching news articles from the backend API and rendering them in a list. It updates automatically when the selected topic changes and includes links to the article detail page.
     *   `TopicFilter.tsx`: A component that fetches available topics from the backend and provides a dropdown menu for users to filter the news feed by topic.
     *   `ArticleDetail.tsx`: A new component to fetch and display the full content of a single news article based on its ID from the URL. This component now uses `react-markdown` to render the markdown content fetched from the backend, and includes a back button to return to the news feed.
-    *   `TurksAndCaicosNewsAggregator.tsx`: A new component implementing the main news aggregator UI with styling, search, filtering, and source discovery features.
     *   Implemented the administrative interface components (`frontend/src/components/AdminDashboard.tsx`, `frontend/src/components/SourceManagement.tsx`) and backend routes for managing sources (`backend/src/index.js`).
     *   Added "Trigger Scraper" button to Admin Dashboard to initiate a full scrape.
     *   Added "Scrape Now" buttons next to each source in Source Management to trigger scraping for individual sources.

@@ -65,27 +65,29 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div>
-      <h2>Admin Dashboard</h2>
+    <div className="p-4"> {/* Added padding */}
+      <h2 className="text-2xl font-bold mb-4">Admin Dashboard</h2> {/* Added text size and bold */}
       <nav className="mt-4">
-        <ul>
+        <ul className="space-y-2"> {/* Added space between list items */}
           <li>
-            <Link to="/admin/sources" className="text-blue-500 hover:underline">Manage Sources</Link>
+            <Link to="/admin/sources" className="btn btn-link">Manage Sources</Link> {/* DaisyUI link button */}
           </li>
-          <li className="mt-2">
-            <div className="flex items-center"> {/* Use flex to align checkbox and label */}
-              <input
-                type="checkbox"
-                id="enableGlobalAiSummary"
-                name="enableGlobalAiSummary"
-                checked={enableGlobalAiSummary}
-                onChange={(e) => setEnableGlobalAiSummary(e.target.checked)}
-                className="form-checkbox h-5 w-5 text-blue-600 mr-2" // Added margin right
-              />
-              <label htmlFor="enableGlobalAiSummary" className="text-gray-700 text-sm font-bold">Enable AI Summaries for this scrape</label> {/* Added label */}
+          <li>
+            <div className="form-control"> {/* DaisyUI form control */}
+              <label className="label cursor-pointer"> {/* DaisyUI label */}
+                <span className="label-text">Enable AI Summaries for this scrape</span> {/* DaisyUI label text */}
+                <input
+                  type="checkbox"
+                  id="enableGlobalAiSummary"
+                  name="enableGlobalAiSummary"
+                  checked={enableGlobalAiSummary}
+                  onChange={(e) => setEnableGlobalAiSummary(e.target.checked)}
+                  className="toggle toggle-primary" // DaisyUI toggle switch
+                />
+              </label>
             </div>
           </li>
-          <li className="mt-2">
+          <li>
             <button
               onClick={handleTriggerScraper}
               disabled={loading}
@@ -94,11 +96,11 @@ const AdminDashboard: React.FC = () => {
               {loading ? 'Triggering...' : 'Trigger Scraper'}
             </button>
           </li>
-          <li className="mt-2">
+          <li>
             <button
               onClick={handlePurgeArticles}
               disabled={purgeLoading}
-              className={`btn btn-sm btn-error ${purgeLoading ? 'loading' : ''}`}
+              className={'btn btn-error ' + (purgeLoading ? 'loading' : '')} {/* Changed to btn-error */}
             >
               {purgeLoading ? 'Purging...' : 'Purge All Articles'}
             </button>
@@ -106,12 +108,12 @@ const AdminDashboard: React.FC = () => {
         </ul>
       </nav>
       {scrapingStatus && (
-        <div className={`mt-4 alert ${scrapingStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}>
+        <div role="alert" className={`alert mt-4 ${scrapingStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added role="alert" and DaisyUI alert classes */}
           {scrapingStatus}
         </div>
       )}
        {purgeStatus && (
-        <div className={`mt-4 alert ${purgeStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}>
+        <div role="alert" className={`alert mt-4 ${purgeStatus.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added role="alert" and DaisyUI alert classes */}
           {purgeStatus}
         </div>
       )}

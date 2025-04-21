@@ -11,6 +11,7 @@ Audited the existing scraping process and reevaluated the strategy using the Fir
 ### Completed Tasks Checklist
 
 - [x] Audited scraping process and refined strategy based on Firecrawl tool testing.
+- [x] Applied DaisyUI styling to frontend components (`App.tsx`, `NewsFeed.tsx`, `TopicFilter.tsx`, `DateRangeFilter.tsx`, `ArticleDetail.tsx`, `AdminDashboard.tsx`, `SourceManagement.tsx`).
 
 ## Latest Update - 2025-04-21
 
@@ -58,7 +59,6 @@ Significant progress has been made on the scraping and administrative features. 
 - [x] Add "Trigger Scraper" button to Admin Dashboard.
 - [x] Add "Scrape Now" buttons for individual sources in Source Management.
 - [x] Add "Purge All Articles" button to Admin Dashboard.
-- [x] Installed `lucide-react` in the frontend.
 
 ### Pending Tasks Checklist
 

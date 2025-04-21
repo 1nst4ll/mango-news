@@ -171,21 +171,23 @@ const SourceManagement: React.FC = () => {
 
 
   return (
-    <div>
-      <h3>Manage Sources</h3>
-      <ul>
+    <div className="p-4"> {/* Added padding */}
+      <h3 className="text-2xl font-bold mb-4">Manage Sources</h3> {/* Added text size and bold */}
+      <ul className="space-y-4"> {/* Added space between list items */}
         {sources.map((source) => (
-          <li key={source.id} className="mb-2 flex justify-between items-center">
-            <span>{source.name} ({source.url})</span>
-            <div>
-              <button onClick={() => handleTriggerScraperForSource(source.id)} disabled={scrapingLoading[source.id]} className={`btn btn-sm btn-info mr-2 ${scrapingLoading[source.id] ? 'loading' : ''}`}>
+          <li key={source.id} className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4"> {/* Added flex for layout, border, and padding */}
+            <div className="mb-2 md:mb-0"> {/* Added margin bottom for mobile */}
+              <span className="font-semibold">{source.name}</span> ({source.url})
+            </div>
+            <div className="flex flex-wrap gap-2"> {/* Added flex and gap for buttons */}
+              <button onClick={() => handleTriggerScraperForSource(source.id)} disabled={scrapingLoading[source.id]} className={`btn btn-info btn-sm ${scrapingLoading[source.id] ? 'loading' : ''}`}>
                 {scrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
               </button>
-              <button onClick={() => setEditingSource(source)} className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded mr-2 text-sm">Edit</button>
-              <button onClick={() => handleDeleteSource(source.id)} className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm">Delete</button>
+              <button onClick={() => setEditingSource(source)} className="btn btn-warning btn-sm">Edit</button> {/* DaisyUI warning button */}
+              <button onClick={() => handleDeleteSource(source.id)} className="btn btn-error btn-sm">Delete</button> {/* DaisyUI error button */}
             </div>
             {scrapingStatus[source.id] && (
-              <div className={`mt-2 alert alert-sm ${scrapingStatus[source.id]?.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}>
+              <div role="alert" className={`alert alert-sm mt-2 w-full ${scrapingStatus[source.id]?.startsWith('Error:') ? 'alert-error' : 'alert-success'}`}> {/* Added role="alert", DaisyUI alert classes, size, and full width */}
                 {scrapingStatus[source.id]}
               </div>
             )}
@@ -193,63 +195,87 @@ const SourceManagement: React.FC = () => {
         ))}
       </ul>
 
-      <h4 className="text-xl font-semibold mt-8 mb-2">Add New Source</h4>
-      <form onSubmit={handleAddSource}>
-        <div className="mb-4">
-          <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">Source Name:</label>
-          <input type="text" id="name" name="name" value={newSource.name} onChange={handleInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+      <h4 className="text-xl font-semibold mt-8 mb-4">Add New Source</h4> {/* Added margin bottom */}
+      <form onSubmit={handleAddSource} className="space-y-4"> {/* Added space between form groups */}
+        <div className="form-control"> {/* DaisyUI form control */}
+          <label htmlFor="name" className="label"> {/* DaisyUI label */}
+            <span className="label-text">Source Name:</span> {/* DaisyUI label text */}
+          </label>
+          <input type="text" id="name" name="name" value={newSource.name} onChange={handleInputChange} className="input input-bordered w-full" /> {/* DaisyUI input */}
         </div>
-        <div className="mb-4">
-          <label htmlFor="url" className="block text-gray-700 text-sm font-bold mb-2">Source URL:</label>
-          <input type="text" id="url" name="url" value={newSource.url} onChange={handleInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+        <div className="form-control"> {/* DaisyUI form control */}
+          <label htmlFor="url" className="label"> {/* DaisyUI label */}
+            <span className="label-text">Source URL:</span> {/* DaisyUI label text */}
+          </label>
+          <input type="text" id="url" name="url" value={newSource.url} onChange={handleInputChange} className="input input-bordered w-full" /> {/* DaisyUI input */}
         </div>
-        <div className="mb-4">
-          <label htmlFor="enable_ai_summary" className="block text-gray-700 text-sm font-bold mb-2">Enable AI Summary:</label>
-          <input type="checkbox" id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onChange={handleInputChange} className="form-checkbox h-5 w-5 text-blue-600" /> {/* Added checkbox */}
+        <div className="form-control"> {/* DaisyUI form control */}
+          <label htmlFor="enable_ai_summary" className="label cursor-pointer"> {/* DaisyUI label */}
+            <span className="label-text">Enable AI Summary:</span> {/* DaisyUI label text */}
+            <input type="checkbox" id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onChange={handleInputChange} className="toggle toggle-primary" /> {/* DaisyUI toggle */}
+          </label>
         </div>
         {/* Added new cleaning settings text areas */}
-        <div className="mb-4">
-          <label htmlFor="include_selectors" className="block text-gray-700 text-sm font-bold mb-2">Include Selectors (comma-separated):</label>
-          <textarea id="include_selectors" name="include_selectors" value={newSource.include_selectors || ''} onChange={handleInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+        <div className="form-control"> {/* DaisyUI form control */}
+          <label htmlFor="include_selectors" className="label"> {/* DaisyUI label */}
+            <span className="label-text">Include Selectors (comma-separated):</span> {/* DaisyUI label text */}
+          </label>
+          <textarea id="include_selectors" name="include_selectors" value={newSource.include_selectors || ''} onChange={handleInputChange} className="textarea textarea-bordered h-24 w-full"></textarea> {/* DaisyUI textarea */}
         </div>
-        <div className="mb-4">
-          <label htmlFor="exclude_selectors" className="block text-gray-700 text-sm font-bold mb-2">Exclude Selectors (comma-separated):</label>
-          <textarea id="exclude_selectors" name="exclude_selectors" value={newSource.exclude_selectors || ''} onChange={handleInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+        <div className="form-control"> {/* DaisyUI form control */}
+          <label htmlFor="exclude_selectors" className="label"> {/* DaisyUI label */}
+            <span className="label-text">Exclude Selectors (comma-separated):</span> {/* DaisyUI label text */}
+          </label>
+          <textarea id="exclude_selectors" name="exclude_selectors" value={newSource.exclude_selectors || ''} onChange={handleInputChange} className="textarea textarea-bordered h-24 w-full"></textarea> {/* DaisyUI textarea */}
         </div>
-        <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Add Source</button>
+        <button type="submit" className="btn btn-primary">Add Source</button> {/* DaisyUI primary button */}
       </form>
 
       {editingSource && (
-        <div className="mt-8">
-          <h4 className="text-xl font-semibold mb-2">Edit Source</h4>
-          <form onSubmit={handleEditSource}>
-            <div className="mb-4">
-              <label htmlFor="edit-name" className="block text-gray-700 text-sm font-bold mb-2">Source Name:</label>
-              <input type="text" id="edit-name" name="name" value={editingSource.name} onChange={handleEditInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+        <div className="mt-8 p-4 border rounded-md bg-base-200"> {/* Added padding, border, rounded corners, and background */}
+          <h4 className="text-xl font-semibold mb-4">Edit Source</h4> {/* Added margin bottom */}
+          <form onSubmit={handleEditSource} className="space-y-4"> {/* Added space between form groups */}
+            <div className="form-control"> {/* DaisyUI form control */}
+              <label htmlFor="edit-name" className="label"> {/* DaisyUI label */}
+                <span className="label-text">Source Name:</span> {/* DaisyUI label text */}
+              </label>
+              <input type="text" id="edit-name" name="name" value={editingSource.name} onChange={handleEditInputChange} className="input input-bordered w-full" /> {/* DaisyUI input */}
             </div>
-            <div className="mb-4">
-              <label htmlFor="edit-url" className="block text-gray-700 text-sm font-bold mb-2">Source URL:</label>
-              <input type="text" id="edit-url" name="url" value={editingSource.url} onChange={handleEditInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+            <div className="form-control"> {/* DaisyUI form control */}
+              <label htmlFor="edit-url" className="label"> {/* DaisyUI label */}
+                <span className="label-text">Source URL:</span> {/* DaisyUI label text */}
+              </label>
+              <input type="text" id="edit-url" name="url" value={editingSource.url} onChange={handleEditInputChange} className="input input-bordered w-full" /> {/* DaisyUI input */}
             </div>
-            <div className="mb-4">
-              <label htmlFor="edit-is_active" className="block text-gray-700 text-sm font-bold mb-2">Is Active:</label>
-              <input type="checkbox" id="edit-is_active" name="is_active" checked={editingSource.is_active} onChange={handleEditInputChange} className="form-checkbox h-5 w-5 text-blue-600" /> {/* Added is_active toggle */}
+            <div className="form-control"> {/* DaisyUI form control */}
+              <label htmlFor="edit-is_active" className="label cursor-pointer"> {/* DaisyUI label */}
+                <span className="label-text">Is Active:</span> {/* DaisyUI label text */}
+                <input type="checkbox" id="edit-is_active" name="is_active" checked={editingSource.is_active} onChange={handleEditInputChange} className="toggle toggle-primary" /> {/* DaisyUI toggle */}
+              </label>
             </div>
-            <div className="mb-4">
-              <label htmlFor="edit-enable_ai_summary" className="block text-gray-700 text-sm font-bold mb-2">Enable AI Summary:</label>
-              <input type="checkbox" id="edit-enable_ai_summary" name="enable_ai_summary" checked={editingSource.enable_ai_summary} onChange={handleEditInputChange} className="form-checkbox h-5 w-5 text-blue-600" /> {/* Added enable_ai_summary toggle */}
+            <div className="form-control"> {/* DaisyUI form control */}
+              <label htmlFor="edit-enable_ai_summary" className="label cursor-pointer"> {/* DaisyUI label */}
+                <span className="label-text">Enable AI Summary:</span> {/* DaisyUI label text */}
+                <input type="checkbox" id="edit-enable_ai_summary" name="enable_ai_summary" checked={editingSource.enable_ai_summary} onChange={handleEditInputChange} className="toggle toggle-primary" /> {/* DaisyUI toggle */}
+              </label>
             </div>
             {/* Added new cleaning settings text areas */}
-            <div className="mb-4">
-              <label htmlFor="edit-include_selectors" className="block text-gray-700 text-sm font-bold mb-2">Include Selectors (comma-separated):</label>
-              <textarea id="edit-include_selectors" name="include_selectors" value={editingSource.include_selectors || ''} onChange={handleEditInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+            <div className="form-control"> {/* DaisyUI form control */}
+              <label htmlFor="edit-include_selectors" className="label"> {/* DaisyUI label */}
+                <span className="label-text">Include Selectors (comma-separated):</span> {/* DaisyUI label text */}
+              </label>
+              <textarea id="edit-include_selectors" name="include_selectors" value={editingSource.include_selectors || ''} onChange={handleEditInputChange} className="textarea textarea-bordered h-24 w-full"></textarea> {/* DaisyUI textarea */}
             </div>
-            <div className="mb-4">
-              <label htmlFor="edit-exclude_selectors" className="block text-gray-700 text-sm font-bold mb-2">Exclude Selectors (comma-separated):</label>
-              <textarea id="edit-exclude_selectors" name="exclude_selectors" value={editingSource.exclude_selectors || ''} onChange={handleEditInputChange} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+            <div className="form-control"> {/* DaisyUI form control */}
+              <label htmlFor="edit-exclude_selectors" className="label"> {/* DaisyUI label */}
+                <span className="label-text">Exclude Selectors (comma-separated):</span> {/* DaisyUI label text */}
+              </label>
+              <textarea id="edit-exclude_selectors" name="exclude_selectors" value={editingSource.exclude_selectors || ''} onChange={handleEditInputChange} className="textarea textarea-bordered h-24 w-full"></textarea> {/* DaisyUI textarea */}
             </div>
-            <button type="submit" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2 focus:outline-none focus:shadow-outline">Save Changes</button>
-            <button type="button" onClick={() => setEditingSource(null)} className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Cancel</button>
+            <div className="flex gap-2"> {/* Added flex and gap for buttons */}
+              <button type="submit" className="btn btn-success">Save Changes</button> {/* DaisyUI success button */}
+              <button type="button" onClick={() => setEditingSource(null)} className="btn btn-ghost">Cancel</button> {/* DaisyUI ghost button */}
+            </div>
           </form>
         </div>
       )}
