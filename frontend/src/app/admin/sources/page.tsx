@@ -1,12 +1,13 @@
-'use client';
+'use client'; // Make it a client component
 
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch'; // Import shadcn/ui Switch
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { RefreshCw } from 'lucide-react'; // Import RefreshCw icon
 
 
 interface Source {
@@ -19,14 +20,27 @@ interface Source {
   exclude_selectors: string | null;
 }
 
+// Define a type for discovered sources (might be simpler than the full Source type initially)
+interface DiscoveredSource {
+  name: string;
+  url: string;
+  // Add other properties if the discovery process provides them
+}
+
+
 const SourceManagement: React.FC = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
   const [newSource, setNewSource] = useState({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null });
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [scrapingStatus, setScrapingStatus] = useState<{ [key: number]: string | null }>({});
   const [scrapingLoading, setScrapingLoading] = useState<{ [key: number]: boolean }>({});
+
+  // States for Source Discovery
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
+  const [discoveryError, setDiscoveryError] = useState<unknown>(null);
 
 
   useEffect(() => {
@@ -46,25 +60,21 @@ const SourceManagement: React.FC = () => {
           exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
         })));
       } catch (error: unknown) { // Use unknown for better type safety
-        if (error instanceof Error) {
-          setError(error.message);
-        } else {
-          setError('An unknown error occurred while fetching sources.');
-        }
+        setError(error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchSources();
-  }, []);
+  }, []); // Fetch sources on component mount
 
   if (loading) {
     return <div>Loading sources...</div>;
   }
 
   if (error) {
-    return <div>Error loading sources: {error}</div>;
+    return <div>Error loading sources: {error instanceof Error ? error.message : 'An unknown error occurred'}</div>;
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -198,10 +208,84 @@ const SourceManagement: React.FC = () => {
     }
   };
 
+  // Simulate source discovery
+  const discoverNewSources = () => {
+    setIsDiscovering(true);
+    setDiscoveredSources([]);
+    setDiscoveryError(null);
+
+    // Simulate API call delay and finding new sources
+    setTimeout(() => {
+      const simulatedSources: DiscoveredSource[] = [
+        { name: 'New Source Example 1', url: 'https://example.com/source1' },
+        { name: 'New Source Example 2', url: 'https://example.com/source2' },
+        { name: 'New Source Example 3', url: 'https://example.com/source3' },
+      ];
+      setDiscoveredSources(simulatedSources);
+      setIsDiscovering(false);
+    }, 3000);
+  };
+
+  // Handle adding a discovered source to the form
+  const handleAddDiscoveredSourceToForm = (source: DiscoveredSource) => {
+    setNewSource({
+      name: source.name,
+      url: source.url,
+      enable_ai_summary: true, // Default to true for new sources
+      include_selectors: null,
+      exclude_selectors: null,
+    });
+    // Optionally clear discovered sources list after adding one
+    setDiscoveredSources([]);
+  };
+
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <h3 className="text-2xl font-bold mb-6 text-primary">Manage Sources</h3>
+
+      {/* Source Discovery Section */}
+      <Card className="p-6 mb-8">
+        <CardTitle className="text-xl font-semibold mb-4 text-primary">Discover New Sources</CardTitle>
+        <div className="flex items-center gap-4 mb-4">
+           <Button
+            onClick={discoverNewSources}
+            disabled={isDiscovering}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isDiscovering ? 'animate-spin' : ''}`} />
+            {isDiscovering ? 'Searching...' : 'Discover Sources'}
+          </Button>
+           {isDiscovering && <span className="text-muted-foreground">Searching for new sources...</span>}
+        </div>
+
+        {discoveryError && (
+          <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md">
+            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : typeof discoveryError === 'string' ? discoveryError : JSON.stringify(discoveryError)} {/* More robust error display */}
+          </div>
+        )}
+
+        {discoveredSources.length > 0 && (
+          <div className="mt-4">
+            <h5 className="text-lg font-semibold mb-3 text-foreground">Discovered Sources:</h5>
+            <ul className="space-y-3">
+              {discoveredSources.map((source, index) => (
+                <li key={index} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-muted p-3 rounded-md">
+                  <div>
+                    <div className="font-medium text-foreground">{source.name}</div>
+                    <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">{source.url}</a>
+                  </div>
+                  <Button onClick={() => handleAddDiscoveredSourceToForm(source)} size="sm" className="mt-2 sm:mt-0">
+                    Add as New Source
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Card>
+
+
+      {/* Existing Sources Section */}
       <div className="mb-8">
         <h4 className="text-xl font-semibold mb-4 text-primary">Existing Sources</h4>
         <ul className="space-y-4">
@@ -251,6 +335,7 @@ const SourceManagement: React.FC = () => {
         </ul>
       </div>
 
+      {/* Add New Source Section */}
       <Card className="p-6">
         <CardTitle className="text-xl font-semibold mb-4 text-primary">Add New Source</CardTitle>
         <form onSubmit={handleAddSource} className="space-y-4">

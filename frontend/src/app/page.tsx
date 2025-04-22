@@ -7,7 +7,7 @@ import TopicFilter from '@/components/TopicFilter';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, RefreshCw } from 'lucide-react'; // Import Search and RefreshCw icons
+import { Search } from 'lucide-react'; // Import Search icon
 
 
 export default function Home() {
@@ -16,8 +16,8 @@ export default function Home() {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(''); // State for search term
   const [activeCategory, setActiveCategory] = useState('all'); // State for active category tab
-  const [isDiscovering, setIsDiscovering] = useState(false); // State for discovery loading
-  const [discoveryMessage, setDiscoveryMessage] = useState<string | null>(null); // State for discovery message
+  // Removed discovery states and function from Home page
+
 
   // List of available categories (matching the example)
   const categoriesList = [
@@ -49,54 +49,30 @@ export default function Home() {
     setActiveCategory(category);
   };
 
-  // Simulate source discovery
-  const discoverNewSources = () => {
-    setIsDiscovering(true);
-    setDiscoveryMessage(null);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      // Simulate finding 3-7 new sources
-      const sourcesFound = Math.floor(Math.random() * 5) + 3;
-      setDiscoveryMessage(`Discovery complete! Found ${sourcesFound} new news sources.`);
-      setIsDiscovering(false);
-    }, 3000);
-  };
-
 
   return (
     <div className="flex flex-col min-h-screen">
       <main>
         <h2 className="text-2xl font-bold mb-6 text-primary">News Feed</h2>
 
-        {/* Search Bar and Discover Sources Button */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex items-center flex-grow">
-            <Input
-              type="text"
-              placeholder="Search news..."
-              className="w-full pr-10" // Add padding to the right for the icon
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
-            <Search className="absolute right-3 h-5 w-5 text-muted-foreground" />
-          </div>
-           <Button
-            onClick={discoverNewSources}
-            disabled={isDiscovering}
-            className="flex-shrink-0"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isDiscovering ? 'animate-spin' : ''}`} />
-            {isDiscovering ? 'Searching...' : 'Discover Sources'}
-          </Button>
+        {/* Search Bar */}
+        <div className="relative flex items-center mb-6"> {/* Removed Discover Sources button from here */}
+          <Input
+            type="text"
+            placeholder="Search news..."
+            className="w-full pr-10" // Add padding to the right for the icon
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          <Search className="absolute right-3 h-5 w-5 text-muted-foreground" />
         </div>
 
-        {/* Discovery Message */}
-        {discoveryMessage && (
+        {/* Removed Discovery Message from here */}
+        {/* {discoveryMessage && (
           <div className="mt-2 p-3 bg-secondary text-secondary-foreground rounded-md mb-6">
             {discoveryMessage}
           </div>
-        )}
+        )} */}
 
 
         {/* Filters and Category Tabs */}

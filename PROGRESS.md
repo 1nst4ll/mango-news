@@ -25,10 +25,11 @@
 - Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.
 - Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.
 - Implemented the Source Discovery Feature on the Home page (`frontend/src/app/page.tsx`) with a button and simulated discovery process.
-- Created and added a Comprehensive Footer component (`frontend/src/components/footer.tsx`) to the root layout (`frontend/src/app/layout.tsx`).
+- Created and added a Comprehensive Footer component to the root layout.
 - Enhanced NewsFeed card display to include images, topics, and source type indicators.
 - Improved Loading and Empty States styling in `NewsFeed.tsx`.
-- **Updated the Footer component (`frontend/src/components/footer.tsx`) to fetch news sources dynamically from the backend API instead of using hardcoded data.**
+- Updated the Footer component to fetch news sources dynamically from the backend API instead of using hardcoded data based on user feedback.
+- **Moved the "Discover Sources" button and functionality from the Home page to the Source Management page (`frontend/src/app/admin/sources/page.tsx`), including displaying discovered sources with an option to add them.**
 
 **Next Steps:**
 
