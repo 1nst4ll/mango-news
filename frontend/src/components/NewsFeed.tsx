@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Newspaper, Globe, Shield, Facebook, CheckCircle } from 'lucide-react'; // Import icons
+import { Newspaper, Globe, Shield, Facebook, BadgeCheck, Landmark } from 'lucide-react'; // Import icons
 
 
 interface Article {
@@ -91,21 +91,21 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
     return matchesSearch && matchesCategory;
   });
 
-  // Helper function to get category icon (similar to the example)
+  // Helper function to get category icon
   const getCategoryIcon = (category?: string) => {
     switch(category?.toLowerCase()) {
       case 'news':
-        return <Newspaper className="h-4 w-4 mr-1" />;
+        return <Newspaper className="h-4 w-4 mr-1 text-blue-500" />;
       case 'government':
-        return <Globe className="h-4 w-4 mr-1" />;
+        return <Landmark className="h-4 w-4 mr-1 text-green-600" />; // Using Landmark for government
       case 'police':
-        return <Shield className="h-4 w-4 mr-1" />;
+        return <Shield className="h-4 w-4 mr-1 text-red-600" />;
       case 'social':
-        return <Facebook className="h-4 w-4 mr-1" />;
+        return <Facebook className="h-4 w-4 mr-1 text-blue-600" />;
       case 'international':
-        return <Globe className="h-4 w-4 mr-1" />;
+        return <Globe className="h-4 w-4 mr-1 text-purple-600" />;
       default:
-        return <Newspaper className="h-4 w-4 mr-1" />;
+        return <Newspaper className="h-4 w-4 mr-1 text-gray-500" />;
     }
   };
 
@@ -176,13 +176,13 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
                 <span className="flex items-center">
                   {article.source_url} {/* Display source URL */}
                   {article.isVerified && ( // Display verified indicator
-                    <CheckCircle className="h-4 w-4 ml-1 text-green-500" />
+                    <BadgeCheck className="h-4 w-4 ml-1 text-green-500" /> // Using BadgeCheck for verified
                   )}
                   {article.isOfficial && ( // Display official indicator
-                    <Shield className="h-4 w-4 ml-1 text-blue-500" />
+                    <Shield className="h-4 w-4 ml-1 text-blue-500" /> // Using Shield for official
                   )}
                   {article.isFacebook && ( // Display Facebook indicator
-                    <Facebook className="h-4 w-4 ml-1 text-blue-600" />
+                    <Facebook className="h-4 w-4 ml-1 text-blue-600" /> // Using Facebook for Facebook
                   )}
                 </span>
               </div>
