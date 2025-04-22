@@ -52,7 +52,7 @@ function ArticleDetail() {
 
   if (loading) {
     return (
-      <div className="text-center text-lg">
+      <div>
         Loading article...
       </div>
     );
@@ -60,7 +60,7 @@ function ArticleDetail() {
 
   if (error) {
     return (
-      <div className="text-center text-red-500">
+      <div>
         Error loading article: {error.message}
       </div>
     );
@@ -68,7 +68,7 @@ function ArticleDetail() {
 
   if (!article) {
     return (
-      <div className="text-center text-gray-600">
+      <div>
         Article not found.
       </div>
     );

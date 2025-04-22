@@ -10,12 +10,12 @@ This project aims to build a centralized platform for accessing local news from 
 
 **Note:** This section and the "Implemented Functionality" and "Next Steps" sections should be updated regularly to reflect the current state and plan of the project. Refer to the [Project Progress Log](./PROGRESS.md) for detailed updates and task checklists.
 
-The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript, styled with Tailwind CSS and DaisyUI, and includes routing for navigating between pages. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page and the administrative interface for managing sources have been implemented.
+The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript, and includes routing for navigating between pages. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page and the administrative interface for managing sources have been implemented.
 
 ## Technology Stack
 
 *   **Backend:** Node.js, Express.js, PostgreSQL
-*   **Frontend:** React, Vite, TypeScript, Tailwind CSS, DaisyUI, React Router DOM
+*   **Frontend:** React, Vite, TypeScript, React Router DOM
 *   **Scraping:** Firecrawl MCP Server (integration pending)
 *   **AI Summaries:** LLM API Integration (pending)
 
@@ -112,7 +112,7 @@ To get the project up and running on your local machine, follow these steps:
 4.  **Frontend Setup:**
     *   Navigate to the `frontend` directory in your terminal: `cd frontend`
     *   Install frontend dependencies: `npm install`
-    *   Tailwind CSS and DaisyUI are already configured based on `tailwind.config.js` and `postcss.config.js`.
+    *   Styling is currently minimal, using default browser styles.
 5.  **Firecrawl MCP Server:**
     *   Ensure the Firecrawl MCP server is running and accessible. The backend will need to communicate with it for scraping. Specific integration steps are pending.
 6.  **LLM API:**

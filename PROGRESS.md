@@ -19,7 +19,7 @@ Audited the existing scraping process and reevaluated the strategy using the Fir
 
 ### Current Status
 
-Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. The Tailwind CSS and DaisyUI styling has been removed from the frontend. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
+Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. All CSS styling, including Tailwind CSS and DaisyUI, has been removed from the frontend. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
 
@@ -74,7 +74,7 @@ The project can be organized into the following phases:
 
 1.  **Core Data & API:** Set up the database, backend API for sources and articles, and basic frontend display. (Completed)
 2.  **Scraping & AI Integration:** Implement the news scraping logic using Firecrawl and integrate the LLM for summaries. (Completed)
-3.  **Frontend Enhancements:** Add filtering (date range), improve UI/UX with Tailwind/DaisyUI, and create article detail view. (Completed)
+3.  **Frontend Enhancements:** Add filtering (date range) and create article detail view. (Completed)
 4.  **Admin Interface:** Develop the administrative section for managing sources. (Completed)
 5.  **Automation & Deployment:** Implement scraping scheduling and configure the project for hosting. (Scheduling Implemented, Deployment Pending)
 6.  **Advanced Features:** Implement trending news and potentially user authentication.

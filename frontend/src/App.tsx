@@ -6,7 +6,6 @@ import DateRangeFilter from './components/DateRangeFilter'; // Import DateRangeF
 import ArticleDetail from './components/ArticleDetail'; // Import ArticleDetail component
 import AdminDashboard from './components/AdminDashboard'; // Import AdminDashboard component
 import SourceManagement from './components/SourceManagement'; // Import SourceManagement component
-import './index.css'; // Import global CSS
 
 function App() {
   const [selectedTopic, setSelectedTopic] = useState('');
