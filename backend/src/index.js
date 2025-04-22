@@ -27,9 +27,9 @@ pool.connect((err, client, done) => {
     console.error('Database connection failed:', err);
   } else {
     console.log('Database connected successfully');
-    client.release(); // Release the client back to the pool
+    // Removed redundant client.release()
   }
-  done();
+  done(); // This also releases the client
 });
 
 
@@ -132,13 +132,13 @@ app.get('/api/articles', async (req, res) => {
   try {
     // Assuming an 'articles' table exists
     // Add filtering logic based on query parameters (topic, startDate, endDate) if implemented
-    const result = await pool.query('SELECT * FROM articles ORDER BY published_at DESC'); // Assuming 'published_at' column
+    const result = await pool.query('SELECT * FROM articles ORDER BY publication_date DESC'); // Corrected column name to publication_date
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching articles:', err);
      // If the articles table doesn't exist yet, return an empty array as a fallback
     if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
-       console.warn('Articles table not found, returning empty array.');
+       console.warn('Articles table not found, returning empty array. Ensure database schema is applied.'); // Added note about applying schema
        res.json([]);
     } else {
       res.status(500).json({ error: 'Internal Server Error' });
@@ -174,10 +174,8 @@ app.post('/api/scrape/run/:id', async (req, res) => {
     }
 
     console.log(`Triggering scrape for source: ${source.name}`);
-    // Placeholder for triggering the scrape logic
-    // This would involve calling the appropriate scraper function (opensourceScraper or Firecrawl)
-    // and saving the results to the database.
-    // await scrapeArticlePage(source); // This function would need to be implemented or imported
+    // Call the runScraperForSource function from scraper.js
+    await runScraperForSource(source);
 
     res.json({ message: `Scraping triggered for ${source.name}` });
   } catch (error) {
@@ -185,6 +183,20 @@ app.post('/api/scrape/run/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to trigger scrape.' });
   }
 });
+
+// Endpoint to trigger a full scraper run
+app.post('/api/scrape/run', async (req, res) => {
+  try {
+    console.log('Triggering full scraper run');
+    // Call the runScraper function from scraper.js
+    await runScraper();
+    res.json({ message: 'Full scraper run triggered successfully. Check backend logs for progress.' });
+  } catch (error) {
+    console.error('Error triggering full scraper run:', error);
+    res.status(500).json({ error: 'Failed to trigger full scraper run.' });
+  }
+});
+
 
 // Basic endpoint for source discovery (currently calls opensourceDiscoverSources)
 app.get('/api/discover-sources', async (req, res) => {
@@ -218,3 +230,5 @@ app.listen(port, () => {
   console.log(`Backend server listening on port ${port}`);
   console.log('News scraper scheduled to run.'); // This message might be misleading if scheduleScraper is commented out
 });
+
+const { runScraper, runScraperForSource } = require('./scraper'); // Import scraper functions

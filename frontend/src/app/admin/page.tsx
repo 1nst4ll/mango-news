@@ -11,19 +11,24 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [purgeStatus, setPurgeStatus] = useState<string | null>(null);
   const [purgeLoading, setPurgeLoading] = useState<boolean>(false);
-  const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('enableGlobalAiSummary');
-      return saved !== null ? JSON.parse(saved) : true;
-    }
-    return true; // Default value for server render
-  });
+  const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(true); // Initialize with true on the server
 
   useEffect(() => {
+    // Synchronize state with localStorage on the client side
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('enableGlobalAiSummary');
+      if (saved !== null) {
+        setEnableGlobalAiSummary(JSON.parse(saved));
+      }
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  useEffect(() => {
+    // Save state to localStorage whenever it changes
     if (typeof window !== 'undefined') {
       localStorage.setItem('enableGlobalAiSummary', JSON.stringify(enableGlobalAiSummary));
     }
-  }, [enableGlobalAiSummary]);
+  }, [enableGlobalAiSummary]); // Save when enableGlobalAiSummary changes
 
 
   const handleTriggerScraper = async () => {
@@ -104,7 +109,7 @@ const AdminDashboard: React.FC = () => {
               onClick={handleTriggerScraper}
               disabled={loading}
             >
-              {loading ? 'Triggering...' : 'Trigger Scraper'}
+              {loading ? 'Triggering...' : 'Trigger Full Scraper Run'} {/* Corrected button text */}
             </Button>
           </li>
           <li>
@@ -119,13 +124,13 @@ const AdminDashboard: React.FC = () => {
         </ul>
       </div> {/* Added closing div tag */}
       {scrapingStatus && (
-        <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md">
-          {scrapingStatus}
+        <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md" aria-live="polite" aria-atomic="true"> {/* Added ARIA live region */}
+          Scraper Status: {scrapingStatus} {/* Added label */}
         </div>
       )}
        {purgeStatus && (
-        <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md">
-          {purgeStatus}
+        <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md" aria-live="polite" aria-atomic="true"> {/* Added ARIA live region */}
+          Purge Status: {purgeStatus} {/* Added label */}
         </div>
       )}
     </div>

@@ -27,33 +27,18 @@ The initial project structure has been set up, and core components for the backe
 │   ├── package.json          # Backend dependencies (Node.js, Express, pg)
 │   └── src/
 │       ├── index.js          # Main backend application file (API routes)
+│       ├── opensourceScraper.js # Open-source scraping logic (Puppeteer)
 │       └── scraper.js        # Logic for scraping (integration with Firecrawl MCP outlined)
 ├── db/                       # Database related files
 │   └── schema.sql            # PostgreSQL database schema definition - see [Database Schema](./db/schema.sql) for details
+├── docs/                     # Project documentation files
+│   ├── README.md             # Main documentation index
+│   ├── backend-setup.md      # Backend setup and configuration guide
+│   ├── scraping-methods.md   # Details on scraping methods
+│   ├── css-selectors.md      # Guide to using CSS selectors
+│   ├── admin-ui.md           # Documentation for Admin UI features
+│   └── troubleshooting.md    # Troubleshooting common issues
 ├── frontend/                 # Frontend application code (Next.js)
-│   ├── public/               # Static assets
-│   ├── src/                  # Frontend source files
-│   │   ├── app/              # App Router pages and layout
-│   │   │   ├── article/[id]/ # Article detail page
-│   │   │   │   └── page.tsx
-│   │   │   ├── admin/        # Admin dashboard page
-│   │   │   │   ├── sources/  # Source management page
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── favicon.ico
-│   │   │   ├── globals.css   # Global styles (Tailwind)
-│   │   │   └── layout.tsx    # Root layout
-│   │   │   └── page.tsx      # Home page (News Feed)
-│   │   ├── components/       # Reusable React components
-│   │   │   └── ui/           # Shadcn UI components
-│   │   │       └── button.tsx
-│   │   │   ├── ArticleDetail.tsx # Component to display a single news article (used in app/article/[id]/page.tsx)
-│   │   │   ├── DateRangeFilter.tsx # Component for filtering news by date range (used in app/page.tsx)
-│   │   │   ├── NewsFeed.tsx    # Component to display news articles (used in app/page.tsx)
-│   │   │   ├── SourceManagement.tsx # Component for managing sources (used in app/admin/sources/page.tsx)
-│   │   │   └── TopicFilter.tsx # Component for filtering news by topic (used in app/page.tsx)
-│   │   └── lib/              # Utility functions
-│   │       └── utils.ts      # Shadcn UI utils
 │   ├── .gitignore
 │   ├── components.json       # Shadcn UI configuration
 │   ├── eslint.config.mjs
@@ -61,11 +46,46 @@ The initial project structure has been set up, and core components for the backe
 │   ├── package.json          # Frontend dependencies (Next.js, React, Tailwind, Lucide, Shadcn)
 │   ├── postcss.config.mjs
 │   ├── README.md
-│   └── tsconfig.json         # TypeScript configuration for the frontend
-├── frontend_bak/             # Backup of the previous frontend
+│   ├── tailwind.config.js
+│   ├── tsconfig.json         # TypeScript configuration for the frontend
+│   ├── public/               # Static assets
+│   │   ├── file.svg
+│   │   ├── globe.svg
+│   │   ├── next.svg
+│   │   ├── vercel.svg
+│   │   └── window.svg
+│   └── src/                  # Frontend source files
+│       ├── app/              # App Router pages and layout
+│       │   ├── article/[id]/ # Article detail page
+│       │   │   └── page.tsx
+│       │   ├── admin/        # Admin dashboard page
+│       │   │   ├── sources/  # Source management page
+│       │   │   │   └── page.tsx
+│       │   │   └── page.tsx
+│       │   ├── favicon.ico
+│       │   ├── globals.css   # Global styles (Tailwind)
+│       │   └── layout.tsx    # Root layout
+│       │   └── page.tsx      # Home page (News Feed)
+│       ├── components/       # Reusable React components
+│       │   ├── ui/           # Shadcn UI components
+│       │   │   ├── button.tsx
+│       │   │   ├── card.tsx
+│       │   │   ├── checkbox.tsx
+│       │   │   ├── dropdown-menu.tsx
+│       │   │   ├── input.tsx
+│       │   │   ├── label.tsx
+│       │   │   ├── switch.tsx
+│       │   │   └── textarea.tsx
+│       │   ├── DateRangeFilter.tsx # Component for filtering news by date range (used in app/page.tsx)
+│       │   ├── footer.tsx      # Comprehensive Footer component
+│       │   ├── NewsFeed.tsx    # Component to display news articles (used in app/page.tsx)
+│       │   ├── theme-provider.tsx # Theme provider component
+│       │   ├── theme-switcher.tsx # Theme switcher component
+│       │   └── TopicFilter.tsx # Component for filtering news by topic (used in app/page.tsx)
+│       └── lib/              # Utility functions
+│           └── utils.ts      # Shadcn UI utils
 ├── .gitignore
-├── PROGRESS.md               # Project progress log - see [Project Progress Log](./PROGRESS.md) for details
-└── README.md                 # Project overview and main documentation
+└── PROGRESS.md               # Project progress log - see [Project Progress Log](./PROGRESS.md) for details
 ```
 This structure separates the backend, database, and frontend concerns into distinct directories. The `frontend` directory now follows the Next.js App Router convention.
 
@@ -88,6 +108,8 @@ This structure separates the backend, database, and frontend concerns into disti
     *   Added endpoint `POST /api/scrape/run` to trigger a full scrape of all active sources.
     *   Added endpoint `POST /api/scrape/run/:sourceId` to trigger a scrape for a specific source.
     *   Added endpoint `POST /api/articles/purge` to delete all articles, topics, and article links from the database.
+    *   Implemented PostgreSQL database persistence for sources, replacing the in-memory data store.
+    *   Added API endpoints for triggering a full scraper run (`POST /api/scrape/run`) and purging articles (`POST /api/articles/purge`).
 *   **Scraping Logic (`backend/src/scraper.js`):**
     *   Implemented logic to fetch active sources from the database.
     *   Uses Firecrawl's `extract` format on source main pages to discover article links.

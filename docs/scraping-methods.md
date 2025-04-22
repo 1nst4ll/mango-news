@@ -14,8 +14,8 @@ This method uses a headless browser (Puppeteer or Playwright) to navigate to a n
 
 **Configuration:**
 
-- The core logic for the open-source scraper is located in `backend/src/opensourceScraper.js`.
-- Configuration for individual sources, including the choice of scraping method and CSS selectors, is managed through the Admin UI.
+- The core logic for the open-source scraper is located in `backend/src/opensourceScraper.js`. Refer to the [Backend Setup and Configuration](backend-setup.md) for backend details.
+- Configuration for individual sources, including the choice of scraping method and CSS selectors, is managed through the [Admin UI (Source Management section)](admin-ui.md#source-management).
 
 **How it Works:**
 

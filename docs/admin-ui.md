@@ -28,9 +28,17 @@ The Source Management section allows you to view, add, edit, and delete news sou
     -   Click the "Delete" button next to the source you want to remove.
     -   A confirmation dialog will appear.
     -   Click "OK" to confirm the deletion. *Note: This action cannot be undone.*
--   **Triggering a Scrape:**
-    -   Click the "Scrape Now" button next to a source to manually trigger the scraping process for that specific source.
-    -   A status message will appear indicating whether the scrape was triggered successfully or if an error occurred.
+-   **Triggering a Scrape for a Single Source:**
+    -   Click the "Scrape Now" button next to a source in the Source Management list to manually trigger the scraping process for that specific source. The scraping method used is configured for each source (see [Scraping Methods](scraping-methods.md)).
+    -   A status message will appear below the source indicating whether the scrape was triggered successfully or if an error occurred.
+
+## Admin Dashboard Features
+
+The main Admin Dashboard page (`/admin`) provides overall control and status information.
+
+-   **Enable AI Summaries:** A toggle switch to globally enable or disable AI summary generation during scraping runs.
+-   **Trigger Full Scraper Run:** A button to initiate a scraping process for all active news sources configured in the Source Management section. The scraping method used for each source (Open Source or Firecrawl) is determined by the setting configured for that source. A status message will appear below the button indicating the status of the triggered run.
+-   **Purge All Articles:** A button to delete all existing articles from the database. Use this with caution as it is irreversible. A confirmation dialog will appear before proceeding. A status message will appear below the button indicating the status of the purge operation.
 
 ## Source Discovery
 

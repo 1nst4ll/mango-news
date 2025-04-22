@@ -40,6 +40,12 @@
 - Created a new backend file (`backend/src/opensourceScraper.js`) to house the open-source scraping logic using Puppeteer. (Note: Basic implementation for demonstration, requires further development for robust discovery and scraping).
 - Modified the main scraper logic (`backend/src/scraper.js`) to select the appropriate scraping method (Firecrawl or open-source) based on the source's configuration.
 - Added a basic endpoint for source discovery using the open-source scraper to the backend (`backend/src/index.js`).
+- Implemented PostgreSQL database persistence for sources in the backend (`backend/src/index.js`), replacing the in-memory data store.
+- Updated backend API endpoints (`/api/sources`, `/api/sources/:id`) to interact with the PostgreSQL database.
+- Installed the `pg` package in the backend.
+- Added toggles/buttons to the Admin Dashboard (`frontend/src/app/admin/page.tsx`) to trigger the full scraper run (`/api/scrape/run`) and purge articles (`/api/articles/purge`).
+- Connected the Admin Dashboard scraper and purge buttons to the corresponding backend endpoints in `backend/src/index.js`.
+- Addressed the hydration mismatch error in `frontend/src/app/admin/page.tsx` related to `localStorage`.
 
 **Next Steps:**
 
@@ -49,5 +55,4 @@
 - Perform a final review and cleanup of the codebase.
 - Implement further accessibility enhancements.
 - Refine responsive design for specific components as needed.
-- Add documentation for the new UI/Styling guidelines and scraping methods in the `/docs` folder.
 - Suggest a git commit and push to mark the completion of this milestone.
