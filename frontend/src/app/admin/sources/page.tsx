@@ -210,7 +210,7 @@ const SourceManagement: React.FC = () => {
               <CardContent className="mb-4 md:mb-0 p-0"> {/* Added p-0 to remove default padding */}
                 <CardTitle className="text-lg font-medium text-primary">{source.name}</CardTitle>
                 <div className="text-sm text-muted-foreground">
-                  URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">{source.url}</a>
+                  URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{source.url}</a>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'}
