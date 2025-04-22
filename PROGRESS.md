@@ -18,7 +18,7 @@ Removed all custom frontend styling and related dependencies. The frontend now r
 
 ### Current Status
 
-Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. The Tailwind CSS and DaisyUI styling has been removed from the frontend. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
+Significant progress has been made on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. All CSS styling, including Tailwind CSS and DaisyUI, has been removed from the frontend. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
 
