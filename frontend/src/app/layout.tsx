@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import Footer from "@/components/footer"; // Import Footer component
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +56,7 @@ export default function RootLayout({
             <main className="flex-grow container mx-auto px-4 py-8 sm:px-6 lg:px-8">
               {children}
             </main>
+            <Footer /> {/* Add Footer component */}
           </div>
         </ThemeProvider>
       </body>

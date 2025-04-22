@@ -1,6 +1,6 @@
 # Project Progress
 
-## UI/Styling Improvements (2025-04-21)
+## UI/Styling Improvements (2025-04-22)
 
 - Defined a modern aesthetic color palette in `frontend/src/app/globals.css` using CSS variables for light and dark modes.
 - Configured custom typography in `frontend/tailwind.config.js` using Geist fonts and a responsive text scale.
@@ -22,8 +22,12 @@
 - Adjusted the modal overlay styling in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to use a semi-transparent black background (`bg-black/50`) and ensured the modal content uses theme-appropriate background and text colors.
 - Changed checkbox fields to toggle switches (`Switch` component) on the Admin Dashboard and Source Management pages based on user feedback.
 - Consolidated all specified navigation elements (Home, Admin, Manage Sources links) into the persistent navbar to ensure consistent navigation.
-- **Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.**
-- **Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.**
+- Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.
+- Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.
+- **Implemented the Source Discovery Feature on the Home page (`frontend/src/app/page.tsx`) with a button and simulated discovery process.**
+- **Created and added a Comprehensive Footer component (`frontend/src/components/footer.tsx`) to the root layout (`frontend/src/app/layout.tsx`).**
+- **Enhanced NewsFeed card display to include images, topics, and source type indicators.**
+- **Improved Loading and Empty States styling in `NewsFeed.tsx`.**
 
 **Next Steps:**
 
