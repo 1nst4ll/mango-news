@@ -1,6 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
 
 interface Topic {
   id: number;
@@ -58,27 +67,27 @@ function TopicFilter({ onSelectTopic }: TopicFilterProps) {
     );
   }
 
-  const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    onSelectTopic(event.target.value);
+  const handleSelectChange = (value: string) => {
+    // Pass null if the selected value is "all" to indicate no topic filter
+    onSelectTopic(value === "all" ? "" : value);
   };
 
   return (
-    <div className="flex flex-col">
-      <label htmlFor="topic-select" className="mb-2 text-sm font-medium text-foreground">
-        Filter by Topic:
-      </label>
-      <select
-        id="topic-select"
-        onChange={handleSelectChange}
-        className="block w-full rounded-md border border-border bg-input px-3 py-2 text-base text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
-      >
-        <option value="">All Topics</option>
-        {topics.map((topic) => (
-          <option key={`topic-${topic.id}`} value={topic.name}> {/* Added a prefix to the key */}
-            {topic.name}
-          </option>
-        ))}
-      </select>
+    <div className="flex flex-col gap-2">
+      <Label htmlFor="topic-select">Filter by Topic:</Label>
+      <Select onValueChange={handleSelectChange}>
+        <SelectTrigger id="topic-select">
+          <SelectValue placeholder="All Topics" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Topics</SelectItem> {/* Changed value from "" to "all" */}
+          {topics.map((topic) => (
+            <SelectItem key={`topic-${topic.id}`} value={topic.name}>
+              {topic.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

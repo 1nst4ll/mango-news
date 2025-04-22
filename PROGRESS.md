@@ -15,14 +15,18 @@
 - Implemented a `ThemeProvider` component to wrap the root layout.
 - Created and added a `ThemeSwitcher` component to the navbar in `frontend/src/app/page.tsx` using shadcn/ui components and `next-themes`.
 - Moved the navbar and ThemeSwitcher component to `frontend/src/app/layout.tsx` to make it persistent across all pages.
-- Refactored the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label).
+- Added display for database statistics (total articles, total sources) on the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) using shadcn/ui `Card` components. **Note: Requires backend endpoint implementation to fetch actual statistics.**
+- Audited and updated the styling of the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) to use shadcn/ui `Card` components for the main content and status messages.
 - Refactored the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label, Input, Textarea, Card).
-- Styled the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button).
+- Audited and updated the styling of the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) to use shadcn/ui `Card` components for the main content, loading, error, and not found states.
 - Improved visibility of the source URL link on the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) by changing its text color to primary.
 - Improved visibility of the URL link in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) by changing its text color to primary.
 - Adjusted the modal overlay styling in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to use a semi-transparent black background (`bg-black/50`) and ensured the modal content uses theme-appropriate background and text colors.
 - Changed checkbox fields to toggle switches (`Switch` component) on the Admin Dashboard and Source Management pages based on user feedback.
 - Consolidated all specified navigation elements (Home, Admin, Manage Sources links) into the persistent navbar to ensure consistent navigation.
+- Redesigned the main page (`frontend/src/app/page.tsx`) to use shadcn/ui components, including wrapping the main content in a `Card`.
+- Updated the `TopicFilter.tsx` component to use the shadcn/ui `Select` component.
+- Updated the `DateRangeFilter.tsx` component to use shadcn/ui `Label`, `Input`, and `Button` components.
 - Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.
 - Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.
 - Implemented the Source Discovery Feature on the Source Management page (`frontend/src/app/admin/sources/page.tsx`), including displaying discovered sources with an option to add them. **Updated the frontend logic to attempt to connect to a backend endpoint for discovery, but full functionality depends on backend implementation.**

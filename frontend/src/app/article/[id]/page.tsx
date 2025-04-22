@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 
 interface Article {
@@ -62,38 +63,61 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
 
   if (loading) {
     return (
-      <div className="text-foreground">
-        Loading article...
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <Card>
+          <CardContent>
+            <div className="text-foreground text-center py-8">
+              Loading article...
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-destructive">
-        Error loading article: {error instanceof Error ? error.message : 'An unknown error occurred'}
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <Card>
+          <CardContent>
+            <div className="text-destructive text-center py-8">
+              Error loading article: {error instanceof Error ? error.message : 'An unknown error occurred'}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!article) {
     return (
-      <div className="text-muted-foreground">
-        Article not found.
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <Card>
+          <CardContent>
+            <div className="text-muted-foreground text-center py-8">
+              Article not found.
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      {/* Removed Back to News Feed button/link - navigation is now in the persistent navbar */}
-      <h1 className="text-3xl font-bold mb-4 text-primary">{article.title}</h1>
-      <p className="text-muted-foreground text-sm mb-6">
-        Source: <span className="text-primary">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
-      </p>
-      <div className="prose max-w-none text-foreground"> {/* Apply text-foreground for content color */}
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-primary">{article.title}</CardTitle>
+          <p className="text-muted-foreground text-sm">
+            Source: <span className="text-primary">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="prose max-w-none text-foreground"> {/* Apply text-foreground for content color */}
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

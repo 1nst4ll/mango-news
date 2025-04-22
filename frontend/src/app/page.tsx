@@ -7,6 +7,7 @@ import TopicFilter from '@/components/TopicFilter';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 import { Search } from 'lucide-react'; // Import Search icon
 
 
@@ -51,61 +52,58 @@ export default function Home() {
 
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <main>
-        <h2 className="text-2xl font-bold mb-6 text-primary">News Feed</h2>
-
-        {/* Search Bar */}
-        <div className="relative flex items-center mb-6"> {/* Removed Discover Sources button from here */}
-          <Input
-            type="text"
-            placeholder="Search news..."
-            className="w-full pr-10" // Add padding to the right for the icon
-            value={searchTerm}
-            onChange={handleSearchChange}
-          />
-          <Search className="absolute right-3 h-5 w-5 text-muted-foreground" />
-        </div>
-
-        {/* Removed Discovery Message from here */}
-        {/* {discoveryMessage && (
-          <div className="mt-2 p-3 bg-secondary text-secondary-foreground rounded-md mb-6">
-            {discoveryMessage}
-          </div>
-        )} */}
-
-
-        {/* Filters and Category Tabs */}
-        <div className="flex flex-col lg:flex-row gap-6 mb-8">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-6 lg:w-1/3">
-            <div className="w-full sm:w-1/2 lg:w-full">
-               <TopicFilter onSelectTopic={handleTopicSelect} />
+    <div className="flex flex-col min-h-screen container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <main className="flex-grow">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-primary">News Feed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Search Bar */}
+            <div className="relative flex items-center mb-6">
+              <Input
+                type="text"
+                placeholder="Search news..."
+                className="w-full pr-10"
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+              <Search className="absolute right-3 h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="w-full sm:w-1/2 lg:w-full">
-              <DateRangeFilter onSelectDateRange={handleDateRangeSelect} />
-            </div>
-          </div>
 
-          {/* Category Tabs */}
-          <div className="flex-grow overflow-x-auto">
-            <div className="flex space-x-4 pb-2"> {/* Added pb-2 for potential scrollbar */}
-              {categoriesList.map(category => (
-                <Button
-                  key={category.value}
-                  variant={activeCategory === category.value ? 'default' : 'outline'}
-                  onClick={() => handleCategorySelect(category.value)}
-                  className="flex-shrink-0" // Prevent buttons from shrinking
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
+            {/* Filters and Category Tabs */}
+            <div className="flex flex-col lg:flex-row gap-6 mb-8">
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-6 lg:w-1/3">
+                <div className="w-full sm:w-1/2 lg:w-full">
+                  <TopicFilter onSelectTopic={handleTopicSelect} />
+                </div>
+                <div className="w-full sm:w-1/2 lg:w-full">
+                  <DateRangeFilter onSelectDateRange={handleDateRangeSelect} />
+                </div>
+              </div>
 
-        {/* News Feed */}
-        <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} searchTerm={searchTerm} activeCategory={activeCategory} /> {/* Pass search and category props */}
+              {/* Category Tabs */}
+              <div className="flex-grow overflow-x-auto">
+                <div className="flex space-x-4 pb-2">
+                  {categoriesList.map(category => (
+                    <Button
+                      key={category.value}
+                      variant={activeCategory === category.value ? 'default' : 'outline'}
+                      onClick={() => handleCategorySelect(category.value)}
+                      className="flex-shrink-0"
+                    >
+                      {category.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* News Feed */}
+            <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} searchTerm={searchTerm} activeCategory={activeCategory} />
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
