@@ -13,15 +13,18 @@ interface Article {
   summary: string;
   created_at: string;
   updated_at: string;
+  category?: string; // Added optional category property
 }
 
 interface NewsFeedProps {
   selectedTopic: string;
   startDate: string | null;
   endDate: string | null;
+  searchTerm: string; // Added searchTerm prop
+  activeCategory: string; // Added activeCategory prop
 }
 
-function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) {
+function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategory }: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -66,11 +69,29 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) {
     };
 
     fetchArticles();
-  }, [selectedTopic, startDate, endDate]);
+  }, [selectedTopic, startDate, endDate]); // Depend on filters for fetching
+
+  // Client-side filtering based on searchTerm and activeCategory
+  const filteredArticles = articles.filter(article => {
+    const matchesSearch = searchTerm === '' ||
+                          article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          article.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          article.raw_content.toLowerCase().includes(searchTerm.toLowerCase()); // Include raw_content in search
+
+    // Basic category matching - assuming article object has a 'category' property
+    // If not, this logic needs to be adjusted based on available article data
+    const matchesCategory = activeCategory === 'all' ||
+                            article.category?.toLowerCase() === activeCategory.toLowerCase(); // Removed type assertion
+
+    // Note: Topic filtering is handled by the API call based on selectedTopic prop
+
+    return matchesSearch && matchesCategory;
+  });
+
 
   if (loading) {
     return (
-      <div>
+      <div className="text-foreground">
         Loading articles...
       </div>
     );
@@ -78,16 +99,26 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) {
 
   if (error) {
     return (
-      <div>
-        Error loading articles: {error.message}
+      <div className="text-destructive">
+        Error loading articles: {error instanceof Error ? error.message : 'An unknown error occurred'}
       </div>
     );
   }
 
+  if (filteredArticles.length === 0) {
+     return (
+      <div className="text-muted-foreground text-center py-8">
+        No news articles found matching your criteria.
+      </div>
+    );
+  }
+
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {articles.map(article => (
+      {filteredArticles.map(article => (
         <div key={article.id} className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg">
+          {/* Add image and category/topic indicators here if needed, similar to the example */}
           <div className="p-6">
             <h3 className="text-xl font-semibold mb-2 text-primary">{article.title}</h3>
             <p className="text-muted-foreground text-sm mb-4">

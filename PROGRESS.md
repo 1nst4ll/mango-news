@@ -20,8 +20,10 @@
 - Styled the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button).
 - Improved visibility of the URL link in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) by changing its text color to primary.
 - Adjusted the modal overlay styling in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to use a semi-transparent black background (`bg-black/50`) and ensured the modal content uses theme-appropriate background and text colors.
-- Changed checkbox fields to toggle switches (`Switch` component) on the Admin Dashboard and Source Management pages.
-- **Moved all specified navigation elements (Home, Admin, Manage Sources links, and the Back to News Feed link/button) to the persistent navbar in `frontend/src/app/layout.tsx` to ensure consistent navigation.**
+- Changed checkbox fields to toggle switches (`Switch` component) on the Admin Dashboard and Source Management pages based on user feedback.
+- Consolidated all specified navigation elements (Home, Admin, Manage Sources links) into the persistent navbar to ensure consistent navigation.
+- **Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.**
+- **Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.**
 
 **Next Steps:**
 
