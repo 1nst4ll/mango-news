@@ -14,6 +14,7 @@
 - Installed `next-themes` for theme management.
 - Implemented a `ThemeProvider` component to wrap the root layout.
 - Created and added a `ThemeSwitcher` component to the navbar in `frontend/src/app/page.tsx` using shadcn/ui components and `next-themes`.
+- **Moved the navbar and ThemeSwitcher component to `frontend/src/app/layout.tsx` to make it persistent across all pages.**
 
 **Next Steps:**
 

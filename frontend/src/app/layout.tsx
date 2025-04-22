@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import Link from "next/link";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +36,24 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <div className="flex flex-col min-h-screen bg-background text-foreground">
+            <header className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 lg:px-8 py-4 border-b border-border">
+              <div className="text-3xl font-bold text-primary mb-4 sm:mb-0">
+                <Link href="/">Turks and Caicos News Aggregator</Link>
+              </div>
+              <div className="flex items-center space-x-4">
+                <nav>
+                  <ul className="flex space-x-4">
+                    <li><Link href="/admin" className="text-muted-foreground hover:text-foreground transition-colors">Admin</Link></li>
+                  </ul>
+                </nav>
+                <ThemeSwitcher />
+              </div>
+            </header>
+            <main className="flex-grow container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+              {children}
+            </main>
+          </div>
         </ThemeProvider>
       </body>
     </html>
