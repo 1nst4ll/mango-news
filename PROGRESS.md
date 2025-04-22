@@ -17,6 +17,7 @@
 - Moved the navbar and ThemeSwitcher component to `frontend/src/app/layout.tsx` to make it persistent across all pages.
 - Added display for database statistics (total articles, total sources) on the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) using shadcn/ui `Card` components. **Note: Requires backend endpoint implementation to fetch actual statistics.**
 - Audited and updated the styling of the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) to use shadcn/ui `Card` components for the main content and status messages.
+- Audited and updated the styling of the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to use the shadcn/ui `Select` component for the scraping method dropdown in the Add/Edit Source modal, further aligning with shadcn/ui elements.
 - Refactored the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label, Input, Textarea, Card).
 - Audited and updated the styling of the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) to use shadcn/ui `Card` components for the main content, loading, error, and not found states.
 - Improved visibility of the source URL link on the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) by changing its text color to primary.

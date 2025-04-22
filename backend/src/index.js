@@ -223,6 +223,23 @@ app.post('/api/articles/purge', async (req, res) => {
 });
 
 
+// API endpoint to get database statistics
+app.get('/api/stats', async (req, res) => {
+  try {
+    const articlesCountResult = await pool.query('SELECT COUNT(*) FROM articles');
+    const sourcesCountResult = await pool.query('SELECT COUNT(*) FROM sources');
+
+    const totalArticles = parseInt(articlesCountResult.rows[0].count, 10);
+    const totalSources = parseInt(sourcesCountResult.rows[0].count, 10);
+
+    res.json({ totalArticles, totalSources });
+  } catch (err) {
+    console.error('Error fetching stats:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 // Schedule the scraper to run periodically (example: every 1 hour)
 // scheduleScraper('0 * * * *'); // Uncomment and configure as needed
 

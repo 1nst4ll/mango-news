@@ -7,6 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Import Select components
 import { RefreshCw } from 'lucide-react'; // Import RefreshCw icon
 
 
@@ -107,15 +114,6 @@ const SourceManagement: React.FC = () => {
     setModalFormData({
       ...modalFormData,
       [name]: type === 'checkbox' ? checked : value,
-    });
-  };
-
-  // Handle scraping method select change for modal form data
-  const handleModalScrapingMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { value } = e.target;
-    setModalFormData({
-      ...modalFormData,
-      scraping_method: value,
     });
   };
 
@@ -432,20 +430,22 @@ const SourceManagement: React.FC = () => {
               </div>
               {/* New: Scraping Method Select */}
               <div>
-                <Label htmlFor="scraping_method" className="block text-sm font-medium text-foreground">Scraping Method:</Label>
-                <select
-                  id="scraping_method"
-                  name="scraping_method"
-                  value={modalFormData.scraping_method || 'opensource'} // Use default if null/undefined
-                  onChange={handleModalScrapingMethodChange}
-                  className="mt-1 block w-full p-2 border border-input bg-background rounded-md text-foreground" // Basic styling
+                <Label htmlFor="scraping_method">Scraping Method:</Label>
+                <Select
+                  value={modalFormData.scraping_method || 'opensource'}
+                  onValueChange={(value) => setModalFormData({ ...modalFormData, scraping_method: value })}
                 >
-                  <option value="opensource">Open Source (Puppeteer/Playwright)</option>
-                  <option value="firecrawl">Firecrawl</option> {/* Added Firecrawl option */}
-                </select>
+                  <SelectTrigger id="scraping_method">
+                    <SelectValue placeholder="Select scraping method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="opensource">Open Source (Puppeteer/Playwright)</SelectItem>
+                    <SelectItem value="firecrawl">Firecrawl</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center space-x-2">
-                <Switch id="enable_ai_summary" name="enable_ai_summary" checked={modalFormData.enable_ai_summary} onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
+                <Switch id="enable_ai_summary" name="enable_ai_summary" checked={modalFormData.enable_ai_summary} onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_summary: checked })} />
                 <Label htmlFor="enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
               </div>
               <div>
