@@ -22,23 +22,27 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex justify-between items-center mb-8">
-        <div className="text-2xl font-bold">
+    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 bg-background text-foreground min-h-screen">
+      <header className="flex flex-col sm:flex-row justify-between items-center mb-8 py-4 border-b border-border">
+        <div className="text-3xl font-bold text-primary mb-4 sm:mb-0">
           <Link href="/">Turks and Caicos News Aggregator</Link>
         </div>
         <nav>
-          <ul>
-            <li><Link href="/admin">Admin</Link></li>
+          <ul className="flex space-x-4">
+            <li><Link href="/admin" className="text-muted-foreground hover:text-foreground transition-colors">Admin</Link></li>
           </ul>
         </nav>
       </header>
 
       <main>
-        <h2 className="text-xl font-semibold mb-4">News Feed</h2>
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <TopicFilter onSelectTopic={handleTopicSelect} />
-          <DateRangeFilter onSelectDateRange={handleDateRangeSelect} />
+        <h2 className="text-2xl font-semibold mb-6 text-primary">News Feed</h2>
+        <div className="flex flex-col sm:flex-row gap-6 mb-8">
+          <div className="w-full sm:w-1/2">
+             <TopicFilter onSelectTopic={handleTopicSelect} />
+          </div>
+          <div className="w-full sm:w-1/2">
+            <DateRangeFilter onSelectDateRange={handleDateRangeSelect} />
+          </div>
         </div>
         <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} />
       </main>

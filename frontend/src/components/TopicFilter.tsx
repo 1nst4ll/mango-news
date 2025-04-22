@@ -64,13 +64,13 @@ function TopicFilter({ onSelectTopic }: TopicFilterProps) {
 
   return (
     <div className="flex flex-col">
-      <label htmlFor="topic-select" className="mb-1 text-sm font-medium text-gray-700">
+      <label htmlFor="topic-select" className="mb-2 text-sm font-medium text-foreground">
         Filter by Topic:
       </label>
       <select
         id="topic-select"
         onChange={handleSelectChange}
-        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+        className="block w-full rounded-md border border-border bg-input px-3 py-2 text-base text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
       >
         <option value="">All Topics</option>
         {topics.map(topic => (

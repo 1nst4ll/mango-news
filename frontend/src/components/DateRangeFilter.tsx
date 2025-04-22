@@ -31,7 +31,7 @@ function DateRangeFilter({ onSelectDateRange }: DateRangeFilterProps) {
 
   return (
     <div className="flex flex-col">
-      <label htmlFor="start-date" className="mb-1 text-sm font-medium text-gray-700">
+      <label htmlFor="start-date" className="mb-2 text-sm font-medium text-foreground">
         Start Date:
       </label>
       <input
@@ -39,9 +39,9 @@ function DateRangeFilter({ onSelectDateRange }: DateRangeFilterProps) {
         id="start-date"
         value={startDate}
         onChange={handleStartDateChange}
-        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mb-4"
+        className="block w-full rounded-md border border-border bg-input px-3 py-2 text-base text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary mb-4"
       />
-      <label htmlFor="end-date" className="mb-1 text-sm font-medium text-gray-700">
+      <label htmlFor="end-date" className="mb-2 text-sm font-medium text-foreground">
         End Date:
       </label>
       <input
@@ -49,18 +49,18 @@ function DateRangeFilter({ onSelectDateRange }: DateRangeFilterProps) {
         id="end-date"
         value={endDate}
         onChange={handleEndDateChange}
-        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mb-4"
+        className="block w-full rounded-md border border-border bg-input px-3 py-2 text-base text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary mb-4"
       />
       <div className="flex gap-4">
         <button
           onClick={handleApplyFilter}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           Apply
         </button>
         <button
           onClick={handleClearFilter}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+          className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           Clear
         </button>

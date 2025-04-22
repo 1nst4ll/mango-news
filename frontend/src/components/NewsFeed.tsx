@@ -87,15 +87,15 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {articles.map(article => (
-        <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div key={article.id} className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg">
           <div className="p-6">
-            <h3 className="text-xl font-semibold mb-2">{article.title}</h3>
-            <p className="text-gray-600 text-sm mb-4">
-                Source: <span className="text-blue-600">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
+            <h3 className="text-xl font-semibold mb-2 text-primary">{article.title}</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+                Source: <span className="text-accent">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
               </p>
-              <p className="text-gray-700 mb-4">{article.summary}</p>
+              <p className="text-foreground mb-4">{article.summary}</p>
             <div className="text-right">
-              <Link href={`/article/${article.id}`} className="text-blue-600 hover:underline">Read More</Link>
+              <Link href={`/article/${article.id}`} className="text-primary hover:underline transition-colors">Read More</Link>
             </div>
           </div>
         </div>
