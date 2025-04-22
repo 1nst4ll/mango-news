@@ -18,6 +18,7 @@ interface Source {
   enable_ai_summary: boolean;
   include_selectors: string | null;
   exclude_selectors: string | null;
+  scraping_method?: string; // Add scraping_method field
 }
 
 // Define a type for discovered sources (might be simpler than the full Source type initially)
@@ -32,15 +33,18 @@ const SourceManagement: React.FC = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
-  const [newSource, setNewSource] = useState({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null });
+  const [newSource, setNewSource] = useState({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Initialize with default scraping method
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [scrapingStatus, setScrapingStatus] = useState<{ [key: number]: string | null }>({});
   const [scrapingLoading, setScrapingLoading] = useState<{ [key: number]: boolean }>({});
 
-  // States for Source Discovery
+  // States for Source Discovery - Moved to top level
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
   const [discoveryError, setDiscoveryError] = useState<unknown>(null);
+
+  // State and handlers for the Add/Edit Source Modal - Moved to top level
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -58,6 +62,7 @@ const SourceManagement: React.FC = () => {
           is_active: source.is_active !== undefined ? source.is_active : true,
           include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
           exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
+          scraping_method: source.scraping_method !== undefined ? source.scraping_method : 'opensource', // Default to opensource if not provided
         })));
       } catch (error: unknown) { // Use unknown for better type safety
         setError(error);
@@ -107,7 +112,7 @@ const SourceManagement: React.FC = () => {
       }
       const addedSource = await response.json();
       setSources([...sources, addedSource]);
-      setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null });
+      setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Reset form with default
     } catch (error: unknown) { // Use unknown for better type safety
        if (error instanceof Error) {
         setError(error.message);
@@ -139,14 +144,18 @@ const SourceManagement: React.FC = () => {
     }
   };
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-
+  // Handle input change specifically for the scraping method select
+  const handleScrapingMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
     if (editingSource) {
       setEditingSource({
         ...editingSource,
-        [name]: type === 'checkbox' ? checked : value,
+        scraping_method: value,
+      });
+    } else {
+      setNewSource({
+        ...newSource,
+        scraping_method: value,
       });
     }
   };
@@ -208,22 +217,25 @@ const SourceManagement: React.FC = () => {
     }
   };
 
-  // Simulate source discovery
-  const discoverNewSources = () => {
+  // Source discovery function (connects to backend)
+  const discoverNewSources = async () => { // Made async
     setIsDiscovering(true);
     setDiscoveredSources([]);
     setDiscoveryError(null);
 
-    // Simulate API call delay and finding new sources
-    setTimeout(() => {
-      const simulatedSources: DiscoveredSource[] = [
-        { name: 'New Source Example 1', url: 'https://example.com/source1' },
-        { name: 'New Source Example 2', url: 'https://example.com/source2' },
-        { name: 'New Source Example 3', url: 'https://example.com/source3' },
-      ];
-      setDiscoveredSources(simulatedSources);
+    try {
+      // TODO: Replace with your actual backend API URL for discovery
+      const response = await fetch('http://localhost:3000/api/discover-sources'); // Hypothetical endpoint
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: DiscoveredSource[] = await response.json(); // Assuming backend returns array of DiscoveredSource
+      setDiscoveredSources(data);
+    } catch (err: unknown) { // Use unknown for better type safety
+      setDiscoveryError(err);
+    } finally {
       setIsDiscovering(false);
-    }, 3000);
+    }
   };
 
   // Handle adding a discovered source to the form
@@ -234,9 +246,49 @@ const SourceManagement: React.FC = () => {
       enable_ai_summary: true, // Default to true for new sources
       include_selectors: null,
       exclude_selectors: null,
+      scraping_method: 'opensource', // Default scraping method for discovered sources
     });
     // Optionally clear discovered sources list after adding one
     setDiscoveredSources([]);
+    openAddModal(); // Open the add modal with pre-filled data
+  };
+
+  // State and handlers for the Add/Edit Source Modal
+  // const [isModalOpen, setIsModalOpen] = useState(false); // Moved to top level
+
+  const openAddModal = () => {
+    setEditingSource(null); // Clear editing source for add mode
+    setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Reset form with default
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (source: Source) => {
+    setEditingSource(source); // Set editing source for edit mode
+    setNewSource({ // Pre-fill form with editing source data
+      name: source.name,
+      url: source.url,
+      enable_ai_summary: source.enable_ai_summary,
+      include_selectors: source.include_selectors,
+      exclude_selectors: source.exclude_selectors,
+      scraping_method: source.scraping_method || 'opensource', // Use existing method or default
+    } as typeof newSource); // Explicitly cast to ensure correct type for setNewSource
+    setIsModalOpen(true);
+  };
+
+  const closeAddEditModal = () => {
+    setIsModalOpen(false);
+    setEditingSource(null); // Clear editing source
+    setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Reset form with default
+  };
+
+  const handleModalSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (editingSource) {
+      await handleEditSource(e); // Use existing edit handler
+    } else {
+      await handleAddSource(e); // Use existing add handler
+    }
+    closeAddEditModal(); // Close modal after submit
   };
 
 
@@ -260,7 +312,7 @@ const SourceManagement: React.FC = () => {
 
         {discoveryError && (
           <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md">
-            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : typeof discoveryError === 'string' ? discoveryError : JSON.stringify(discoveryError)} {/* More robust error display */}
+            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : 'An unknown error occurred during discovery.'}
           </div>
         )}
 
@@ -287,7 +339,12 @@ const SourceManagement: React.FC = () => {
 
       {/* Existing Sources Section */}
       <div className="mb-8">
-        <h4 className="text-xl font-semibold mb-4 text-primary">Existing Sources</h4>
+        <div className="flex justify-between items-center mb-4"> {/* Added flex container for heading and Add button */}
+          <h4 className="text-xl font-semibold text-primary">Existing Sources</h4>
+          <Button onClick={openAddModal} size="sm"> {/* Button to open Add modal */}
+            Add New Source
+          </Button>
+        </div>
         <ul className="space-y-4">
           {sources.map((source) => (
             <Card key={source.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 transition-shadow hover:shadow-lg">
@@ -311,7 +368,7 @@ const SourceManagement: React.FC = () => {
                   {scrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
                 </Button>
                 <Button
-                  onClick={() => setEditingSource(source)}
+                  onClick={() => openEditModal(source)} // Button to open Edit modal
                   size="sm"
                   variant="secondary" // Use secondary variant for edit
                 >
@@ -335,69 +392,49 @@ const SourceManagement: React.FC = () => {
         </ul>
       </div>
 
-      {/* Add New Source Section */}
-      <Card className="p-6">
-        <CardTitle className="text-xl font-semibold mb-4 text-primary">Add New Source</CardTitle>
-        <form onSubmit={handleAddSource} className="space-y-4">
-          <div>
-            <Label htmlFor="name" className="block text-sm font-medium text-foreground">Source Name:</Label>
-            <Input type="text" id="name" name="name" value={newSource.name} onChange={handleInputChange} required className="mt-1 block w-full" />
-          </div>
-          <div>
-            <Label htmlFor="url" className="block text-sm font-medium text-foreground">Source URL:</Label>
-            <Input type="text" id="url" name="url" value={newSource.url} onChange={handleInputChange} required className="mt-1 block w-full" />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onCheckedChange={(checked) => setNewSource({ ...newSource, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
-            <Label htmlFor="enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
-          </div>
-          <div>
-            <Label htmlFor="include_selectors" className="block text-sm font-medium text-foreground">Include Selectors (comma-separated):</Label>
-            <Textarea id="include_selectors" name="include_selectors" value={newSource.include_selectors || ''} onChange={handleInputChange} rows={3} className="mt-1 block w-full"></Textarea>
-          </div>
-          <div>
-            <Label htmlFor="exclude_selectors" className="block text-sm font-medium text-foreground">Exclude Selectors (comma-separated):</Label>
-            <Textarea id="exclude_selectors" name="exclude_selectors" value={newSource.exclude_selectors || ''} onChange={handleInputChange} rows={3} className="mt-1 block w-full"></Textarea>
-          </div>
-          <div>
-            <Button type="submit">Add Source</Button>
-          </div>
-        </form>
-      </Card>
-
-
-      {editingSource && (
-        <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full flex justify-center items-center z-50" id="my-modal"> {/* Use bg-black/50 for overlay, added z-50 */}
+      {/* Add/Edit Source Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full flex justify-center items-center z-50" id="add-edit-modal"> {/* Use bg-black/50 for overlay, added z-50 */}
           <Card className="relative p-6 w-full max-w-lg mx-auto shadow-lg rounded-md bg-background text-foreground"> {/* Adjusted width and centering, added background and text colors */}
-            <CardTitle className="text-xl font-semibold mb-4 text-primary">Edit Source</CardTitle>
-            <form onSubmit={handleEditSource} className="space-y-4">
+            <CardTitle className="text-xl font-semibold mb-4 text-primary">{editingSource ? 'Edit Source' : 'Add New Source'}</CardTitle> {/* Dynamic title */}
+            <form onSubmit={handleModalSubmit} className="space-y-4"> {/* Use modal submit handler */}
               <div>
-                <Label htmlFor="edit-name" className="block text-sm font-medium text-foreground">Source Name:</Label>
-                <Input type="text" id="edit-name" name="name" value={editingSource.name} onChange={handleEditInputChange} required className="mt-1 block w-full" />
+                <Label htmlFor="name" className="block text-sm font-medium text-foreground">Source Name:</Label>
+                <Input type="text" id="name" name="name" value={newSource.name} onChange={handleInputChange} required className="mt-1 block w-full" />
               </div>
               <div>
-                <Label htmlFor="edit-url" className="block text-sm font-medium text-foreground">Source URL:</Label>
-                <Input type="text" id="edit-url" name="url" value={editingSource.url} onChange={handleEditInputChange} required className="mt-1 block w-full" />
+                <Label htmlFor="url" className="block text-sm font-medium text-foreground">Source URL:</Label>
+                <Input type="text" id="url" name="url" value={newSource.url} onChange={handleInputChange} required className="mt-1 block w-full" />
+              </div>
+              {/* New: Scraping Method Select */}
+              <div>
+                <Label htmlFor="scraping_method" className="block text-sm font-medium text-foreground">Scraping Method:</Label>
+                <select
+                  id="scraping_method"
+                  name="scraping_method"
+                  value={newSource.scraping_method || 'opensource'} // Use default if null/undefined
+                  onChange={handleScrapingMethodChange}
+                  className="mt-1 block w-full p-2 border border-input bg-background rounded-md text-foreground" // Basic styling
+                >
+                  <option value="opensource">Open Source (Puppeteer/Playwright)</option>
+                  {/* Add other options here as implemented, e.g., <option value="firecrawl">Firecrawl</option> */}
+                </select>
               </div>
               <div className="flex items-center space-x-2">
-                <Switch id="edit-is_active" name="is_active" checked={editingSource.is_active} onCheckedChange={(checked) => setEditingSource({ ...editingSource, is_active: checked })} /> {/* Corrected onChange handling */}
-                <Label htmlFor="edit-is_active" className="text-sm font-medium text-foreground">Is Active</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="edit-enable_ai_summary" name="enable_ai_summary" checked={editingSource.enable_ai_summary} onCheckedChange={(checked) => setEditingSource({ ...editingSource, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
-                <Label htmlFor="edit-enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
+                <Switch id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onCheckedChange={(checked) => setNewSource({ ...newSource, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
+                <Label htmlFor="enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
               </div>
               <div>
-                <Label htmlFor="edit-include_selectors" className="block text-sm font-medium text-foreground">Include Selectors (comma-separated):</Label>
-                <Textarea id="edit-include_selectors" name="include_selectors" value={editingSource.include_selectors || ''} onChange={handleEditInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                <Label htmlFor="include_selectors" className="block text-sm font-medium text-foreground">Include Selectors (comma-separated):</Label>
+                <Textarea id="include_selectors" name="include_selectors" value={newSource.include_selectors || ''} onChange={handleInputChange} rows={3} className="mt-1 block w-full"></Textarea>
               </div>
               <div>
-                <Label htmlFor="edit-exclude_selectors" className="block text-sm font-medium text-foreground">Exclude Selectors (comma-separated):</Label>
-                <Textarea id="edit-exclude_selectors" name="exclude_selectors" value={editingSource.exclude_selectors || ''} onChange={handleEditInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                <Label htmlFor="exclude_selectors" className="block text-sm font-medium text-foreground">Exclude Selectors (comma-separated):</Label>
+                <Textarea id="exclude_selectors" name="exclude_selectors" value={newSource.exclude_selectors || ''} onChange={handleInputChange} rows={3} className="mt-1 block w-full"></Textarea>
               </div>
               <div className="flex justify-end gap-4 mt-6"> {/* Added mt-6 for spacing */}
-                <Button type="submit">Save Changes</Button>
-                <Button type="button" onClick={() => setEditingSource(null)} variant="secondary">Cancel</Button>
+                <Button type="submit">{editingSource ? 'Save Changes' : 'Add Source'}</Button> {/* Dynamic button text */}
+                <Button type="button" onClick={closeAddEditModal} variant="secondary">Cancel</Button> {/* Close modal button */}
               </div>
             </form>
           </Card>

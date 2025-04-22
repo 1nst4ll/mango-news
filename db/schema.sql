@@ -9,6 +9,7 @@ CREATE TABLE sources (
     enable_ai_summary BOOLEAN DEFAULT TRUE, -- Add column for AI summary toggle
     include_selectors TEXT, -- Add column for comma-separated CSS selectors to include
     exclude_selectors TEXT, -- Add column for comma-separated CSS selectors to exclude
+    scraping_method VARCHAR(50) DEFAULT 'opensource', -- Add column for scraping method
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

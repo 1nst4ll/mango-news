@@ -52,7 +52,8 @@ app.post('/api/scrape/run/:sourceId', async (req, res) => {
     if (isNaN(id)) {
       return res.status(400).json({ error: 'Invalid source ID.' });
     }
-    runScraperForSource(id); // Call the scraper function for a specific source
+    // Pass the source ID to the scraper function
+    runScraperForSource(id);
     res.status(200).json({ message: `Scraper triggered successfully for source ID ${sourceId}. Check backend logs for progress.` });
   } catch (err) {
     console.error(`Error triggering scraper manually for source ID ${sourceId}:`, err);
@@ -60,11 +61,28 @@ app.post('/api/scrape/run/:sourceId', async (req, res) => {
   }
 });
 
+// Endpoint to discover sources (basic implementation)
+app.get('/api/discover-sources', async (req, res) => {
+  // This is a basic placeholder. A real implementation would take a starting URL
+  // or keywords from the request body/query parameters.
+  const startUrl = 'https://www.bbc.com/'; // Example starting URL
+
+  try {
+    console.log(`Discovering sources starting from: ${startUrl}`);
+    // Use the open-source discoverSources function
+    const discovered = await opensourceDiscoverSources(startUrl);
+    res.status(200).json(discovered);
+  } catch (err) {
+    console.error('Error discovering sources:', err);
+    res.status(500).json({ error: 'Failed to discover sources.' });
+  }
+});
+
 
 // API Routes
 app.get('/api/sources', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, created_at FROM sources ORDER BY name'); // Include new selector settings
+    const result = await pool.query('SELECT id, name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method, created_at FROM sources ORDER BY name'); // Include new selector settings and scraping_method
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching sources:', err);
@@ -73,7 +91,7 @@ app.get('/api/sources', async (req, res) => {
 });
 
 app.post('/api/sources', async (req, res) => {
-  const { name, url, enable_ai_summary, include_selectors, exclude_selectors } = req.body; // Accept new selector settings
+  const { name, url, enable_ai_summary, include_selectors, exclude_selectors, scraping_method } = req.body; // Accept new selector settings and scraping_method
 
   if (!name || !url) {
     return res.status(400).json({ error: 'Source name and URL are required' });
@@ -81,8 +99,8 @@ app.post('/api/sources', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO sources (name, url, enable_ai_summary, include_selectors, exclude_selectors) VALUES ($1, $2, $3, $4, $5) RETURNING *', // Include new selector settings in INSERT
-      [name, url, enable_ai_summary, include_selectors, exclude_selectors]
+      'INSERT INTO sources (name, url, enable_ai_summary, include_selectors, exclude_selectors, scraping_method) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', // Include new selector settings and scraping_method in INSERT
+      [name, url, enable_ai_summary, include_selectors, exclude_selectors, scraping_method]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -97,16 +115,16 @@ app.post('/api/sources', async (req, res) => {
 
 app.put('/api/sources/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors } = req.body; // Accept new selector settings
+  const { name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method } = req.body; // Accept new selector settings and scraping_method
 
-  if (!name || !url || is_active === undefined || enable_ai_summary === undefined || include_selectors === undefined || exclude_selectors === undefined) { // Check for all required fields
-    return res.status(400).json({ error: 'Source name, URL, active status, AI summary toggle status, and selector settings are required' });
+  if (!name || !url || is_active === undefined || enable_ai_summary === undefined || include_selectors === undefined || exclude_selectors === undefined || scraping_method === undefined) { // Check for all required fields
+    return res.status(400).json({ error: 'Source name, URL, active status, AI summary toggle status, selector settings, and scraping method are required' });
   }
 
   try {
     const result = await pool.query(
-      'UPDATE sources SET name = $1, url = $2, is_active = $3, enable_ai_summary = $4, include_selectors = $5, exclude_selectors = $6 WHERE id = $7 RETURNING *', // Include new selector settings in UPDATE
-      [name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, id]
+      'UPDATE sources SET name = $1, url = $2, is_active = $3, enable_ai_summary = $4, include_selectors = $5, exclude_selectors = $6, scraping_method = $7 WHERE id = $8 RETURNING *', // Include new selector settings and scraping_method in UPDATE
+      [name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method, id]
     );
 
     if (result.rows.length === 0) {

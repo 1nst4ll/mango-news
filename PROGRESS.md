@@ -24,15 +24,28 @@
 - Consolidated all specified navigation elements (Home, Admin, Manage Sources links) into the persistent navbar to ensure consistent navigation.
 - Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.
 - Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.
-- Implemented the Source Discovery Feature on the Home page (`frontend/src/app/page.tsx`) with a button and simulated discovery process.
+- Implemented the Source Discovery Feature on the Source Management page (`frontend/src/app/admin/sources/page.tsx`), including displaying discovered sources with an option to add them. **Updated the frontend logic to attempt to connect to a backend endpoint for discovery, but full functionality depends on backend implementation.**
 - Created and added a Comprehensive Footer component to the root layout.
 - Enhanced NewsFeed card display to include images, topics, and source type indicators.
 - Improved Loading and Empty States styling in `NewsFeed.tsx`.
 - Updated the Footer component to fetch news sources dynamically from the backend API instead of using hardcoded data based on user feedback.
-- **Moved the "Discover Sources" button and functionality from the Home page to the Source Management page (`frontend/src/app/admin/sources/page.tsx`), including displaying discovered sources with an option to add them.**
+- Implemented the Source Discovery Feature on the Source Management page (`frontend/src/app/admin/sources/page.tsx`), including displaying discovered sources with an option to add them. **Updated the frontend logic to attempt to connect to a backend endpoint for discovery, but full functionality depends on backend implementation.**
+- Created and added a Comprehensive Footer component to the root layout.
+- Enhanced NewsFeed card display to include images, topics, and source type indicators.
+- Improved Loading and Empty States styling in `NewsFeed.tsx`.
+- Updated the Footer component to fetch news sources dynamically from the backend API instead of using hardcoded data based on user feedback.
+- Added a `scraping_method` field to the `sources` table in the database schema (`db/schema.sql`) to allow selecting different scraping methods per source.
+- Updated the backend API endpoints (`backend/src/index.js`) to handle the new `scraping_method` field for fetching, adding, and updating sources.
+- Updated the frontend Source Management page (`frontend/src/app/admin/sources/page.tsx`) to include a dropdown for selecting the scraping method when adding or editing a source.
+- Created a new backend file (`backend/src/opensourceScraper.js`) to house the open-source scraping logic using Puppeteer. (Note: Basic implementation for demonstration, requires further development for robust discovery and scraping).
+- Modified the main scraper logic (`backend/src/scraper.js`) to select the appropriate scraping method (Firecrawl or open-source) based on the source's configuration.
 
 **Next Steps:**
 
+- Implement robust article URL discovery within the open-source scraper (`backend/src/opensourceScraper.js`).
+- Enhance the open-source article scraping logic to extract all necessary fields (title, content, date, author, thumbnail, topics) using provided selectors.
+- Refine error handling and edge case management in both scraping methods.
 - Implement further accessibility enhancements.
 - Refine responsive design for specific components as needed.
-- Add documentation for the new UI/Styling guidelines in the `/docs` folder.
+- Add documentation for the new UI/Styling guidelines and scraping methods in the `/docs` folder.
+- Suggest a git commit and push to save the completed milestone.
