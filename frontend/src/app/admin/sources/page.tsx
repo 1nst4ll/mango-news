@@ -312,7 +312,7 @@ const SourceManagement: React.FC = () => {
 
         {discoveryError && (
           <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md" aria-live="polite" aria-atomic="true">
-            Discovery Error: {discoveryError == null ? 'An unknown error occurred during discovery.' : discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}
+            Discovery Error: {discoveryError ? String(discoveryError) : 'An unknown error occurred during discovery.'}
           </div>
         )}
 
