@@ -39,7 +39,7 @@ const SourceManagement: React.FC = () => {
           include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
           exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
         })));
-      } catch (error: any) {
+      } catch (error: Error) {
         setError(error.message);
       } finally {
         setLoading(false);
