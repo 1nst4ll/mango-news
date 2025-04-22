@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const { Pool } = require('pg'); // Import Pool from pg
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
@@ -11,117 +12,176 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// In-memory data store (replace with a database in a real application)
-let sources = [
-  { id: 1, name: 'Example News', url: 'https://example.com', is_active: true, enable_ai_summary: true, include_selectors: 'article', exclude_selectors: '.ad', scraping_method: 'opensource' },
-];
-let nextSourceId = 2;
+// PostgreSQL Database Pool
+const pool = new Pool({
+  user: process.env.DB_USER || 'hoffma24_mangoadmin',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'hoffma24_mangonews',
+  password: process.env.DB_PASSWORD || 'R3d3d0ndr0N', // Replace with a secure way to handle password
+  port: process.env.DB_PORT || 5432, // Default PostgreSQL port
+});
 
-// Helper function to find a source by ID
-const findSourceById = (id) => sources.find(source => source.id === parseInt(id));
+// Test database connection
+pool.connect((err, client, done) => {
+  if (err) {
+    console.error('Database connection failed:', err);
+  } else {
+    console.log('Database connected successfully');
+    client.release(); // Release the client back to the pool
+  }
+  done();
+});
+
 
 // API Endpoints
 
 // Get all sources
-app.get('/api/sources', (req, res) => {
-  // In a real application, fetch from database
-  res.json(sources);
+app.get('/api/sources', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM sources ORDER BY id ASC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching sources:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // Add a new source
-app.post('/api/sources', (req, res) => {
+app.post('/api/sources', async (req, res) => {
   const { name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method } = req.body;
   if (!name || !url) {
     return res.status(400).json({ error: 'Source name and URL are required.' });
   }
-  const newSource = {
-    id: nextSourceId++,
-    name,
-    url,
-    is_active: is_active !== undefined ? is_active : true,
-    enable_ai_summary: enable_ai_summary !== undefined ? enable_ai_summary : true,
-    include_selectors: include_selectors || null,
-    exclude_selectors: exclude_selectors || null,
-    scraping_method: scraping_method || 'opensource', // Default to opensource
-  };
-  sources.push(newSource);
-  // In a real application, save to database
-  res.status(201).json(newSource);
+  try {
+    const result = await pool.query(
+      'INSERT INTO sources (name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [name, url, is_active !== undefined ? is_active : true, enable_ai_summary !== undefined ? enable_ai_summary : true, include_selectors || null, exclude_selectors || null, scraping_method || 'opensource']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error adding source:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // Update a source
-app.put('/api/sources/:id', (req, res) => {
+app.put('/api/sources/:id', async (req, res) => {
   const sourceId = req.params.id;
   const updates = req.body;
-  const sourceIndex = sources.findIndex(source => source.id === parseInt(sourceId));
+  const fields = Object.keys(updates).map((field, index) => `"${field}" = $${index + 2}`).join(', ');
+  const values = Object.values(updates);
 
-  if (sourceIndex === -1) {
-    return res.status(404).json({ error: 'Source not found.' });
+  if (!fields) {
+    return res.status(400).json({ error: 'No update fields provided.' });
   }
 
-  // Update source properties, ensuring id is not changed
-  sources[sourceIndex] = {
-    ...sources[sourceIndex],
-    ...updates,
-    id: sources[sourceIndex].id, // Ensure ID remains unchanged
-  };
+  try {
+    const result = await pool.query(
+      `UPDATE sources SET ${fields} WHERE id = $1 RETURNING *`,
+      [sourceId, ...values]
+    );
 
-  // In a real application, update in database
-  res.json(sources[sourceIndex]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Source not found.' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating source:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
-
-// Get all topics (placeholder)
-app.get('/api/topics', (req, res) => {
-  // In a real application, fetch from database or derive from articles
-  const topics = [
-    { id: 1, name: 'Technology' },
-    { id: 2, name: 'Politics' },
-    { id: 3, name: 'Sports' },
-    { id: 4, name: 'Entertainment' },
-  ]; // Placeholder topics as objects
-  res.json(topics);
-});
-
-// Get all articles (placeholder)
-app.get('/api/articles', (req, res) => {
-  // In a real application, fetch from database
-  const articles = []; // Placeholder for articles
-  res.json(articles);
-});
-
 
 // Delete a source
-app.delete('/api/sources/:id', (req, res) => {
+app.delete('/api/sources/:id', async (req, res) => {
   const sourceId = req.params.id;
-  const initialLength = sources.length;
-  sources = sources.filter(source => source.id !== parseInt(sourceId));
+  try {
+    const result = await pool.query('DELETE FROM sources WHERE id = $1 RETURNING *', [sourceId]);
 
-  if (sources.length === initialLength) {
-    return res.status(404).json({ error: 'Source not found.' });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Source not found.' });
+    }
+
+    res.status(204).send(); // No content on successful deletion
+  } catch (err) {
+    console.error('Error deleting source:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-
-  // In a real application, delete from database
-  res.status(204).send(); // No content on successful deletion
 });
+
+// Get all topics
+app.get('/api/topics', async (req, res) => {
+  try {
+    // Assuming a 'topics' table exists with 'id' and 'name' columns
+    const result = await pool.query('SELECT id, name FROM topics ORDER BY name ASC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching topics:', err);
+    // If the topics table doesn't exist yet, return an empty array as a fallback
+    if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
+       console.warn('Topics table not found, returning empty array.');
+       res.json([]);
+    } else {
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+});
+
+// Get all articles
+app.get('/api/articles', async (req, res) => {
+  try {
+    // Assuming an 'articles' table exists
+    // Add filtering logic based on query parameters (topic, startDate, endDate) if implemented
+    const result = await pool.query('SELECT * FROM articles ORDER BY published_at DESC'); // Assuming 'published_at' column
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching articles:', err);
+     // If the articles table doesn't exist yet, return an empty array as a fallback
+    if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
+       console.warn('Articles table not found, returning empty array.');
+       res.json([]);
+    } else {
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+});
+
+// Get a single article by ID
+app.get('/api/articles/:id', async (req, res) => {
+  const articleId = req.params.id;
+  try {
+    const result = await pool.query('SELECT * FROM articles WHERE id = $1', [articleId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Article not found.' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching article by ID:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 // Trigger scraper for a specific source
 app.post('/api/scrape/run/:id', async (req, res) => {
   const sourceId = req.params.id;
-  const source = findSourceById(sourceId);
+   try {
+    const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1', [sourceId]);
+    const source = sourceResult.rows[0];
 
-  if (!source) {
-    return res.status(404).json({ error: 'Source not found.' });
-  }
+    if (!source) {
+      return res.status(404).json({ error: 'Source not found.' });
+    }
 
-  try {
-    // Assuming scrapeArticlePage can handle both methods internally based on source.scraping_method
-    // In a real app, you might have a dedicated scraper orchestration function
     console.log(`Triggering scrape for source: ${source.name}`);
     // Placeholder for triggering the scrape logic
+    // This would involve calling the appropriate scraper function (opensourceScraper or Firecrawl)
+    // and saving the results to the database.
     // await scrapeArticlePage(source); // This function would need to be implemented or imported
+
     res.json({ message: `Scraping triggered for ${source.name}` });
   } catch (error) {
-    console.error(`Error triggering scrape for ${source.name}:`, error);
+    console.error(`Error triggering scrape for source ${sourceId}:`, error);
     res.status(500).json({ error: 'Failed to trigger scrape.' });
   }
 });
@@ -135,6 +195,18 @@ app.get('/api/discover-sources', async (req, res) => {
   } catch (error) {
     console.error('Error during source discovery:', error);
     res.status(500).json({ error: 'Failed to discover sources.' });
+  }
+});
+
+// Endpoint to delete all articles, topics, and article links (placeholder)
+app.post('/api/articles/purge', async (req, res) => {
+  try {
+    // In a real application, execute DELETE statements for articles, topics, and article_topics tables
+    console.log('Purging articles, topics, and article links (placeholder)');
+    res.json({ message: 'Purge triggered (placeholder).' });
+  } catch (error) {
+    console.error('Error during purge:', error);
+    res.status(500).json({ error: 'Failed to trigger purge.' });
   }
 });
 
