@@ -24,10 +24,11 @@
 - Consolidated all specified navigation elements (Home, Admin, Manage Sources links) into the persistent navbar to ensure consistent navigation.
 - Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.
 - Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.
-- **Implemented the Source Discovery Feature on the Home page (`frontend/src/app/page.tsx`) with a button and simulated discovery process.**
-- **Created and added a Comprehensive Footer component (`frontend/src/components/footer.tsx`) to the root layout (`frontend/src/app/layout.tsx`).**
-- **Enhanced NewsFeed card display to include images, topics, and source type indicators.**
-- **Improved Loading and Empty States styling in `NewsFeed.tsx`.**
+- Implemented the Source Discovery Feature on the Home page (`frontend/src/app/page.tsx`) with a button and simulated discovery process.
+- Created and added a Comprehensive Footer component (`frontend/src/components/footer.tsx`) to the root layout (`frontend/src/app/layout.tsx`).
+- Enhanced NewsFeed card display to include images, topics, and source type indicators.
+- Improved Loading and Empty States styling in `NewsFeed.tsx`.
+- **Updated the Footer component (`frontend/src/components/footer.tsx`) to fetch news sources dynamically from the backend API instead of using hardcoded data.**
 
 **Next Steps:**
 
