@@ -15,12 +15,12 @@
 - Implemented a `ThemeProvider` component to wrap the root layout.
 - Created and added a `ThemeSwitcher` component to the navbar in `frontend/src/app/page.tsx` using shadcn/ui components and `next-themes`.
 - Moved the navbar and ThemeSwitcher component to `frontend/src/app/layout.tsx` to make it persistent across all pages.
-- **Refactored the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label).**
-- **Refactored the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label, Input, Textarea, Card).**
+- Refactored the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label).
+- Refactored the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label, Input, Textarea, Card).
+- **Styled the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button).**
 
 **Next Steps:**
 
-- Style the Article Detail page (`frontend/src/app/article/[id]/page.tsx`).
 - Implement further accessibility enhancements.
 - Refine responsive design for specific components as needed.
 - Add documentation for the new UI/Styling guidelines in the `/docs` folder.

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Button } from '@/components/ui/button'; // Import shadcn/ui Button
+
 
 interface Article {
   id: number;
@@ -28,7 +30,7 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
   const router = useRouter();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -42,12 +44,8 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
         }
         const data: Article = await response.json();
         setArticle(data);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err);
-        } else {
-          setError(new Error('An unknown error occurred'));
-        }
+      } catch (err: unknown) { // Use unknown for better type safety
+        setError(err);
       } finally {
         setLoading(false);
       }
@@ -64,7 +62,7 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
 
   if (loading) {
     return (
-      <div>
+      <div className="text-foreground">
         Loading article...
       </div>
     );
@@ -72,15 +70,15 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
 
   if (error) {
     return (
-      <div>
-        Error loading article: {error.message}
+      <div className="text-destructive">
+        Error loading article: {error instanceof Error ? error.message : 'An unknown error occurred'}
       </div>
     );
   }
 
   if (!article) {
     return (
-      <div>
+      <div className="text-muted-foreground">
         Article not found.
       </div>
     );
@@ -88,14 +86,14 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <button onClick={handleBackClick} className="text-blue-600 hover:underline mb-6">
+      <Button onClick={handleBackClick} variant="link" className="mb-6 px-0"> {/* Use shadcn/ui Button with link variant */}
         &larr; Back to News Feed
-      </button>
-      <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
-      <p className="text-gray-600 text-sm mb-6">
-        Source: <span className="text-blue-600">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
+      </Button>
+      <h1 className="text-3xl font-bold mb-4 text-primary">{article.title}</h1>
+      <p className="text-muted-foreground text-sm mb-6">
+        Source: <span className="text-accent">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
       </p>
-      <div className="prose max-w-none">
+      <div className="prose max-w-none text-foreground"> {/* Apply text-foreground for content color */}
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
       </div>
     </div>
