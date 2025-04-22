@@ -11,6 +11,7 @@ interface Article {
   title: string;
   source_id: number;
   source_url: string;
+  author?: string; // Added optional author property
   publication_date: string;
   raw_content: string;
   summary: string;
@@ -109,7 +110,11 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
         <CardHeader>
           <CardTitle className="text-3xl font-bold text-primary mb-2">{article.title}</CardTitle> {/* Added bottom margin */}
           <p className="text-muted-foreground text-sm">
-            Source: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{article.source_url}</a> | Date: {new Date(article.publication_date).toLocaleDateString()} {/* Made source URL a link */}
+            Source: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{article.source_url}</a>
+            {article.author && (
+              <span> | Author: {article.author}</span>
+            )}
+             | Published: {new Date(article.publication_date).toLocaleDateString()}
           </p>
         </CardHeader>
         <CardContent>

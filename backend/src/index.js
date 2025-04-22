@@ -5,6 +5,7 @@ const { Pool } = require('pg'); // Import Pool from pg
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
+const { runScraper, runScraperForSource } = require('./scraper'); // Import scraper functions
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -189,7 +190,7 @@ app.post('/api/scrape/run', async (req, res) => {
   try {
     console.log('Triggering full scraper run');
     // Call the runScraper function from scraper.js
-    await runScraper();
+    await runScaper();
     res.json({ message: 'Full scraper run triggered successfully. Check backend logs for progress.' });
   } catch (error) {
     console.error('Error triggering full scraper run:', error);
@@ -202,7 +203,7 @@ app.post('/api/scrape/run', async (req, res) => {
 app.get('/api/discover-sources', async (req, res) => {
   try {
     // In a real application, you might pass parameters like a starting URL
-    const discovered = await discoverArticleUrls('https://example.com'); // Use opensourceDiscoverUrls
+    const discovered = await discoverArticleUrls('https://example.com'); // Use opensourceDiscoverSources
     res.json(discovered);
   } catch (error) {
     console.error('Error during source discovery:', error);
@@ -210,15 +211,28 @@ app.get('/api/discover-sources', async (req, res) => {
   }
 });
 
-// Endpoint to delete all articles, topics, and article links (placeholder)
+// Endpoint to delete all articles, topics, and article links
 app.post('/api/articles/purge', async (req, res) => {
   try {
-    // In a real application, execute DELETE statements for articles, topics, and article_topics tables
-    console.log('Purging articles, topics, and article links (placeholder)');
-    res.json({ message: 'Purge triggered (placeholder).' });
+    console.log('Purging all articles, topics, and article links...');
+    // Delete from article_topics first due to foreign key constraints
+    await pool.query('DELETE FROM article_topics');
+    console.log('Deleted all entries from article_topics.');
+
+    // Delete all articles
+    await pool.query('DELETE FROM articles');
+    console.log('Deleted all entries from articles.');
+
+    // Delete all topics (optional, depending on whether topics should persist if no articles reference them)
+    // Based on the placeholder comment, we will delete topics as well.
+    await pool.query('DELETE FROM topics');
+    console.log('Deleted all entries from topics.');
+
+
+    res.json({ message: 'All articles, topics, and article links purged successfully.' });
   } catch (error) {
-    console.error('Error during purge:', error);
-    res.status(500).json({ error: 'Failed to trigger purge.' });
+    console.error('Error during purge:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -240,6 +254,28 @@ app.get('/api/stats', async (req, res) => {
 });
 
 
+// Temporary function to update NewslineTCI source include_selectors
+async function updateNewslineSource() {
+  const sourceId = 5;
+  const include_selectors = '.IZZyL';
+
+  try {
+    const result = await pool.query(
+      'UPDATE sources SET include_selectors = $1 WHERE id = $2 RETURNING *',
+      [include_selectors, sourceId]
+    );
+
+    if (result.rows.length > 0) {
+      console.log(`NewslineTCI source (ID ${sourceId}) updated successfully on startup.`);
+    } else {
+      console.log(`NewslineTCI source (ID ${sourceId}) not found on startup.`);
+    }
+  } catch (err) {
+    console.error('Error updating NewslineTCI source on startup:', err);
+  }
+}
+
+
 // Schedule the scraper to run periodically (example: every 1 hour)
 // scheduleScraper('0 * * * *'); // Uncomment and configure as needed
 
@@ -248,4 +284,8 @@ app.listen(port, () => {
   console.log('News scraper scheduled to run.'); // This message might be misleading if scheduleScraper is commented out
 });
 
-const { runScraper, runScraperForSource } = require('./scraper'); // Import scraper functions
+// Call the temporary update function after server starts
+updateNewslineSource();
+
+// Call the scraper for NewslineTCI source on startup
+runScraperForSource(5);

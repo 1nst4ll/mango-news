@@ -10,6 +10,7 @@ interface Article {
   title: string;
   source_id: number;
   source_url: string;
+  author?: string; // Added optional author property
   publication_date: string;
   raw_content: string;
   summary: string;
@@ -182,8 +183,8 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
           )}
           <div className="p-6">
             <h3 className="text-xl font-semibold mb-3 text-primary">{article.title}</h3> {/* Increased bottom margin */}
-            <div className="flex items-center text-base text-muted-foreground mb-4"> {/* Increased bottom margin */}
-              <div className="flex items-center mr-4">
+            <div className="flex flex-col text-base text-muted-foreground mb-4"> {/* Increased bottom margin */}
+              <div className="flex items-center mb-2"> {/* Added margin-bottom */}
                 {getCategoryIcon(article.category)} {/* Display category icon */}
                 <span className="flex items-center">
                   <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
@@ -200,9 +201,12 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
                   )}
                 </span>
               </div>
-              <span>{new Date(article.publication_date).toLocaleDateString()}</span> {/* Display formatted date */}
+              {article.author && ( // Display author if available
+                <span className="mb-2">By {article.author}</span>
+              )}
+              <span>Published: {new Date(article.publication_date).toLocaleDateString()}</span>
             </div>
-              <p className="text-foreground mb-5 leading-relaxed">{article.summary}</p> {/* Increased bottom margin and added relaxed line height */}
+              <p className="text-foreground mb-5 leading-relaxed">{article.summary}</p>
             <div className="text-right">
               <Link href={`/article/${article.id}`} className="text-primary hover:underline transition-colors">Read More</Link>
             </div>

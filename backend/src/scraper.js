@@ -133,7 +133,25 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
       const raw_content = processedContent; // Use processedContent
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
-      const publication_date = metadata?.publication_date || metadata?.published_date || new Date().toISOString(); // Get date from metadata
+      let publication_date = metadata?.publication_date || metadata?.published_date;
+      if (publication_date) {
+        try {
+          // Attempt to parse the scraped date string
+          const parsedDate = new Date(publication_date);
+          if (!isNaN(parsedDate.getTime())) {
+            publication_date = parsedDate.toISOString(); // Convert to ISO 8601 format
+          } else {
+            console.warn(`Could not parse date string "${publication_date}" for ${source_url}. Using current date.`);
+            publication_date = new Date().toISOString(); // Fallback to current date if parsing fails
+          }
+        } catch (dateParseError) {
+          console.error(`Error parsing date string "${publication_date}" for ${source_url}:`, dateParseError);
+          publication_date = new Date().toISOString(); // Fallback to current date on error
+        }
+      } else {
+        console.warn(`No publication date found for ${source_url}. Using current date.`);
+        publication_date = new Date().toISOString(); // Fallback to current date if no date is found
+      }
       // Attempt to extract author from metadata or use a default
       const author = metadata?.author || 'Unknown Author'; // Get author from metadata
       // Attempt to extract topics/keywords from metadata
@@ -280,11 +298,11 @@ async function runScraper(enableGlobalAiSummary = undefined) { // Accept global 
         // For now, let's assume it returns a list of potential article URLs.
         // This part requires a proper implementation of opensourceDiscoverSources to return article links.
         // As a placeholder, let's assume it returns an array of strings (URLs).
-        // opensourceDiscoverSources returns an array of strings (URLs)
-        articleUrls = discovered;
-        console.log(`Discovered ${articleUrls.length} potential article URLs with opensource.`);
+           // opensourceDiscoverSources returns an array of strings (URLs)
+           articleUrls = discovered;
+           console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);
 
-      } else { // Default to Firecrawl
+         } else { // Default to Firecrawl
         console.log(`Using Firecrawl discovery for source: ${source.name}`);
         const extractedData = await firecrawl.scrapeUrl(source.url, {
           formats: ['extract'],
