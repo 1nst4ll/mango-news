@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button'; // Import shadcn/ui Button
+import { Checkbox } from '@/components/ui/checkbox'; // Import shadcn/ui Checkbox
+import { Label } from '@/components/ui/label'; // Import shadcn/ui Label
+
 
 const AdminDashboard: React.FC = () => {
   const [scrapingStatus, setScrapingStatus] = useState<string | null>(null);
@@ -40,8 +44,12 @@ const AdminDashboard: React.FC = () => {
         throw new Error(data.error || 'Failed to trigger scraper');
       }
       setScrapingStatus(data.message || 'Scraper triggered successfully. Check backend logs for progress.');
-    } catch (error: Error) {
-      setScrapingStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setScrapingStatus(`Error: ${error.message}`);
+      } else {
+        setScrapingStatus('An unknown error occurred during scraping.');
+      }
     } finally {
       setLoading(false);
     }
@@ -64,61 +72,63 @@ const AdminDashboard: React.FC = () => {
         throw new Error(data.error || 'Failed to purge articles');
       }
       setPurgeStatus(data.message || 'All articles purged successfully.');
-    } catch (error: Error) {
-      setPurgeStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+       if (error instanceof Error) {
+        setPurgeStatus(`Error: ${error.message}`);
+      } else {
+        setPurgeStatus('An unknown error occurred during purging.');
+      }
     } finally {
-      setPurgeLoading(false);
+      setPurgeLoading(false); // Corrected: setPurgeLoading to false
     }
   };
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <h2 className="text-2xl font-bold mb-6">Admin Dashboard</h2>
+      <h2 className="text-2xl font-bold mb-6 text-primary">Admin Dashboard</h2>
       <nav className="mb-8">
         <ul className="flex flex-col space-y-4">
           <li>
-            <Link href="/admin/sources" className="text-blue-600 hover:underline text-lg">Manage Sources</Link>
+            <Link href="/admin/sources" className="text-primary hover:underline text-lg">Manage Sources</Link>
           </li>
           <li className="flex items-center">
-            <label htmlFor="enableGlobalAiSummary" className="flex items-center cursor-pointer">
-              <span className="mr-2 text-gray-700">Enable AI Summaries for this scrape</span>
-              <input
-                type="checkbox"
+             <div className="flex items-center space-x-2">
+              <Checkbox
                 id="enableGlobalAiSummary"
-                name="enableGlobalAiSummary"
                 checked={enableGlobalAiSummary}
-                onChange={(e) => setEnableGlobalAiSummary(e.target.checked)}
-                className="form-checkbox h-5 w-5 text-blue-600"
+                onCheckedChange={(checked: boolean | "indeterminate") => setEnableGlobalAiSummary(!!checked)} // Ensure boolean type
               />
-            </label>
+              <Label htmlFor="enableGlobalAiSummary" className="text-foreground">
+                Enable AI Summaries for this scrape
+              </Label>
+            </div>
           </li>
           <li>
-            <button
+            <Button
               onClick={handleTriggerScraper}
               disabled={loading}
-              className={`px-4 py-2 rounded-md text-white ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50`}
             >
               {loading ? 'Triggering...' : 'Trigger Scraper'}
-            </button>
+            </Button>
           </li>
           <li>
-            <button
+            <Button
               onClick={handlePurgeArticles}
               disabled={purgeLoading}
-              className={`px-4 py-2 rounded-md text-white ${purgeLoading ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50`}
+              variant="destructive" // Use destructive variant for purge
             >
               {purgeLoading ? 'Purging...' : 'Purge All Articles'}
-            </button>
+            </Button>
           </li>
         </ul>
       </nav>
       {scrapingStatus && (
-        <div className="mt-4 p-4 bg-blue-100 text-blue-800 rounded-md">
+        <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md">
           {scrapingStatus}
         </div>
       )}
        {purgeStatus && (
-        <div className="mt-4 p-4 bg-green-100 text-green-800 rounded-md">
+        <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md">
           {purgeStatus}
         </div>
       )}
