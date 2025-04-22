@@ -60,11 +60,15 @@ function TopicFilter({ onSelectTopic }: TopicFilterProps) {
   };
 
   return (
-    <div>
-      <label>
-        <span>Filter by Topic:</span>
+    <div className="flex flex-col">
+      <label htmlFor="topic-select" className="mb-1 text-sm font-medium text-gray-700">
+        Filter by Topic:
       </label>
-      <select id="topic-select" onChange={handleSelectChange}>
+      <select
+        id="topic-select"
+        onChange={handleSelectChange}
+        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+      >
         <option value="">All Topics</option>
         {topics.map(topic => (
           <option key={topic.id} value={topic.name}>

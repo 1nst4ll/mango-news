@@ -28,29 +28,41 @@ function DateRangeFilter({ onSelectDateRange }: DateRangeFilterProps) {
   };
 
   return (
-    <div>
-      <label>
-        <span>Start Date:</span>
+    <div className="flex flex-col">
+      <label htmlFor="start-date" className="mb-1 text-sm font-medium text-gray-700">
+        Start Date:
       </label>
       <input
         type="date"
+        id="start-date"
         value={startDate}
         onChange={handleStartDateChange}
+        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mb-4"
       />
-      <label>
-        <span>End Date:</span>
+      <label htmlFor="end-date" className="mb-1 text-sm font-medium text-gray-700">
+        End Date:
       </label>
       <input
         type="date"
+        id="end-date"
         value={endDate}
         onChange={handleEndDateChange}
+        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mb-4"
       />
-      <button onClick={handleApplyFilter}>
-        Apply
-      </button>
-      <button onClick={handleClearFilter}>
-        Clear
-      </button>
+      <div className="flex gap-4">
+        <button
+          onClick={handleApplyFilter}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+        >
+          Apply
+        </button>
+        <button
+          onClick={handleClearFilter}
+          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+        >
+          Clear
+        </button>
+      </div>
     </div>
   );
 }

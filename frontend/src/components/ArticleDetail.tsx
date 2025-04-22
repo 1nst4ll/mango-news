@@ -79,15 +79,15 @@ function ArticleDetail() {
   }
 
   return (
-    <div>
-      <button onClick={handleBackClick}>
+    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <button onClick={handleBackClick} className="text-blue-600 hover:underline mb-6">
         &larr; Back to News Feed
       </button>
-      <h1>{article.title}</h1>
-      <p>
-        Source: <span>{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
+      <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
+      <p className="text-gray-600 text-sm mb-6">
+        Source: <span className="text-blue-600">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
       </p>
-      <div>
+      <div className="prose max-w-none"> {/* Use prose class for basic markdown styling */}
         {/* Display raw_content using ReactMarkdown */}
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
       </div>
