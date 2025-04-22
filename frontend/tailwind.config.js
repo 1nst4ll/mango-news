@@ -1,4 +1,5 @@
 import { withUt } from 'uploadthing/tw';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 /** @type {import('tailwindcss').Config} */
 const config = {
@@ -92,7 +93,7 @@ const config = {
       },
     },
   },
-  plugins: [import('tailwindcss-animate')],
+  plugins: [tailwindcssAnimate],
 };
 
 export default withUt(config);

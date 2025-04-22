@@ -6,6 +6,7 @@ import Link from 'next/link';
 import NewsFeed from '@/components/NewsFeed';
 import TopicFilter from '@/components/TopicFilter';
 import DateRangeFilter from '@/components/DateRangeFilter';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 
 export default function Home() {
   const [selectedTopic, setSelectedTopic] = useState('');
@@ -27,11 +28,14 @@ export default function Home() {
         <div className="text-3xl font-bold text-primary mb-4 sm:mb-0">
           <Link href="/">Turks and Caicos News Aggregator</Link>
         </div>
-        <nav>
-          <ul className="flex space-x-4">
-            <li><Link href="/admin" className="text-muted-foreground hover:text-foreground transition-colors">Admin</Link></li>
-          </ul>
-        </nav>
+        <div className="flex items-center space-x-4">
+          <nav>
+            <ul className="flex space-x-4">
+              <li><Link href="/admin" className="text-muted-foreground hover:text-foreground transition-colors">Admin</Link></li>
+            </ul>
+          </nav>
+          <ThemeSwitcher />
+        </div>
       </header>
 
       <main>
