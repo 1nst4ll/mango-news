@@ -39,13 +39,15 @@
 - Updated the frontend Source Management page (`frontend/src/app/admin/sources/page.tsx`) to include a dropdown for selecting the scraping method when adding or editing a source.
 - Created a new backend file (`backend/src/opensourceScraper.js`) to house the open-source scraping logic using Puppeteer. (Note: Basic implementation for demonstration, requires further development for robust discovery and scraping).
 - Modified the main scraper logic (`backend/src/scraper.js`) to select the appropriate scraping method (Firecrawl or open-source) based on the source's configuration.
+- Added a basic endpoint for source discovery using the open-source scraper to the backend (`backend/src/index.js`).
 
 **Next Steps:**
 
-- Implement robust article URL discovery within the open-source scraper (`backend/src/opensourceScraper.js`).
-- Enhance the open-source article scraping logic to extract all necessary fields (title, content, date, author, thumbnail, topics) using provided selectors.
-- Refine error handling and edge case management in both scraping methods.
+- Conduct thorough testing of the open-source scraping method with diverse news sources.
+- Address any remaining issues or edge cases identified during testing.
+- Finalize documentation for the scraping methods and UI guidelines.
+- Perform a final review and cleanup of the codebase.
 - Implement further accessibility enhancements.
 - Refine responsive design for specific components as needed.
 - Add documentation for the new UI/Styling guidelines and scraping methods in the `/docs` folder.
-- Suggest a git commit and push to save the completed milestone.
+- Suggest a git commit and push to mark the completion of this milestone.

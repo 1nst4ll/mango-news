@@ -312,7 +312,7 @@ const SourceManagement: React.FC = () => {
 
         {discoveryError && (
           <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md">
-            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : 'An unknown error occurred during discovery.'}
+            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}
           </div>
         )}
 
@@ -354,7 +354,7 @@ const SourceManagement: React.FC = () => {
                   URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{source.url}</a>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'}
+                  Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'} | Method: {source.scraping_method || 'N/A'} {/* Display scraping method */}
                 </div>
                 {source.include_selectors && <div className="text-sm text-muted-foreground">Include: {source.include_selectors}</div>}
                 {source.exclude_selectors && <div className="text-sm text-muted-foreground">Exclude: {source.exclude_selectors}</div>}
