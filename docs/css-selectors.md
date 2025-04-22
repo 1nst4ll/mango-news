@@ -1,6 +1,6 @@
 # Using CSS Selectors for Scraping
 
-CSS selectors are a fundamental part of web scraping, allowing you to pinpoint specific elements on a web page from which to extract data. In Mango News, CSS selectors are used by the [open-source scraping method](scraping-methods.md#open-source-scraping-puppeteerplaywright) to identify the title, content, date, author, thumbnail, and topics of an article.
+CSS selectors are a fundamental part of web scraping, allowing you to pinpoint specific elements on a web page from which to extract data. In Mango News, CSS selectors are used by the [open-source scraping method](scraping-methods.md#open-source-scraping-puppeteerplaywright) to identify the title, content, original publication date, author, thumbnail, and topics of an article.
 
 ## What are CSS Selectors?
 

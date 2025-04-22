@@ -7,6 +7,14 @@ CREATE TABLE sources (
     url VARCHAR(255) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     enable_ai_summary BOOLEAN DEFAULT TRUE, -- Add column for AI summary toggle
+    -- Selectors for open-source scraping method
+    os_title_selector TEXT,
+    os_content_selector TEXT,
+    os_date_selector TEXT,
+    os_author_selector TEXT,
+    os_thumbnail_selector TEXT,
+    os_topics_selector TEXT,
+    -- Generic include/exclude selectors (might still be useful or can be repurposed)
     include_selectors TEXT, -- Add column for comma-separated CSS selectors to include
     exclude_selectors TEXT, -- Add column for comma-separated CSS selectors to exclude
     scraping_method VARCHAR(50) DEFAULT 'opensource', -- Add column for scraping method
@@ -20,6 +28,7 @@ CREATE TABLE articles (
     source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
     source_url VARCHAR(255), -- Store source URL directly for easier access
     thumbnail_url VARCHAR(255), -- Add column for thumbnail image URL
+    author VARCHAR(255), -- Add column for article author
     publication_date TIMESTAMP WITH TIME ZONE,
     raw_content TEXT,
     summary TEXT, -- AI-generated summary

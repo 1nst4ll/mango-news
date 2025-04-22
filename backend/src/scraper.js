@@ -128,11 +128,14 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
       processedContent = linesWithoutSearch.join('\n');
 
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
+      // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       const title = metadata?.title || 'No Title'; // Get title from metadata
       const raw_content = processedContent; // Use processedContent
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
       const publication_date = metadata?.publication_date || metadata?.published_date || new Date().toISOString(); // Get date from metadata
+      // Attempt to extract author from metadata or use a default
+      const author = metadata?.author || 'Unknown Author'; // Get author from metadata
       // Attempt to extract topics/keywords from metadata
       const topics = metadata?.keywords ? metadata.keywords.split(',').map(topic => topic.trim()) : []; // Get topics from metadata
 
@@ -155,8 +158,8 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
 
       // Save article to database
       const articleResult = await pool.query(
-        'INSERT INTO articles (title, source_id, source_url, publication_date, raw_content, summary) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-        [title, source.id, source_url, publication_date, raw_content, summary]
+        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [title, source.id, source_url, author, publication_date, raw_content, summary]
       );
       const articleId = articleResult.rows[0].id;
 
@@ -198,9 +201,14 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
     if (source.scraping_method === 'opensource') {
       // Use the open-source scraper
       const opensourceData = await opensourceScrapeArticle(articleUrl, {
-        title: source.include_selectors?.split(',').map(s => s.trim())[0] || 'h1', // Basic example, needs refinement
-        content: source.include_selectors?.split(',').map(s => s.trim())[1] || 'article', // Basic example, needs refinement
-        // Add other selectors as needed
+        title: source.os_title_selector,
+        content: source.os_content_selector,
+        date: source.os_date_selector, // Pass the new date selector
+        author: source.os_author_selector, // Pass the new author selector
+        thumbnail: source.os_thumbnail_selector, // Pass the new thumbnail selector
+        topics: source.os_topics_selector, // Pass the new topics selector
+        include: source.include_selectors, // Pass generic include selectors
+        exclude: source.exclude_selectors, // Pass generic exclude selectors
       });
 
       if (opensourceData) {
@@ -208,7 +216,10 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
         metadata = {
           title: opensourceData.title,
           url: articleUrl,
-          // Add other metadata fields if extracted by opensourceScrapeArticle
+          publication_date: opensourceData.publication_date, // Get publication date from opensource scraper
+          author: opensourceData.author, // Get author from opensource scraper
+          thumbnail_url: opensourceData.thumbnail_url, // Get thumbnail from opensource scraper
+          keywords: opensourceData.topics ? opensourceData.topics.join(',') : undefined, // Convert topics array to comma-separated string
         };
         console.log(`Successfully scraped article with opensource: ${metadata?.title || 'No Title'}`);
         await processScrapedData(source, content, metadata, enableGlobalAiSummary);
@@ -218,15 +229,27 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
 
     } else { // Default to Firecrawl
       const firecrawlResult = await firecrawl.scrapeUrl(articleUrl, {
-        formats: ['markdown'], // Request markdown content
+        formats: ['markdown', 'extract'], // Request both markdown and extract
         onlyMainContent: true, // Try to get only the main article content
         includeTags: source.include_selectors ? source.include_selectors.split(',').map(s => s.trim()) : undefined,
         excludeTags: source.exclude_selectors ? source.exclude_selectors.split(',').map(s => s.trim()) : undefined,
+        extract: { // Add extract configuration
+          schema: {
+            type: "object",
+            properties: {
+              title: {"type": "string"},
+              url: {"type": "string"},
+              publication_date: {"type": "string"}, // Use publication_date to match DB schema
+              author: {"type": "string"}
+            }
+          },
+          prompt: "Extract the article title, URL, publication date, and author from the page." // Specific prompt
+        }
       });
 
-      if (firecrawlResult && firecrawlResult.success && firecrawlResult.markdown) {
-        content = firecrawlResult.markdown;
-        metadata = firecrawlResult.metadata;
+      if (firecrawlResult && firecrawlResult.success) {
+        content = firecrawlResult.markdown; // Get markdown content
+        metadata = firecrawlResult.extract; // Get extracted data as metadata
         console.log(`Successfully scraped article with Firecrawl: ${metadata?.title || 'No Title'}`);
         await processScrapedData(source, content, metadata, enableGlobalAiSummary);
       } else {

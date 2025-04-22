@@ -22,7 +22,7 @@ This method uses a headless browser (Puppeteer or Playwright) to navigate to a n
 1.  The scraper navigates to the specified article URL using a headless browser.
 2.  It applies the `include_selectors` to identify the main content areas.
 3.  It applies the `exclude_selectors` to remove unwanted elements within the included areas (e.g., ads, sidebars).
-4.  It extracts the article title, publication date, author, thumbnail URL, and topics based on the configured selectors.
+4.  It extracts the article title, original publication date, author, thumbnail URL, and topics based on the configured selectors.
 
 ## Firecrawl Scraping
 
