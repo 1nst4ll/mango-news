@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch'; // Import shadcn/ui Switch
 import { Label } from '@/components/ui/label';
@@ -86,11 +85,8 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <h2 className="text-2xl font-bold mb-6 text-primary">Admin Dashboard</h2>
-      <nav className="mb-8">
+      <div className="mb-8"> {/* Changed nav to div as it no longer contains navigation links */}
         <ul className="flex flex-col space-y-4">
-          <li>
-            <Link href="/admin/sources" className="text-primary hover:underline text-lg">Manage Sources</Link>
-          </li>
           <li className="flex items-center">
              <div className="flex items-center space-x-2">
               <Switch
@@ -121,7 +117,7 @@ const AdminDashboard: React.FC = () => {
             </Button>
           </li>
         </ul>
-      </nav>
+      </div> {/* Added closing div tag */}
       {scrapingStatus && (
         <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md">
           {scrapingStatus}

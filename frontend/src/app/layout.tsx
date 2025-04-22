@@ -44,7 +44,9 @@ export default function RootLayout({
               <div className="flex items-center space-x-4">
                 <nav>
                   <ul className="flex space-x-4">
+                    <li><Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">Home</Link></li> {/* Added Home link */}
                     <li><Link href="/admin" className="text-muted-foreground hover:text-foreground transition-colors">Admin</Link></li>
+                    <li><Link href="/admin/sources" className="text-muted-foreground hover:text-foreground transition-colors">Manage Sources</Link></li> {/* Added Manage Sources link */}
                   </ul>
                 </nav>
                 <ThemeSwitcher />

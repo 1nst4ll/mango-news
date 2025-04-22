@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Button } from '@/components/ui/button'; // Import shadcn/ui Button
 
 
 interface Article {
@@ -27,7 +25,8 @@ interface ArticleDetailProps {
 
 const ArticleDetail = ({ params }: ArticleDetailProps) => {
   const { id } = params;
-  const router = useRouter();
+  // Removed useRouter as it's no longer needed for the back button
+  // const router = useRouter();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
@@ -56,9 +55,10 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
     }
   }, [id]);
 
-  const handleBackClick = () => {
-    router.push('/');
-  };
+  // Removed handleBackClick as the back button is now in the persistent navbar
+  // const handleBackClick = () => {
+  //   router.push('/');
+  // };
 
   if (loading) {
     return (
@@ -86,9 +86,7 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <Button onClick={handleBackClick} variant="link" className="mb-6 px-0"> {/* Use shadcn/ui Button with link variant */}
-        &larr; Back to News Feed
-      </Button>
+      {/* Removed Back to News Feed button/link - navigation is now in the persistent navbar */}
       <h1 className="text-3xl font-bold mb-4 text-primary">{article.title}</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Source: <span className="text-accent">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
