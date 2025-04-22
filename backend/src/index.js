@@ -1,254 +1,128 @@
 const express = require('express');
-const { Pool } = require('pg');
-const cors = require('cors'); // Import cors middleware
-const { runScraper, runScraperForSource } = require('./scraper'); // Import scraper functions
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const { scheduleScraper } = require('./scraper');
+const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
+const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Database connection pool
-const pool = new Pool({
-  user: 'hoffma24_mangoadmin',
-  host: 'localhost',
-  database: 'hoffma24_mangonews',
-  password: 'R3d3d0ndr0N',
-  port: 5432, // Default PostgreSQL port
+app.use(cors());
+app.use(bodyParser.json());
+
+// In-memory data store (replace with a database in a real application)
+let sources = [
+  { id: 1, name: 'Example News', url: 'https://example.com', is_active: true, enable_ai_summary: true, include_selectors: 'article', exclude_selectors: '.ad', scraping_method: 'opensource' },
+];
+let nextSourceId = 2;
+
+// Helper function to find a source by ID
+const findSourceById = (id) => sources.find(source => source.id === parseInt(id));
+
+// API Endpoints
+
+// Get all sources
+app.get('/api/sources', (req, res) => {
+  // In a real application, fetch from database
+  res.json(sources);
 });
 
-app.use(cors()); // Use cors middleware
-app.use(express.json()); // Middleware to parse JSON request bodies
-
-// Optional: Log database connection status on startup
-pool.on('connect', () => {
-  console.log('Database pool connected successfully!');
+// Add a new source
+app.post('/api/sources', (req, res) => {
+  const { name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method } = req.body;
+  if (!name || !url) {
+    return res.status(400).json({ error: 'Source name and URL are required.' });
+  }
+  const newSource = {
+    id: nextSourceId++,
+    name,
+    url,
+    is_active: is_active !== undefined ? is_active : true,
+    enable_ai_summary: enable_ai_summary !== undefined ? enable_ai_summary : true,
+    include_selectors: include_selectors || null,
+    exclude_selectors: exclude_selectors || null,
+    scraping_method: scraping_method || 'opensource', // Default to opensource
+  };
+  sources.push(newSource);
+  // In a real application, save to database
+  res.status(201).json(newSource);
 });
 
-pool.on('error', (err) => {
-  console.error('Database pool error:', err);
+// Update a source
+app.put('/api/sources/:id', (req, res) => {
+  const sourceId = req.params.id;
+  const updates = req.body;
+  const sourceIndex = sources.findIndex(source => source.id === parseInt(sourceId));
+
+  if (sourceIndex === -1) {
+    return res.status(404).json({ error: 'Source not found.' });
+  }
+
+  // Update source properties, ensuring id is not changed
+  sources[sourceIndex] = {
+    ...sources[sourceIndex],
+    ...updates,
+    id: sources[sourceIndex].id, // Ensure ID remains unchanged
+  };
+
+  // In a real application, update in database
+  res.json(sources[sourceIndex]);
 });
 
+// Delete a source
+app.delete('/api/sources/:id', (req, res) => {
+  const sourceId = req.params.id;
+  const initialLength = sources.length;
+  sources = sources.filter(source => source.id !== parseInt(sourceId));
 
-// API Routes
+  if (sources.length === initialLength) {
+    return res.status(404).json({ error: 'Source not found.' });
+  }
 
-// Endpoint to manually trigger the scraper
-app.post('/api/scrape/run', async (req, res) => {
-  const { enableGlobalAiSummary } = req.body; // Accept global toggle state
+  // In a real application, delete from database
+  res.status(204).send(); // No content on successful deletion
+});
+
+// Trigger scraper for a specific source
+app.post('/api/scrape/run/:id', async (req, res) => {
+  const sourceId = req.params.id;
+  const source = findSourceById(sourceId);
+
+  if (!source) {
+    return res.status(404).json({ error: 'Source not found.' });
+  }
+
   try {
-    console.log(`Manual scraper trigger requested. Global AI Summary: ${enableGlobalAiSummary}`);
-    runScraper(enableGlobalAiSummary); // Pass the global toggle state to the scraper function
-    res.status(200).json({ message: 'Scraper triggered successfully. Check backend logs for progress.' });
-  } catch (err) {
-    console.error('Error triggering scraper manually:', err);
-    res.status(500).json({ error: 'Failed to trigger scraper.' });
+    // Assuming scrapeArticlePage can handle both methods internally based on source.scraping_method
+    // In a real app, you might have a dedicated scraper orchestration function
+    console.log(`Triggering scrape for source: ${source.name}`);
+    // Placeholder for triggering the scrape logic
+    // await scrapeArticlePage(source); // This function would need to be implemented or imported
+    res.json({ message: `Scraping triggered for ${source.name}` });
+  } catch (error) {
+    console.error(`Error triggering scrape for ${source.name}:`, error);
+    res.status(500).json({ error: 'Failed to trigger scrape.' });
   }
 });
 
-// Endpoint to manually trigger scraper for a specific source
-app.post('/api/scrape/run/:sourceId', async (req, res) => {
-  const { sourceId } = req.params;
-  try {
-    console.log(`Manual scraper trigger requested for source ID: ${sourceId}`);
-    // Ensure sourceId is a number
-    const id = parseInt(sourceId, 10);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: 'Invalid source ID.' });
-    }
-    // Pass the source ID to the scraper function
-    runScraperForSource(id);
-    res.status(200).json({ message: `Scraper triggered successfully for source ID ${sourceId}. Check backend logs for progress.` });
-  } catch (err) {
-    console.error(`Error triggering scraper manually for source ID ${sourceId}:`, err);
-    res.status(500).json({ error: 'Failed to trigger scraper for source.' });
-  }
-});
-
-// Endpoint to discover sources (basic implementation)
+// Basic endpoint for source discovery (currently calls opensourceDiscoverSources)
 app.get('/api/discover-sources', async (req, res) => {
-  // This is a basic placeholder. A real implementation would take a starting URL
-  // or keywords from the request body/query parameters.
-  const startUrl = 'https://www.bbc.com/'; // Example starting URL
-
   try {
-    console.log(`Discovering sources starting from: ${startUrl}`);
-    // Use the open-source discoverSources function
-    const discovered = await opensourceDiscoverSources(startUrl);
-    res.status(200).json(discovered);
-  } catch (err) {
-    console.error('Error discovering sources:', err);
+    // In a real application, you might pass parameters like a starting URL
+    const discovered = await discoverArticleUrls('https://example.com'); // Use opensourceDiscoverUrls
+    res.json(discovered);
+  } catch (error) {
+    console.error('Error during source discovery:', error);
     res.status(500).json({ error: 'Failed to discover sources.' });
   }
 });
 
 
-// API Routes
-app.get('/api/sources', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method, created_at FROM sources ORDER BY name'); // Include new selector settings and scraping_method
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching sources:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.post('/api/sources', async (req, res) => {
-  const { name, url, enable_ai_summary, include_selectors, exclude_selectors, scraping_method } = req.body; // Accept new selector settings and scraping_method
-
-  if (!name || !url) {
-    return res.status(400).json({ error: 'Source name and URL are required' });
-  }
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO sources (name, url, enable_ai_summary, include_selectors, exclude_selectors, scraping_method) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', // Include new selector settings and scraping_method in INSERT
-      [name, url, enable_ai_summary, include_selectors, exclude_selectors, scraping_method]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error adding new source:', err);
-    if (err.code === '23505') { // Unique violation error code
-      res.status(409).json({ error: 'Source with this URL already exists' });
-    } else {
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-});
-
-app.put('/api/sources/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method } = req.body; // Accept new selector settings and scraping_method
-
-  if (!name || !url || is_active === undefined || enable_ai_summary === undefined || include_selectors === undefined || exclude_selectors === undefined || scraping_method === undefined) { // Check for all required fields
-    return res.status(400).json({ error: 'Source name, URL, active status, AI summary toggle status, selector settings, and scraping method are required' });
-  }
-
-  try {
-    const result = await pool.query(
-      'UPDATE sources SET name = $1, url = $2, is_active = $3, enable_ai_summary = $4, include_selectors = $5, exclude_selectors = $6, scraping_method = $7 WHERE id = $8 RETURNING *', // Include new selector settings and scraping_method in UPDATE
-      [name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method, id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Source not found' });
-    }
-
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating source:', err);
-    if (err.code === '23505') { // Unique violation error code
-      res.status(409).json({ error: 'Source with this URL already exists' });
-    } else {
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-});
-
-app.delete('/api/sources/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const result = await pool.query('DELETE FROM sources WHERE id = $1 RETURNING *', [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Source not found' });
-    }
-
-    res.json({ message: 'Source deleted successfully', source: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting source:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// API endpoint to get all articles with filtering
-app.get('/api/articles', async (req, res) => {
-  const { topic, startDate, endDate } = req.query;
-  let query = 'SELECT DISTINCT a.* FROM articles a';
-  const values = [];
-  const conditions = [];
-
-  if (topic) {
-    query += ' JOIN article_topics at ON a.id = at.article_id JOIN topics t ON at.topic_id = t.id';
-    conditions.push('t.name ILIKE $1');
-    values.push(`%${topic}%`);
-  }
-
-  if (startDate && endDate) {
-    // Ensure dates are treated as timestamps for BETWEEN
-    conditions.push(`a.publication_date BETWEEN $${values.length + 1} AND $${values.length + 2}`);
-    values.push(new Date(startDate).toISOString(), new Date(endDate).toISOString());
-  } else if (startDate) {
-    conditions.push(`a.publication_date >= $${values.length + 1}`);
-    values.push(new Date(startDate).toISOString());
-  } else if (endDate) {
-    conditions.push(`a.publication_date <= $${values.length + 1}`);
-    values.push(new Date(endDate).toISOString());
-  }
-
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
-
-  query += ' ORDER BY a.publication_date DESC';
-
-  try {
-    const result = await pool.query(query, values);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching articles:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// API endpoint to get a single article by ID
-app.get('/api/articles/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const result = await pool.query('SELECT * FROM articles WHERE id = $1', [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Article not found' });
-    }
-
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error fetching article by ID:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// API endpoint to get all topics
-app.get('/api/topics', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM topics ORDER BY name');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching topics:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-app.get('/', (req, res) => {
-  res.send('Turks and Caicos News Aggregator Backend');
-});
+// Schedule the scraper to run periodically (example: every 1 hour)
+// scheduleScraper('0 * * * *'); // Uncomment and configure as needed
 
 app.listen(port, () => {
-  console.log(`Backend listening at http://localhost:${port}`);
-});
-
-// Endpoint to purge all articles, topics, and article_topics
-app.post('/api/articles/purge', async (req, res) => {
-  try {
-    console.log('Purge articles requested.');
-    // Delete from linking table first due to foreign key constraints
-    await pool.query('DELETE FROM article_topics;');
-    // Then delete from articles and topics tables
-    await pool.query('DELETE FROM articles;');
-    await pool.query('DELETE FROM topics;');
-    res.status(200).json({ message: 'All articles, topics, and article links purged successfully.' });
-  } catch (err) {
-    console.error('Error purging articles:', err);
-    res.status(500).json({ error: 'Failed to purge articles.' });
-  }
+  console.log(`Backend server listening on port ${port}`);
+  console.log('News scraper scheduled to run.'); // This message might be misleading if scheduleScraper is commented out
 });
