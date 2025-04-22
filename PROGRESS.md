@@ -10,7 +10,7 @@
 - Styled the `NewsFeed.tsx` component, applying the new aesthetic to article cards and content, including hover effects.
 - Ensured the necessary dependencies (`tailwindcss-animate` and `uploadthing`) are installed in the frontend project.
 - Initialized shadcn/ui in the frontend project.
-- Added shadcn/ui `button`, `dropdown-menu`, `checkbox`, `label`, `input`, `textarea`, and `card` components.
+- Added shadcn/ui `button`, `dropdown-menu`, `checkbox`, `label`, `input`, `textarea`, `card`, and `switch` components.
 - Installed `next-themes` for theme management.
 - Implemented a `ThemeProvider` component to wrap the root layout.
 - Created and added a `ThemeSwitcher` component to the navbar in `frontend/src/app/page.tsx` using shadcn/ui components and `next-themes`.
@@ -19,7 +19,8 @@
 - Refactored the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label, Input, Textarea, Card).
 - Styled the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button).
 - Improved visibility of the URL link in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) by changing its text color to primary.
-- **Adjusted the modal overlay styling in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to use a semi-transparent black background (`bg-black/50`) and ensured the modal content uses theme-appropriate background and text colors.**
+- Adjusted the modal overlay styling in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to use a semi-transparent black background (`bg-black/50`) and ensured the modal content uses theme-appropriate background and text colors.
+- **Changed checkbox fields to toggle switches (`Switch` component) on the Admin Dashboard and Source Management pages.**
 
 **Next Steps:**
 

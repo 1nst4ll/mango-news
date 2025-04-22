@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch'; // Import shadcn/ui Switch
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -263,7 +263,7 @@ const SourceManagement: React.FC = () => {
             <Input type="text" id="url" name="url" value={newSource.url} onChange={handleInputChange} required className="mt-1 block w-full" />
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onCheckedChange={(checked: boolean | "indeterminate") => handleInputChange({ target: { name: 'enable_ai_summary', value: checked, type: 'checkbox' } } as React.ChangeEvent<HTMLInputElement>)} /> {/* Corrected onChange handling */}
+            <Switch id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onCheckedChange={(checked) => setNewSource({ ...newSource, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
             <Label htmlFor="enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
           </div>
           <div>
@@ -295,11 +295,11 @@ const SourceManagement: React.FC = () => {
                 <Input type="text" id="edit-url" name="url" value={editingSource.url} onChange={handleEditInputChange} required className="mt-1 block w-full" />
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="edit-is_active" name="is_active" checked={editingSource.is_active} onCheckedChange={(checked: boolean | "indeterminate") => handleEditInputChange({ target: { name: 'is_active', value: checked, type: 'checkbox' } } as React.ChangeEvent<HTMLInputElement>)} /> {/* Corrected onChange handling */}
+                <Switch id="edit-is_active" name="is_active" checked={editingSource.is_active} onCheckedChange={(checked) => setEditingSource({ ...editingSource, is_active: checked })} /> {/* Corrected onChange handling */}
                 <Label htmlFor="edit-is_active" className="text-sm font-medium text-foreground">Is Active</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="edit-enable_ai_summary" name="enable_ai_summary" checked={editingSource.enable_ai_summary} onCheckedChange={(checked: boolean | "indeterminate") => handleEditInputChange({ target: { name: 'enable_ai_summary', value: checked, type: 'checkbox' } } as React.ChangeEvent<HTMLInputElement>)} /> {/* Corrected onChange handling */}
+                <Switch id="edit-enable_ai_summary" name="enable_ai_summary" checked={editingSource.enable_ai_summary} onCheckedChange={(checked) => setEditingSource({ ...editingSource, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
                 <Label htmlFor="edit-enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
               </div>
               <div>

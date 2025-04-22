@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button'; // Import shadcn/ui Button
-import { Checkbox } from '@/components/ui/checkbox'; // Import shadcn/ui Checkbox
-import { Label } from '@/components/ui/label'; // Import shadcn/ui Label
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch'; // Import shadcn/ui Switch
+import { Label } from '@/components/ui/label';
 
 
 const AdminDashboard: React.FC = () => {
@@ -93,10 +93,10 @@ const AdminDashboard: React.FC = () => {
           </li>
           <li className="flex items-center">
              <div className="flex items-center space-x-2">
-              <Checkbox
+              <Switch
                 id="enableGlobalAiSummary"
                 checked={enableGlobalAiSummary}
-                onCheckedChange={(checked: boolean | "indeterminate") => setEnableGlobalAiSummary(!!checked)} // Ensure boolean type
+                onCheckedChange={(checked) => setEnableGlobalAiSummary(!!checked)} // Switch onCheckedChange provides boolean
               />
               <Label htmlFor="enableGlobalAiSummary" className="text-foreground">
                 Enable AI Summaries for this scrape
