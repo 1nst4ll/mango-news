@@ -6,14 +6,13 @@ This document tracks the development progress of the Turks and Caicos News Aggre
 
 ### Current Status
 
-Audited the existing scraping process and reevaluated the strategy using the Firecrawl tool. Updated the scraper logic to improve content extraction by removing specific HTML tag filtering and adding post-processing to clean the scraped markdown content.
+Removed all custom frontend styling and related dependencies. The frontend now relies on default browser styles. Continued work on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
 
-- [x] Audited scraping process and refined strategy based on Firecrawl tool testing.
-- [x] Applied DaisyUI styling to frontend components (`App.tsx`, `NewsFeed.tsx`, `TopicFilter.tsx`, `DateRangeFilter.tsx`, `ArticleDetail.tsx`, `AdminDashboard.tsx`, `SourceManagement.tsx`).
-- [x] Implemented mobile-first responsive design for frontend components (`NewsFeed.tsx`, `ArticleDetail.tsx`, `SourceManagement.tsx`).
 - [x] Removed all Tailwind CSS and DaisyUI styling from the frontend components, configuration files, and `index.css`.
+- [x] Audited scraping process and refined strategy based on Firecrawl tool testing.
+- [x] Implemented mobile-first responsive design for frontend components (`NewsFeed.tsx`, `ArticleDetail.tsx`, `SourceManagement.tsx`).
 
 ## Latest Update - 2025-04-21
 
@@ -67,6 +66,7 @@ Significant progress has been made on the scraping and administrative features. 
 - [ ] Configure the project for deployment on your Inmotion Hosting environment.
 - [ ] Implement trending news logic.
 - [ ] Add user authentication (if required for admin interface).
+- [ ] Implement frontend styling (e.g., using a new approach or re-attempting Tailwind/DaisyUI setup).
 
 ### Project Phases
 
@@ -74,10 +74,11 @@ The project can be organized into the following phases:
 
 1.  **Core Data & API:** Set up the database, backend API for sources and articles, and basic frontend display. (Completed)
 2.  **Scraping & AI Integration:** Implement the news scraping logic using Firecrawl and integrate the LLM for summaries. (Completed)
-3.  **Frontend Enhancements:** Add filtering (date range), improve UI/UX with Tailwind/DaisyUI, and create article detail view. (Completed)
+3.  **Frontend Enhancements:** Add filtering (date range) and create article detail view. (Completed)
 4.  **Admin Interface:** Develop the administrative section for managing sources. (Completed)
 5.  **Automation & Deployment:** Implement scraping scheduling and configure the project for hosting. (Scheduling Implemented, Deployment Pending)
 6.  **Advanced Features:** Implement trending news and potentially user authentication.
+7.  **Frontend Styling:** Implement a consistent styling system for the frontend.
 
 ### Detailed Steps for Pending Tasks (Phase 5: Automation & Deployment)
 
@@ -88,6 +89,16 @@ The project can be organized into the following phases:
     *   **Step 5.1.4:** Ensure the `node-cron` scheduler in `backend/src/scraper.js` is configured to run persistently on the server.
     *   **Step 5.1.5:** Deploy the backend and frontend code to the hosting environment.
     *   **Step 5.1.6:** Test the deployed application to ensure both frontend and backend are functioning correctly and can connect to the database.
+
+### Detailed Steps for Pending Tasks (Phase 7: Frontend Styling)
+
+*   **Task: Implement Frontend Styling**
+    *   **Step 7.1.1:** Choose a styling approach (e.g., re-attempt Tailwind CSS and DaisyUI setup, use CSS Modules, or another framework).
+    *   **Step 7.1.2:** Install and configure the chosen styling framework/method.
+    *   **Step 7.1.3:** Define a style guide including color palette, typography, spacing, and component styles.
+    *   **Step 7.1.4:** Apply styling to all frontend components according to the style guide.
+    *   **Step 7.1.5:** Ensure responsiveness across different devices.
+    *   **Step 7.1.6:** Conduct a thorough visual audit to ensure consistency and address any styling conflicts.
 
 ### Documentation Guidelines
 

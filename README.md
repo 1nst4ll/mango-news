@@ -10,12 +10,12 @@ This project aims to build a centralized platform for accessing local news from 
 
 **Note:** This section and the "Implemented Functionality" and "Next Steps" sections should be updated regularly to reflect the current state and plan of the project. Refer to the [Project Progress Log](./PROGRESS.md) for detailed updates and task checklists.
 
-The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript, styled with Tailwind CSS and DaisyUI, and includes routing for navigating between pages. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page and the administrative interface for managing sources have been implemented.
+The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend uses Vite with React and TypeScript and includes routing for navigating between pages. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page and the administrative interface for managing sources have been implemented.
 
 ## Technology Stack
 
 *   **Backend:** Node.js, Express.js, PostgreSQL
-*   **Frontend:** React, Vite, TypeScript, Tailwind CSS, DaisyUI, React Router DOM
+*   **Frontend:** React, Vite, TypeScript, React Router DOM
 *   **Scraping:** Firecrawl MCP Server (integration pending)
 *   **AI Summaries:** LLM API Integration (pending)
 
@@ -32,14 +32,12 @@ The initial project structure has been set up, and core components for the backe
 │   └── schema.sql            # PostgreSQL database schema definition - see [Database Schema](./db/schema.sql) for details
 ├── frontend/                 # Frontend application code
 │   ├── index.html            # Frontend entry point (HTML)
-│   ├── package.json          # Frontend dependencies (React, Vite, TypeScript, Tailwind, DaisyUI)
-│   ├── postcss.config.js     # PostCSS configuration for Tailwind
-│   ├── tailwind.config.js    # Tailwind CSS configuration with DaisyUI plugin
+│   ├── package.json          # Frontend dependencies (React, Vite, TypeScript)
 │   ├── tsconfig.json         # TypeScript configuration for the frontend
 │   ├── vite.config.ts        # Vite build tool configuration
 │   └── src/                  # Frontend source files
 │       ├── App.tsx           # Main frontend application component (React + TypeScript)
-│       ├── index.css         # Tailwind CSS directives and global styles
+│       ├── index.css         # Global CSS file (currently empty)
 │       ├── main.tsx          # Frontend entry point (renders App component)
 │       └── components/       # Reusable React components
 │           ├── ArticleDetail.tsx # Component to display a single news article
@@ -79,7 +77,7 @@ This structure separates the backend, database, and frontend concerns into disti
     *   Added endpoint `POST /api/articles/purge` to delete all articles, topics, and article links from the database.
 *   **Frontend UI (`frontend/src/`):**
     *   The frontend is set up using Vite, React, and TypeScript, providing a modern and type-safe development environment.
-    *   Tailwind CSS and DaisyUI are configured for streamlined styling.
+    *   The frontend currently uses minimal styling based on default browser styles.
     *   `App.tsx`: The main application component that orchestrates the display of the news feed and filtering options, now including routing with `react-router-dom`.
     *   `NewsFeed.tsx`: A component responsible for fetching news articles from the backend API and rendering them in a list. It updates automatically when the selected topic changes and includes links to the article detail page.
     *   `TopicFilter.tsx`: A component that fetches available topics from the backend and provides a dropdown menu for users to filter the news feed by topic.
@@ -112,7 +110,7 @@ To get the project up and running on your local machine, follow these steps:
 4.  **Frontend Setup:**
     *   Navigate to the `frontend` directory in your terminal: `cd frontend`
     *   Install frontend dependencies: `npm install`
-    *   Tailwind CSS and DaisyUI are already configured based on `tailwind.config.js` and `postcss.config.js`.
+    *   The frontend currently uses minimal styling based on default browser styles.
 5.  **Firecrawl MCP Server:**
     *   Ensure the Firecrawl MCP server is running and accessible. The backend will need to communicate with it for scraping. Specific integration steps are pending.
 6.  **LLM API:**

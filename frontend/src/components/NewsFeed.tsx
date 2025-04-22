@@ -67,7 +67,7 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) { // Acc
 
   if (loading) {
     return (
-      <div className="text-center text-lg">
+      <div>
         Loading articles...
       </div>
     );
@@ -75,7 +75,7 @@ function NewsFeed({ selectedTopic, startDate, endDate }: NewsFeedProps) { // Acc
 
   if (error) {
     return (
-      <div className="text-center text-red-500">
+      <div>
         Error loading articles: {error.message}
       </div>
     );
