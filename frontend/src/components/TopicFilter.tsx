@@ -73,8 +73,8 @@ function TopicFilter({ onSelectTopic }: TopicFilterProps) {
         className="block w-full rounded-md border border-border bg-input px-3 py-2 text-base text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
       >
         <option value="">All Topics</option>
-        {topics.map(topic => (
-          <option key={topic.id} value={topic.name}>
+        {topics.map((topic) => (
+          <option key={`topic-${topic.id}`} value={topic.name}> {/* Added a prefix to the key */}
             {topic.name}
           </option>
         ))}

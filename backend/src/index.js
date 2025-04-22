@@ -70,6 +70,26 @@ app.put('/api/sources/:id', (req, res) => {
   res.json(sources[sourceIndex]);
 });
 
+// Get all topics (placeholder)
+app.get('/api/topics', (req, res) => {
+  // In a real application, fetch from database or derive from articles
+  const topics = [
+    { id: 1, name: 'Technology' },
+    { id: 2, name: 'Politics' },
+    { id: 3, name: 'Sports' },
+    { id: 4, name: 'Entertainment' },
+  ]; // Placeholder topics as objects
+  res.json(topics);
+});
+
+// Get all articles (placeholder)
+app.get('/api/articles', (req, res) => {
+  // In a real application, fetch from database
+  const articles = []; // Placeholder for articles
+  res.json(articles);
+});
+
+
 // Delete a source
 app.delete('/api/sources/:id', (req, res) => {
   const sourceId = req.params.id;
