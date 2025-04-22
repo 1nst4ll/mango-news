@@ -127,7 +127,13 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
           const scrapedTitle = getText(selectors.title);
           const scrapedDate = getText(selectors.date);
           const scrapedAuthor = getText(selectors.author);
-          const scrapedThumbnailUrl = getAttribute(selectors.thumbnail, 'src');
+          let scrapedThumbnailUrl = null;
+          if (selectors.thumbnail === 'meta[property="og:image"]') {
+            scrapedThumbnailUrl = getAttribute(selectors.thumbnail, 'content');
+          } else {
+            scrapedThumbnailUrl = getAttribute(selectors.thumbnail, 'src');
+          }
+
           const scrapedTopics = getMultipleText(selectors.topics);
 
           // Log missing optional fields
