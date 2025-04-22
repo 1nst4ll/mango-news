@@ -89,7 +89,7 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
       {/* Removed Back to News Feed button/link - navigation is now in the persistent navbar */}
       <h1 className="text-3xl font-bold mb-4 text-primary">{article.title}</h1>
       <p className="text-muted-foreground text-sm mb-6">
-        Source: <span className="text-accent">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
+        Source: <span className="text-primary">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
       </p>
       <div className="prose max-w-none text-foreground"> {/* Apply text-foreground for content color */}
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>

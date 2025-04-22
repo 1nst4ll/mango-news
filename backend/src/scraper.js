@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting .default)
 const cron = require('node-cron'); // Import node-cron for scheduling
 const Groq = require('groq-sdk'); // Import Groq SDK
-const { scrapeArticle: opensourceScrapeArticle, discoverSources: opensourceDiscoverSources } = require('./opensourceScraper'); // Import open-source scraper functions
+const { scrapeArticle: opensourceScrapeArticle, discoverArticleUrls: opensourceDiscoverSources } = require('./opensourceScraper'); // Import open-source scraper functions
 
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
@@ -257,8 +257,8 @@ async function runScraper(enableGlobalAiSummary = undefined) { // Accept global 
         // For now, let's assume it returns a list of potential article URLs.
         // This part requires a proper implementation of opensourceDiscoverSources to return article links.
         // As a placeholder, let's assume it returns an array of strings (URLs).
-        // TODO: Implement proper article URL discovery in opensourceDiscoverSources
-        articleUrls = discovered.map(item => item.url); // Assuming it returns objects with a url field
+        // opensourceDiscoverSources returns an array of strings (URLs)
+        articleUrls = discovered;
         console.log(`Discovered ${articleUrls.length} potential article URLs with opensource.`);
 
       } else { // Default to Firecrawl
@@ -333,8 +333,8 @@ async function runScraperForSource(sourceId) {
            // Use open-source discovery (basic example)
           console.log(`Using open-source discovery for source: ${source.name}`);
           const discovered = await opensourceDiscoverSources(source.url);
-          // TODO: Implement proper article URL discovery in opensourceDiscoverSources
-          articleUrls = discovered.map(item => item.url); // Assuming it returns objects with a url field
+          // opensourceDiscoverSources returns an array of strings (URLs)
+          articleUrls = discovered;
           console.log(`Discovered ${articleUrls.length} potential article URLs with opensource.`);
 
         } else { // Default to Firecrawl

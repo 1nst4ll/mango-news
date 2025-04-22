@@ -28,23 +28,40 @@ interface DiscoveredSource {
   // Add other properties if the discovery process provides them
 }
 
+// Define the shape of the modal form data
+interface ModalFormData {
+  name: string;
+  url: string;
+  enable_ai_summary: boolean;
+  include_selectors: string | null;
+  exclude_selectors: string | null;
+  scraping_method: string;
+}
+
 
 const SourceManagement: React.FC = () => {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
-  const [newSource, setNewSource] = useState({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Initialize with default scraping method
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [scrapingStatus, setScrapingStatus] = useState<{ [key: number]: string | null }>({});
   const [scrapingLoading, setScrapingLoading] = useState<{ [key: number]: boolean }>({});
 
-  // States for Source Discovery - Moved to top level
+  // States for Source Discovery
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
   const [discoveryError, setDiscoveryError] = useState<unknown>(null);
 
-  // State and handlers for the Add/Edit Source Modal - Moved to top level
+  // State and handlers for the Add/Edit Source Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalFormData, setModalFormData] = useState<ModalFormData>({ // New state for modal form data
+    name: '',
+    url: '',
+    enable_ai_summary: true,
+    include_selectors: null,
+    exclude_selectors: null,
+    scraping_method: 'opensource', // Default scraping method
+  });
 
 
   useEffect(() => {
@@ -82,19 +99,29 @@ const SourceManagement: React.FC = () => {
     return <div>Error loading sources: {error instanceof Error ? error.message : 'An unknown error occurred'}</div>;
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Handle input change for modal form data
+  const handleModalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setNewSource({
-      ...newSource,
+    setModalFormData({
+      ...modalFormData,
       [name]: type === 'checkbox' ? checked : value,
     });
   };
 
-  const handleAddSource = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!newSource.name || !newSource.url) {
+  // Handle scraping method select change for modal form data
+  const handleModalScrapingMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target;
+    setModalFormData({
+      ...modalFormData,
+      scraping_method: value,
+    });
+  };
+
+
+  const handleAddSource = async () => { // Modified to use modalFormData
+    if (!modalFormData.name || !modalFormData.url) {
       alert('Please enter both source name and URL.');
       return;
     }
@@ -105,14 +132,14 @@ const SourceManagement: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newSource),
+        body: JSON.stringify(modalFormData), // Use modalFormData
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const addedSource = await response.json();
       setSources([...sources, addedSource]);
-      setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Reset form with default
+      closeAddEditModal(); // Close modal on success
     } catch (error: unknown) { // Use unknown for better type safety
        if (error instanceof Error) {
         setError(error.message);
@@ -121,6 +148,39 @@ const SourceManagement: React.FC = () => {
       }
     }
   };
+
+  const handleEditSource = async () => { // Modified to use modalFormData
+    if (!editingSource) return;
+
+    if (!modalFormData.name || !modalFormData.url) {
+      alert('Please enter both source name and URL.');
+      return;
+    }
+
+    try {
+      // TODO: Replace with your actual backend API URL
+      const response = await fetch(`http://localhost:3000/api/sources/${editingSource.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(modalFormData), // Use modalFormData
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const updatedSource = await response.json();
+      setSources(sources.map(source => source.id === updatedSource.id ? updatedSource : source));
+      closeAddEditModal(); // Close modal on success
+    } catch (error: unknown) { // Use unknown for better type safety
+       if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An unknown error occurred while editing the source.');
+      }
+    }
+  };
+
 
   const handleDeleteSource = async (id: number) => {
      if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this source? This action cannot be undone.')) {
@@ -140,55 +200,6 @@ const SourceManagement: React.FC = () => {
         setError(error.message);
       } else {
         setError('An unknown error occurred while deleting the source.');
-      }
-    }
-  };
-
-  // Handle input change specifically for the scraping method select
-  const handleScrapingMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { value } = e.target;
-    if (editingSource) {
-      setEditingSource({
-        ...editingSource,
-        scraping_method: value,
-      });
-    } else {
-      setNewSource({
-        ...newSource,
-        scraping_method: value,
-      });
-    }
-  };
-
-  const handleEditSource = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!editingSource) return;
-
-    if (!editingSource.name || !editingSource.url) {
-      alert('Please enter both source name and URL.');
-      return;
-    }
-
-    try {
-      // TODO: Replace with your actual backend API URL
-      const response = await fetch(`http://localhost:3000/api/sources/${editingSource.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editingSource),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const updatedSource = await response.json();
-      setSources(sources.map(source => source.id === updatedSource.id ? updatedSource : source));
-      setEditingSource(null);
-    } catch (error: unknown) { // Use unknown for better type safety
-       if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('An unknown error occurred while editing the source.');
       }
     }
   };
@@ -240,7 +251,7 @@ const SourceManagement: React.FC = () => {
 
   // Handle adding a discovered source to the form
   const handleAddDiscoveredSourceToForm = (source: DiscoveredSource) => {
-    setNewSource({
+    setModalFormData({ // Use modalFormData
       name: source.name,
       url: source.url,
       enable_ai_summary: true, // Default to true for new sources
@@ -258,37 +269,50 @@ const SourceManagement: React.FC = () => {
 
   const openAddModal = () => {
     setEditingSource(null); // Clear editing source for add mode
-    setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Reset form with default
+    setModalFormData({ // Initialize modalFormData for add mode
+      name: '',
+      url: '',
+      enable_ai_summary: true,
+      include_selectors: null,
+      exclude_selectors: null,
+      scraping_method: 'opensource', // Reset form with default
+    });
     setIsModalOpen(true);
   };
 
   const openEditModal = (source: Source) => {
     setEditingSource(source); // Set editing source for edit mode
-    setNewSource({ // Pre-fill form with editing source data
+    setModalFormData({ // Initialize modalFormData with editing source data
       name: source.name,
       url: source.url,
       enable_ai_summary: source.enable_ai_summary,
       include_selectors: source.include_selectors,
       exclude_selectors: source.exclude_selectors,
       scraping_method: source.scraping_method || 'opensource', // Use existing method or default
-    } as typeof newSource); // Explicitly cast to ensure correct type for setNewSource
+    });
     setIsModalOpen(true);
   };
 
   const closeAddEditModal = () => {
     setIsModalOpen(false);
     setEditingSource(null); // Clear editing source
-    setNewSource({ name: '', url: '', enable_ai_summary: true, include_selectors: null, exclude_selectors: null, scraping_method: 'opensource' }); // Reset form with default
+    setModalFormData({ // Reset modalFormData with default
+      name: '',
+      url: '',
+      enable_ai_summary: true,
+      include_selectors: null,
+      exclude_selectors: null,
+      scraping_method: 'opensource',
+    });
   };
 
   const handleModalSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (editingSource) {
-      await handleEditSource(e); // Use existing edit handler
+      await handleEditSource(); // Call edit handler (no event needed)
     } else {
-      await handleAddSource(e); // Use existing add handler
+      await handleAddSource(); // Call add handler (no event needed)
     }
-    closeAddEditModal(); // Close modal after submit
   };
 
 
@@ -312,7 +336,7 @@ const SourceManagement: React.FC = () => {
 
         {discoveryError && (
           <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md" aria-live="polite" aria-atomic="true">
-            Discovery Error: {discoveryError ? String(discoveryError) : 'An unknown error occurred during discovery.'}
+            Discovery Error: {String(discoveryError)}
           </div>
         )}
 
@@ -400,11 +424,11 @@ const SourceManagement: React.FC = () => {
             <form onSubmit={handleModalSubmit} className="space-y-4"> {/* Use modal submit handler */}
               <div>
                 <Label htmlFor="name" className="block text-sm font-medium text-foreground">Source Name:</Label>
-                <Input type="text" id="name" name="name" value={newSource.name} onChange={handleInputChange} required className="mt-1 block w-full" />
+                <Input type="text" id="name" name="name" value={modalFormData.name} onChange={handleModalInputChange} required className="mt-1 block w-full" />
               </div>
               <div>
                 <Label htmlFor="url" className="block text-sm font-medium text-foreground">Source URL:</Label>
-                <Input type="text" id="url" name="url" value={newSource.url} onChange={handleInputChange} required className="mt-1 block w-full" />
+                <Input type="text" id="url" name="url" value={modalFormData.url} onChange={handleModalInputChange} required className="mt-1 block w-full" />
               </div>
               {/* New: Scraping Method Select */}
               <div>
@@ -412,8 +436,8 @@ const SourceManagement: React.FC = () => {
                 <select
                   id="scraping_method"
                   name="scraping_method"
-                  value={newSource.scraping_method || 'opensource'} // Use default if null/undefined
-                  onChange={handleScrapingMethodChange}
+                  value={modalFormData.scraping_method || 'opensource'} // Use default if null/undefined
+                  onChange={handleModalScrapingMethodChange}
                   className="mt-1 block w-full p-2 border border-input bg-background rounded-md text-foreground" // Basic styling
                 >
                   <option value="opensource">Open Source (Puppeteer/Playwright)</option>
@@ -421,16 +445,16 @@ const SourceManagement: React.FC = () => {
                 </select>
               </div>
               <div className="flex items-center space-x-2">
-                <Switch id="enable_ai_summary" name="enable_ai_summary" checked={newSource.enable_ai_summary} onCheckedChange={(checked) => setNewSource({ ...newSource, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
+                <Switch id="enable_ai_summary" name="enable_ai_summary" checked={modalFormData.enable_ai_summary} onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_summary: checked })} /> {/* Corrected onChange handling */}
                 <Label htmlFor="enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
               </div>
               <div>
                 <Label htmlFor="include_selectors" className="block text-sm font-medium text-foreground">Include Selectors (comma-separated):</Label>
-                <Textarea id="include_selectors" name="include_selectors" value={newSource.include_selectors || ''} onChange={handleInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                <Textarea id="include_selectors" name="include_selectors" value={modalFormData.include_selectors || ''} onChange={handleModalInputChange} rows={3} className="mt-1 block w-full"></Textarea>
               </div>
               <div>
                 <Label htmlFor="exclude_selectors" className="block text-sm font-medium text-foreground">Exclude Selectors (comma-separated):</Label>
-                <Textarea id="exclude_selectors" name="exclude_selectors" value={newSource.exclude_selectors || ''} onChange={handleInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                <Textarea id="exclude_selectors" name="exclude_selectors" value={modalFormData.exclude_selectors || ''} onChange={handleModalInputChange} rows={3} className="mt-1 block w-full"></Textarea>
               </div>
               <div className="flex justify-end gap-4 mt-6"> {/* Added mt-6 for spacing */}
                 <Button type="submit">{editingSource ? 'Save Changes' : 'Add Source'}</Button> {/* Dynamic button text */}

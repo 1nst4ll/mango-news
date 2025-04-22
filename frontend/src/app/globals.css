@@ -72,14 +72,14 @@
   --chart-5: oklch(0.769 0.188 70.08);
 
   /* Sidebar colors (example, can be adjusted) */
-  --sidebar: oklch(0.985 0.001 106.423); /* Dark grey */
+  --sidebar: oklch(0.216 0.006 56.043); /* Dark grey */
   --sidebar-foreground: oklch(0.147 0.004 49.25); /* White */
   --sidebar-primary: oklch(0.216 0.006 56.043); /* Vibrant blue */
   --sidebar-primary-foreground: oklch(0.985 0.001 106.423); /* White */
   --sidebar-accent: oklch(0.97 0.001 106.424); /* Medium grey */
   --sidebar-accent-foreground: oklch(0.216 0.006 56.043); /* White */
-  --sidebar-border: oklch(0.923 0.003 48.717); /* Slightly lighter dark grey */
-  --sidebar-ring: oklch(0.709 0.01 56.259); /* Vibrant blue */ --background: oklch(1 0 0); --foreground: oklch(0.147 0.004 49.25);
+  --sidebar-border: oklch(1 0 0 / 10%); /* Light grey border */
+  --sidebar-ring: oklch(0.553 0.013 58.071); /* Vibrant blue */ --background: oklch(1 0 0); --foreground: oklch(0.147 0.004 49.25);
 }
 
 .dark {
@@ -102,23 +102,6 @@
   --border: oklch(1 0 0 / 10%); /* Medium grey */
   --input: oklch(1 0 0 / 15%); /* Dark grey */
   --ring: oklch(0.553 0.013 58.071); /* Vibrant blue */
-
-  /* Chart colors (example, can be adjusted) */
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-
-  /* Sidebar colors (example, can be adjusted) */
-  --sidebar: oklch(0.216 0.006 56.043); /* Lightest grey */
-  --sidebar-foreground: oklch(0.985 0.001 106.423); /* Darkest grey */
-  --sidebar-primary: oklch(0.488 0.243 264.376); /* Vibrant blue */
-  --sidebar-primary-foreground: oklch(0.985 0.001 106.423); /* White */
-  --sidebar-accent: oklch(0.268 0.007 34.298); /* Medium grey */
-  --sidebar-accent-foreground: oklch(0.985 0.001 106.423); /* Darkest grey */
-  --sidebar-border: oklch(1 0 0 / 10%); /* Light grey border */
-  --sidebar-ring: oklch(0.553 0.013 58.071); /* Vibrant blue */
 }
 
 @layer base {
@@ -127,5 +110,17 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Style links within prose for better visibility */
+  .prose a {
+    color: var(--primary) !important;
+    text-decoration: underline !important;
+  }
+
+  /* Style source link on article page for better visibility */
+  .text-muted-foreground a {
+    color: var(--primary) !important;
+    text-decoration: underline !important;
   }
 }

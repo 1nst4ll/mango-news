@@ -175,7 +175,7 @@ app.post('/api/scrape/run/:id', async (req, res) => {
 
     console.log(`Triggering scrape for source: ${source.name}`);
     // Call the runScraperForSource function from scraper.js
-    await runScraperForSource(source);
+    await runScraperForSource(sourceId);
 
     res.json({ message: `Scraping triggered for ${source.name}` });
   } catch (error) {

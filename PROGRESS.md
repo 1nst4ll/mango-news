@@ -18,6 +18,7 @@
 - Refactored the Admin Dashboard page (`frontend/src/app/admin/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label).
 - Refactored the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button, Checkbox, Label, Input, Textarea, Card).
 - Styled the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) to match app styling, including applying the new color palette, typography, and integrating shadcn/ui components (Button).
+- Improved visibility of the source URL link on the Article Detail page (`frontend/src/app/article/[id]/page.tsx`) by changing its text color to primary.
 - Improved visibility of the URL link in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) by changing its text color to primary.
 - Adjusted the modal overlay styling in the Source Management page (`frontend/src/app/admin/sources/page.tsx`) to use a semi-transparent black background (`bg-black/50`) and ensured the modal content uses theme-appropriate background and text colors.
 - Changed checkbox fields to toggle switches (`Switch` component) on the Admin Dashboard and Source Management pages based on user feedback.

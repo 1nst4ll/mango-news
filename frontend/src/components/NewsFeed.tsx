@@ -78,8 +78,8 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
   const filteredArticles = articles.filter(article => {
     const matchesSearch = searchTerm === '' ||
                           article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          article.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          article.raw_content.toLowerCase().includes(searchTerm.toLowerCase()); // Include raw_content in search
+                          article.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          article.raw_content?.toLowerCase().includes(searchTerm.toLowerCase()); // Include raw_content in search
 
     // Basic category matching - assuming article object has a 'category' property
     // If not, this logic needs to be adjusted based on available article data
