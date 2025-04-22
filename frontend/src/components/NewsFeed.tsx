@@ -31,6 +31,18 @@ interface NewsFeedProps {
   activeCategory: string; // Added activeCategory prop
 }
 
+// Helper function to extract domain from URL
+const getDomainFromUrl = (url: string): string => {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.hostname;
+  } catch (e) {
+    console.error("Invalid URL:", url, e);
+    return url; // Return original URL if parsing fails
+  }
+};
+
+
 function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategory }: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -169,12 +181,14 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
             </div>
           )}
           <div className="p-6">
-            <h3 className="text-xl font-semibold mb-2 text-primary">{article.title}</h3>
-            <div className="flex items-center text-sm text-muted-foreground mb-3"> {/* Styled source info container */}
+            <h3 className="text-xl font-semibold mb-3 text-primary">{article.title}</h3> {/* Increased bottom margin */}
+            <div className="flex items-center text-base text-muted-foreground mb-4"> {/* Increased bottom margin */}
               <div className="flex items-center mr-4">
                 {getCategoryIcon(article.category)} {/* Display category icon */}
                 <span className="flex items-center">
-                  {article.source_url} {/* Display source URL */}
+                  <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    {getDomainFromUrl(article.source_url)} {/* Display source domain */}
+                  </a>
                   {article.isVerified && ( // Display verified indicator
                     <BadgeCheck className="h-4 w-4 ml-1 text-green-500" /> // Using BadgeCheck for verified
                   )}
@@ -188,7 +202,7 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
               </div>
               <span>{new Date(article.publication_date).toLocaleDateString()}</span> {/* Display formatted date */}
             </div>
-              <p className="text-foreground mb-4">{article.summary}</p>
+              <p className="text-foreground mb-5 leading-relaxed">{article.summary}</p> {/* Increased bottom margin and added relaxed line height */}
             <div className="text-right">
               <Link href={`/article/${article.id}`} className="text-primary hover:underline transition-colors">Read More</Link>
             </div>

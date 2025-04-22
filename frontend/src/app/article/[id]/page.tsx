@@ -107,13 +107,13 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-primary">{article.title}</CardTitle>
+          <CardTitle className="text-3xl font-bold text-primary mb-2">{article.title}</CardTitle> {/* Added bottom margin */}
           <p className="text-muted-foreground text-sm">
-            Source: <span className="text-primary">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
+            Source: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{article.source_url}</a> | Date: {new Date(article.publication_date).toLocaleDateString()} {/* Made source URL a link */}
           </p>
         </CardHeader>
         <CardContent>
-          <div className="prose max-w-none text-foreground"> {/* Apply text-foreground for content color */}
+          <div className="prose max-w-none text-foreground leading-relaxed"> {/* Apply text-foreground for content color and relaxed line height */}
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
           </div>
         </CardContent>

@@ -20,6 +20,14 @@ The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggreg
 
 - **Dynamic Topic Filtering:** Articles can be filtered by topic using the Topic Filter component. The available topics are fetched dynamically from the backend API (`/api/topics`).
 - **Improved Icon Display:** The news feed now uses more granular icons and visual indicators for article sources based on their category, verification status (`isVerified`), official status (`isOfficial`), and whether they are from Facebook (`isFacebook`).
+- **Readability Enhancements:** Styling adjustments have been made to the article cards to improve readability, including increased spacing between elements and relaxed line height for the summary text.
+
+### Article Detail Page
+
+The Article Detail page (`frontend/src/app/article/[id]/page.tsx`) displays the full content of a selected news article.
+
+- **Readability Enhancements:** Styling adjustments have been made to the article content for improved readability, including relaxed line height for the main article text and added spacing between paragraphs.
+- **Clickable Source URL:** The source URL is now displayed as a clickable link.
 
 ### Topic Filter
 

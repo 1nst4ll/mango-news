@@ -90,7 +90,7 @@
   --card-foreground: oklch(0.985 0.001 106.423); /* Lightest grey */
   --popover: oklch(0.216 0.006 56.043); /* Dark grey */
   --popover-foreground: oklch(0.985 0.001 106.423); /* Lightest grey */
-  --primary: oklch(0.923 0.003 48.717); /* Vibrant blue */
+  --primary: oklch(0.6 0.118 184.704); /* Vibrant blue */
   --primary-foreground: oklch(0.216 0.006 56.043); /* White */
   --secondary: oklch(0.268 0.007 34.298); /* Medium grey */
   --secondary-foreground: oklch(0.985 0.001 106.423); /* White */
@@ -122,5 +122,10 @@
   .text-muted-foreground a {
     color: var(--primary) !important;
     text-decoration: underline !important;
+  }
+
+  /* Add space between paragraphs in prose content */
+  .prose p {
+    margin-bottom: 1em; /* Adjust value as needed for desired spacing */
   }
 }
