@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react'; // Import useEffect
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
   const [scrapingStatus, setScrapingStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [purgeStatus, setPurgeStatus] = useState<string | null>(null); // New state for purge status
-  const [purgeLoading, setPurgeLoading] = useState<boolean>(false); // New state for purge loading
-  // State for global AI summary toggle, initialized from localStorage or default to true
+  const [purgeStatus, setPurgeStatus] = useState<string | null>(null);
+  const [purgeLoading, setPurgeLoading] = useState<boolean>(false);
   const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(() => {
     const saved = localStorage.getItem('enableGlobalAiSummary');
     return saved !== null ? JSON.parse(saved) : true;
   });
 
-  // Effect to save the toggle state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('enableGlobalAiSummary', JSON.stringify(enableGlobalAiSummary));
   }, [enableGlobalAiSummary]);
@@ -27,7 +25,7 @@ const AdminDashboard: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ enableGlobalAiSummary }), // Send the toggle state
+        body: JSON.stringify({ enableGlobalAiSummary }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -41,9 +39,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handlePurgeArticles = async () => { // New handler for purging articles
+  const handlePurgeArticles = async () => {
     if (!window.confirm('Are you sure you want to delete ALL articles? This action cannot be undone.')) {
-      return; // User cancelled
+      return;
     }
 
     setPurgeLoading(true);
@@ -115,7 +113,6 @@ const AdminDashboard: React.FC = () => {
           {purgeStatus}
         </div>
       )}
-      {/* Admin content will go here */}
     </div>
   );
 };

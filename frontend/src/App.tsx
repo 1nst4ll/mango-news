@@ -1,75 +1,67 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'; // Import routing components
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import NewsFeed from './components/NewsFeed';
 import TopicFilter from './components/TopicFilter';
-import DateRangeFilter from './components/DateRangeFilter'; // Import DateRangeFilter
-import ArticleDetail from './components/ArticleDetail'; // Import ArticleDetail component
-import AdminDashboard from './components/AdminDashboard'; // Import AdminDashboard component
-import SourceManagement from './components/SourceManagement'; // Import SourceManagement component
+import DateRangeFilter from './components/DateRangeFilter';
+import ArticleDetail from './components/ArticleDetail';
+import AdminDashboard from './components/AdminDashboard';
+import SourceManagement from './components/SourceManagement';
 
 function App() {
   const [selectedTopic, setSelectedTopic] = useState('');
-  const [startDate, setStartDate] = useState<string | null>(null); // State for start date
-  const [endDate, setEndDate] = useState<string | null>(null); // State for end date
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
 
-
-  const handleTopicSelect = (topic: string) => { // Added type annotation
+  const handleTopicSelect = (topic: string) => {
     setSelectedTopic(topic);
   };
 
-  const handleDateRangeSelect = (start: string | null, end: string | null) => { // Added type annotation
+  const handleDateRangeSelect = (start: string | null, end: string | null) => {
     setStartDate(start);
     setEndDate(end);
   };
 
   return (
-    <BrowserRouter> {/* Wrap the application with BrowserRouter */}
-      <div>
-        <div>
-          <div>
+    <BrowserRouter>
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <header className="flex justify-between items-center mb-8">
+          <div className="text-2xl font-bold">
             <Link to="/">Turks and Caicos News Aggregator</Link>
           </div>
-          <div>
+          <nav>
             <ul>
               <li><Link to="/admin">Admin</Link></li>
             </ul>
-          </div>
-        </div>
+          </nav>
+        </header>
 
         <main>
-          <Routes> {/* Define routes */}
+          <Routes>
             <Route path="/" element={
-              <> {/* Use a fragment for multiple elements */}
-                <h2>News Feed</h2>
-                <div>
-                  <TopicFilter onSelectTopic={handleTopicSelect} /> {/* Add TopicFilter */}
-                  <DateRangeFilter onSelectDateRange={handleDateRangeSelect} /> {/* Add DateRangeFilter */}
+              <>
+                <h2 className="text-xl font-semibold mb-4">News Feed</h2>
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <TopicFilter onSelectTopic={handleTopicSelect} />
+                  <DateRangeFilter onSelectDateRange={handleDateRangeSelect} />
                 </div>
-                <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} /> {/* Pass filter states to NewsFeed */}
+                <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} />
               </>
             } />
-            <Route path="/article/:id" element={<ArticleDetail />} /> {/* Route for ArticleDetail */}
+            <Route path="/article/:id" element={<ArticleDetail />} />
             <Route path="/admin" element={
               <>
                 <Link to="/">Back to News Feed</Link>
                 <AdminDashboard />
               </>
-            } /> {/* Route for AdminDashboard */}
+            } />
             <Route path="/admin/sources" element={
               <>
                 <Link to="/admin">Back to Admin Dashboard</Link>
                 <SourceManagement />
               </>
-            } /> {/* Route for SourceManagement */}
+            } />
           </Routes>
         </main>
-
-        {/* Optional: Add a footer here */}
-        {/* <footer>
-          <aside>
-            <p>Copyright © 2023 - All right reserved by ACME Industries Ltd</p>
-          </aside>
-        </footer> */}
       </div>
     </BrowserRouter>
   );

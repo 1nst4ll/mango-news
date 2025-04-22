@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // Import useParams and useNavigate
-import ReactMarkdown from 'react-markdown'; // Import ReactMarkdown
-import remarkGfm from 'remark-gfm'; // Import remark-gfm
+import { useParams, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Article {
   id: number;
@@ -16,8 +16,8 @@ interface Article {
 }
 
 function ArticleDetail() {
-  const { id } = useParams<{ id: string }>(); // Get article ID from URL
-  const navigate = useNavigate(); // Get the navigate function
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -48,10 +48,10 @@ function ArticleDetail() {
     if (id) {
       fetchArticle();
     }
-  }, [id]); // Rerun effect when ID changes
+  }, [id]);
 
   const handleBackClick = () => {
-    navigate('/'); // Navigate back to the home page (NewsFeed)
+    navigate('/');
   };
 
   if (loading) {
@@ -87,7 +87,7 @@ function ArticleDetail() {
       <p className="text-gray-600 text-sm mb-6">
         Source: <span className="text-blue-600">{article.source_url}</span> | Date: {new Date(article.publication_date).toLocaleDateString()}
       </p>
-      <div className="prose max-w-none"> {/* Use prose class for basic markdown styling */}
+      <div className="prose max-w-none">
         {/* Display raw_content using ReactMarkdown */}
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
       </div>
