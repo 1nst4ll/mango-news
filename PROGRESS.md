@@ -6,6 +6,20 @@ This document tracks the development progress of the Turks and Caicos News Aggre
 
 ### Current Status
 
+Resolved merge conflict in `README.md` and configured Git to ignore the `node_modules` directory. The repository is now in a clean state. The frontend styling has been removed and it relies on default browser styles. Continued work on scraping and administrative features. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
+
+### Completed Tasks Checklist
+
+- [x] Resolved merge conflict in `README.md`.
+- [x] Configured Git to ignore the `node_modules` directory.
+- [x] Removed all custom frontend styling and related dependencies.
+- [x] Audited scraping process and refined strategy based on Firecrawl tool testing.
+- [x] Implemented mobile-first responsive design for frontend components (`NewsFeed.tsx`, `ArticleDetail.tsx`, `SourceManagement.tsx`).
+
+## Latest Update - 2025-04-21
+
+### Current Status
+
 Removed all custom frontend styling and related dependencies. The frontend now relies on default browser styles. Continued work on the scraping and administrative features. The scraper logic has been refactored to extract individual articles from source pages and save them to the database. Backend endpoints and frontend buttons have been added to trigger full scrapes, scrape individual sources, and purge all articles. Several issues related to database permissions, Firecrawl SDK usage, and Groq API calls have been diagnosed and addressed. Refer to the [README.md](./README.md) for a project overview, technology stack, and structure.
 
 ### Completed Tasks Checklist
