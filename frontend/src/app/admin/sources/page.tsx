@@ -282,8 +282,8 @@ const SourceManagement: React.FC = () => {
 
 
       {editingSource && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center" id="my-modal"> {/* Added flex and centering */}
-          <Card className="relative p-6 w-full max-w-lg mx-auto shadow-lg rounded-md"> {/* Adjusted width and centering */}
+        <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full flex justify-center items-center z-50" id="my-modal"> {/* Use bg-black/50 for overlay, added z-50 */}
+          <Card className="relative p-6 w-full max-w-lg mx-auto shadow-lg rounded-md bg-background text-foreground"> {/* Adjusted width and centering, added background and text colors */}
             <CardTitle className="text-xl font-semibold mb-4 text-primary">Edit Source</CardTitle>
             <form onSubmit={handleEditSource} className="space-y-4">
               <div>
