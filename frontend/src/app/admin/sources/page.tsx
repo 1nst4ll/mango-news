@@ -307,12 +307,12 @@ const SourceManagement: React.FC = () => {
             <RefreshCw className={`h-4 w-4 mr-2 ${isDiscovering ? 'animate-spin' : ''}`} />
             {isDiscovering ? 'Searching...' : 'Discover Sources'}
           </Button>
-           {isDiscovering && <span className="text-muted-foreground">Searching for new sources...</span>}
+           {isDiscovering && <span className="text-muted-foreground" aria-live="polite" aria-atomic="true">Searching for new sources...</span>}
         </div>
 
         {discoveryError && (
-          <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md">
-            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}
+          <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md" aria-live="polite" aria-atomic="true">
+            Discovery Error: {discoveryError == null ? 'An unknown error occurred during discovery.' : discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}
           </div>
         )}
 
@@ -347,19 +347,19 @@ const SourceManagement: React.FC = () => {
         </div>
         <ul className="space-y-4">
           {sources.map((source) => (
-            <Card key={source.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 transition-shadow hover:shadow-lg">
-              <CardContent className="mb-4 md:mb-0 p-0"> {/* Added p-0 to remove default padding */}
+            <Card key={source.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 sm:p-6 transition-shadow hover:shadow-lg"> {/* Adjusted padding for smaller screens */}
+              <CardContent className="mb-4 md:mb-0 p-0 flex-grow"> {/* Added flex-grow */}
                 <CardTitle className="text-lg font-medium text-primary">{source.name}</CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{source.url}</a>
+                <div className="text-sm text-muted-foreground break-words"> {/* Added break-words */}
+                  URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'} | Method: {source.scraping_method || 'N/A'} {/* Display scraping method */}
                 </div>
-                {source.include_selectors && <div className="text-sm text-muted-foreground">Include: {source.include_selectors}</div>}
-                {source.exclude_selectors && <div className="text-sm text-muted-foreground">Exclude: {source.exclude_selectors}</div>}
+                {source.include_selectors && <div className="text-sm text-muted-foreground break-words">Include: {source.include_selectors}</div>} {/* Added break-words */}
+                {source.exclude_selectors && <div className="text-sm text-muted-foreground break-words">Exclude: {source.exclude_selectors}</div>} {/* Added break-words */}
               </CardContent>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0"> {/* Added flex-shrink-0 */}
                 <Button
                   onClick={() => handleTriggerScraperForSource(source.id)}
                   disabled={scrapingLoading[source.id]}
@@ -383,7 +383,7 @@ const SourceManagement: React.FC = () => {
                 </Button>
               </div>
               {scrapingStatus[source.id] && (
-                <div className="mt-4 p-2 bg-secondary text-secondary-foreground rounded-md text-sm w-full">
+                <div className="mt-4 p-2 bg-secondary text-secondary-foreground rounded-md text-sm w-full" aria-live="polite" aria-atomic="true">
                   {scrapingStatus[source.id]}
                 </div>
               )}
@@ -394,9 +394,9 @@ const SourceManagement: React.FC = () => {
 
       {/* Add/Edit Source Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full flex justify-center items-center z-50" id="add-edit-modal"> {/* Use bg-black/50 for overlay, added z-50 */}
+        <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full flex justify-center items-center z-50 p-4 sm:p-6" id="add-edit-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"> {/* Use bg-black/50 for overlay, added z-50, added ARIA attributes, adjusted padding */}
           <Card className="relative p-6 w-full max-w-lg mx-auto shadow-lg rounded-md bg-background text-foreground"> {/* Adjusted width and centering, added background and text colors */}
-            <CardTitle className="text-xl font-semibold mb-4 text-primary">{editingSource ? 'Edit Source' : 'Add New Source'}</CardTitle> {/* Dynamic title */}
+            <CardTitle id="modal-title" className="text-xl font-semibold mb-4 text-primary">{editingSource ? 'Edit Source' : 'Add New Source'}</CardTitle> {/* Dynamic title, added id for ARIA label */}
             <form onSubmit={handleModalSubmit} className="space-y-4"> {/* Use modal submit handler */}
               <div>
                 <Label htmlFor="name" className="block text-sm font-medium text-foreground">Source Name:</Label>
@@ -417,7 +417,7 @@ const SourceManagement: React.FC = () => {
                   className="mt-1 block w-full p-2 border border-input bg-background rounded-md text-foreground" // Basic styling
                 >
                   <option value="opensource">Open Source (Puppeteer/Playwright)</option>
-                  {/* Add other options here as implemented, e.g., <option value="firecrawl">Firecrawl</option> */}
+                  <option value="firecrawl">Firecrawl</option> {/* Added Firecrawl option */}
                 </select>
               </div>
               <div className="flex items-center space-x-2">

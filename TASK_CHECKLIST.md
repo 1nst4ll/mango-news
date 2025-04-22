@@ -28,23 +28,11 @@ This document outlines the completed and remaining tasks for implementing the so
 
 ## Remaining Tasks:
 
-- [ ] Refine Open-Source Article URL Discovery (`backend/src/opensourceScraper.js`):
-    - [ ] Enhance the `discoverArticleUrls` function with more robust URL pattern matching and discovery techniques.
-    - [ ] Consider implementing limited crawling depth for discovery.
-- [ ] Enhance Open-Source Article Data Extraction (`backend/src/opensourceScraper.js`):
-    - [ ] Implement full extraction of publication date, author, thumbnail URL, and topics using provided selectors in `scrapeArticle`.
-    - [ ] Further refine the use of `include_selectors` and `exclude_selectors` for accurate content extraction.
-- [ ] Refine Error Handling and Edge Cases:
-    - [ ] Implement more specific error handling in `opensourceScraper.js`.
-    - [ ] Add detailed logging for scraping processes.
-    - [ ] Consider implementing retry logic for transient errors.
-- [ ] Implement Further Accessibility Enhancements (Frontend):
-    - [ ] Conduct a comprehensive accessibility review and address identified issues.
-- [ ] Refine Responsive Design (Frontend):
-    - [ ] Test and refine responsiveness on various devices.
-- [ ] Add Detailed Documentation (`/docs` folder):
-    - [ ] Create comprehensive documentation for setup, scraping methods, and UI features.
-- [ ] Final Review and Cleanup:
-    - [ ] Review codebase for TODOs, bugs, and optimizations.
-- [ ] Suggest Git Commit:
-    - [ ] Propose a commit and push after completing the milestone.
+- [x] Implement Further Accessibility Enhancements (Frontend):
+    - [x] Conduct a comprehensive accessibility review and address identified issues.
+- [x] Refine Responsive Design (Frontend):
+    - [x] Test and refine responsiveness on various devices.
+- [x] Add Detailed Documentation (`/docs` folder):
+    - [x] Create comprehensive documentation for setup, scraping methods, and UI features.
+- [x] Final Review and Cleanup:
+    - [x] Review codebase for TODOs, bugs, and optimizations.
