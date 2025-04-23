@@ -64,11 +64,12 @@ interface Article {
 }
 
 interface NewsFeedProps {
-  selectedTopic: string;
+  selectedTopics: string[]; // Changed to array
   startDate: string | null;
   endDate: string | null;
-  searchTerm: string; // Added searchTerm prop
-  activeCategory: string; // Added activeCategory prop
+  searchTerm: string;
+  selectedSources: string[]; // Added selectedSources prop
+  activeCategory: string; // Kept for now, but might be redundant with source filtering
 }
 
 // Helper function to extract domain from URL
@@ -83,7 +84,7 @@ const getDomainFromUrl = (url: string): string => {
 };
 
 
-function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategory }: NewsFeedProps) {
+function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSources, activeCategory }: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
@@ -96,15 +97,29 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
         // TODO: Replace with your actual backend API URL
         let url = 'http://localhost:3000/api/articles';
         const params = new URLSearchParams();
-        if (selectedTopic) {
-          params.append('topic', selectedTopic);
+
+        // Add selected topics to params (assuming backend handles comma-separated)
+        if (selectedTopics.length > 0) {
+          params.append('topics', selectedTopics.join(','));
         }
+
+        // Add selected sources to params (assuming backend handles comma-separated)
+        if (selectedSources.length > 0) {
+            params.append('sources', selectedSources.join(','));
+        }
+
         if (startDate) {
           params.append('startDate', startDate);
         }
         if (endDate) {
           params.append('endDate', endDate);
         }
+
+        // Add search term to params
+        if (searchTerm) {
+            params.append('searchTerm', searchTerm);
+        }
+
 
         if (params.toString()) {
           url += `?${params.toString()}`;
@@ -123,24 +138,20 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
       }
     };
 
+    // Depend on all filter props for fetching
     fetchArticles();
-  }, [selectedTopic, startDate, endDate]); // Depend on filters for fetching
+  }, [selectedTopics, startDate, endDate, searchTerm, selectedSources]);
 
-  // Client-side filtering based on searchTerm and activeCategory
+  // Client-side filtering based on activeCategory (kept for now)
   const filteredArticles = articles.filter(article => {
-    const matchesSearch = searchTerm === '' ||
-                          article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          article.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          article.raw_content?.toLowerCase().includes(searchTerm.toLowerCase()); // Include raw_content in search
-
     // Basic category matching - assuming article object has a 'category' property
     // If not, this logic needs to be adjusted based on available article data
     const matchesCategory = activeCategory === 'all' ||
                             article.category?.toLowerCase() === activeCategory.toLowerCase();
 
-    // Note: Topic filtering is handled by the API call based on selectedTopic prop
+    // Note: Topic, Source, Date Range, and Search filtering are now handled by the API call
 
-    return matchesSearch && matchesCategory;
+    return matchesCategory;
   });
 
   // Helper function to get category icon

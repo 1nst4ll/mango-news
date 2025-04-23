@@ -2,13 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ChevronDownIcon } from 'lucide-react'; // Import an icon for the dropdown trigger
 
 
 interface Topic {
@@ -17,10 +20,11 @@ interface Topic {
 }
 
 interface TopicFilterProps {
-  onSelectTopic: (topic: string) => void;
+  selectedTopics: string[];
+  onSelectTopics: (topics: string[]) => void;
 }
 
-function TopicFilter({ onSelectTopic }: TopicFilterProps) {
+function TopicFilter({ selectedTopics, onSelectTopics }: TopicFilterProps) {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -67,27 +71,38 @@ function TopicFilter({ onSelectTopic }: TopicFilterProps) {
     );
   }
 
-  const handleSelectChange = (value: string) => {
-    // Pass null if the selected value is "all" to indicate no topic filter
-    onSelectTopic(value === "all" ? "" : value);
+  const handleCheckboxChange = (topicName: string, isChecked: boolean) => {
+    if (isChecked) {
+      onSelectTopics([...selectedTopics, topicName]);
+    } else {
+      onSelectTopics(selectedTopics.filter(topic => topic !== topicName));
+    }
   };
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="topic-select">Filter by Topic:</Label>
-      <Select onValueChange={handleSelectChange}>
-        <SelectTrigger id="topic-select">
-          <SelectValue placeholder="All Topics" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Topics</SelectItem> {/* Changed value from "" to "all" */}
+      <Label>Filter by Topic:</Label>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            {selectedTopics.length > 0 ? `${selectedTopics.length} selected` : "Select Topics"}
+            <ChevronDownIcon className="ml-2 h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+          <DropdownMenuLabel>Topics</DropdownMenuLabel>
+          <DropdownMenuSeparator />
           {topics.map((topic) => (
-            <SelectItem key={`topic-${topic.id}`} value={topic.name}>
+            <DropdownMenuCheckboxItem
+              key={`topic-${topic.id}`}
+              checked={selectedTopics.includes(topic.name)}
+              onCheckedChange={(isChecked) => handleCheckboxChange(topic.name, isChecked)}
+            >
               {topic.name}
-            </SelectItem>
+            </DropdownMenuCheckboxItem>
           ))}
-        </SelectContent>
-      </Select>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

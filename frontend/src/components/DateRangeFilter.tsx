@@ -35,28 +35,33 @@ function DateRangeFilter({ onSelectDateRange }: DateRangeFilterProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <Label htmlFor="start-date" className="mb-2 block">
-          Start Date:
-        </Label>
-        <Input
-          type="date"
-          id="start-date"
-          value={startDate}
-          onChange={handleStartDateChange}
-        />
+      {/* Date Inputs */}
+      <div className="flex flex-col sm:flex-row gap-4"> {/* Responsive layout for date inputs */}
+        <div className="flex-1"> {/* Make date inputs take equal space */}
+          <Label htmlFor="start-date" className="mb-2 block">
+            Start Date:
+          </Label>
+          <Input
+            type="date"
+            id="start-date"
+            value={startDate}
+            onChange={handleStartDateChange}
+          />
+        </div>
+        <div className="flex-1"> {/* Make date inputs take equal space */}
+          <Label htmlFor="end-date" className="mb-2 block">
+            End Date:
+          </Label>
+          <Input
+            type="date"
+            id="end-date"
+            value={endDate}
+            onChange={handleEndDateChange}
+          />
+        </div>
       </div>
-      <div>
-        <Label htmlFor="end-date" className="mb-2 block">
-          End Date:
-        </Label>
-        <Input
-          type="date"
-          id="end-date"
-          value={endDate}
-          onChange={handleEndDateChange}
-        />
-      </div>
+
+      {/* Apply and Clear Buttons */}
       <div className="flex gap-4">
         <Button onClick={handleApplyFilter} className="flex-1">
           Apply

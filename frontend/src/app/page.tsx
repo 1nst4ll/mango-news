@@ -1,54 +1,34 @@
 'use client';
 
+'use client';
+
 import React, { useState } from 'react';
 // Import components
 import NewsFeed from '@/components/NewsFeed';
-import TopicFilter from '@/components/TopicFilter';
-import DateRangeFilter from '@/components/DateRangeFilter';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import FilterPanel from '@/components/FilterPanel'; // Import FilterPanel
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
-import { Search } from 'lucide-react'; // Import Search icon
 
 
 export default function Home() {
-  const [selectedTopic, setSelectedTopic] = useState('');
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState(''); // State for search term
-  const [activeCategory, setActiveCategory] = useState('all'); // State for active category tab
-  // Removed discovery states and function from Home page
+  const [filterState, setFilterState] = useState({
+    searchTerm: '',
+    selectedTopics: [] as string[],
+    startDate: null as string | null,
+    endDate: null as string | null,
+    selectedSources: [] as string[],
+  });
 
-
-  // List of available categories (matching the example)
-  const categoriesList = [
-    { name: 'All News', value: 'all' },
-    { name: 'Local News', value: 'news' },
-    { name: 'Government', value: 'government' },
-    { name: 'Police', value: 'police' },
-    { name: 'Social Media', value: 'social' },
-    { name: 'International', value: 'international' },
-    // Add Verified and Official categories if needed for filtering,
-    // but they might be better as indicators on cards
-  ];
-
-
-  const handleTopicSelect = (topic: string) => {
-    setSelectedTopic(topic);
+  const handleFilterChange = (filters: {
+    searchTerm: string;
+    selectedTopics: string[];
+    startDate: string | null;
+    endDate: string | null;
+    selectedSources: string[];
+  }) => {
+    setFilterState(filters);
   };
 
-  const handleDateRangeSelect = (start: string | null, end: string | null) => {
-    setStartDate(start);
-    setEndDate(end);
-  };
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const handleCategorySelect = (category: string) => {
-    setActiveCategory(category);
-  };
+  // Removed activeCategory state and handleCategorySelect function
 
 
   return (
@@ -59,49 +39,22 @@ export default function Home() {
             <CardTitle className="text-2xl font-bold text-primary">News Feed</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Search Bar */}
-            <div className="relative flex items-center mb-6">
-              <Input
-                type="text"
-                placeholder="Search news..."
-                className="w-full pr-10"
-                value={searchTerm}
-                onChange={handleSearchChange}
-              />
-              <Search className="absolute right-3 h-5 w-5 text-muted-foreground" />
+            {/* Filter Panel */}
+            <div className="mb-8"> {/* Added margin-bottom for spacing */}
+              <FilterPanel onFilterChange={handleFilterChange} />
             </div>
 
-            {/* Filters and Category Tabs */}
-            <div className="flex flex-col lg:flex-row gap-6 mb-8">
-              {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-6 lg:w-1/3">
-                <div className="w-full sm:w-1/2 lg:w-full">
-                  <TopicFilter onSelectTopic={handleTopicSelect} />
-                </div>
-                <div className="w-full sm:w-1/2 lg:w-full">
-                  <DateRangeFilter onSelectDateRange={handleDateRangeSelect} />
-                </div>
-              </div>
-
-              {/* Category Tabs */}
-              <div className="flex-grow overflow-x-auto">
-                <div className="flex space-x-4 pb-2">
-                  {categoriesList.map(category => (
-                    <Button
-                      key={category.value}
-                      variant={activeCategory === category.value ? 'default' : 'outline'}
-                      onClick={() => handleCategorySelect(category.value)}
-                      className="flex-shrink-0"
-                    >
-                      {category.name}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Removed Category Tabs */}
 
             {/* News Feed */}
-            <NewsFeed selectedTopic={selectedTopic} startDate={startDate} endDate={endDate} searchTerm={searchTerm} activeCategory={activeCategory} />
+            <NewsFeed
+              searchTerm={filterState.searchTerm}
+              selectedTopics={filterState.selectedTopics}
+              startDate={filterState.startDate}
+              endDate={filterState.endDate}
+              selectedSources={filterState.selectedSources}
+              activeCategory="all" // Pass a default or remove if not needed in NewsFeed
+            />
           </CardContent>
         </Card>
       </main>
