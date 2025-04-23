@@ -29,6 +29,7 @@ The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggreg
 - **Readability Enhancements:** Styling adjustments have been made to the article cards to improve readability, including increased spacing between elements and relaxed line height for the summary text.
 - **Topic Tag Overlay Fix:** Resolved an issue where topic tags were not displayed as an overlay on the article thumbnail by adjusting the positioning and stacking context in `NewsFeed.tsx`.
 - **Summary Truncation:** The article summary is now truncated to a maximum of 60 words, ensuring it does not cut off mid-sentence.
+- **Bold Summary Text:** AI summaries in the news feed now render text enclosed in markdown bold syntax (`**text**`) as bold.
 
 ### Article Detail Page
 

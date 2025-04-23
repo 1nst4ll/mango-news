@@ -257,7 +257,13 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
                   : new Date(article.created_at).toLocaleDateString()
               }</span>
             </div>
-              <p className="text-foreground mb-5 leading-relaxed">{truncateSummary(article.summary, 60)}</p>
+              {/* Render summary with basic markdown bold support */}
+              <p
+                className="text-foreground mb-5 leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: truncateSummary(article.summary, 60).replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>') // Add text-primary class for color
+                }}
+              ></p>
             <div className="text-right">
               <Link href={`/article/${article.id}`} className="text-primary hover:underline transition-colors">Read More</Link>
             </div>
