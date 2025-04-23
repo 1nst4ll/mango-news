@@ -121,8 +121,8 @@ async function assignTopicsWithAI(content) {
     "ResortNews", "Community", "Events", "Transportation", "Marine", "Construction",
     "RealEstate", "CruiseShips", "Airport", "Openings", "GrandTurk", "North",
     "South", "Infrastructure", "Development", "Fishing", "Heritage", "Celebrations",
-    "Announcement"
-  ]; // The full list of 30 topics
+    "Announcement", "Sport" // Added Sport topic
+  ]; // The full list of 31 topics
 
   const maxContentLength = 10000; // Define max content length to avoid hitting token limits
 
@@ -136,7 +136,7 @@ async function assignTopicsWithAI(content) {
       messages: [
         {
           role: "system",
-          content: `Analyze the following news article content and assign 2 to 3 relevant topics from the provided list. Return only the topic names as a comma-separated string. The allowed topics are: ${topicsList.join(', ')}.`
+          content: `Analyze the following news article content and assign exactly 3 relevant topics from the provided list. Return only the topic names as a comma-separated string. The allowed topics are: ${topicsList.join(', ')}.`
         },
         {
           role: "user",
