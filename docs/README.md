@@ -50,6 +50,10 @@ The Filter Panel (`frontend/src/components/FilterPanel.tsx`) consolidates search
 
 Filtering is applied to the news feed by passing the selected criteria from the Filter Panel to the News Feed component, which then includes these criteria in the backend API request for articles.
 
+### Sidebar
+
+A new collapsible and themeable sidebar component has been added to the application layout (`frontend/src/app/layout.tsx`). The sidebar structure is defined in `frontend/src/components/app-sidebar.tsx` and utilizes components from `@/components/ui/sidebar`. It provides navigation and will be further customized to include application-specific menus and controls.
+
 ### News Feed
 
 The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggregated news articles based on the selected filters from the Filter Panel and the active category tab.
