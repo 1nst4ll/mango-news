@@ -4,8 +4,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import Footer from "@/components/footer"; // Import Footer component
-import { Sidebar } from "@/components/sidebar"; // Import Sidebar component
-
 export const metadata: Metadata = {
   title: "Mango News",
   description: "Turks and Caicos News Aggregator",
@@ -39,16 +37,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="flex min-h-screen bg-background text-foreground">
-            {/* Sidebar */}
-            <Sidebar items={navItems} className="w-64 border-r border-border" />
-
             <div className="flex flex-col flex-1">
               <header className="flex justify-between items-center px-4 sm:px-6 lg:px-8 py-4 border-b border-border">
                 <div className="flex items-center">
-                   {/* Mobile sidebar trigger - hidden on large screens */}
-                  <div className="lg:hidden mr-4">
-                     <Sidebar items={navItems} />
-                  </div>
                   <Link href="/">
                     <img src="/logo.png" alt="Mango News Logo" className="h-10" /> {/* Adjust height as needed */}
                   </Link>
