@@ -4,6 +4,45 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Newspaper, Globe, Shield, Facebook, BadgeCheck, Landmark } from 'lucide-react'; // Import icons
 
+// Helper function to truncate summary to a maximum number of words without cutting off sentences
+const truncateSummary = (summary: string, wordLimit: number): string => {
+  if (!summary) return '';
+  const words = summary.split(' ');
+  if (words.length <= wordLimit) {
+    return summary;
+  }
+
+  const truncatedWords = words.slice(0, wordLimit);
+  let truncatedSummary = truncatedWords.join(' ');
+
+  // Find the last sentence-ending punctuation within the truncated part
+  const lastPunctuationIndex = Math.max(
+    truncatedSummary.lastIndexOf('.'),
+    truncatedSummary.lastIndexOf('!'),
+    truncatedSummary.lastIndexOf('?')
+  );
+
+  if (lastPunctuationIndex !== -1) {
+    truncatedSummary = truncatedSummary.substring(0, lastPunctuationIndex + 1);
+  } else {
+      // If no punctuation found, just truncate at the word limit and add ...
+      truncatedSummary = truncatedWords.join(' ') + '...';
+      return truncatedSummary;
+  }
+
+
+  // Add ellipsis if the original summary was longer
+  if (truncatedSummary.length < summary.length) {
+      // Check if the truncated summary already ends with punctuation, if not add ...
+      if (!/[.!?]$/.test(truncatedSummary)) {
+          truncatedSummary += '...';
+      }
+  }
+
+
+  return truncatedSummary;
+};
+
 
 interface Article {
   id: number;
@@ -218,7 +257,7 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
                   : new Date(article.created_at).toLocaleDateString()
               }</span>
             </div>
-              <p className="text-foreground mb-5 leading-relaxed">{article.summary}</p>
+              <p className="text-foreground mb-5 leading-relaxed">{truncateSummary(article.summary, 60)}</p>
             <div className="text-right">
               <Link href={`/article/${article.id}`} className="text-primary hover:underline transition-colors">Read More</Link>
             </div>

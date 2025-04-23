@@ -26,6 +26,7 @@ The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggreg
 - **Improved Icon Display:** The news feed now uses more granular icons and visual indicators for article sources based on their category, verification status (`isVerified`), official status (`isOfficial`), and whether they are from Facebook (`isFacebook`).
 - **Readability Enhancements:** Styling adjustments have been made to the article cards to improve readability, including increased spacing between elements and relaxed line height for the summary text.
 - **Topic Tag Overlay Fix:** Resolved an issue where topic tags were not displayed as an overlay on the article thumbnail by adjusting the positioning and stacking context in `NewsFeed.tsx`.
+- **Summary Truncation:** The article summary is now truncated to a maximum of 60 words, ensuring it does not cut off mid-sentence.
 
 ### Article Detail Page
 
