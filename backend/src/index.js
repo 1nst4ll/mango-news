@@ -273,11 +273,47 @@ app.get('/api/stats', async (req, res) => {
   try {
     const articlesCountResult = await pool.query('SELECT COUNT(*) FROM articles');
     const sourcesCountResult = await pool.query('SELECT COUNT(*) FROM sources');
+    const articlesPerSourceResult = await pool.query(`
+      SELECT
+          s.name AS source_name,
+          COUNT(a.id) AS article_count
+      FROM
+          sources s
+      LEFT JOIN
+          articles a ON s.id = a.source_id
+      GROUP BY
+          s.name
+      ORDER BY
+          s.name
+    `);
 
     const totalArticles = parseInt(articlesCountResult.rows[0].count, 10);
     const totalSources = parseInt(sourcesCountResult.rows[0].count, 10);
+    const articlesPerSource = articlesPerSourceResult.rows.map(row => ({
+      source_name: row.source_name,
+      article_count: parseInt(row.article_count, 10),
+    }));
 
-    res.json({ totalArticles, totalSources });
+    const articlesPerYearResult = await pool.query(`
+      SELECT
+          EXTRACT(YEAR FROM publication_date) AS article_year,
+          COUNT(id) AS article_count
+      FROM
+          articles
+      WHERE
+          publication_date IS NOT NULL
+      GROUP BY
+          article_year
+      ORDER BY
+          article_year DESC
+    `);
+
+    const articlesPerYear = articlesPerYearResult.rows.map(row => ({
+      year: parseInt(row.article_year, 10),
+      article_count: parseInt(row.article_count, 10),
+    }));
+
+    res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear });
   } catch (err) {
     console.error('Error fetching stats:', err);
     res.status(500).json({ error: 'Internal Server Error' });

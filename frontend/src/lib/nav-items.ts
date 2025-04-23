@@ -5,6 +5,5 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { href: "/", title: "Home" },
-  { href: "/admin", title: "Admin" },
-  { href: "/admin/sources", title: "Manage Sources" },
+  { href: "/settings", title: "Settings" },
 ];

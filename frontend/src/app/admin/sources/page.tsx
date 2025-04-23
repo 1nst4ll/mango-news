@@ -1,6 +1,7 @@
 'use client'; // Make it a client component
 
 import React, { useEffect, useState } from 'react';
+import Header from '@/components/Header'; // Import Header component
 
 
 interface Source {
@@ -358,6 +359,7 @@ const SourceManagement: React.FC = () => {
 
   return (
     <div>
+      <Header /> {/* Use Header component */}
       <h3>Manage Sources</h3>
 
       {/* Source Discovery Section */}

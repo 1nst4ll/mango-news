@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; // Import Card components
 
 interface Article {
   id: number;
@@ -141,45 +142,43 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
 
   return (
-    <div>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"> {/* Grid layout for news articles */}
       {filteredArticles.map(article => (
-        <div key={article.id}>
+        <Card key={article.id} className="flex flex-col"> {/* Use Card component */}
           {article.thumbnail_url && (
-            <div>
-              <img src={article.thumbnail_url} alt={article.title} />
+            <div className="relative w-full h-48 overflow-hidden rounded-t-md"> {/* Container for thumbnail */}
+              <img src={article.thumbnail_url} alt={article.title} className="w-full h-full object-cover" /> {/* Styled thumbnail */}
             </div>
           )}
-          <div>
-            <h3>{article.title}</h3>
-            <div>
-              <div>
-                <span>
-                  <a href={article.source_url} target="_blank" rel="noopener noreferrer">
-                    {getDomainFromUrl(article.source_url)} {/* Display source domain */}
-                  </a>
-                </span>
-              </div>
+          <CardHeader>
+            <CardTitle className="text-xl font-heading">{article.title}</CardTitle> {/* Styled title with custom font */}
+            <CardDescription className="text-sm text-muted-foreground">
+              <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                {getDomainFromUrl(article.source_url)} {/* Display source domain */}
+              </a>
               {article.author && ( // Display author if available
-                <span>By {article.author}</span>
+                <span> | By {article.author}</span>
               )}
-              <span>Published: {
+               <span> | Published: {
                 new Date(article.publication_date).getFullYear() === 2001
                   ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
                   : new Date(article.publication_date).toLocaleDateString()
               }</span>
               {/* Display date added to database */}
-              <span>Added: {
+              <span> | Added: {
                 new Date(article.created_at).getFullYear() === 2001
                   ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
                   : new Date(article.created_at).toLocaleDateString()
               }</span>
-            </div>
-              <p>{article.summary}</p>
-            <div>
-              <Link href={`/article/${article.id}`}>Read More</Link>
-            </div>
-          </div>
-        </div>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow"> {/* Allow content to grow */}
+              <p className="text-body">{article.summary}</p> {/* Styled summary with custom font */}
+          </CardContent>
+          <CardFooter>
+            <Link href={`/article/${article.id}`} className="text-brandPrimary hover:underline">Read More</Link> {/* Styled link with custom color */}
+          </CardFooter>
+        </Card>
       ))}
     </div>
   );

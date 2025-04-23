@@ -241,6 +241,13 @@ async function discoverArticleUrls(sourceUrl) {
         for (const link of links) {
           try {
             const url = new URL(link);
+
+            // Exclude social media share links
+            if (url.search.includes('?share=')) {
+              console.log(`Excluding social share link: ${link}`);
+              continue;
+            }
+
             // Check if the link is on the same domain and hasn't been visited
             if (url.hostname === sourceHostname) {
               const path = url.pathname;
@@ -295,56 +302,66 @@ async function discoverArticleUrls(sourceUrl) {
                 path.endsWith('.svg') ||
                 path.endsWith('.pdf');
 
+              // Check for the specific magneticmediatv.com article link format
+              const isMagneticMediaArticle = url.hostname === 'magneticmediatv.com' && /\/\d{4}\/\d{2}\/[^\/]+\/$/.test(path);
 
               // Refined heuristic to identify potential article links
-              const isPotentialArticle =
-                !isExcludedPath &&
-                (
-                  /\/\d{4}\/\d{2}\/\d{2}\/[^\/]+/.test(path) || // /year/month/day/slug
-                  /\/\w+\/\w+-\w+/.test(path) || // /category/slug
-                  /\/article\/\d+/.test(path) || // /article/id
-                  /\/news\//.test(path) || // /news/
-                  /\/story\//.test(path) || // /story/
-                  /\.html?$/.test(path) || // .html or .htm extension
-                  /\/[a-zA-Z0-9-]+\/\d+$/.test(path) || // /slug/id
-                  /\/[a-zA-Z0-9-]+\/\d{4}-\d{2}-\d{2}\/[a-zA-Z0-9-]+/.test(path) || // /category/year-month-day/slug
-                  /\/\d{4}\/\d{2}\/[a-zA-Z0-9-]+\.html?$/.test(path) || // /year/month/slug.html
-                  /\/p\/\d+$/.test(path) || // /p/id (common for some blogs/news)
-                  /\/post\/\d+$/.test(path) || // /post/id (another common pattern)
-                  /\/story\/\d+$/.test(path) || // /story/id
-                  /\/article\/[a-zA-Z0-9-]+$/.test(path) || // /article/slug
-                  /\/news\/[a-zA-Z0-9-]+$/.test(path) || // /news/slug
-                  /\/\w+\/\d{4}\/\d{2}\/\d{2}\/[^\/]+/.test(path) || // /category/year/month/day/slug
-                  /\/\d{4}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/slug/slug
-                  /\/\d{4}\/\d{2}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/slug/slug
-                  /\/\w+\/\d{4}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /category/year/slug/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/slug/slug
-                  /\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/id
-                  /\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+$/.test(path) || // /year/month/day/category/slug
-                  /\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/slug/slug
-                  /\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/id
-                  /\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/slug
-                  /\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/slug
-                  /\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/id
-                  /\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/id
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                  /\/\w+\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/id
-                  /\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                  /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                  /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/id
-                  /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                  /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/subsub/slug
-                  /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/subsub/slug
-                  path.split('/').filter(segment => segment.length > 0).pop().length > 20 // Check for longer final path segments
-                );
+              let isPotentialArticle = false;
+
+              if (url.hostname === 'magneticmediatv.com') {
+                // Prioritize the specific magneticmediatv.com article format
+                isPotentialArticle = isMagneticMediaArticle;
+              } else {
+                // General heuristics for other domains
+                isPotentialArticle =
+                  !isExcludedPath &&
+                  (
+                    /\/\d{4}\/\d{2}\/\d{2}\/[^\/]+/.test(path) || // /year/month/day/slug
+                    /\/\w+\/\w+-\w+/.test(path) || // /category/slug
+                    /\/article\/\d+/.test(path) || // /article/id
+                    /\/news\//.test(path) || // /news/
+                    /\/story\//.test(path) || // /story/
+                    /\.html?$/.test(path) || // .html or .htm extension
+                    /\/[a-zA-Z0-9-]+\/\d+$/.test(path) || // /slug/id
+                    /\/[a-zA-Z0-9-]+\/\d{4}-\d{2}-\d{2}\/[a-zA-Z0-9-]+/.test(path) || // /category/year-month-day/slug
+                    /\/\d{4}\/\d{2}\/[a-zA-Z0-9-]+\.html?$/.test(path) || // /year/month/slug.html
+                    /\/p\/\d+$/.test(path) || // /p/id (common for some blogs/news)
+                    /\/post\/\d+$/.test(path) || // /post/id (another common pattern)
+                    /\/story\/\d+$/.test(path) || // /story/id
+                    /\/article\/[a-zA-Z0-9-]+$/.test(path) || // /article/slug
+                    /\/news\/[a-zA-Z0-9-]+$/.test(path) || // /news/slug
+                    /\/\w+\/\d{4}\/\d{2}\/\d{2}\/[^\/]+/.test(path) || // /category/year/month/day/slug
+                    /\/\d{4}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/slug/slug
+                    /\/\d{4}\/\d{2}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/slug/slug
+                    /\/\w+\/\d{4}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /category/year/slug/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/slug/slug
+                    /\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/id
+                    /\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+$/.test(path) || // /year/month/day/category/slug
+                    /\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/slug/slug
+                    /\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/id
+                    /\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/slug
+                    /\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/slug
+                    /\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/id
+                    /\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/id
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
+                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/id
+                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
+                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
+                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/id
+                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
+                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/subsub/slug
+                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/subsub/slug
+                    path.split('/').filter(segment => segment.length > 0).pop().length > 20 // Check for longer final path segments
+                  );
+              }
 
 
               if (isPotentialArticle) {

@@ -5,8 +5,7 @@
 import React from 'react';
 // Import components
 import NewsFeed from '@/components/NewsFeed';
-import Link from "next/link"; // Import Link
-import { navItems } from "@/lib/nav-items"; // Import navItems from lib
+import Header from '@/components/Header'; // Import Header component
 
 
 export default function Home() {
@@ -14,32 +13,9 @@ export default function Home() {
 
 
   return (
-    <div>
-      <header>
-        <div>
-          <Link href="/">
-            <img src="/logo.png" alt="Mango News Logo" /> {/* Adjust height as needed */}
-          </Link>
-        </div>
-        <div>
-           {/* Desktop navigation - hidden on large screens, sidebar is used */}
-           {/* The SidebarTrigger will likely replace or be part of the mobile navigation */}
-           <nav>
-            <ul>
-              {navItems.map(item => (
-                 <li key={item.href}>
-                   <Link href={item.href}>{item.title}</Link>
-                 </li>
-              ))}
-            </ul>
-           </nav>
-          {/* Add SidebarTrigger for mobile/collapsible state */}
-          {/* Trigger visible on small/medium screens, hidden on large screens where sidebar is potentially always visible */}
-          <div>
-          </div>
-        </div>
-      </header>
-      <main>
+    <div className="flex min-h-screen flex-col"> {/* Use flex column layout for full height */}
+      <Header /> {/* Use Header component */}
+      <main className="flex-grow container mx-auto px-4 py-8"> {/* Main content area with padding and centered container */}
             {/* Removed Filter Panel */}
 
             {/* Removed Category Tabs */}

@@ -23,6 +23,7 @@ This method uses a headless browser (Puppeteer or Playwright) to navigate to a n
 2.  It applies the `include_selectors` to identify the main content areas.
 3.  It applies the `exclude_selectors` to remove unwanted elements within the included areas (e.g., ads, sidebars).
 4.  It extracts the article title, original publication date, author, thumbnail URL, and topics based on the configured selectors.
+    The article discovery logic also includes specific handling for the `/year/month/slug/` URL format on magneticmediatv.com and excludes URLs containing social media share query parameters (e.g., `?share=`).
 
 ## Firecrawl Scraping
 

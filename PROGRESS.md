@@ -29,12 +29,7 @@
 - Updated the `TopicFilter.tsx` component to use the shadcn/ui `Select` component.
 - Updated the `DateRangeFilter.tsx` component to use shadcn/ui `Label`, `Input`, and `Button` components.
 - Incorporated design ideas from provided code snippet into the Home page (`frontend/src/app/page.tsx`), including adding a search bar and category tabs.
-- Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-side.
-- Implemented the Source Discovery Feature on the Source Management page (`frontend/src/app/admin/sources/page.tsx`), including displaying discovered sources with an option to add them. **Updated the frontend logic to attempt to connect to a backend endpoint for discovery, but full functionality depends on backend implementation.**
-- Created and added a Comprehensive Footer component to the root layout.
-- Enhanced NewsFeed card display to include images, topics, and source type indicators.
-- Improved Loading and Empty States styling in `NewsFeed.tsx`.
-- Updated the Footer component to fetch news sources dynamically from the backend API instead of using hardcoded data based on user feedback.
+- Updated `NewsFeed.tsx` to accept `searchTerm` and `activeCategory` props and filter articles client-client-side.
 - Implemented the Source Discovery Feature on the Source Management page (`frontend/src/app/admin/sources/page.tsx`), including displaying discovered sources with an option to add them. **Updated the frontend logic to attempt to connect to a backend endpoint for discovery, but full functionality depends on backend implementation.**
 - Created and added a Comprehensive Footer component to the root layout.
 - Enhanced NewsFeed card display to include images, topics, and source type indicators.
@@ -52,6 +47,7 @@
 - Added toggles/buttons to the Admin Dashboard (`frontend/src/app/admin/page.tsx`) to trigger the full scraper run (`/api/scrape/run`) and purge articles (`/api/articles/purge`).
 - Connected the Admin Dashboard scraper and purge buttons to the corresponding backend endpoints in `backend/src/index.js`.
 - Addressed the hydration mismatch error in `frontend/src/app/admin/page.tsx` related to `localStorage`.
+- Identified CSS selectors for Magnetic Media articles and updated `docs/css-selectors.md`.
 
 **Next Steps:**
 

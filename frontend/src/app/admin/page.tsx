@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Header from '@/components/Header'; // Import Header component
 
 
 const AdminDashboard: React.FC = () => {
@@ -118,6 +119,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div>
+      <Header /> {/* Use Header component */}
       <h3>Admin Dashboard</h3>
 
       {/* Database Statistics */}
