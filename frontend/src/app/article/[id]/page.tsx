@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { use } from 'react';
 
 
 interface Article {
@@ -120,7 +121,11 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
                  : new Date(article.created_at).toLocaleDateString()
              }</span>
           </p>
-           {/* Removed thumbnail image */}
+           {article.thumbnail_url && (
+            <div>
+              <img src={article.thumbnail_url} alt={article.title} />
+            </div>
+          )}
            {/* Removed topics */}
         </div>
         <div>

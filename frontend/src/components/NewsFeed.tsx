@@ -144,7 +144,11 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
     <div>
       {filteredArticles.map(article => (
         <div key={article.id}>
-          {/* Removed thumbnail image and overlays */}
+          {article.thumbnail_url && (
+            <div>
+              <img src={article.thumbnail_url} alt={article.title} />
+            </div>
+          )}
           <div>
             <h3>{article.title}</h3>
             <div>

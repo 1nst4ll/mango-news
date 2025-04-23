@@ -12,46 +12,42 @@ The Source Management section allows you to view, add, edit, and delete news sou
 
 -   **Viewing Existing Sources:** Upon navigating to the Admin UI, you will see a list of all configured news sources. Each source displays its name, URL, active status, AI summary setting, scraping method, and configured include/exclude selectors.
 -   **Adding a New Source:**
-    -   Click the "Add New Source" button.
-    -   A modal will appear with a form to enter the details of the new source.
+    -   To add a new source, provide the necessary details in the form that appears.
     -   Provide the Source Name and Source URL (required fields).
     -   Select the desired Scraping Method (Open Source or Firecrawl).
-    -   Toggle "Enable AI Summary" to enable or disable AI summarization for articles from this source.
+    -   Enable or disable AI Summary for articles from this source.
     -   Optionally provide Include Selectors and Exclude Selectors for the Open Source scraping method (comma-separated).
-    -   Click "Add Source" to save the new source.
+    -   Save the new source.
 -   **Editing an Existing Source:**
-    -   Click the "Edit" button next to the source you want to modify.
-    -   A modal will appear pre-filled with the source's current details.
+    -   To edit a source, modify its details in the form that appears when selecting a source.
     -   Make the necessary changes to the source's information.
-    -   Click "Save Changes" to update the source.
+    -   Save the changes to update the source.
 -   **Deleting a Source:**
-    -   Click the "Delete" button next to the source you want to remove.
-    -   A confirmation dialog will appear.
-    -   Click "OK" to confirm the deletion. *Note: This action cannot be undone.*
+    -   To delete a source, confirm the deletion when prompted. *Note: This action cannot be undone.*
 -   **Triggering a Scrape for a Single Source:**
-    -   Click the "Scrape Now" button next to a source in the Source Management list to manually trigger the scraping process for that specific source. The scraping method used is configured for each source (see [Scraping Methods](scraping-methods.md)).
-    -   A status message will appear below the source indicating whether the scrape was triggered successfully or if an error occurred.
+    -   Manually trigger the scraping process for a specific source from the Source Management list. The scraping method used is configured for each source (see [Scraping Methods](scraping-methods.md)).
+    -   Status information will be displayed indicating whether the scrape was triggered successfully or if an error occurred.
 
 ## Admin Dashboard Features
 
 The main Admin Dashboard page (`/admin`) provides overall control and status information.
 
--   **Enable AI Summaries:** A toggle switch to globally enable or disable AI summary generation during scraping runs.
--   **Trigger Full Scraper Run:** A button to initiate a scraping process for all active news sources configured in the Source Management section. The scraping method used for each source (Open Source or Firecrawl) is determined by the setting configured for that source. A status message will appear below the button indicating the status of the triggered run.
--   **Purge All Articles:** A button to delete all existing articles from the database. Use this with caution as it is irreversible. A confirmation dialog will appear before proceeding. A status message will appear below the button indicating the status of the purge operation.
+-   **Enable AI Summaries:** Control to globally enable or disable AI summary generation during scraping runs.
+-   **Trigger Full Scraper Run:** Initiate a scraping process for all active news sources configured in the Source Management section. The scraping method used for each source (Open Source or Firecrawl) is determined by the setting configured for that source. Status information will be displayed indicating the status of the triggered run.
+-   **Purge All Articles:** Delete all existing articles from the database. Use this with caution as it is irreversible. Confirmation will be required before proceeding. Status information will be displayed indicating the status of the purge operation.
 
 ## Source Discovery
 
 The Source Discovery section helps you find potential new news sources to add to your collection.
 
 -   **Discover Sources:**
-    -   Click the "Discover Sources" button.
+    -   Initiate the source discovery process.
     -   The application will attempt to discover new sources based on predefined logic (currently a basic implementation in the backend).
-    -   A loading indicator will be displayed while the discovery process is in progress.
+    -   Status information will be displayed while the discovery process is in progress.
     -   Any discovered sources will be listed with their name and URL.
 -   **Adding a Discovered Source:**
-    -   For each discovered source, click the "Add as New Source" button.
-    -   This will open the Add New Source modal with the Name and URL fields pre-filled with the discovered source's information.
+    -   For each discovered source, add it as a new source.
+    -   This will populate the form with the discovered source's information.
     -   You can then configure the remaining settings and add the source as described in the "Adding a New Source" section.
 
 ---
