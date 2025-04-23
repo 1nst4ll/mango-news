@@ -17,7 +17,7 @@ interface Article {
   created_at: string;
   updated_at: string;
   category?: string; // Added optional category property
-  imageUrl?: string; // Added optional imageUrl property
+  thumbnail_url?: string; // Renamed imageUrl to thumbnail_url to match DB schema
   topics?: string[]; // Added optional topics property
   isOfficial?: boolean; // Added optional isOfficial property
   isVerified?: boolean; // Added optional isVerified property
@@ -153,20 +153,22 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredArticles.map(article => (
         <div key={article.id} className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg">
-          {article.imageUrl && ( // Display image if available
-            <div className="h-48 bg-muted relative"> {/* Styled image container */}
-              <img
-                src={article.imageUrl}
-                alt={article.title}
-                className="w-full h-full object-cover"
-              />
+          {article.thumbnail_url && ( // Display image if available
+            <div className="relative h-48 bg-muted"> {/* Relative container for image and overlays */}
+              <Link href={`/article/${article.id}`} className="block w-full h-full"> {/* Link wraps only the image */}
+                <img
+                  src={article.thumbnail_url}
+                  alt={article.title}
+                  className="w-full h-full object-cover"
+                />
+              </Link>
                {article.category && ( // Display category if available
-                <div className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full uppercase font-semibold">
+                <div className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full uppercase font-semibold z-10"> {/* Added z-10 */}
                   {article.category}
                 </div>
               )}
               {article.topics && article.topics.length > 0 && ( // Display topics if available
-                <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1">
+                <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1 z-10"> {/* Added z-10 */}
                   {article.topics.slice(0, 3).map(topic => (
                     <span key={topic} className="bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded-full">
                       {topic}
@@ -204,7 +206,17 @@ function NewsFeed({ selectedTopic, startDate, endDate, searchTerm, activeCategor
               {article.author && ( // Display author if available
                 <span className="mb-2">By {article.author}</span>
               )}
-              <span>Published: {new Date(article.publication_date).toLocaleDateString()}</span>
+              <span>Published: {
+                new Date(article.publication_date).getFullYear() === 2001
+                  ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+                  : new Date(article.publication_date).toLocaleDateString()
+              }</span>
+              {/* Display date added to database */}
+              <span className="text-xs text-muted-foreground mt-1">Added: {
+                new Date(article.created_at).getFullYear() === 2001
+                  ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+                  : new Date(article.created_at).toLocaleDateString()
+              }</span>
             </div>
               <p className="text-foreground mb-5 leading-relaxed">{article.summary}</p>
             <div className="text-right">

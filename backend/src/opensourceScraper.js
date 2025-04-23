@@ -255,6 +255,7 @@ async function discoverArticleUrls(sourceUrl) {
                 path.includes('/page/') || // Pagination
                 path.includes('/comment/') ||
                 path.includes('/feed/') ||
+                path.includes('/news/categories/') || // Exclude category pages
                 path.includes('/print/') ||
                 path.includes('/share/') ||
                 path.includes('/replytocom/') ||

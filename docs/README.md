@@ -10,6 +10,10 @@ Welcome to the Mango News documentation. This guide provides comprehensive infor
 - [Admin UI Features (Source Management and Discovery)](admin-ui.md)
 - [Troubleshooting Common Issues](troubleshooting.md)
 
+## Scraping Enhancements
+
+- **Relative Date Parsing:** Implemented logic in `backend/src/scraper.js` to parse relative date formats (e.g., "x days ago", "x hours ago") and convert them to absolute timestamps for accurate storage and display.
+
 ## Frontend Features
 
 This section outlines key features and components of the Mango News frontend application.
@@ -21,6 +25,7 @@ The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggreg
 - **Dynamic Topic Filtering:** Articles can be filtered by topic using the Topic Filter component. The available topics are fetched dynamically from the backend API (`/api/topics`).
 - **Improved Icon Display:** The news feed now uses more granular icons and visual indicators for article sources based on their category, verification status (`isVerified`), official status (`isOfficial`), and whether they are from Facebook (`isFacebook`).
 - **Readability Enhancements:** Styling adjustments have been made to the article cards to improve readability, including increased spacing between elements and relaxed line height for the summary text.
+- **Topic Tag Overlay Fix:** Resolved an issue where topic tags were not displayed as an overlay on the article thumbnail by adjusting the positioning and stacking context in `NewsFeed.tsx`.
 
 ### Article Detail Page
 

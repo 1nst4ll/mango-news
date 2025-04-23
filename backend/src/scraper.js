@@ -101,7 +101,7 @@ async function generateAISummary(content) {
       ],
       model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
       temperature: 0.7, // Adjust temperature as needed
-      max_tokens: 150, // Adjust max tokens for summary length
+      max_tokens: 100, // Adjust max tokens for summary length
     });
 
     return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
@@ -134,23 +134,46 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
       let publication_date = metadata?.publication_date || metadata?.published_date;
+      const now = new Date();
+
       if (publication_date) {
-        try {
-          // Attempt to parse the scraped date string
-          const parsedDate = new Date(publication_date);
-          if (!isNaN(parsedDate.getTime())) {
-            publication_date = parsedDate.toISOString(); // Convert to ISO 8601 format
-          } else {
-            console.warn(`Could not parse date string "${publication_date}" for ${source_url}. Using current date.`);
-            publication_date = new Date().toISOString(); // Fallback to current date if parsing fails
+        // Check for relative date formats like "x days ago", "x hours ago", etc.
+        const relativeDateMatch = publication_date.match(/^(\d+)\s+(day|hour|minute)s?\s+ago$/i);
+
+        if (relativeDateMatch) {
+          const value = parseInt(relativeDateMatch[1], 10);
+          const unit = relativeDateMatch[2].toLowerCase();
+          let calculatedDate = new Date(now);
+
+          if (unit === 'day') {
+            calculatedDate.setDate(now.getDate() - value);
+          } else if (unit === 'hour') {
+            calculatedDate.setHours(now.getHours() - value);
+          } else if (unit === 'minute') {
+            calculatedDate.setMinutes(now.getMinutes() - value);
           }
-        } catch (dateParseError) {
-          console.error(`Error parsing date string "${publication_date}" for ${source_url}:`, dateParseError);
-          publication_date = new Date().toISOString(); // Fallback to current date on error
+
+          publication_date = calculatedDate.toISOString();
+          console.log(`Parsed relative date "${relativeDateMatch[0]}" as ${publication_date} for ${source_url}`);
+
+        } else {
+          // Attempt to parse the scraped date string if not a relative date
+          try {
+            const parsedDate = new Date(publication_date);
+            if (!isNaN(parsedDate.getTime())) {
+              publication_date = parsedDate.toISOString(); // Convert to ISO 8601 format
+            } else {
+              console.warn(`Could not parse date string "${publication_date}" for ${source_url}. Using current date.`);
+              publication_date = now.toISOString(); // Fallback to current date if parsing fails
+            }
+          } catch (dateParseError) {
+            console.error(`Error parsing date string "${publication_date}" for ${source_url}:`, dateParseError);
+            publication_date = now.toISOString(); // Fallback to current date on error
+          }
         }
       } else {
         console.warn(`No publication date found for ${source_url}. Using current date.`);
-        publication_date = new Date().toISOString(); // Fallback to current date if no date is found
+        publication_date = now.toISOString(); // Fallback to current date if no date is found
       }
       // Attempt to extract author from metadata or use a default
       const author = metadata?.author || 'Unknown Author'; // Get author from metadata
@@ -176,8 +199,8 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
 
       // Save article to database
       const articleResult = await pool.query(
-        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-        [title, source.id, source_url, author, publication_date, raw_content, summary]
+        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+        [title, source.id, source_url, author, publication_date, raw_content, summary, metadata?.thumbnail_url || null]
       );
       const articleId = articleResult.rows[0].id;
 

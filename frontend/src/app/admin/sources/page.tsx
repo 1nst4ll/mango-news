@@ -26,6 +26,13 @@ interface Source {
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method?: string; // Add scraping_method field
+  // Add specific selectors for opensource scraping
+  os_title_selector: string | null;
+  os_content_selector: string | null;
+  os_date_selector: string | null;
+  os_author_selector: string | null;
+  os_thumbnail_selector: string | null;
+  os_topics_selector: string | null;
 }
 
 // Define a type for discovered sources (might be simpler than the full Source type initially)
@@ -43,6 +50,13 @@ interface ModalFormData {
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method: string;
+  // Add specific selectors for opensource scraping
+  os_title_selector: string | null;
+  os_content_selector: string | null;
+  os_date_selector: string | null;
+  os_author_selector: string | null;
+  os_thumbnail_selector: string | null;
+  os_topics_selector: string | null;
 }
 
 
@@ -68,6 +82,13 @@ const SourceManagement: React.FC = () => {
     include_selectors: null,
     exclude_selectors: null,
     scraping_method: 'opensource', // Default scraping method
+    // Initialize new selector fields
+    os_title_selector: null,
+    os_content_selector: null,
+    os_date_selector: null,
+    os_author_selector: null,
+    os_thumbnail_selector: null,
+    os_topics_selector: null,
   });
 
 
@@ -87,6 +108,13 @@ const SourceManagement: React.FC = () => {
           include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
           exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
           scraping_method: source.scraping_method !== undefined ? source.scraping_method : 'opensource', // Default to opensource if not provided
+          // Initialize new selector fields
+          os_title_selector: source.os_title_selector !== undefined ? source.os_title_selector : null,
+          os_content_selector: source.os_content_selector !== undefined ? source.os_content_selector : null,
+          os_date_selector: source.os_date_selector !== undefined ? source.os_date_selector : null,
+          os_author_selector: source.os_author_selector !== undefined ? source.os_author_selector : null,
+          os_thumbnail_selector: source.os_thumbnail_selector !== undefined ? source.os_thumbnail_selector : null,
+          os_topics_selector: source.os_topics_selector !== undefined ? source.os_topics_selector : null,
         })));
       } catch (error: unknown) { // Use unknown for better type safety
         setError(error);
@@ -256,6 +284,13 @@ const SourceManagement: React.FC = () => {
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource', // Default scraping method for discovered sources
+      // Initialize new selector fields for discovered sources (likely null)
+      os_title_selector: null,
+      os_content_selector: null,
+      os_date_selector: null,
+      os_author_selector: null,
+      os_thumbnail_selector: null,
+      os_topics_selector: null,
     });
     // Optionally clear discovered sources list after adding one
     setDiscoveredSources([]);
@@ -274,6 +309,13 @@ const SourceManagement: React.FC = () => {
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource', // Reset form with default
+      // Initialize new selector fields for add mode
+      os_title_selector: null,
+      os_content_selector: null,
+      os_date_selector: null,
+      os_author_selector: null,
+      os_thumbnail_selector: null,
+      os_topics_selector: null,
     });
     setIsModalOpen(true);
   };
@@ -287,6 +329,13 @@ const SourceManagement: React.FC = () => {
       include_selectors: source.include_selectors,
       exclude_selectors: source.exclude_selectors,
       scraping_method: source.scraping_method || 'opensource', // Use existing method or default
+      // Initialize new selector fields with existing data
+      os_title_selector: source.os_title_selector,
+      os_content_selector: source.os_content_selector,
+      os_date_selector: source.os_date_selector,
+      os_author_selector: source.os_author_selector,
+      os_thumbnail_selector: source.os_thumbnail_selector,
+      os_topics_selector: source.os_topics_selector,
     });
     setIsModalOpen(true);
   };
@@ -301,6 +350,13 @@ const SourceManagement: React.FC = () => {
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
+      // Reset new selector fields
+      os_title_selector: null,
+      os_content_selector: null,
+      os_date_selector: null,
+      os_author_selector: null,
+      os_thumbnail_selector: null,
+      os_topics_selector: null,
     });
   };
 
@@ -334,7 +390,7 @@ const SourceManagement: React.FC = () => {
 
         {discoveryError && (
           <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md" aria-live="polite" aria-atomic="true">
-            Discovery Error: {String(discoveryError)}
+            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : 'An unknown error occurred during discovery.'}
           </div>
         )}
 
@@ -448,6 +504,36 @@ const SourceManagement: React.FC = () => {
                 <Switch id="enable_ai_summary" name="enable_ai_summary" checked={modalFormData.enable_ai_summary} onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_summary: checked })} />
                 <Label htmlFor="enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
               </div>
+              {/* New: Specific Open Source Selectors */}
+              {modalFormData.scraping_method === 'opensource' && (
+                <>
+                  <div>
+                    <Label htmlFor="os_title_selector" className="block text-sm font-medium text-foreground">Title Selector:</Label>
+                    <Input type="text" id="os_title_selector" name="os_title_selector" value={modalFormData.os_title_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                  </div>
+                  <div>
+                    <Label htmlFor="os_content_selector" className="block text-sm font-medium text-foreground">Content Selector:</Label>
+                    <Textarea id="os_content_selector" name="os_content_selector" value={modalFormData.os_content_selector || ''} onChange={handleModalInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                  </div>
+                   <div>
+                    <Label htmlFor="os_date_selector" className="block text-sm font-medium text-foreground">Date Selector:</Label>
+                    <Input type="text" id="os_date_selector" name="os_date_selector" value={modalFormData.os_date_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                  </div>
+                   <div>
+                    <Label htmlFor="os_author_selector" className="block text-sm font-medium text-foreground">Author Selector:</Label>
+                    <Input type="text" id="os_author_selector" name="os_author_selector" value={modalFormData.os_author_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                  </div>
+                   <div>
+                    <Label htmlFor="os_thumbnail_selector" className="block text-sm font-medium text-foreground">Thumbnail Selector:</Label>
+                    <Input type="text" id="os_thumbnail_selector" name="os_thumbnail_selector" value={modalFormData.os_thumbnail_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                  </div>
+                   <div>
+                    <Label htmlFor="os_topics_selector" className="block text-sm font-medium text-foreground">Topics Selector (comma-separated):</Label>
+                    <Input type="text" id="os_topics_selector" name="os_topics_selector" value={modalFormData.os_topics_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                  </div>
+                </>
+              )}
+              {/* Existing Include/Exclude Selectors */}
               <div>
                 <Label htmlFor="include_selectors" className="block text-sm font-medium text-foreground">Include Selectors (comma-separated):</Label>
                 <Textarea id="include_selectors" name="include_selectors" value={modalFormData.include_selectors || ''} onChange={handleModalInputChange} rows={3} className="mt-1 block w-full"></Textarea>
