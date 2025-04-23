@@ -130,11 +130,39 @@ app.get('/api/topics', async (req, res) => {
 
 // Get all articles
 app.get('/api/articles', async (req, res) => {
+  const { topic, startDate, endDate } = req.query;
+  let query = `
+    SELECT
+        a.*,
+        ARRAY_AGG(t.name) AS topics
+    FROM
+        articles a
+    LEFT JOIN
+        article_topics at ON a.id = at.article_id
+    LEFT JOIN
+        topics t ON at.topic_id = t.id
+  `;
+  const values = [];
+  const conditions = [];
+
+  if (topic) {
+    conditions.push('t.name = $1');
+    values.push(topic);
+  }
+
+  // TODO: Implement filtering by startDate and endDate
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  query += ' GROUP BY a.id ORDER BY a.publication_date DESC';
+
   try {
-    // Assuming an 'articles' table exists
-    // Add filtering logic based on query parameters (topic, startDate, endDate) if implemented
-    const result = await pool.query('SELECT * FROM articles ORDER BY publication_date DESC'); // Corrected column name to publication_date
-    res.json(result.rows);
+    const result = await pool.query(query, values);
+    // Filter out articles with no topics if a topic filter was applied
+    const filteredResults = topic ? result.rows.filter(article => article.topics && article.topics.includes(topic)) : result.rows;
+    res.json(filteredResults);
   } catch (err) {
     console.error('Error fetching articles:', err);
      // If the articles table doesn't exist yet, return an empty array as a fallback
@@ -190,7 +218,7 @@ app.post('/api/scrape/run', async (req, res) => {
   try {
     console.log('Triggering full scraper run');
     // Call the runScraper function from scraper.js
-    await runScaper();
+    await runScraper();
     res.json({ message: 'Full scraper run triggered successfully. Check backend logs for progress.' });
   } catch (error) {
     console.error('Error triggering full scraper run:', error);
@@ -228,9 +256,12 @@ app.post('/api/articles/purge', async (req, res) => {
     await pool.query('DELETE FROM topics');
     console.log('Deleted all entries from topics.');
 
+    // Reset the primary key sequence for the articles table
+    await pool.query('ALTER SEQUENCE articles_id_seq RESTART WITH 1;');
+    console.log('Reset articles table sequence.');
 
     res.json({ message: 'All articles, topics, and article links purged successfully.' });
-  } catch (error) {
+  } catch (err) {
     console.error('Error during purge:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
