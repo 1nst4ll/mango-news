@@ -1,20 +1,6 @@
 'use client'; // Make it a client component
 
 import React, { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"; // Import Select components
-import { RefreshCw } from 'lucide-react'; // Import RefreshCw icon
 
 
 interface Source {
@@ -371,183 +357,173 @@ const SourceManagement: React.FC = () => {
 
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <h3 className="text-2xl font-bold mb-6 text-primary">Manage Sources</h3>
+    <div>
+      <h3>Manage Sources</h3>
 
       {/* Source Discovery Section */}
-      <Card className="p-6 mb-8">
-        <CardTitle className="text-xl font-semibold mb-4 text-primary">Discover New Sources</CardTitle>
-        <div className="flex items-center gap-4 mb-4">
-           <Button
+      <div>
+        <h4>Discover New Sources</h4>
+        <div>
+           <button
             onClick={discoverNewSources}
             disabled={isDiscovering}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isDiscovering ? 'animate-spin' : ''}`} />
             {isDiscovering ? 'Searching...' : 'Discover Sources'}
-          </Button>
-           {isDiscovering && <span className="text-muted-foreground" aria-live="polite" aria-atomic="true">Searching for new sources...</span>}
+          </button>
+           {isDiscovering && <span>Searching for new sources...</span>}
         </div>
 
+        {/* Display discovery error message */}
         {discoveryError && (
-          <div className="mt-4 p-3 bg-destructive text-destructive-foreground rounded-md" aria-live="polite" aria-atomic="true">
-            Discovery Error: {discoveryError instanceof Error ? discoveryError.message : 'An unknown error occurred during discovery.'}
+          <div>
+            Discovery Error: {String(discoveryError)}
           </div>
         )}
 
         {discoveredSources.length > 0 && (
-          <div className="mt-4">
-            <h5 className="text-lg font-semibold mb-3 text-foreground">Discovered Sources:</h5>
-            <ul className="space-y-3">
+          <div>
+            <h5>Discovered Sources:</h5>
+            <ul>
               {discoveredSources.map((source, index) => (
-                <li key={index} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-muted p-3 rounded-md">
+                <li key={index}>
                   <div>
-                    <div className="font-medium text-foreground">{source.name}</div>
-                    <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">{source.url}</a>
+                    <div>{source.name}</div>
+                    <a href={source.url} target="_blank" rel="noopener noreferrer">{source.url}</a>
                   </div>
-                  <Button onClick={() => handleAddDiscoveredSourceToForm(source)} size="sm" className="mt-2 sm:mt-0">
+                  <button onClick={() => handleAddDiscoveredSourceToForm(source)}>
                     Add as New Source
-                  </Button>
+                  </button>
                 </li>
               ))}
             </ul>
           </div>
         )}
-      </Card>
+      </div>
 
 
       {/* Existing Sources Section */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4"> {/* Added flex container for heading and Add button */}
-          <h4 className="text-xl font-semibold text-primary">Existing Sources</h4>
-          <Button onClick={openAddModal} size="sm"> {/* Button to open Add modal */}
+      <div>
+        <div>
+          <h4>Existing Sources</h4>
+          <button onClick={openAddModal}>
             Add New Source
-          </Button>
+          </button>
         </div>
-        <ul className="space-y-4">
+        <ul>
           {sources.map((source) => (
-            <Card key={source.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 sm:p-6 transition-shadow hover:shadow-lg"> {/* Adjusted padding for smaller screens */}
-              <CardContent className="mb-4 md:mb-0 p-0 flex-grow"> {/* Added flex-grow */}
-                <CardTitle className="text-lg font-medium text-primary">{source.name}</CardTitle>
-                <div className="text-sm text-muted-foreground break-words"> {/* Added break-words */}
-                  URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
+            <div key={source.id}>
+              <div>
+                <div>{source.name}</div>
+                <div>
+                  URL: <a href={source.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div>
                   Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'} | Method: {source.scraping_method || 'N/A'} {/* Display scraping method */}
                 </div>
-                {source.include_selectors && <div className="text-sm text-muted-foreground break-words">Include: {source.include_selectors}</div>} {/* Added break-words */}
-                {source.exclude_selectors && <div className="text-sm text-muted-foreground break-words">Exclude: {source.exclude_selectors}</div>} {/* Added break-words */}
-              </CardContent>
-              <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0"> {/* Added flex-shrink-0 */}
-                <Button
+                {source.include_selectors && <div>Include: {source.include_selectors}</div>} {/* Added break-words */}
+                {source.exclude_selectors && <div>Exclude: {source.exclude_selectors}</div>} {/* Added break-words */}
+              </div>
+              <div>
+                <button
                   onClick={() => handleTriggerScraperForSource(source.id)}
                   disabled={scrapingLoading[source.id]}
-                  size="sm"
                 >
                   {scrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
-                </Button>
-                <Button
-                  onClick={() => openEditModal(source)} // Button to open Edit modal
-                  size="sm"
-                  variant="secondary" // Use secondary variant for edit
+                </button>
+                <button
+                  onClick={() => openEditModal(source)}
                 >
                   Edit
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={() => handleDeleteSource(source.id)}
-                  size="sm"
-                  variant="destructive" // Use destructive variant for delete
                 >
                   Delete
-                </Button>
+                </button>
               </div>
               {scrapingStatus[source.id] && (
-                <div className="mt-4 p-2 bg-secondary text-secondary-foreground rounded-md text-sm w-full" aria-live="polite" aria-atomic="true">
+                <div>
                   {scrapingStatus[source.id]}
                 </div>
               )}
-            </Card>
+            </div>
           ))}
         </ul>
       </div>
 
       {/* Add/Edit Source Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full flex justify-center items-center z-50 p-4 sm:p-6" id="add-edit-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"> {/* Use bg-black/50 for overlay, added z-50, added ARIA attributes, adjusted padding */}
-          <Card className="relative p-6 w-full max-w-lg mx-auto shadow-lg rounded-md bg-background text-foreground"> {/* Adjusted width and centering, added background and text colors */}
-            <CardTitle id="modal-title" className="text-xl font-semibold mb-4 text-primary">{editingSource ? 'Edit Source' : 'Add New Source'}</CardTitle> {/* Dynamic title, added id for ARIA label */}
-            <form onSubmit={handleModalSubmit} className="space-y-4"> {/* Use modal submit handler */}
+        <div>
+          <div>
+            <h4>{editingSource ? 'Edit Source' : 'Add New Source'}</h4>
+            <form onSubmit={handleModalSubmit}>
               <div>
-                <Label htmlFor="name" className="block text-sm font-medium text-foreground">Source Name:</Label>
-                <Input type="text" id="name" name="name" value={modalFormData.name} onChange={handleModalInputChange} required className="mt-1 block w-full" />
+                <label htmlFor="name">Source Name:</label>
+                <input type="text" id="name" name="name" value={modalFormData.name} onChange={handleModalInputChange} required />
               </div>
               <div>
-                <Label htmlFor="url" className="block text-sm font-medium text-foreground">Source URL:</Label>
-                <Input type="text" id="url" name="url" value={modalFormData.url} onChange={handleModalInputChange} required className="mt-1 block w-full" />
+                <label htmlFor="url">Source URL:</label>
+                <input type="text" id="url" name="url" value={modalFormData.url} onChange={handleModalInputChange} required />
               </div>
               {/* New: Scraping Method Select */}
               <div>
-                <Label htmlFor="scraping_method">Scraping Method:</Label>
-                <Select
+                <label htmlFor="scraping_method">Scraping Method:</label>
+                <select
                   value={modalFormData.scraping_method || 'opensource'}
-                  onValueChange={(value) => setModalFormData({ ...modalFormData, scraping_method: value })}
+                  onChange={(e) => setModalFormData({ ...modalFormData, scraping_method: e.target.value })}
                 >
-                  <SelectTrigger id="scraping_method">
-                    <SelectValue placeholder="Select scraping method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="opensource">Open Source (Puppeteer/Playwright)</SelectItem>
-                    <SelectItem value="firecrawl">Firecrawl</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="opensource">Open Source (Puppeteer/Playwright)</option>
+                  <option value="firecrawl">Firecrawl</option>
+                </select>
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="enable_ai_summary" name="enable_ai_summary" checked={modalFormData.enable_ai_summary} onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_summary: checked })} />
-                <Label htmlFor="enable_ai_summary" className="text-sm font-medium text-foreground">Enable AI Summary</Label>
+              <div>
+                <input type="checkbox" id="enable_ai_summary" name="enable_ai_summary" checked={modalFormData.enable_ai_summary} onChange={(e) => setModalFormData({ ...modalFormData, enable_ai_summary: e.target.checked })} />
+                <label htmlFor="enable_ai_summary">Enable AI Summary</label>
               </div>
               {/* New: Specific Open Source Selectors */}
               {modalFormData.scraping_method === 'opensource' && (
                 <>
                   <div>
-                    <Label htmlFor="os_title_selector" className="block text-sm font-medium text-foreground">Title Selector:</Label>
-                    <Input type="text" id="os_title_selector" name="os_title_selector" value={modalFormData.os_title_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                    <label htmlFor="os_title_selector">Title Selector:</label>
+                    <input type="text" id="os_title_selector" name="os_title_selector" value={modalFormData.os_title_selector || ''} onChange={handleModalInputChange} />
                   </div>
                   <div>
-                    <Label htmlFor="os_content_selector" className="block text-sm font-medium text-foreground">Content Selector:</Label>
-                    <Textarea id="os_content_selector" name="os_content_selector" value={modalFormData.os_content_selector || ''} onChange={handleModalInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                    <label htmlFor="os_content_selector">Content Selector:</label>
+                    <textarea id="os_content_selector" name="os_content_selector" value={modalFormData.os_content_selector || ''} onChange={handleModalInputChange} rows={3}></textarea>
                   </div>
                    <div>
-                    <Label htmlFor="os_date_selector" className="block text-sm font-medium text-foreground">Date Selector:</Label>
-                    <Input type="text" id="os_date_selector" name="os_date_selector" value={modalFormData.os_date_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                    <label htmlFor="os_date_selector">Date Selector:</label>
+                    <input type="text" id="os_date_selector" name="os_date_selector" value={modalFormData.os_date_selector || ''} onChange={handleModalInputChange} />
                   </div>
                    <div>
-                    <Label htmlFor="os_author_selector" className="block text-sm font-medium text-foreground">Author Selector:</Label>
-                    <Input type="text" id="os_author_selector" name="os_author_selector" value={modalFormData.os_author_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                    <label htmlFor="os_author_selector">Author Selector:</label>
+                    <input type="text" id="os_author_selector" name="os_author_selector" value={modalFormData.os_author_selector || ''} onChange={handleModalInputChange} />
                   </div>
                    <div>
-                    <Label htmlFor="os_thumbnail_selector" className="block text-sm font-medium text-foreground">Thumbnail Selector:</Label>
-                    <Input type="text" id="os_thumbnail_selector" name="os_thumbnail_selector" value={modalFormData.os_thumbnail_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                    <label htmlFor="os_thumbnail_selector">Thumbnail Selector:</label>
+                    <input type="text" id="os_thumbnail_selector" name="os_thumbnail_selector" value={modalFormData.os_thumbnail_selector || ''} onChange={handleModalInputChange} />
                   </div>
                    <div>
-                    <Label htmlFor="os_topics_selector" className="block text-sm font-medium text-foreground">Topics Selector (comma-separated):</Label>
-                    <Input type="text" id="os_topics_selector" name="os_topics_selector" value={modalFormData.os_topics_selector || ''} onChange={handleModalInputChange} className="mt-1 block w-full" />
+                    <label htmlFor="os_topics_selector">Topics Selector (comma-separated):</label>
+                    <input type="text" id="os_topics_selector" name="os_topics_selector" value={modalFormData.os_topics_selector || ''} onChange={handleModalInputChange} />
                   </div>
                 </>
               )}
               {/* Existing Include/Exclude Selectors */}
               <div>
-                <Label htmlFor="include_selectors" className="block text-sm font-medium text-foreground">Include Selectors (comma-separated):</Label>
-                <Textarea id="include_selectors" name="include_selectors" value={modalFormData.include_selectors || ''} onChange={handleModalInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                <label htmlFor="include_selectors">Include Selectors (comma-separated):</label>
+                <textarea id="include_selectors" name="include_selectors" value={modalFormData.include_selectors || ''} onChange={handleModalInputChange} rows={3}></textarea>
               </div>
               <div>
-                <Label htmlFor="exclude_selectors" className="block text-sm font-medium text-foreground">Exclude Selectors (comma-separated):</Label>
-                <Textarea id="exclude_selectors" name="exclude_selectors" value={modalFormData.exclude_selectors || ''} onChange={handleModalInputChange} rows={3} className="mt-1 block w-full"></Textarea>
+                <label htmlFor="exclude_selectors">Exclude Selectors (comma-separated):</label>
+                <textarea id="exclude_selectors" name="exclude_selectors" value={modalFormData.exclude_selectors || ''} onChange={handleModalInputChange} rows={3}></textarea>
               </div>
-              <div className="flex justify-end gap-4 mt-6"> {/* Added mt-6 for spacing */}
-                <Button type="submit">{editingSource ? 'Save Changes' : 'Add Source'}</Button> {/* Dynamic button text */}
-                <Button type="button" onClick={closeAddEditModal} variant="secondary">Cancel</Button> {/* Close modal button */}
+              <div>
+                <button type="submit">{editingSource ? 'Save Changes' : 'Add Source'}</button>
+                <button type="button" onClick={closeAddEditModal}>Cancel</button>
               </div>
             </form>
-          </Card>
+          </div>
         </div>
       )}
     </div>

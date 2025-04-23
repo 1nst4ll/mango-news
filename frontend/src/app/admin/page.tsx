@@ -1,10 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch'; // Import shadcn/ui Switch
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 
 const AdminDashboard: React.FC = () => {
@@ -121,92 +117,83 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary">Admin Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Database Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Articles</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {statsLoading ? (
-                  <div className="text-muted-foreground">Loading...</div>
-                ) : statsError ? (
-                  <div className="text-destructive">{statsError}</div>
-                ) : (
-                  <div className="text-2xl font-bold">{totalArticles !== null ? totalArticles : 'N/A'}</div>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Sources</CardTitle>
-              </CardHeader>
-              <CardContent>
-                 {statsLoading ? (
-                  <div className="text-muted-foreground">Loading...</div>
-                ) : statsError ? (
-                  <div className="text-destructive">{statsError}</div>
-                ) : (
-                  <div className="text-2xl font-bold">{totalSources !== null ? totalSources : 'N/A'}</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+    <div>
+      <h3>Admin Dashboard</h3>
 
-          {/* Controls */}
-          <div className="mb-8">
-            <ul className="flex flex-col space-y-4">
-              <li className="flex items-center">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableGlobalAiSummary"
-                    checked={enableGlobalAiSummary}
-                    onCheckedChange={(checked) => setEnableGlobalAiSummary(!!checked)}
-                  />
-                  <Label htmlFor="enableGlobalAiSummary" className="text-foreground">
-                    Enable AI Summaries for this scrape
-                  </Label>
-                </div>
-              </li>
-              <li>
-                <Button
-                  onClick={handleTriggerScraper}
-                  disabled={loading}
-                >
-                  {loading ? 'Triggering...' : 'Trigger Full Scraper Run'}
-                </Button>
-              </li>
-              <li>
-                <Button
-                  onClick={handlePurgeArticles}
-                  disabled={purgeLoading}
-                  variant="destructive"
-                >
-                  {purgeLoading ? 'Purging...' : 'Purge All Articles'}
-                </Button>
-              </li>
-            </ul>
+      {/* Database Statistics */}
+      <div>
+        <div>
+          <div>Total Articles</div>
+          <div>
+            {statsLoading ? (
+              <div>Loading...</div>
+            ) : statsError ? (
+              <div>{statsError}</div>
+            ) : (
+              <div>{totalArticles !== null ? totalArticles : 'N/A'}</div>
+            )}
           </div>
+        </div>
+        <div>
+          <div>Total Sources</div>
+          <div>
+             {statsLoading ? (
+              <div>Loading...</div>
+            ) : statsError ? (
+              <div>{statsError}</div>
+            ) : (
+              <div>{totalSources !== null ? totalSources : 'N/A'}</div>
+            )}
+          </div>
+        </div>
+      </div>
 
-          {/* Status Messages */}
-          {scrapingStatus && (
-            <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md" aria-live="polite" aria-atomic="true">
-              Scraper Status: {scrapingStatus}
+      {/* Controls */}
+      <div>
+        <ul>
+          <li>
+            <div>
+              <input
+                type="checkbox"
+                id="enableGlobalAiSummary"
+                checked={enableGlobalAiSummary}
+                onChange={(e) => setEnableGlobalAiSummary(e.target.checked)}
+              />
+              <label htmlFor="enableGlobalAiSummary">
+                Enable AI Summaries for this scrape
+              </label>
             </div>
-          )}
-          {purgeStatus && (
-            <div className="mt-4 p-4 bg-secondary text-secondary-foreground rounded-md" aria-live="polite" aria-atomic="true">
-              Purge Status: {purgeStatus}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </li>
+          <li>
+            <button
+              onClick={handleTriggerScraper}
+              disabled={loading}
+            >
+              {loading ? 'Triggering...' : 'Trigger Full Scraper Run'}
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={handlePurgeArticles}
+              disabled={purgeLoading}
+            >
+              {purgeLoading ? 'Purging...' : 'Purge All Articles'}
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      {/* Status Messages */}
+      {scrapingStatus && (
+        <div>
+          Scraper Status: {scrapingStatus}
+        </div>
+      )}
+      {purgeStatus && (
+        <div>
+          Purge Status: {purgeStatus}
+        </div>
+      )}
     </div>
   );
 };

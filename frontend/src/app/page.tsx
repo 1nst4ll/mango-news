@@ -2,10 +2,11 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 // Import components
 import NewsFeed from '@/components/NewsFeed';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
+import Link from "next/link"; // Import Link
+import { navItems } from "@/lib/nav-items"; // Import navItems from lib
 
 
 export default function Home() {
@@ -13,13 +14,32 @@ export default function Home() {
 
 
   return (
-    <div className="flex flex-col min-h-screen container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <main className="flex-grow">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-primary">News Feed</CardTitle>
-          </CardHeader>
-          <CardContent>
+    <div>
+      <header>
+        <div>
+          <Link href="/">
+            <img src="/logo.png" alt="Mango News Logo" /> {/* Adjust height as needed */}
+          </Link>
+        </div>
+        <div>
+           {/* Desktop navigation - hidden on large screens, sidebar is used */}
+           {/* The SidebarTrigger will likely replace or be part of the mobile navigation */}
+           <nav>
+            <ul>
+              {navItems.map(item => (
+                 <li key={item.href}>
+                   <Link href={item.href}>{item.title}</Link>
+                 </li>
+              ))}
+            </ul>
+           </nav>
+          {/* Add SidebarTrigger for mobile/collapsible state */}
+          {/* Trigger visible on small/medium screens, hidden on large screens where sidebar is potentially always visible */}
+          <div>
+          </div>
+        </div>
+      </header>
+      <main>
             {/* Removed Filter Panel */}
 
             {/* Removed Category Tabs */}
@@ -33,8 +53,6 @@ export default function Home() {
               selectedSources={[]} // Default empty sources
               activeCategory="all" // Pass a default or remove if not needed in NewsFeed
             />
-          </CardContent>
-        </Card>
       </main>
     </div>
   );

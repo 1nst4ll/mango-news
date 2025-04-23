@@ -2,47 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Newspaper, Globe, Shield, Facebook, BadgeCheck, Landmark } from 'lucide-react'; // Import icons
-
-// Helper function to truncate summary to a maximum number of words without cutting off sentences
-const truncateSummary = (summary: string, wordLimit: number): string => {
-  if (!summary) return '';
-  const words = summary.split(' ');
-  if (words.length <= wordLimit) {
-    return summary;
-  }
-
-  const truncatedWords = words.slice(0, wordLimit);
-  let truncatedSummary = truncatedWords.join(' ');
-
-  // Find the last sentence-ending punctuation within the truncated part
-  const lastPunctuationIndex = Math.max(
-    truncatedSummary.lastIndexOf('.'),
-    truncatedSummary.lastIndexOf('!'),
-    truncatedSummary.lastIndexOf('?')
-  );
-
-  if (lastPunctuationIndex !== -1) {
-    truncatedSummary = truncatedSummary.substring(0, lastPunctuationIndex + 1);
-  } else {
-      // If no punctuation found, just truncate at the word limit and add ...
-      truncatedSummary = truncatedWords.join(' ') + '...';
-      return truncatedSummary;
-  }
-
-
-  // Add ellipsis if the original summary was longer
-  if (truncatedSummary.length < summary.length) {
-      // Check if the truncated summary already ends with punctuation, if not add ...
-      if (!/[.!?]$/.test(truncatedSummary)) {
-          truncatedSummary += '...';
-      }
-  }
-
-
-  return truncatedSummary;
-};
-
 
 interface Article {
   id: number;
@@ -142,7 +101,7 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
     fetchArticles();
   }, [selectedTopics, startDate, endDate, searchTerm, selectedSources]);
 
-  // Client-side filtering based on activeCategory (kept for now)
+  // Client-client-side filtering based on activeCategory (kept for now)
   const filteredArticles = articles.filter(article => {
     // Basic category matching - assuming article object has a 'category' property
     // If not, this logic needs to be adjusted based on available article data
@@ -154,37 +113,19 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
     return matchesCategory;
   });
 
-  // Helper function to get category icon
-  const getCategoryIcon = (category?: string) => {
-    switch(category?.toLowerCase()) {
-      case 'news':
-        return <Newspaper className="h-4 w-4 mr-1 text-blue-500" />;
-      case 'government':
-        return <Landmark className="h-4 w-4 mr-1 text-green-600" />; // Using Landmark for government
-      case 'police':
-        return <Shield className="h-4 w-4 mr-1 text-red-600" />;
-      case 'social':
-        return <Facebook className="h-4 w-4 mr-1 text-blue-600" />;
-      case 'international':
-        return <Globe className="h-4 w-4 mr-1 text-purple-600" />;
-      default:
-        return <Newspaper className="h-4 w-4 mr-1 text-gray-500" />;
-    }
-  };
-
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-foreground"> {/* Styled loading state */}
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div> {/* Styled spinner */}
-        <p className="mt-4 text-muted-foreground">Loading latest news...</p> {/* Styled loading text */}
+      <div>
+        <div>Loading...</div>
+        <p>Loading latest news...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-destructive text-center py-8"> {/* Styled error state */}
+      <div>
         Error loading articles: {error instanceof Error ? error.message : 'An unknown error occurred'}
       </div>
     );
@@ -192,7 +133,7 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
   if (filteredArticles.length === 0) {
      return (
-      <div className="text-muted-foreground text-center py-8"> {/* Styled empty state */}
+      <div>
         No news articles found matching your criteria.
       </div>
     );
@@ -200,61 +141,22 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div>
       {filteredArticles.map(article => (
-        <div key={article.id} className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg">
-          {article.thumbnail_url && ( // Display image if available
-            <div className="relative h-48 bg-muted"> {/* Relative container for image and overlays */}
-              <Link href={`/article/${article.id}`} className="block w-full h-full"> {/* Link wraps only the image */}
-                <img
-                  src={article.thumbnail_url}
-                  alt={article.title}
-                  className="w-full h-full object-cover"
-                />
-              </Link>
-               {article.category && ( // Display category if available
-                <div className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full uppercase font-semibold z-10"> {/* Added z-10 */}
-                  {article.category}
-                </div>
-              )}
-              {article.topics && article.topics.length > 0 && ( // Display topics if available
-                <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1 z-10"> {/* Added z-10 */}
-                  {article.topics.slice(0, 3).map(topic => (
-                    <span key={topic} className="bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded-full">
-                      {topic}
-                    </span>
-                  ))}
-                  {article.topics.length > 3 && (
-                    <span className="bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded-full">
-                      +{article.topics.length - 3}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-          <div className="p-6">
-            <h3 className="text-xl font-semibold mb-3 text-primary">{article.title}</h3> {/* Increased bottom margin */}
-            <div className="flex flex-col text-base text-muted-foreground mb-4"> {/* Increased bottom margin */}
-              <div className="flex items-center mb-2"> {/* Added margin-bottom */}
-                {getCategoryIcon(article.category)} {/* Display category icon */}
-                <span className="flex items-center">
-                  <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+        <div key={article.id}>
+          {/* Removed thumbnail image and overlays */}
+          <div>
+            <h3>{article.title}</h3>
+            <div>
+              <div>
+                <span>
+                  <a href={article.source_url} target="_blank" rel="noopener noreferrer">
                     {getDomainFromUrl(article.source_url)} {/* Display source domain */}
                   </a>
-                  {article.isVerified && ( // Display verified indicator
-                    <BadgeCheck className="h-4 w-4 ml-1 text-green-500" /> // Using BadgeCheck for verified
-                  )}
-                  {article.isOfficial && ( // Display official indicator
-                    <Shield className="h-4 w-4 ml-1 text-blue-500" /> // Using Shield for official
-                  )}
-                  {article.isFacebook && ( // Display Facebook indicator
-                    <Facebook className="h-4 w-4 ml-1 text-blue-600" /> // Using Facebook for Facebook
-                  )}
                 </span>
               </div>
               {article.author && ( // Display author if available
-                <span className="mb-2">By {article.author}</span>
+                <span>By {article.author}</span>
               )}
               <span>Published: {
                 new Date(article.publication_date).getFullYear() === 2001
@@ -262,21 +164,15 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
                   : new Date(article.publication_date).toLocaleDateString()
               }</span>
               {/* Display date added to database */}
-              <span className="text-xs text-muted-foreground mt-1">Added: {
+              <span>Added: {
                 new Date(article.created_at).getFullYear() === 2001
                   ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
                   : new Date(article.created_at).toLocaleDateString()
               }</span>
             </div>
-              {/* Render summary with basic markdown bold support */}
-              <p
-                className="text-foreground mb-5 leading-relaxed"
-                dangerouslySetInnerHTML={{
-                  __html: truncateSummary(article.summary, 60).replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>') // Add text-primary class for color
-                }}
-              ></p>
-            <div className="text-right">
-              <Link href={`/article/${article.id}`} className="text-primary hover:underline transition-colors">Read More</Link>
+              <p>{article.summary}</p>
+            <div>
+              <Link href={`/article/${article.id}`}>Read More</Link>
             </div>
           </div>
         </div>

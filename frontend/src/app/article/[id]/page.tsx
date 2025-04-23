@@ -1,9 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 
 interface Article {
@@ -67,53 +64,47 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <Card>
-          <CardContent>
-            <div className="text-foreground text-center py-8">
-              Loading article...
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <div>
+          <div>
+            Loading article...
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <Card>
-          <CardContent>
-            <div className="text-destructive text-center py-8">
-              Error loading article: {error instanceof Error ? error.message : 'An unknown error occurred'}
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <div>
+          <div>
+            Error loading article: {error instanceof Error ? error.message : 'An unknown error occurred'}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!article) {
     return (
-      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <Card>
-          <CardContent>
-            <div className="text-muted-foreground text-center py-8">
-              Article not found.
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <div>
+          <div>
+            Article not found.
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <Card className="lg:max-w-3xl mx-auto"> {/* Added max-width for large screens and centered */}
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-primary mb-2">{article.title}</CardTitle> {/* Added bottom margin */}
-          <p className="text-muted-foreground text-sm">
-            Source: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{article.source_url}</a>
+    <div>
+      <div>
+        <div>
+          <h3>{article.title}</h3>
+          <p>
+            Source: <a href={article.source_url} target="_blank" rel="noopener noreferrer">{article.source_url}</a>
             {article.author && (
               <span> | Author: {article.author}</span>
             )}
@@ -123,37 +114,19 @@ const ArticleDetail = ({ params }: ArticleDetailProps) => {
                  : new Date(article.publication_date).toLocaleDateString()
              }
              {/* Display date added to database */}
-             <span className="ml-2">Added: {
+             <span>Added: {
                new Date(article.created_at).getFullYear() === 2001
                  ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
                  : new Date(article.created_at).toLocaleDateString()
              }</span>
           </p>
-           {article.thumbnail_url && ( // Display image if available
-            <div className="mt-4 max-w-md mx-auto"> {/* Added margin-top, max-width, and auto horizontal margins */}
-              <img
-                src={article.thumbnail_url}
-                alt={article.title}
-                className="w-full h-auto object-cover rounded-md" // Added rounded corners
-              />
-            </div>
-          )}
-           {article.topics && article.topics.length > 0 && ( // Display topics if available
-            <div className="mt-4 flex flex-wrap gap-2"> {/* Added margin-top and gap */}
-              {article.topics.map(topic => (
-                <span key={topic} className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full"> {/* Styled topic badges */}
-                  {topic}
-                </span>
-              ))}
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div className="prose max-w-none text-foreground leading-relaxed"> {/* Apply text-foreground for content color and relaxed line height */}
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.raw_content}</ReactMarkdown>
-          </div>
-        </CardContent>
-      </Card>
+           {/* Removed thumbnail image */}
+           {/* Removed topics */}
+        </div>
+        <div>
+          <p>{article.raw_content}</p>
+        </div>
+      </div>
     </div>
   );
 };
