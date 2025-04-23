@@ -50,6 +50,23 @@ The Date Range Filter component (`frontend/src/components/DateRangeFilter.tsx`) 
 
 Users can search for articles by title, summary, or raw content using the search bar.
 
+### Styling and Branding
+
+The application uses the following fonts and color palette:
+
+**Website:**
+*   **Font:** Manrope
+*   **Colors:**
+    *   Orange: `#FF7F50`
+    *   Turquoise: `#13C3D1`
+    *   Black (for headings): `#080808`
+    *   Gray: `#5A6773`
+    *   Light gray: `#F8F9FA`
+
+**Logo:**
+*   **Font:** Uni Neue
+*   **Text color:** `#FF7F50`
+
 ---
 
 This documentation is a work in progress. If you find any issues or have suggestions for improvement, please contribute!
