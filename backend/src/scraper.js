@@ -92,7 +92,7 @@ async function generateAISummary(content) {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content concisely."
+          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks."
         },
         {
           role: "user",
@@ -109,6 +109,55 @@ async function generateAISummary(content) {
   } catch (llmErr) {
     console.error('Error generating AI summary with Groq:', llmErr);
     return "Summary generation failed."; // Return a default or error message
+  }
+}
+
+// This function assigns topics to an article using the Groq API
+async function assignTopicsWithAI(content) {
+  console.log('Assigning topics using Groq...');
+  const topicsList = [
+    "Breaking", "Crime", "Tourism", "Government", "Police", "Immigration",
+    "Weather", "Environment", "BusinessTCI", "Politics", "Health", "Education",
+    "ResortNews", "Community", "Events", "Transportation", "Marine", "Construction",
+    "RealEstate", "CruiseShips", "Airport", "Openings", "GrandTurk", "North",
+    "South", "Infrastructure", "Development", "Fishing", "Heritage", "Celebrations",
+    "Announcement"
+  ]; // The full list of 30 topics
+
+  const maxContentLength = 10000; // Define max content length to avoid hitting token limits
+
+  // Truncate content if it's too long
+  const truncatedContent = content.length > maxContentLength
+    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
+    : content;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `Analyze the following news article content and assign 2 to 3 relevant topics from the provided list. Return only the topic names as a comma-separated string. The allowed topics are: ${topicsList.join(', ')}.`
+        },
+        {
+          role: "user",
+          content: truncatedContent, // Use truncated content
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
+      temperature: 0.5, // Adjust temperature for more focused topic selection
+      max_tokens: 50, // Adjust max tokens for topic list
+    });
+
+    const assignedTopicsString = chatCompletion.choices[0]?.message?.content || "";
+    // Parse the comma-separated string into an array of topics
+    const assignedTopics = assignedTopicsString.split(',').map(topic => topic.trim()).filter(topic => topicsList.includes(topic));
+
+    console.log('Assigned topics:', assignedTopics);
+    return assignedTopics;
+
+  } catch (llmErr) {
+    console.error('Error assigning topics with Groq:', llmErr);
+    return []; // Return an empty array on error
   }
 }
 
@@ -204,8 +253,11 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
       );
       const articleId = articleResult.rows[0].id;
 
-      // Save topics and link to article
-      for (const topicName of topics) {
+      // Assign topics using AI
+      const assignedTopics = await assignTopicsWithAI(raw_content);
+
+      // Save assigned topics and link to article
+      for (const topicName of assignedTopics) {
         let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
         let topicId;
         if (topicResult.rows.length === 0) {
@@ -220,10 +272,10 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
         await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
       }
 
-      console.log(`Article "${title}" saved to database with ID: ${articleId}.`);
+      console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}.`);
 
     } else {
-      console.error(`Failed to process scraped data for source: ${source.name}`, scrapedData ? 'Missing content' : 'No data received');
+      console.error(`Failed to process scraped data for source: ${source.name}`, content ? 'Missing content' : 'No data received');
     }
   } catch (err) {
     console.error(`Error processing scraped data for source ${source.name}:`, err);

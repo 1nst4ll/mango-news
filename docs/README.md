@@ -12,6 +12,8 @@ Welcome to the Mango News documentation. This guide provides comprehensive infor
 
 ## Scraping Enhancements
 
+- **AI Topic Assignment:** Integrated AI using the Groq SDK in `backend/src/scraper.js` to analyze article content and assign 2-3 relevant topics from a predefined list of 30 general topics. This ensures consistent tagging across articles.
+- **AI Summary Generation:** Enhanced the AI summary generation in `backend/src/scraper.js` to be optimized for SEO by focusing on key information and incorporating relevant keywords.
 - **Relative Date Parsing:** Implemented logic in `backend/src/scraper.js` to parse relative date formats (e.g., "x days ago", "x hours ago") and convert them to absolute timestamps for accurate storage and display.
 
 ## Frontend Features
