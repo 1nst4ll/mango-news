@@ -1,13 +1,16 @@
 # Ignore Node.js modules
 backend/node_modules/
 frontend/node_modules/
+node_modules/
 
 # Ignore package-lock.json files
 backend/package-lock.json
 frontend/package-lock.json
+package-lock.json
 
 # Ignore frontend build output
 frontend/dist/
+frontend/.astro/
 
 # Ignore environment variables file
 .env
