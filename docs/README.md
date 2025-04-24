@@ -106,21 +106,21 @@ This section outlines key features and components of the Mango News frontend app
 
 ### News Feed
 
-The News Feed component (`astro-frontend/src/components/NewsFeed.tsx`) displays aggregated news articles.
+The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggregated news articles.
 
 - **Dynamic Topic Filtering:** Articles can be filtered by topic. The available topics are fetched dynamically from the backend API (`/api/topics`).
 
 ### Article Detail Page
 
-The Article Detail page (`astro-frontend/src/pages/article/[id].astro`) displays the full content of a selected news article.
+The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article.
 
 ### Navigation
 
-A persistent header component (`astro-frontend/src/components/Header.tsx`) has been added to all main pages (`/`, `/settings`, and `/article/[id]`) to provide consistent navigation. The navigation links are defined in `astro-frontend/src/lib/nav-items.ts`.
+A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/`, `/settings`, and `/article/[id]`) to provide consistent navigation. The navigation links are defined in `frontend/src/lib/nav-items.ts`.
 
 ### Settings Page
 
-The Admin Dashboard and Source Management features have been combined into a single Settings page (`astro-frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.
+The Admin Dashboard and Source Management features have been combined into a single Settings page (`frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.
 
 ### Styling and Branding
 
