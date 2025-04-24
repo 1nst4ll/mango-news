@@ -11,3 +11,17 @@ frontend/dist/
 
 # Ignore environment variables file
 .env
+
+# --- Added by Roo ---
+
+# Common OS generated files
+.DS_Store
+Thumbs.db
+
+# Common build/output directories
+build/
+dist/
+coverage/
+
+# Log files
+*.log
