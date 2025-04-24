@@ -1,6 +1,7 @@
 # Ignore Node.js modules
 backend/node_modules/
 frontend/node_modules/
+/astro-frontend/node_modules/
 
 # Ignore package-lock.json files
 backend/package-lock.json
