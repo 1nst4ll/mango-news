@@ -108,7 +108,7 @@ This structure separates the backend, database, and frontend concerns into disti
 *   **Host:** `localhost`
 *   **Database Name:** `hoffma24_mangonews`
 *   **Username:** `hoffma24_mangoadmin`
-*   **Password:** `your_password`
+*   **Password:** `See backend/.env`
 
 ## Setup Instructions
 

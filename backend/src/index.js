@@ -15,11 +15,11 @@ app.use(bodyParser.json());
 
 // PostgreSQL Database Pool
 const pool = new Pool({
-  user: process.env.DB_USER || 'hoffma24_mangoadmin',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'hoffma24_mangonews',
-  password: process.env.DB_PASSWORD || 'R3d3d0ndr0N', // Replace with a secure way to handle password
-  port: process.env.DB_PORT || 5432, // Default PostgreSQL port
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
 });
 
 // Test database connection
@@ -421,8 +421,7 @@ app.listen(port, () => {
   console.log('News scraper scheduled to run.'); // This message might be misleading if scheduleScraper is commented out
 });
 
-// Call the temporary update function after server starts
-updateNewslineSource();
-
-// Call the scraper for NewslineTCI source on startup
-runScraperForSource(5);
+// Removed temporary startup actions as requested.
+// The scheduled scraper in scraper.js will handle periodic scraping.
+// updateNewslineSource();
+// runScraperForSource(5);

@@ -6,11 +6,11 @@ const { scrapeArticle: opensourceScrapeArticle, discoverArticleUrls: opensourceD
 
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
-  user: 'hoffma24_mangoadmin',
-  host: 'localhost',
-  database: 'hoffma24_mangonews',
-  password: 'R3d3d0ndr0N',
-  port: 5432, // Default PostgreSQL port
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT, // Default PostgreSQL port
 });
 
 // Initialize Groq SDK (replace with your actual API key or environment variable)
@@ -20,7 +20,7 @@ const groq = new Groq({
 
 // Initialize Firecrawl client with API key
 const firecrawl = new Firecrawl({
-  apiKey: 'fc-58bcd9ad048d45c6aad0e90ed451a089', // Use the provided API key
+  apiKey: process.env.FIRECRAWL_API_KEY, // Use the environment variable
 });
 
 async function getActiveSources() {
