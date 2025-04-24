@@ -1,9 +1,5 @@
-'use client';
-
-'use client';
-
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card"; // Changed to relative path
 
 interface Article {
   id: number;
@@ -45,7 +41,14 @@ const getDomainFromUrl = (url: string): string => {
 };
 
 
-function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSources, activeCategory }: NewsFeedProps) {
+function NewsFeed({
+  selectedTopics = [], // Provide default empty array
+  startDate = null, // Provide default null
+  endDate = null, // Provide default null
+  searchTerm = '', // Provide default empty string
+  selectedSources = [], // Provide default empty array
+  activeCategory = 'all' // Provide default 'all'
+}: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null);
@@ -58,6 +61,15 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
         // TODO: Replace with your actual backend API URL
         let url = 'http://localhost:3000/api/articles';
         const params = new URLSearchParams();
+
+        // Log the filter values being used for the fetch
+        console.log('Fetching articles with filters:', {
+          searchTerm,
+          startDate,
+          endDate,
+          selectedSources,
+          selectedTopics,
+        });
 
         // Add selected topics to params (assuming backend handles comma-separated)
         if (selectedTopics.length > 0) {
@@ -101,9 +113,9 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
     // Depend on all filter props for fetching
     fetchArticles();
-  }, [selectedTopics, startDate, endDate, searchTerm, selectedSources]);
+  }, [searchTerm, startDate, endDate, selectedSources, selectedTopics]); // Depend on all filter props for fetching
 
-  // Client-client-side filtering based on activeCategory (kept for now)
+  // Client-side filtering based on activeCategory (kept for now)
   const filteredArticles = articles.filter(article => {
     // Basic category matching - assuming article object has a 'category' property
     // If not, this logic needs to be adjusted based on available article data
@@ -118,16 +130,16 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
   if (loading) {
     return (
-      <div>
-        <div>Loading...</div>
-        <p>Loading latest news...</p>
+      <div className="container mx-auto p-4">
+        <div className="text-center text-xl font-semibold">Loading...</div>
+        <p className="text-center text-gray-600">Loading latest news...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div>
+      <div className="container mx-auto p-4 text-red-500">
         Error loading articles: {error instanceof Error ? error.message : 'An unknown error occurred'}
       </div>
     );
@@ -135,7 +147,7 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
   if (filteredArticles.length === 0) {
      return (
-      <div>
+      <div className="container mx-auto p-4 text-center text-gray-600">
         No news articles found matching your criteria.
       </div>
     );
@@ -143,43 +155,63 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
 
   return (
-    <div>
-      {filteredArticles.map(article => (
-        <div key={article.id}>
-          {article.thumbnail_url && (
-            <div>
-              <img src={article.thumbnail_url} alt={article.title} />
-            </div>
-          )}
-          <div>
-            <h2>{article.title}</h2>
-            <p>
-              <a href={article.source_url} target="_blank" rel="noopener noreferrer">
-                {getDomainFromUrl(article.source_url)}
-              </a>
-              {article.author && (
-                <span> | By {article.author}</span>
+    <div className="container mx-auto p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredArticles.map(article => (
+          <a href={`/article/${article.id}`} key={article.id} className="block"> {/* Wrap card with anchor tag */}
+            <Card className="flex flex-col pb-6 h-full"> {/* Add bottom padding and set height to full */}
+              {article.thumbnail_url && (
+                <div className="relative w-full h-48 overflow-hidden rounded-t-xl"> {/* Added rounded top corners */}
+                  <img src={article.thumbnail_url} alt={article.title} className="w-full h-full object-cover" />
+                  {article.topics && article.topics.length > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                      <div className="flex flex-wrap gap-1">
+                        {article.topics.map(topic => (
+                          <span key={topic} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
-               <span> | Published: {
-                new Date(article.publication_date).getFullYear() === 2001
-                  ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-                  : new Date(article.publication_date).toLocaleDateString()
-              }</span>
-              <span> | Added: {
-                new Date(article.created_at).getFullYear() === 2001
-                  ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-                  : new Date(article.created_at).toLocaleDateString()
-              }</span>
-            </p>
-          </div>
-          <div>
-              <p>{article.summary}</p>
-          </div>
-          <div>
-            <Link href={`/article/${article.id}`}>Read More</Link>
-          </div>
-        </div>
-      ))}
+              <CardHeader className="px-6 pt-2"> {/* Add horizontal and top padding */}
+                <CardTitle>{article.title}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  <span
+                    className="hover:underline cursor-pointer" // Add cursor-pointer for visual indication
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent card click
+                      window.open(article.source_url, '_blank', 'noopener,noreferrer'); // Open in new tab
+                    }}
+                  >
+                    {getDomainFromUrl(article.source_url)}
+                  </span>
+                  {article.author && (
+                    <span> | By {article.author}</span>
+                  )}
+                   <span> | Published: {
+                    new Date(article.publication_date).getFullYear() === 2001
+                      ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+                      : new Date(article.publication_date).toLocaleDateString()
+                  }</span>
+                  <span> | Added: {
+                    new Date(article.created_at).getFullYear() === 2001
+                      ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+                      : new Date(article.created_at).toLocaleDateString()
+                  }</span>
+                </p>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                  {/* Format AI summary bold text with accent color */}
+                  <p className="text-foreground" dangerouslySetInnerHTML={{ __html: article.summary.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') }}></p>
+              </CardContent>
+              {/* Removed CardFooter */}
+            </Card>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,3 @@
-'use client'; // Make it a client component to use useEffect and useState
-
 import React, { useEffect, useState } from 'react';
 
 interface Source {
@@ -39,34 +37,34 @@ const Footer: React.FC = () => {
 
 
   return (
-    <footer>
-      <div>
+    <footer className="bg-gray-800 text-white p-8 mt-8">
+      <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <h2>TCI News Aggregator</h2>
-          <p>Aggregating news from across the Turks and Caicos Islands</p>
+          <h2 className="text-xl font-bold mb-2">TCI News Aggregator</h2>
+          <p className="text-gray-400">Aggregating news from across the Turks and Caicos Islands</p>
         </div>
         <div>
-          <h3>News Sources</h3>
+          <h3 className="text-lg font-semibold mb-2">News Sources</h3>
           {loading ? (
-            <div>Loading sources...</div>
+            <div className="text-gray-400">Loading sources...</div>
           ) : error ? (
-            <div>Error loading sources.</div>
+            <div className="text-red-400">Error loading sources.</div>
           ) : newsSources.length === 0 ? (
-             <div>No sources found.</div>
+             <div className="text-gray-400">No sources found.</div>
           ) : (
-            <ul>
+            <ul className="space-y-1">
               {newsSources.map((source) => (
                 <li key={source.id}>
-                  <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name}</a>
+                  <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{source.name}</a>
                 </li>
               ))}
             </ul>
           )}
         </div>
       </div>
-      <div>
+      <div className="container mx-auto mt-8 pt-4 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
         <p>&copy; {new Date().getFullYear()} TCI News Aggregator. This is a demo application.</p>
-        <div>
+        <div className="flex space-x-4 mt-4 md:mt-0">
           <div>
             <span>Verified Source</span>
           </div>

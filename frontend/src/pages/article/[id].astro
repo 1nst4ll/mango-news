@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleDetail from '../../components/ArticleDetail'; // Import as a React component
+
+export async function getStaticPaths() {
+  try {
+    // Fetch article IDs from the backend API
+    const response = await fetch('http://localhost:3000/api/articles');
+    if (!response.ok) {
+      console.error(`Error fetching articles: ${response.status}`);
+      return []; // Return empty array on error
+    }
+    const articles = await response.json();
+
+    // Generate paths based on article IDs
+    return articles.map(article => ({
+      params: { id: article.id.toString() },
+    }));
+  } catch (error) {
+    console.error('Error generating static paths:', error);
+    return []; // Return empty array on error
+  }
+}
+
+const { id } = Astro.params;
+const pageTitle = `Article ${id}`; // Basic title for now
+---
+
+<BaseLayout title={pageTitle}>
+  <ArticleDetail id={id} client:load />
+</BaseLayout>

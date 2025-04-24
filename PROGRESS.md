@@ -1,6 +1,6 @@
 # Project Progress
 
-## UI/Styling Improvements (2025-04-22)
+## UI/Styling Improvements (Completed on 2025-04-22)
 
 - Defined a modern aesthetic color palette in `frontend/src/app/globals.css` using CSS variables for light and dark modes.
 - Configured custom typography in `frontend/tailwind.config.js` using Geist fonts and a responsive text scale.
@@ -48,14 +48,35 @@
 - Connected the Admin Dashboard scraper and purge buttons to the corresponding backend endpoints in `backend/src/index.js`.
 - Addressed the hydration mismatch error in `frontend/src/app/admin/page.tsx` related to `localStorage`.
 - Identified CSS selectors for Magnetic Media articles and updated `docs/css-selectors.md`.
-
-**Next Steps:**
-
-- Conduct thorough testing of the open-source scraping method with diverse news sources.
-- Address any remaining issues or edge cases identified during testing.
-- Finalize documentation for the scraping methods and UI guidelines.
-- Perform a final review and cleanup of the codebase.
-- Implement further accessibility enhancements.
-- Refine responsive design for specific components as needed.
-- Suggest a git commit and push to mark the completion of this milestone.
 - Completed frontend audit and removed traces of old frameworks.
+
+## Astro Frontend Migration (In Progress)
+
+- Created a new Git branch `feature/astro-migration` for the migration.
+- Initialized a new Astro project in the `astro-frontend` directory using `npm create astro@latest`.
+- Added core Astro integrations: React, Tailwind CSS, and MDX.
+- Initialized shadcn/ui in the `astro-frontend` project and configured the import alias in `tsconfig.json`.
+- Copied static assets from `frontend/public` to `astro-frontend/public`.
+- Created the base Astro layout component (`astro-frontend/src/layouts/BaseLayout.astro`).
+- Copied existing React components (`Header.tsx`, `NewsFeed.tsx`, `Footer.tsx`, `ArticleDetail.tsx`, `SettingsPage.tsx`) to `astro-frontend/src/components`.
+- Adapted `Header.tsx`, `NewsFeed.tsx`, `Footer.tsx`, `ArticleDetail.tsx`, and `SettingsPage.tsx` for use as Astro Islands and applied basic Tailwind CSS styling.
+- Integrated the shadcn/ui `Card` component into `NewsFeed.tsx`.
+- Created the main news feed page (`astro-frontend/src/pages/index.astro`) using the base layout and `NewsFeed` component.
+- Created the dynamic article detail page (`astro-frontend/src/pages/article/[id].astro`) using the base layout and `ArticleDetail` component.
+- Created the settings page (`astro-frontend/src/pages/settings.astro`) using the base layout and `SettingsPage` component.
+- Updated `docs/frontend-ui.md` and `README.md` to reflect the Astro migration.
+
+## Next Steps: Astro Frontend Migration
+
+- Integrate additional shadcn/ui components into the migrated React components (e.g., forms, buttons, inputs on the Settings page).
+- Refine the Tailwind CSS styling across all pages and components for a polished look and feel, ensuring consistency with the defined aesthetic.
+- Implement TanStack Query for data fetching in the Astro frontend, replacing the current `fetch` and `useState`/`useEffect` logic in the React islands.
+- Conduct thorough testing of the new Astro frontend to ensure all features are working correctly.
+- Update remaining documentation files (if any) to reflect the completed migration.
+- Perform a final review and cleanup of the Astro codebase.
+- Remove the old `frontend` directory once the Astro migration is complete and verified.
+- Suggest a git commit and push to mark the completion of the frontend migration milestone.
+
+## Detailed Steps for Pending Tasks
+
+(This section will be updated with detailed steps for the "Next Steps: Astro Frontend Migration" as they are worked on.)

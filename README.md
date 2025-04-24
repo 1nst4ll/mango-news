@@ -10,12 +10,12 @@ This project aims to build a centralized platform for accessing local news from 
 
 **Note:** This section and the "Implemented Functionality" and "Next Steps" sections should be updated regularly to reflect the current state and plan of the project. Refer to the [Project Progress Log](./PROGRESS.md) for detailed updates and task checklists.
 
-The initial project structure has been set up, and core components for the backend API and frontend UI have been created. The frontend has been migrated to Next.js with React, Tailwind CSS, Lucide React, and Shadcn UI, and uses the App Router for navigation. The backend uses Node.js with Express.js and connects to a PostgreSQL database. The article detail page and the administrative interface for managing sources have been implemented.
+The project is currently undergoing a migration of the frontend from Next.js to Astro. The new Astro frontend project structure has been set up, and core components are being migrated and restyled using React, Tailwind CSS, and Shadcn UI. The backend remains Node.js with Express.js and connects to a PostgreSQL database. The article detail page and the administrative interface for managing sources are being migrated.
 
 ## Technology Stack
 
 *   **Backend:** Node.js, Express.js, PostgreSQL
-*   **Frontend:** Next.js, React, TypeScript, Tailwind CSS, Lucide React, Shadcn UI
+*   **Frontend:** Astro, React, TypeScript, Tailwind CSS, Shadcn UI
 *   **Scraping:** Firecrawl MCP Server, Open-Source (Puppeteer)
 *   **AI Summaries:** LLM API Integration (pending)
 
@@ -38,56 +38,38 @@ The initial project structure has been set up, and core components for the backe
 │   ├── css-selectors.md      # Guide to using CSS selectors
 │   ├── admin-ui.md           # Documentation for Admin UI features
 │   └── troubleshooting.md    # Troubleshooting common issues
-├── frontend/                 # Frontend application code (Next.js)
+├── astro-frontend/           # New Frontend application code (Astro)
 │   ├── .gitignore
+│   ├── astro.config.mjs      # Astro configuration
 │   ├── components.json       # Shadcn UI configuration
-│   ├── eslint.config.mjs
-│   ├── next.config.ts
-│   ├── package.json          # Frontend dependencies (Next.js, React, Tailwind, Lucide, Shadcn)
-│   ├── postcss.config.mjs
+│   ├── package.json          # Frontend dependencies (Astro, React, Tailwind, Shadcn)
 │   ├── README.md
-│   ├── tailwind.config.js
 │   ├── tsconfig.json         # TypeScript configuration for the frontend
 │   ├── public/               # Static assets
-│   │   ├── file.svg
-│   │   ├── globe.svg
-│   │   ├── next.svg
-│   │   ├── vercel.svg
-│   │   └── window.svg
+│   │   └── ... (migrated assets)
 │   └── src/                  # Frontend source files
-│       ├── app/              # App Router pages and layout
-│       │   ├── article/[id]/ # Article detail page
-│       │   │   └── page.tsx
-│       │   ├── admin/        # Admin dashboard page
-│       │   │   ├── sources/  # Source management page
-│       │   │   │   └── page.tsx
-│       │   │   └── page.tsx
-│       │   ├── favicon.ico
-│       │   ├── globals.css   # Global styles (Tailwind)
-│       │   └── layout.tsx    # Root layout
-│       │   └── page.tsx      # Home page (News Feed)
-│       ├── components/       # Reusable React components
+│       ├── assets/           # Astro assets
+│       ├── components/       # Reusable React components (migrated)
 │       │   ├── ui/           # Shadcn UI components
-│       │   │   ├── button.tsx
-│       │   │   ├── card.tsx
-│       │   │   ├── checkbox.tsx
-│       │   │   ├── dropdown-menu.tsx
-│       │   │   ├── input.tsx
-│       │   │   ├── label.tsx
-│       │   │   ├── switch.tsx
-│       │   │   └── textarea.tsx
-│       │   ├── DateRangeFilter.tsx # Component for filtering news by date range (used in app/page.tsx)
-│       │   ├── footer.tsx      # Comprehensive Footer component
-│       │   ├── NewsFeed.tsx    # Component to display news articles (used in app/page.tsx)
-│       │   ├── theme-provider.tsx # Theme provider component
-│       │   ├── theme-switcher.tsx # Theme switcher component
-│       │   └── TopicFilter.tsx # Component for filtering news by topic (used in app/page.tsx)
-│       └── lib/              # Utility functions
-│           └── utils.ts      # Shadcn UI utils
+│       │   │   └── ... (added components)
+│       │   └── ... (migrated components like Header, NewsFeed, Footer, ArticleDetail, SettingsPage)
+│       ├── layouts/          # Astro layouts
+│       │   └── BaseLayout.astro # Base layout for pages
+│       ├── lib/              # Utility functions
+│       │   └── utils.ts      # Shadcn UI utils
+│       ├── pages/            # Astro pages (file-based routing)
+│       │   ├── index.astro   # Home page (News Feed)
+│       │   ├── article/      # Article detail pages
+│       │   │   └── [id].astro
+│       │   └── settings.astro # Settings/Admin page
+│       └── styles/           # Global styles (Tailwind)
+│           └── global.css
+├── frontend/                 # Old Frontend application code (Next.js) - Will be removed after migration
+│   └── ... (existing Next.js files)
 ├── .gitignore
 └── PROGRESS.md               # Project progress log - see [Project Progress Log](./PROGRESS.md) for details
 ```
-This structure separates the backend, database, and frontend concerns into distinct directories. The `frontend` directory now follows the Next.js App Router convention.
+This structure separates the backend, database, and frontend concerns into distinct directories. The `astro-frontend` directory now contains the new Astro-based frontend project. The old `frontend` directory is kept for reference during the migration and will be removed later.
 
 ## Implemented Functionality
 
@@ -110,22 +92,15 @@ This structure separates the backend, database, and frontend concerns into disti
     *   Added endpoint `POST /api/articles/purge` to delete all articles, topics, and article links from the database.
     *   Implemented PostgreSQL database persistence for sources, replacing the in-memory data store.
     *   Added API endpoints for triggering a full scraper run (`POST /api/scrape/run`) and purging articles (`POST /api/articles/purge`).
-*   **Scraping Logic (`backend/src/scraper.js`):**
-    *   Implemented logic to fetch active sources from the database.
-    *   Uses Firecrawl's `extract` format on source main pages to discover article links.
-    *   Scrapes individual article pages using Firecrawl's `scrapeUrl` with `onlyMainContent: true`.
-    *   Includes post-processing logic to clean up unwanted header/footer text and related article links from the scraped markdown content.
-    *   Integrated Groq SDK for AI summary generation with content truncation to avoid API limits.
-    *   Includes basic scheduling using `node-cron`.
-*   **Frontend UI (`frontend/`):**
-    *   The frontend has been migrated to Next.js with React, Tailwind CSS, Lucide React, and Shadcn UI, providing a modern and type-safe development environment.
-    *   Uses the Next.js App Router for navigation.
-    *   The main news feed is located at `/` (`frontend/src/app/page.tsx`).
-    *   Article details are at `/article/[id]` (`frontend/src/app/article/[id]/page.tsx`).
-    *   The admin dashboard is at `/admin` (`frontend/src/app/admin/page.tsx`).
-    *   Source management is at `/admin/sources` (`frontend/src/app/admin/sources/page.tsx`).
-    *   Core components (`NewsFeed`, `TopicFilter`, `DateRangeFilter`, `ArticleDetail`, `AdminDashboard`, `SourceManagement`) have been adapted and placed in the `frontend/src/components/` directory.
-    *   Basic styling is applied using Tailwind CSS.
+*   **Frontend UI (`astro-frontend/`):**
+    *   The frontend is being migrated to Astro with React, Tailwind CSS, and Shadcn UI, providing a modern and type-safe development environment.
+    *   Uses Astro's file-based routing.
+    *   The main news feed page (`src/pages/index.astro`) has been created and includes the migrated `NewsFeed` React component as a client-side island.
+    *   The article detail page (`src/pages/article/[id].astro`) has been created with dynamic routing and includes the migrated `ArticleDetail` React component as a client-side island.
+    *   The settings/admin page (`src/pages/settings.astro`) has been created and includes the migrated `SettingsPage` React component as a client-side island.
+    *   Core React components (`Header`, `NewsFeed`, `Footer`, `ArticleDetail`, `SettingsPage`) have been copied and are being adapted for the Astro environment and restyled with Tailwind CSS and Shadcn UI.
+    *   A base Astro layout (`src/layouts/BaseLayout.astro`) has been created.
+    *   Static assets from the old frontend have been copied.
 
 ## Database Details
 
@@ -147,9 +122,10 @@ To get the project up and running on your local machine, follow these steps:
     *   Navigate to the `backend` directory in your terminal: `cd backend`
     *   Install backend dependencies: `npm install`
     *   Ensure the database connection details in `backend/src/index.js` and `backend/src/scraper.js` are correct (currently set to `news.hoffmanntci.com`). You might consider using environment variables for sensitive information like database credentials in a production environment.
-4.  **Frontend Setup:**
-    *   Navigate to the `frontend` directory in your terminal: `cd frontend`
+4.  **Frontend Setup (Astro):**
+    *   Navigate to the `astro-frontend` directory in your terminal: `cd astro-frontend`
     *   Install frontend dependencies: `npm install`
+    *   Initialize shadcn/ui by running `npx shadcn@latest init` and following the prompts.
 5.  **Firecrawl MCP Server:**
     *   Ensure the Firecrawl MCP server is running and accessible. The backend will need to communicate with it for scraping. Specific integration steps are pending.
 6.  **LLM API:**
@@ -164,11 +140,11 @@ To get the project up and running on your local machine, follow these steps:
     # npm run dev
     ```
     The backend API will typically run on `http://localhost:3000`.
-*   **Start Frontend:** Open a separate terminal, navigate to the `frontend` directory, and run:
+*   **Start Frontend (Astro):** Open a separate terminal, navigate to the `astro-frontend` directory, and run:
     ```bash
     npm run dev
     ```
-    The frontend development server will start, usually on `http://localhost:3000` (Next.js default). Open this URL in your web browser to access the news aggregator UI.
+    The Astro frontend development server will start, usually on `http://localhost:4321` (Astro default). Open this URL in your web browser to access the news aggregator UI.
 
 ## How to Contribute
 

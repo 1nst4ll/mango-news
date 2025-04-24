@@ -1,28 +1,28 @@
-'use client';
-
 import React from 'react';
-import Link from 'next/link';
-import { navItems } from '@/lib/nav-items';
+import { navItems } from '../lib/nav-items'; // Changed to relative path
+import { ModeToggle } from './ModeToggle'; // Import the ModeToggle component
 
 const Header: React.FC = () => {
   return (
-    <header>
-      <div>
-        <Link href="/">
-          <img src="/logo.png" alt="Mango News Logo" />
-        </Link>
-      </div>
-      <div>
+    <header className="bg-sidebar text-sidebar-foreground p-4">
+      <div className="container mx-auto flex justify-between items-center">
+        <div>
+          <a href="/">
+            <img src="/logo.png" alt="Mango News Logo" className="h-8" />
+          </a>
+        </div>
         <nav>
-          <ul>
+          <ul className="flex space-x-4">
             {navItems.map(item => (
               <li key={item.href}>
-                <Link href={item.href}>{item.title}</Link>
+                <a href={item.href} className="hover:underline">{item.title}</a>
               </li>
             ))}
           </ul>
         </nav>
+        {/* Placeholder for potential future elements */}
         <div>
+          <ModeToggle /> {/* Add the ModeToggle component here */}
         </div>
       </div>
     </header>

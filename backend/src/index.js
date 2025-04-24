@@ -110,17 +110,56 @@ app.delete('/api/sources/:id', async (req, res) => {
   }
 });
 
-// Get all topics
+// Get topics based on applied filters
 app.get('/api/topics', async (req, res) => {
+  const { searchTerm, startDate, endDate, sources } = req.query;
+  let query = `
+    SELECT DISTINCT t.id, t.name
+    FROM topics t
+    JOIN article_topics at ON t.id = at.topic_id
+    JOIN articles a ON at.article_id = a.id
+    LEFT JOIN sources s ON a.source_id = s.id
+  `;
+  const values = [];
+  const conditions = [];
+  let valueIndex = 1;
+
+  if (startDate) {
+    conditions.push(`a.publication_date >= $${valueIndex++}`);
+    values.push(new Date(startDate));
+  }
+
+  if (endDate) {
+    conditions.push(`a.publication_date <= $${valueIndex++}`);
+    values.push(new Date(endDate));
+  }
+
+  if (searchTerm) {
+    conditions.push(`(a.title ILIKE $${valueIndex} OR a.raw_content ILIKE $${valueIndex})`);
+    values.push(`%${searchTerm}%`);
+    valueIndex++;
+  }
+
+  if (sources) {
+    const sourceNames = sources.split(',');
+    conditions.push(`s.name = ANY($${valueIndex++})`);
+    values.push(sourceNames);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  query += ' ORDER BY t.name ASC';
+
   try {
-    // Assuming a 'topics' table exists with 'id' and 'name' columns
-    const result = await pool.query('SELECT id, name FROM topics ORDER BY name ASC');
+    const result = await pool.query(query, values);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching topics:', err);
-    // If the topics table doesn't exist yet, return an empty array as a fallback
+    console.error('Error fetching filtered topics:', err);
+     // If tables don't exist yet, return an empty array as a fallback
     if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
-       console.warn('Topics table not found, returning empty array.');
+       console.warn('Topics, article_topics, or articles table not found, returning empty array. Ensure database schema is applied.');
        res.json([]);
     } else {
       res.status(500).json({ error: 'Internal Server Error' });
@@ -130,39 +169,70 @@ app.get('/api/topics', async (req, res) => {
 
 // Get all articles
 app.get('/api/articles', async (req, res) => {
-  const { topic, startDate, endDate } = req.query;
+  const { topic, startDate, endDate, searchTerm, sources } = req.query;
   let query = `
     SELECT
         a.*,
-        ARRAY_AGG(t.name) AS topics
+        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics -- Use ARRAY_REMOVE to handle articles without topics
     FROM
         articles a
     LEFT JOIN
         article_topics at ON a.id = at.article_id
     LEFT JOIN
         topics t ON at.topic_id = t.id
+    LEFT JOIN
+        sources s ON a.source_id = s.id
   `;
   const values = [];
   const conditions = [];
+  let valueIndex = 1;
 
+  // Handle comma-separated topics (case-insensitive)
   if (topic) {
-    conditions.push('t.name = $1');
-    values.push(topic);
+    const topicNames = topic.split(',').map(name => name.toLowerCase()); // Convert to lowercase for case-insensitive comparison
+    conditions.push(`EXISTS (
+      SELECT 1
+      FROM article_topics at_filter
+      JOIN topics t_filter ON at_filter.topic_id = t_filter.id
+      WHERE at_filter.article_id = a.id AND LOWER(t_filter.name) = ANY($${valueIndex++})
+    )`);
+    values.push(topicNames);
   }
 
-  // TODO: Implement filtering by startDate and endDate
+  if (startDate) {
+    conditions.push(`a.publication_date >= $${valueIndex++}`);
+    values.push(new Date(startDate));
+  }
+
+  if (endDate) {
+    conditions.push(`a.publication_date <= $${valueIndex++}`);
+    values.push(new Date(endDate));
+  }
+
+  if (searchTerm) {
+    conditions.push(`(a.title ILIKE $${valueIndex} OR a.raw_content ILIKE $${valueIndex})`);
+    values.push(`%${searchTerm}%`);
+    valueIndex++;
+  }
+
+  // Handle comma-separated sources (case-insensitive)
+  if (sources) {
+    const sourceNames = sources.split(',').map(name => name.toLowerCase()); // Convert to lowercase for case-insensitive comparison
+    conditions.push(`LOWER(s.name) = ANY($${valueIndex++})`);
+    values.push(sourceNames);
+  }
+
 
   if (conditions.length > 0) {
     query += ' WHERE ' + conditions.join(' AND ');
   }
 
+  // The GROUP BY is needed to aggregate topics for each article.
   query += ' GROUP BY a.id ORDER BY a.publication_date DESC';
 
   try {
     const result = await pool.query(query, values);
-    // Filter out articles with no topics if a topic filter was applied
-    const filteredResults = topic ? result.rows.filter(article => article.topics && article.topics.includes(topic)) : result.rows;
-    res.json(filteredResults);
+    res.json(result.rows);
   } catch (err) {
     console.error('Error fetching articles:', err);
      // If the articles table doesn't exist yet, return an empty array as a fallback

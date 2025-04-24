@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SettingsPage from '../components/SettingsPage'; // Import as a React component
+
+const pageTitle = "Mango News - Settings";
+---
+
+<BaseLayout title={pageTitle}>
+  <SettingsPage client:load />
+</BaseLayout>
