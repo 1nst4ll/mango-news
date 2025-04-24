@@ -15,5 +15,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-// navItems, ThemeSwitcher, SidebarTrigger, and Footer are now imported directly in pages that need them.
