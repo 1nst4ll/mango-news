@@ -39,4 +39,4 @@ This document provides guidance on troubleshooting common issues you might encou
 -   **Database Credentials:** Double-check your database connection credentials in the backend configuration.
 -   **Database Schema:** Verify that the necessary tables and columns exist in your database by checking the `db/schema.sql` file and running any pending migrations.
 
-If you encounter an issue that is not covered in this document, please refer to the specific error messages in your console or logs and consult the relevant documentation for the technologies being used (Node.js, your database system, Puppeteer/Playwright, Firecrawl, Next.js, React, Tailwind CSS, shadcn/ui).
+If you encounter an issue that is not covered in this document, please refer to the specific error messages in your console or logs and consult the relevant documentation for the technologies being used (Node.js, your database system, Puppeteer/Playwright, Firecrawl, Next.js, React).

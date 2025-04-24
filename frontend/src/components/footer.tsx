@@ -56,7 +56,7 @@ const Footer: React.FC = () => {
           ) : (
             <ul>
               {newsSources.map((source) => (
-                <li key={source.id}> {/* Use source.id as key */}
+                <li key={source.id}>
                   <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name}</a>
                 </li>
               ))}

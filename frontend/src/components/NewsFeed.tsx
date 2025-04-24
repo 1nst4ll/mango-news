@@ -1,35 +1,36 @@
 'use client';
 
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; // Import Card components
 
 interface Article {
   id: number;
   title: string;
   source_id: number;
   source_url: string;
-  author?: string; // Added optional author property
+  author?: string;
   publication_date: string;
   raw_content: string;
   summary: string;
   created_at: string;
   updated_at: string;
-  category?: string; // Added optional category property
-  thumbnail_url?: string; // Renamed imageUrl to thumbnail_url to match DB schema
-  topics?: string[]; // Added optional topics property
-  isOfficial?: boolean; // Added optional isOfficial property
-  isVerified?: boolean; // Added optional isVerified property
-  isFacebook?: boolean; // Added optional isFacebook property
+  category?: string;
+  thumbnail_url?: string;
+  topics?: string[];
+  isOfficial?: boolean;
+  isVerified?: boolean;
+  isFacebook?: boolean;
 }
 
 interface NewsFeedProps {
-  selectedTopics: string[]; // Changed to array
+  selectedTopics: string[];
   startDate: string | null;
   endDate: string | null;
   searchTerm: string;
-  selectedSources: string[]; // Added selectedSources prop
-  activeCategory: string; // Kept for now, but might be redundant with source filtering
+  selectedSources: string[];
+  activeCategory: string;
 }
 
 // Helper function to extract domain from URL
@@ -39,7 +40,7 @@ const getDomainFromUrl = (url: string): string => {
     return parsedUrl.hostname;
   } catch (e) {
     console.error("Invalid URL:", url, e);
-    return url; // Return original URL if parsing fails
+    return url;
   }
 };
 
@@ -47,7 +48,7 @@ const getDomainFromUrl = (url: string): string => {
 function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSources, activeCategory }: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -91,7 +92,7 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
         }
         const data: Article[] = await response.json();
         setArticles(data);
-      } catch (err: unknown) { // Use unknown for better type safety
+      } catch (err: unknown) {
         setError(err);
       } finally {
         setLoading(false);
@@ -142,21 +143,21 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
 
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"> {/* Grid layout for news articles */}
+    <div>
       {filteredArticles.map(article => (
-        <Card key={article.id} className="flex flex-col"> {/* Use Card component */}
+        <div key={article.id}>
           {article.thumbnail_url && (
-            <div className="relative w-full h-48 overflow-hidden rounded-t-md"> {/* Container for thumbnail */}
-              <img src={article.thumbnail_url} alt={article.title} className="w-full h-full object-cover" /> {/* Styled thumbnail */}
+            <div>
+              <img src={article.thumbnail_url} alt={article.title} />
             </div>
           )}
-          <CardHeader>
-            <CardTitle className="text-xl font-heading">{article.title}</CardTitle> {/* Styled title with custom font */}
-            <CardDescription className="text-sm text-muted-foreground">
-              <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                {getDomainFromUrl(article.source_url)} {/* Display source domain */}
+          <div>
+            <h2>{article.title}</h2>
+            <p>
+              <a href={article.source_url} target="_blank" rel="noopener noreferrer">
+                {getDomainFromUrl(article.source_url)}
               </a>
-              {article.author && ( // Display author if available
+              {article.author && (
                 <span> | By {article.author}</span>
               )}
                <span> | Published: {
@@ -164,21 +165,20 @@ function NewsFeed({ selectedTopics, startDate, endDate, searchTerm, selectedSour
                   ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
                   : new Date(article.publication_date).toLocaleDateString()
               }</span>
-              {/* Display date added to database */}
               <span> | Added: {
                 new Date(article.created_at).getFullYear() === 2001
                   ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
                   : new Date(article.created_at).toLocaleDateString()
               }</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow"> {/* Allow content to grow */}
-              <p className="text-body">{article.summary}</p> {/* Styled summary with custom font */}
-          </CardContent>
-          <CardFooter>
-            <Link href={`/article/${article.id}`} className="text-brandPrimary hover:underline">Read More</Link> {/* Styled link with custom color */}
-          </CardFooter>
-        </Card>
+            </p>
+          </div>
+          <div>
+              <p>{article.summary}</p>
+          </div>
+          <div>
+            <Link href={`/article/${article.id}`}>Read More</Link>
+          </div>
+        </div>
       ))}
     </div>
   );

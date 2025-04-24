@@ -9,11 +9,10 @@ const Header: React.FC = () => {
     <header>
       <div>
         <Link href="/">
-          <img src="/logo.png" alt="Mango News Logo" /> {/* Adjust height as needed */}
+          <img src="/logo.png" alt="Mango News Logo" />
         </Link>
       </div>
       <div>
-        {/* Desktop navigation */}
         <nav>
           <ul>
             {navItems.map(item => (
@@ -23,7 +22,6 @@ const Header: React.FC = () => {
             ))}
           </ul>
         </nav>
-        {/* Add SidebarTrigger for mobile/collapsible state if needed later */}
         <div>
         </div>
       </div>

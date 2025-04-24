@@ -26,7 +26,7 @@ This section allows you to view, add, edit, and delete news sources.
 
 -   **Viewing Existing Sources:** View a list of all configured news sources. Each source displays its name, URL, active status, AI summary setting, scraping method, and configured include/exclude selectors.
 -   **Adding a New Source:**
-    -   To add a new source, provide the necessary details in the modal form that appears.
+    -   To add a new source, provide the necessary details in the form that appears.
     -   Provide the Source Name and Source URL (required fields).
     -   Select the desired Scraping Method (Open Source or Firecrawl).
     -   Enable or disable AI Summary for articles from this source.
@@ -35,7 +35,7 @@ This section allows you to view, add, edit, and delete news sources.
     -   Save the new source.
 -   **Editing an Existing Source:**
     -   To edit a source, click the "Edit" button for the desired source.
-    -   Modify its details in the modal form that appears.
+    -   Modify its details in the form that appears.
     -   Save the changes to update the source.
 -   **Deleting a Source:**
     -   To delete a source, click the "Delete" button for the desired source and confirm the deletion when prompted. *Note: This action cannot be undone.*
@@ -54,7 +54,7 @@ This section helps you find potential new news sources to add to your collection
     -   Any discovered sources will be listed with their name and URL.
 -   **Adding a Discovered Source:**
     -   For each discovered source, click the "Add as New Source" button.
-    -   This will populate the Add Source modal form with the discovered source's information.
+    -   This will populate the Add Source form with the discovered source's information.
     -   You can then configure the remaining settings and add the source as described in the "Adding a New Source" section.
 
 ---

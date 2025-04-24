@@ -1,5 +1,2 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@import "tw-animate-css";
+/* Removed Tailwind CSS and tw-animate-css imports */
+/* Add your new styling framework imports here */

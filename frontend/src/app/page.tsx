@@ -13,9 +13,9 @@ export default function Home() {
 
 
   return (
-    <div className="flex min-h-screen flex-col"> {/* Use flex column layout for full height */}
+    <div> {/* Use flex column layout for full height */}
       <Header /> {/* Use Header component */}
-      <main className="flex-grow container mx-auto px-4 py-8"> {/* Main content area with padding and centered container */}
+      <main> {/* Main content area with padding and centered container */}
             {/* Removed Filter Panel */}
 
             {/* Removed Category Tabs */}
