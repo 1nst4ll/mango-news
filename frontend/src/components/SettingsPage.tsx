@@ -703,9 +703,10 @@ const SettingsPage: React.FC = () => {
                       </Button>
                     </div>
                   </div>
+                  {/* Display scraping status directly within the card */}
                   {sourceScrapingStatus[source.id] && (
                     <div className="text-sm text-green-600 mt-2">
-                      {sourceScrapingStatus[source.id]}
+                      Scrape Status: {sourceScrapingStatus[source.id]}
                     </div>
                   )}
                 </li>

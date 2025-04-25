@@ -404,9 +404,22 @@ async function runScraper(enableGlobalAiSummary = undefined) { // Accept global 
         }
       }
 
-      // Scrape each discovered article URL
-      for (const articleUrl of articleUrls) {
-        await scrapeArticlePage(source, articleUrl, enableGlobalAiSummary);
+      // Fetch existing article URLs for this source
+      const existingArticlesResult = await pool.query('SELECT source_url FROM articles WHERE source_id = $1', [source.id]);
+      const existingUrls = new Set(existingArticlesResult.rows.map(row => row.source_url));
+
+      // Filter out URLs that already exist in the database
+      const newArticleUrls = articleUrls.filter(url => !existingUrls.has(url));
+
+      console.log(`Found ${articleUrls.length} potential article links, ${newArticleUrls.length} are new.`);
+      linksFound = articleUrls.length; // Keep total links found for feedback
+
+      // Scrape each new article URL
+      for (const articleUrl of newArticleUrls) {
+        const processed = await scrapeArticlePage(source, articleUrl, enableGlobalAiSummary);
+        if (processed) {
+          articlesAdded++;
+        }
       }
 
     } catch (err) {
@@ -480,26 +493,34 @@ async function runScraperForSource(sourceId) {
             linksFound = articleUrls.length;
             console.log(`Discovered ${articleUrls.length} potential article URLs with Firecrawl.`);
           } else {
-            console.error(`Failed to extract article list from source with Firecrawl: ${source.name}`, extractedData);
-          }
+          console.error(`Failed to extract article list from source with Firecrawl: ${source.name}`, extractedData);
         }
-
-        // Scrape each discovered article URL
-        for (const articleUrl of articleUrls) {
-          // Global toggle is not applicable here as it's per-source trigger,
-          // but we pass the source's own enable_ai_summary setting
-          const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary);
-          if (processed) {
-            articlesAdded++;
-          }
-        }
-
-      } catch (err) {
-        console.error(`Error discovering articles for source ${source.name}:`, err);
       }
-    } else {
-      console.log(`Source with ID ${sourceId} not found or is not active.`);
+
+      // Fetch existing article URLs for this source
+      const existingArticlesResult = await pool.query('SELECT source_url FROM articles WHERE source_id = $1', [source.id]);
+      const existingUrls = new Set(existingArticlesResult.rows.map(row => row.source_url));
+
+      // Filter out URLs that already exist in the database
+      const newArticleUrls = articleUrls.filter(url => !existingUrls.has(url));
+
+      console.log(`Found ${articleUrls.length} potential article links, ${newArticleUrls.length} are new.`);
+      linksFound = articleUrls.length; // Keep total links found for feedback
+
+      // Scrape each new article URL
+      for (const articleUrl of newArticleUrls) {
+        const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary);
+        if (processed) {
+          articlesAdded++;
+        }
+      }
+
+    } catch (err) {
+      console.error(`Error discovering articles for source ${source.name}:`, err);
     }
+  } else {
+    console.log(`Source with ID ${sourceId} not found or is not active.`);
+  }
   } catch (err) {
     console.error(`Error fetching source with ID ${sourceId}:`, err);
   }
