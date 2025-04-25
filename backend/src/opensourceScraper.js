@@ -201,25 +201,25 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
  * @param {string} sourceUrl - The URL of the source to discover articles from.
  * @param {string} articleLinkTemplate - The template for article links.
  * @param {string} excludePatterns - Comma-separated query parameter names to exclude.
+ * @param {number} [limit=100] - The maximum number of article URLs to discover.
  * @returns {Promise<Array<string>>} - A promise that resolves with an array of discovered article URLs.
  */
-async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatterns) {
+async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatterns, limit = 100) {
   let browser;
   const articleUrls = new Set();
   const excludeParams = excludePatterns ? excludePatterns.split(',').map(p => p.trim()) : [];
   const visitedUrls = new Set();
   const urlsToVisit = [{ url: sourceUrl, depth: 0 }];
   const maxDepth = 1; // Limit crawling depth for discovery
-  const maxPagesToVisit = 50; // Limit number of pages visited
 
-  console.log(`Starting article URL discovery for: ${sourceUrl}`);
+  console.log(`Starting article URL discovery for: ${sourceUrl} (Limit: ${limit})`);
 
   try {
     browser = await puppeteer.launch({ headless: true }); // Use headless mode
     const page = await browser.newPage();
     const sourceHostname = new URL(sourceUrl).hostname;
 
-    while (urlsToVisit.length > 0 && visitedUrls.size < maxPagesToVisit) {
+    while (urlsToVisit.length > 0 && articleUrls.size < limit) { // Use articleUrls.size and limit
       const { url: currentUrl, depth } = urlsToVisit.shift();
 
       if (visitedUrls.has(currentUrl) || depth > maxDepth) {
@@ -407,10 +407,13 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
 
               if (isPotentialArticle) {
                  articleUrls.add(link);
+                 console.log(`Link "${link}" matches articleLinkTemplate "${articleLinkTemplate}". Including.`);
                  // Only add potential article links to urlsToVisit for further exploration
                  if (!visitedUrls.has(link) && urlsToVisit.length < 200 && depth + 1 <= maxDepth) {
                     urlsToVisit.push({ url: link, depth: depth + 1 });
                  }
+              } else {
+                 // console.log(`Link "${link}" does not match articleLinkTemplate "${articleLinkTemplate}". Excluding.`); // Comment out this line
               }
             }
           } catch (e) {
@@ -422,7 +425,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
       }
     }
 
-    return Array.from(articleUrls);
+    return Array.from(articleUrls); // Return only the links that were added (matched the template)
 
   } catch (error) {
     console.error(`Error discovering article URLs from ${sourceUrl}:`, error);

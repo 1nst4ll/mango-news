@@ -365,9 +365,9 @@ async function runScraper(enableGlobalAiSummary = undefined) { // Accept global 
 
     try {
       if (source.scraping_method === 'opensource') {
-        // Use open-source discovery
+        // Use open-source discovery (scheduled scrape limit)
         console.log(`Using open-source discovery for source: ${source.name}`);
-        const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns);
+        const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns, 10); // Limit to 10 for scheduled scrape
         articleUrls = discovered;
         console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);
 
@@ -429,6 +429,9 @@ console.log('News scraper scheduled to run.');
 // Function to run the scraper for a specific source ID
 async function runScraperForSource(sourceId) {
   console.log(`Starting news scraping process for source ID: ${sourceId}`);
+  let linksFound = 0;
+  let articlesAdded = 0;
+
   try {
     // Select all columns including the new selector settings and scraping_method
     const result = await pool.query('SELECT * FROM sources WHERE id = $1 AND is_active = TRUE', [sourceId]);
@@ -440,11 +443,12 @@ async function runScraperForSource(sourceId) {
 
       try {
         if (source.scraping_method === 'opensource') {
-           // Use open-source discovery
+           // Use open-source discovery (manual scrape limit)
           console.log(`Using open-source discovery for source: ${source.name}`);
-          const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns);
+          const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns, 100); // Limit to 100 for manual scrape
           articleUrls = discovered;
-          console.log(`Discovered ${articleUrls.length} potential article URLs with opensource.`);
+          linksFound = articleUrls.length;
+          console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);
 
         } else { // Default to Firecrawl
           console.log(`Using Firecrawl discovery for source: ${source.name}`);
@@ -473,6 +477,7 @@ async function runScraperForSource(sourceId) {
 
           if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
             articleUrls = extractedData.extract.articles.map(article => article.url).filter(url => url);
+            linksFound = articleUrls.length;
             console.log(`Discovered ${articleUrls.length} potential article URLs with Firecrawl.`);
           } else {
             console.error(`Failed to extract article list from source with Firecrawl: ${source.name}`, extractedData);
@@ -483,7 +488,10 @@ async function runScraperForSource(sourceId) {
         for (const articleUrl of articleUrls) {
           // Global toggle is not applicable here as it's per-source trigger,
           // but we pass the source's own enable_ai_summary setting
-          await scrapeArticlePage(source, articleUrl, source.enable_ai_summary);
+          const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary);
+          if (processed) {
+            articlesAdded++;
+          }
         }
 
       } catch (err) {
@@ -497,6 +505,7 @@ async function runScraperForSource(sourceId) {
   }
 
   console.log(`News scraping process finished for source ID: ${sourceId}.`);
+  return { linksFound, articlesAdded }; // Return the counts
 }
 
 

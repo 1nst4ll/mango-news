@@ -275,10 +275,14 @@ app.post('/api/scrape/run/:id', async (req, res) => {
     }
 
     console.log(`Triggering scrape for source: ${source.name}`);
-    // Call the runScraperForSource function from scraper.js
-    await runScraperForSource(sourceId);
+    // Call the runScraperForSource function from scraper.js and capture the results
+    const scrapeResults = await runScraperForSource(sourceId);
 
-    res.json({ message: `Scraping triggered for ${source.name}` });
+    res.json({
+      message: `Scraping triggered for ${source.name}`,
+      linksFound: scrapeResults.linksFound,
+      articlesAdded: scrapeResults.articlesAdded,
+    });
   } catch (error) {
     console.error(`Error triggering scrape for source ${sourceId}:`, error);
     res.status(500).json({ error: 'Failed to trigger scrape.' });

@@ -251,7 +251,11 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || `Failed to trigger scraper for source ${sourceId}`);
       }
-      setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: data.message || `Scraper triggered for source ${sourceId}. Check backend logs for progress.` }));
+      // Update status message with counts from the backend response
+      setSourceScrapingStatus(prev => ({
+        ...prev,
+        [sourceId]: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles. Check backend logs for details.`,
+      }));
     } catch (error: unknown) {
       if (error instanceof Error) {
         setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: `Error: ${error.message}` }));
@@ -386,7 +390,7 @@ const SettingsPage: React.FC = () => {
       exclude_selectors: null,
       scraping_method: 'opensource',
       os_title_selector: null,
-      os_content_selector: null,
+      os_content_selector: "article.tgMH9T", // Set default content selector
       os_date_selector: null,
       os_author_selector: null,
       os_thumbnail_selector: null,
@@ -408,7 +412,7 @@ const SettingsPage: React.FC = () => {
       exclude_selectors: null,
       scraping_method: 'opensource',
       os_title_selector: null,
-      os_content_selector: null,
+      os_content_selector: "article.tgMH9T", // Set default content selector
       os_date_selector: null,
       os_author_selector: null,
       os_thumbnail_selector: null,
@@ -451,7 +455,7 @@ const SettingsPage: React.FC = () => {
       exclude_selectors: null,
       scraping_method: 'opensource',
       os_title_selector: null,
-      os_content_selector: null,
+      os_content_selector: "article.tgMH9T", // Reset default content selector
       os_date_selector: null,
       os_author_selector: null,
       os_thumbnail_selector: null,
