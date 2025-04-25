@@ -365,17 +365,11 @@ async function runScraper(enableGlobalAiSummary = undefined) { // Accept global 
 
     try {
       if (source.scraping_method === 'opensource') {
-        // Use open-source discovery (basic example)
+        // Use open-source discovery
         console.log(`Using open-source discovery for source: ${source.name}`);
-        const discovered = await opensourceDiscoverSources(source.url);
-        // opensourceDiscoverSources currently returns source objects, not article URLs.
-        // This needs to be adjusted in opensourceScraper.js or here.
-        // For now, let's assume it returns a list of potential article URLs.
-        // This part requires a proper implementation of opensourceDiscoverSources to return article links.
-        // As a placeholder, let's assume it returns an array of strings (URLs).
-           // opensourceDiscoverSources returns an array of strings (URLs)
-           articleUrls = discovered;
-           console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);
+        const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns);
+        articleUrls = discovered;
+        console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);
 
          } else { // Default to Firecrawl
         console.log(`Using Firecrawl discovery for source: ${source.name}`);
@@ -446,10 +440,9 @@ async function runScraperForSource(sourceId) {
 
       try {
         if (source.scraping_method === 'opensource') {
-           // Use open-source discovery (basic example)
+           // Use open-source discovery
           console.log(`Using open-source discovery for source: ${source.name}`);
-          const discovered = await opensourceDiscoverSources(source.url);
-          // opensourceDiscoverSources returns an array of strings (URLs)
+          const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns);
           articleUrls = discovered;
           console.log(`Discovered ${articleUrls.length} potential article URLs with opensource.`);
 

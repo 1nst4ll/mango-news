@@ -1,5 +1,15 @@
 # Project Progress
 
+## Article Link Formatting and Exclusion Patterns (Completed on 2025-04-24)
+
+- Added `article_link_template` and `exclude_patterns` columns to the `sources` table in `db/schema.sql`.
+- Modified the `discoverArticleUrls` function in `backend/src/opensourceScraper.js` to accept and use `article_link_template` and `exclude_patterns` for filtering and cleaning discovered URLs.
+- Updated the calls to `opensourceDiscoverSources` in `backend/src/scraper.js` to pass the `article_link_template` and `exclude_patterns` from the source configuration.
+- Updated the `Source` and `ModalFormData` interfaces in `frontend/src/components/SettingsPage.tsx` to include the new fields.
+- Added input fields for `article_link_template` and `exclude_patterns` to the add/edit source modal form in `frontend/src/components/SettingsPage.tsx`.
+- Updated the state initialization and reset logic for `modalFormData` in `frontend/src/components/SettingsPage.tsx` to include the new fields.
+- Ensured the `fetchSources`, `handleAddSource`, and `handleEditSource` functions in `frontend/src/components/SettingsPage.tsx` handle the new fields.
+
 ## UI/Styling Improvements (Completed on 2025-04-22)
 
 - Defined a modern aesthetic color palette in `frontend/src/app/globals.css` using CSS variables for light and dark modes.

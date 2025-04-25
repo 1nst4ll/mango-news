@@ -199,11 +199,14 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
  * This is a basic example and would need significant enhancement for real-world use.
  * It finds links on the page that are on the same domain.
  * @param {string} sourceUrl - The URL of the source to discover articles from.
+ * @param {string} articleLinkTemplate - The template for article links.
+ * @param {string} excludePatterns - Comma-separated query parameter names to exclude.
  * @returns {Promise<Array<string>>} - A promise that resolves with an array of discovered article URLs.
  */
-async function discoverArticleUrls(sourceUrl) {
+async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatterns) {
   let browser;
   const articleUrls = new Set();
+  const excludeParams = excludePatterns ? excludePatterns.split(',').map(p => p.trim()) : [];
   const visitedUrls = new Set();
   const urlsToVisit = [{ url: sourceUrl, depth: 0 }];
   const maxDepth = 1; // Limit crawling depth for discovery
@@ -247,6 +250,44 @@ async function discoverArticleUrls(sourceUrl) {
               console.log(`Excluding social share link: ${link}`);
               continue;
             }
+
+            // Remove excluded query parameters
+            if (excludeParams.length > 0) {
+              const params = new URLSearchParams(url.search);
+              excludeParams.forEach(param => {
+                if (params.has(param)) {
+                  params.delete(param);
+                  console.log(`Removed excluded parameter "${param}" from link: ${link}`);
+                }
+              });
+              url.search = params.toString();
+              link = url.toString(); // Update link with modified URL
+            }
+
+            // Validate link against articleLinkTemplate if provided
+            if (articleLinkTemplate) {
+              // Convert template to a regex. Basic implementation: replace {slug}, {id}, etc. with regex patterns
+              // This is a simplified approach and might need refinement based on actual template formats
+              let regexPattern = articleLinkTemplate.replace(/\{[a-zA-Z0-9_]+\}/g, '[^\\/]+');
+              // Escape forward slashes for regex
+              regexPattern = regexPattern.replace(/\//g, '\\/');
+              // Handle optional trailing slash
+              regexPattern = `^${regexPattern}\\/?$`;
+
+              try {
+                const articleRegex = new RegExp(regexPattern);
+                if (!articleRegex.test(link)) {
+                  console.log(`Link "${link}" does not match articleLinkTemplate "${articleLinkTemplate}". Excluding.`);
+                  continue; // Skip this link if it doesn't match the template
+                }
+                 console.log(`Link "${link}" matches articleLinkTemplate "${articleLinkTemplate}".`);
+              } catch (e) {
+                 console.error(`Error creating or testing regex for template "${articleLinkTemplate}" and link "${link}":`, e);
+                 // If regex is invalid, perhaps log and continue without template validation for this link?
+                 // For now, we'll continue, effectively skipping validation for this link.
+              }
+            }
+
 
             // Check if the link is on the same domain and hasn't been visited
             if (url.hostname === sourceHostname) {

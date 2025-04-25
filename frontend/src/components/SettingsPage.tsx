@@ -36,6 +36,8 @@ interface Source {
   os_author_selector: string | null;
   os_thumbnail_selector: string | null;
   os_topics_selector: string | null;
+  article_link_template: string | null; // Add article link template
+  exclude_patterns: string | null; // Add exclude patterns
 }
 
 interface DiscoveredSource {
@@ -56,6 +58,8 @@ interface ModalFormData {
   os_author_selector: string | null;
   os_thumbnail_selector: string | null;
   os_topics_selector: string | null;
+  article_link_template: string | null; // Add article link template
+  exclude_patterns: string | null; // Add exclude patterns
 }
 
 
@@ -94,6 +98,8 @@ const SettingsPage: React.FC = () => {
     os_author_selector: null,
     os_thumbnail_selector: null,
     os_topics_selector: null,
+    article_link_template: null, // Initialize new field
+    exclude_patterns: null, // Initialize new field
   });
 
   // Effects from admin/page.tsx
@@ -159,6 +165,8 @@ const SettingsPage: React.FC = () => {
           os_author_selector: source.os_author_selector !== undefined ? source.os_author_selector : null,
           os_thumbnail_selector: source.os_thumbnail_selector !== undefined ? source.os_thumbnail_selector : null,
           os_topics_selector: source.os_topics_selector !== undefined ? source.os_topics_selector : null,
+          article_link_template: source.article_link_template !== undefined ? source.article_link_template : null, // Include new field
+          exclude_patterns: source.exclude_patterns !== undefined ? source.exclude_patterns : null, // Include new field
         })));
       } catch (error: unknown) {
         setSourcesError(error);
@@ -383,6 +391,8 @@ const SettingsPage: React.FC = () => {
       os_author_selector: null,
       os_thumbnail_selector: null,
       os_topics_selector: null,
+      article_link_template: null, // Initialize new field
+      exclude_patterns: null, // Initialize new field
     });
     setDiscoveredSources([]);
     openAddModal();
@@ -403,6 +413,8 @@ const SettingsPage: React.FC = () => {
       os_author_selector: null,
       os_thumbnail_selector: null,
       os_topics_selector: null,
+      article_link_template: null, // Initialize new field
+      exclude_patterns: null, // Initialize new field
     });
     setIsModalOpen(true);
   };
@@ -422,6 +434,8 @@ const SettingsPage: React.FC = () => {
       os_author_selector: source.os_author_selector,
       os_thumbnail_selector: source.os_thumbnail_selector,
       os_topics_selector: source.os_topics_selector,
+      article_link_template: source.article_link_template, // Populate from source
+      exclude_patterns: source.exclude_patterns, // Populate from source
     });
     setIsModalOpen(true);
   };
@@ -442,6 +456,8 @@ const SettingsPage: React.FC = () => {
       os_author_selector: null,
       os_thumbnail_selector: null,
       os_topics_selector: null,
+      article_link_template: null, // Reset new field
+      exclude_patterns: null, // Reset new field
     });
   };
 
@@ -780,6 +796,16 @@ const SettingsPage: React.FC = () => {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="exclude_selectors" className="text-right">Exclude Selectors (comma-separated):</Label>
                 <Input id="exclude_selectors" name="exclude_selectors" value={modalFormData.exclude_selectors || ''} onChange={handleModalInputChange} className="col-span-3" />
+              </div>
+              {/* New: Article Link Template */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="article_link_template" className="text-right">Article Link Template:</Label>
+                <Input id="article_link_template" name="article_link_template" value={modalFormData.article_link_template || ''} onChange={handleModalInputChange} className="col-span-3" />
+              </div>
+              {/* New: Exclude Patterns */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="exclude_patterns" className="text-right">Exclude Patterns (comma-separated query params):</Label>
+                <Input id="exclude_patterns" name="exclude_patterns" value={modalFormData.exclude_patterns || ''} onChange={handleModalInputChange} className="col-span-3" />
               </div>
               <DialogFooter>
                 <Button type="submit">{editingSource ? 'Save Changes' : 'Add Source'}</Button>

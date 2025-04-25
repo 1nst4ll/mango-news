@@ -92,6 +92,7 @@ This structure separates the backend, database, and frontend concerns into disti
     *   Added endpoint `POST /api/articles/purge` to delete all articles, topics, and article links from the database.
     *   Implemented PostgreSQL database persistence for sources, replacing the in-memory data store.
     *   Added API endpoints for triggering a full scraper run (`POST /api/scrape/run`) and purging articles (`POST /api/articles/purge`).
+    *   Added support for defining article link templates and exclusion patterns per source in the database and backend scraper logic.
 *   **Frontend UI (`astro-frontend/`):**
     *   The frontend is being migrated to Astro with React, Tailwind CSS, and Shadcn UI, providing a modern and type-safe development environment.
     *   Uses Astro's file-based routing.

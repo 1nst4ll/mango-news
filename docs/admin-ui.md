@@ -33,7 +33,7 @@ This section allows you to view, add, edit, and delete news sources, presented w
 -   **Existing Sources:** View a list of all configured news sources.
     -   **Add New Source Button:** A **shadcn/ui Button** to open the modal for adding a new source.
     -   **Sources List:** Each source is displayed within a styled list item, showing its details (name, URL, active status, AI summary setting, scraping method, include/exclude selectors). Action buttons (**shadcn/ui Buttons** for "Scrape Now", "Edit", and "Delete") are available for each source.
--   **Add/Edit Source Modal:** A **shadcn/ui Dialog** component is used for the modal form to add or edit a news source. The form utilizes **shadcn/ui Input**, **Label**, **Select**, **Textarea**, and **Checkbox** components for input fields and controls.
+-   **Add/Edit Source Modal:** A **shadcn/ui Dialog** component is used for the modal form to add or edit a news source. The form utilizes **shadcn/ui Input**, **Label**, **Select**, **Textarea**, and **Checkbox** components for input fields and controls. New fields have been added for "Article Link Template" and "Exclude Patterns" to configure open-source scraping behavior.
 
 ## Source Discovery
 

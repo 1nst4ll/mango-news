@@ -23,7 +23,10 @@ This method uses a headless browser (Puppeteer or Playwright) to navigate to a n
 2.  It applies the `include_selectors` to identify the main content areas.
 3.  It applies the `exclude_selectors` to remove unwanted elements within the included areas (e.g., ads, sidebars).
 4.  It extracts the article title, original publication date, author, thumbnail URL, and topics based on the configured selectors.
-    The article discovery logic also includes specific handling for the `/year/month/slug/` URL format on magneticmediatv.com and excludes URLs containing social media share query parameters (e.g., `?share=`).
+    The article discovery logic now also utilizes the `article_link_template` and `exclude_patterns` configured for each source.
+    -   **Article Link Template:** This field allows defining a URL pattern (e.g., `https://[source_url]/articles/{article_slug}`) that discovered links must match to be considered potential articles. This helps to more accurately identify article links on complex websites.
+    -   **Exclude Patterns:** This field allows specifying a comma-separated list of query parameter names (e.g., `social,utm_source`) to be removed from discovered URLs. This helps clean up links and ensures consistent article URLs.
+    The discovery logic also includes specific handling for the `/year/month/slug/` URL format on magneticmediatv.com and excludes URLs containing social media share query parameters (e.g., `?share=`).
 
 ## Firecrawl Scraping
 
