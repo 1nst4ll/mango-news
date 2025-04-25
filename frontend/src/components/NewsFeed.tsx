@@ -59,7 +59,8 @@ function NewsFeed({
       setError(null);
       try {
         // TODO: Replace with your actual backend API URL
-        let url = 'http://localhost:3000/api/articles';
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        let url = `${apiUrl}/api/articles`;
         const params = new URLSearchParams();
 
         // Log the filter values being used for the fetch

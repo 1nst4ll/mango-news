@@ -109,7 +109,8 @@ const SettingsPage: React.FC = () => {
       setStatsLoading(true);
       setStatsError(null);
       try {
-        const response = await fetch('http://localhost:3000/api/stats');
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const response = await fetch(`${apiUrl}/api/stats`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -139,7 +140,8 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     const fetchSources = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/sources');
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const response = await fetch(`${apiUrl}/api/sources`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -173,7 +175,8 @@ const SettingsPage: React.FC = () => {
     setLoading(true);
     setScrapingStatus(null);
     try {
-      const response = await fetch('http://localhost:3000/api/scrape/run', {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/scrape/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -204,7 +207,8 @@ const SettingsPage: React.FC = () => {
     setPurgeLoading(true);
     setPurgeStatus(null);
     try {
-      const response = await fetch('http://localhost:3000/api/articles/purge', {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/articles/purge`, {
         method: 'POST',
       });
       const data = await response.json();
@@ -227,7 +231,8 @@ const SettingsPage: React.FC = () => {
     setSourceScrapingLoading(prev => ({ ...prev, [sourceId]: true }));
     setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: null }));
     try {
-      const response = await fetch(`http://localhost:3000/api/scrape/run/${sourceId}`, {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/scrape/run/${sourceId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,7 +272,8 @@ const SettingsPage: React.FC = () => {
       return;
     }
     try {
-      const response = await fetch('http://localhost:3000/api/sources', {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/sources`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +304,8 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/sources/${editingSource.id}`, {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/sources/${editingSource.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -325,7 +332,8 @@ const SettingsPage: React.FC = () => {
       return;
     }
     try {
-      const response = await fetch(`http://localhost:3000/api/sources/${id}`, {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/sources/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
@@ -347,7 +355,8 @@ const SettingsPage: React.FC = () => {
     setDiscoveryError(null);
 
     try {
-      const response = await fetch('http://localhost:3000/api/discover-sources');
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/discover-sources`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

@@ -53,7 +53,8 @@ export default function IndexPage() {
           params.append('sources', selectedSources.join(','));
         }
 
-        const topicsResponse = await fetch(`http://localhost:3000/api/topics?${params.toString()}`);
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const topicsResponse = await fetch(`${apiUrl}/api/topics?${params.toString()}`);
         if (topicsResponse.ok) {
           const topicsData: Topic[] = await topicsResponse.json();
           setTopics(topicsData);
@@ -76,7 +77,8 @@ export default function IndexPage() {
   useEffect(() => {
     const fetchSources = async () => {
       try {
-        const sourcesResponse = await fetch('http://localhost:3000/api/sources');
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const sourcesResponse = await fetch(`${apiUrl}/api/sources`);
         if (sourcesResponse.ok) {
           const sourcesData: Source[] = await sourcesResponse.json();
           setSources(sourcesData);

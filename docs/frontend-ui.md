@@ -9,7 +9,8 @@ The frontend of the Mango News application is being migrated to a new stack for 
 *   **Styling:** Tailwind CSS
 *   **Component Library:** shadcn/ui (built with Radix UI and Tailwind CSS)
 *   **State Management:** React's built-in hooks (useState, useEffect) are currently used within React components (Astro Islands). Integration with TanStack Query is a potential future enhancement.
-*   **Content Fetching:** Data is fetched from the local backend API (`http://localhost:3000`).
+*   **Content Fetching:** Data is fetched from the backend API. The API URL is configured using environment variables.
+*   **Environment Variables:** The backend API URL is set using the `PUBLIC_API_URL` environment variable in a `.env` file located in the `frontend` directory. For local development, this is typically `PUBLIC_API_URL=http://localhost:3000`. For production, this should be set to the actual backend URL.
 *   **Routing:** Astro's file-based routing.
 
 **Current Styling State:**

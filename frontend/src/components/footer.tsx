@@ -18,7 +18,8 @@ const Footer: React.FC = () => {
       setError(null);
       try {
         // TODO: Replace with your actual backend API URL
-        const response = await fetch('http://localhost:3000/api/sources');
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const response = await fetch(`${apiUrl}/api/sources`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

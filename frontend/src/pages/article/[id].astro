@@ -5,7 +5,8 @@ import ArticleDetail from '../../components/ArticleDetail'; // Import as a React
 export async function getStaticPaths() {
   try {
     // Fetch article IDs from the backend API
-    const response = await fetch('http://localhost:3000/api/articles');
+    const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+    const response = await fetch(`${apiUrl}/api/articles`);
     if (!response.ok) {
       console.error(`Error fetching articles: ${response.status}`);
       return []; // Return empty array on error
