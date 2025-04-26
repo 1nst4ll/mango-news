@@ -100,9 +100,14 @@ const SettingsPage: React.FC = () => {
     os_author_selector: null,
     os_thumbnail_selector: null,
     os_topics_selector: null,
-    article_link_template: null, // Initialize new field
-    exclude_patterns: null, // Initialize new field
-  });
+  article_link_template: null, // Initialize new field
+  exclude_patterns: null, // Initialize new field
+});
+
+  // State for confirmation dialog
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [confirmDialogAction, setConfirmDialogAction] = useState<'purgeAll' | 'deleteSourceArticles' | 'deleteSource' | null>(null);
+  const [confirmDialogSourceId, setConfirmDialogSourceId] = useState<number | null>(null);
 
   // Effects from admin/page.tsx
   useEffect(() => {
@@ -209,11 +214,13 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handlePurgeArticles = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete ALL articles? This action cannot be undone.')) {
-      return;
-    }
+  const handlePurgeArticles = () => {
+    setConfirmDialogAction('purgeAll');
+    setIsConfirmDialogOpen(true);
+  };
 
+  const handleConfirmPurgeArticles = async () => {
+    setIsConfirmDialogOpen(false);
     setPurgeLoading(true);
     setPurgeStatus(null);
     try {
@@ -269,10 +276,18 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteArticlesForSource = async (sourceId: number) => {
-    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete ALL articles for this source? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteArticlesForSource = (sourceId: number) => {
+    setConfirmDialogAction('deleteSourceArticles');
+    setConfirmDialogSourceId(sourceId);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDeleteArticlesForSource = async () => {
+    if (confirmDialogSourceId === null) return;
+
+    const sourceId = confirmDialogSourceId;
+    setIsConfirmDialogOpen(false);
+    setConfirmDialogSourceId(null);
 
     setSourceArticleDeletionLoading(prev => ({ ...prev, [sourceId]: true }));
     setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: null }));
@@ -373,9 +388,19 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleDeleteSource = async (id: number) => {
-     if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this source? This action cannot be undone.')) {
-      return;
-    }
+    // Use the confirmation dialog instead of window.confirm
+    setConfirmDialogAction('deleteSource');
+    setConfirmDialogSourceId(id);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDeleteSource = async () => {
+    if (confirmDialogSourceId === null) return;
+
+    const id = confirmDialogSourceId;
+    setIsConfirmDialogOpen(false);
+    setConfirmDialogSourceId(null);
+
     try {
       const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
       const response = await fetch(`${apiUrl}/api/sources/${id}`, {
@@ -867,6 +892,43 @@ const SettingsPage: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Confirmation Dialog */}
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div>
+            {confirmDialogAction === 'purgeAll' && (
+              <p>Are you sure you want to delete ALL articles? This action cannot be undone.</p>
+            )}
+            {confirmDialogAction === 'deleteSourceArticles' && (
+              <p>Are you sure you want to delete ALL articles for this source? This action cannot be undone.</p>
+            )}
+            {confirmDialogAction === 'deleteSource' && (
+              <p>Are you sure you want to delete this source? This action cannot be undone.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsConfirmDialogOpen(false)} variant="outline">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (confirmDialogAction === 'purgeAll') {
+                  handleConfirmPurgeArticles();
+                } else if (confirmDialogAction === 'deleteSourceArticles') {
+                  handleConfirmDeleteArticlesForSource();
+                } else if (confirmDialogAction === 'deleteSource') {
+                  handleConfirmDeleteSource();
+                }
+              }}
+              variant="destructive"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
