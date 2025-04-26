@@ -21,6 +21,6 @@ The application is now styled using Tailwind CSS and leverages shadcn/ui compone
 
 The source add/edit dialog in `frontend/src/components/SettingsPage.tsx` has been styled using shadcn/ui components and Tailwind CSS grid and gap utilities for improved form layout and readability. Functionality to trigger scraping for individual sources directly from the settings page has also been added.
 
-Further styling refinements and component integrations will continue as the migration progresses.
+Further styling refinements and component integrations will continue as the migration progresses. The top padding has been removed from the `Card` component to allow images to be positioned at the very top.
 
 An audit of the shadcn/ui components in `frontend/src/components/ui/` has been completed. The audited components include `button`, `calendar`, `card`, `chart`, `checkbox`, `DatePickerWithRange`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `select`, `switch`, and `textarea`. The implementations generally follow shadcn/ui documentation and best practices. A minor correction was made to `frontend/src/components/ui/chart.tsx` to use a path alias (`@/lib/utils`) for the `cn` utility function instead of a relative import.
