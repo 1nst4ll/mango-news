@@ -343,6 +343,33 @@ app.post('/api/articles/purge', async (req, res) => {
   }
 });
 
+// Endpoint to delete all articles for a specific source
+app.post('/api/articles/purge/:sourceId', async (req, res) => {
+  const sourceId = req.params.sourceId;
+  try {
+    console.log(`Purging articles for source ID: ${sourceId}...`);
+
+    // Check if the source exists
+    const sourceCheck = await pool.query('SELECT id FROM sources WHERE id = $1', [sourceId]);
+    if (sourceCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Source not found.' });
+    }
+
+    // Delete from article_topics first due to foreign key constraints
+    await pool.query('DELETE FROM article_topics WHERE article_id IN (SELECT id FROM articles WHERE source_id = $1)', [sourceId]);
+    console.log(`Deleted article_topics entries for source ID ${sourceId}.`);
+
+    // Delete articles for the specified source
+    const deleteResult = await pool.query('DELETE FROM articles WHERE source_id = $1 RETURNING id', [sourceId]);
+    console.log(`Deleted ${deleteResult.rows.length} articles for source ID ${sourceId}.`);
+
+    res.json({ message: `All articles for source ID ${sourceId} purged successfully.`, articlesDeleted: deleteResult.rows.length });
+  } catch (err) {
+    console.error(`Error during purge for source ID ${sourceId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 // API endpoint to get database statistics
 app.get('/api/stats', async (req, res) => {

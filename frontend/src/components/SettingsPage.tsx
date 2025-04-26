@@ -81,6 +81,8 @@ const SettingsPage: React.FC = () => {
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [sourceScrapingStatus, setSourceScrapingStatus] = useState<{ [key: number]: string | null }>({});
   const [sourceScrapingLoading, setSourceScrapingLoading] = useState<{ [key: number]: boolean }>({});
+  const [sourceArticleDeletionStatus, setSourceArticleDeletionStatus] = useState<{ [key: number]: string | null }>({});
+  const [sourceArticleDeletionLoading, setSourceArticleDeletionLoading] = useState<{ [key: number]: boolean }>({});
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null); // Changed type to string | null
@@ -264,6 +266,37 @@ const SettingsPage: React.FC = () => {
       }
     } finally {
       setSourceScrapingLoading(prev => ({ ...prev, [sourceId]: false }));
+    }
+  };
+
+  const handleDeleteArticlesForSource = async (sourceId: number) => {
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete ALL articles for this source? This action cannot be undone.')) {
+      return;
+    }
+
+    setSourceArticleDeletionLoading(prev => ({ ...prev, [sourceId]: true }));
+    setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: null }));
+    try {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      // TODO: Implement backend endpoint for deleting articles by source ID
+      const response = await fetch(`${apiUrl}/api/articles/purge/${sourceId}`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to delete articles for source ${sourceId}`);
+      }
+      setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: data.message || `All articles for source ${sourceId} purged successfully.` }));
+      // Optionally refetch stats after deletion
+      // fetchStats();
+    } catch (error: unknown) {
+       if (error instanceof Error) {
+        setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: `Error: ${error.message}` }));
+      } else {
+        setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: 'An unknown error occurred during article deletion.' }));
+      }
+    } finally {
+      setSourceArticleDeletionLoading(prev => ({ ...prev, [sourceId]: false }));
     }
   };
 
@@ -687,6 +720,14 @@ const SettingsPage: React.FC = () => {
                       >
                         {sourceScrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
                       </Button>
+                       <Button
+                        onClick={() => handleDeleteArticlesForSource(source.id)}
+                        disabled={sourceArticleDeletionLoading[source.id]}
+                        size="sm"
+                        variant="destructive"
+                      >
+                        {sourceArticleDeletionLoading[source.id] ? 'Deleting...' : 'Delete Articles'}
+                      </Button>
                       <Button
                         onClick={() => openEditModal(source)}
                         size="sm"
@@ -699,7 +740,7 @@ const SettingsPage: React.FC = () => {
                         size="sm"
                         variant="destructive"
                       >
-                        Delete
+                        Delete Source
                       </Button>
                     </div>
                   </div>
@@ -707,6 +748,12 @@ const SettingsPage: React.FC = () => {
                   {sourceScrapingStatus[source.id] && (
                     <div className="text-sm text-green-600 mt-2">
                       Scrape Status: {sourceScrapingStatus[source.id]}
+                    </div>
+                  )}
+                   {/* Display article deletion status directly within the card */}
+                  {sourceArticleDeletionStatus[source.id] && (
+                    <div className="text-sm text-green-600 mt-2">
+                      Deletion Status: {sourceArticleDeletionStatus[source.id]}
                     </div>
                   )}
                 </li>

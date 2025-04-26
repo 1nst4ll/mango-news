@@ -60,7 +60,7 @@ This document guides you through setting up and configuring the Mango News backe
 ## Configuration
 
 - **Database Configuration:** Database connection details are configured using environment variables in the `.env` file.
-- **API Endpoints:** The main API endpoints are defined in `backend/src/index.js`. Refer to this file for available endpoints and their functionalities, including source management (`/api/sources`), article fetching (`/api/articles`, `/api/articles/:id`), topic fetching (`/api/topics`), triggering scrapes (`/api/scrape/run`, `/api/scrape/run/:id`), source discovery (`/api/discover-sources`), and purging articles (`/api/articles/purge`).
+- **API Endpoints:** The main API endpoints are defined in `backend/src/index.js`. Refer to this file for available endpoints and their functionalities, including source management (`/api/sources`), article fetching (`/api/articles`, `/api/articles/:id`), topic fetching (`/api/topics`), triggering scrapes (`/api/scrape/run`, `/api/scrape/run/:id`), source discovery (`/api/discover-sources`), purging all articles (`/api/articles/purge`), and purging articles by source (`/api/articles/purge/:sourceId`).
 - **Scraping Configuration:** Scraping methods (Open Source or Firecrawl) are configured per source in the [Admin UI (Source Management section)](admin-ui.md#source-management) and stored in the database. Firecrawl requires the `FIRECRAWL_API_KEY` environment variable.
 
 ---

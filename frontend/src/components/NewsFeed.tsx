@@ -177,7 +177,7 @@ function NewsFeed({
                   )}
                 </div>
               )}
-              <CardHeader className="px-6 pt-2"> {/* Add horizontal and top padding */}
+              <CardHeader className="px-6 pt-0"> {/* Add horizontal padding, remove top padding */}
                 <CardTitle>{article.title}</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   <span
