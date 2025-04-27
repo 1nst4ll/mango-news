@@ -115,11 +115,20 @@ async function generateAISummary(content) {
 }
 
 // This function assigns topics to an article using the Groq API
-async function assignTopicsWithAI(content, enableGlobalAiTags = true) { // Accept global toggle state
-  if (!enableGlobalAiTags) {
-    console.log('AI tag generation is disabled globally. Skipping topic assignment.');
+async function assignTopicsWithAI(source, content, enableGlobalAiTags = true) { // Accept source and global toggle state
+  // Check per-source setting first
+  if (!source.enable_ai_tags) {
+    console.log(`AI tag generation is disabled for source ${source.name}. Skipping topic assignment.`);
     return [];
   }
+  // Optionally check global toggle as well (per-source enabled + global enabled = generate)
+  // If global toggle is intended to be an override, the logic might be different.
+  // Let's assume per-source is the primary control, but global can disable everything.
+  if (!enableGlobalAiTags) {
+     console.log('AI tag generation is disabled globally. Skipping topic assignment.');
+     return [];
+  }
+
   console.log('AI tag generation is enabled. Assigning topics using Groq...'); // Corrected log
   const topicsList = [
     "Breaking", "Crime", "Tourism", "Government", "Police", "Immigration",
@@ -265,7 +274,8 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
 
       // Assign topics using AI
       console.log(`processScrapedData passing enableGlobalAiTags to assignTopicsWithAI: ${enableGlobalAiTags}`); // Log value before calling assignTopicsWithAI
-      const assignedTopics = await assignTopicsWithAI(raw_content, enableGlobalAiTags); // Pass the global toggle state
+      // Pass the source object and the global toggle state
+      const assignedTopics = await assignTopicsWithAI(source, raw_content, enableGlobalAiTags);
 
       // Save assigned topics and link to article
       for (const topicName of assignedTopics) {
@@ -452,9 +462,9 @@ cron.schedule('0 * * * *', () => {
 console.log('News scraper scheduled to run.');
 
 // Function to run the scraper for a specific source ID
-async function runScraperForSource(sourceId, enableGlobalAiTags = true) { // Accept global toggle state
+async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, enableGlobalAiTags = true) { // Accept global toggle states
   console.log(`Starting news scraping process for source ID: ${sourceId}`);
-  console.log(`runScraperForSource received enableGlobalAiTags: ${enableGlobalAiTags}`); // Log received value
+  console.log(`runScraperForSource received enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}`); // Log received values
   let linksFound = 0;
   let articlesAdded = 0;
 

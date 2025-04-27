@@ -317,10 +317,11 @@ app.post('/api/scrape/run/:id', async (req, res) => {
 
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering scrape for source: ${source.name} (ID: ${sourceId})`);
     const finalEnableGlobalAiTags = enableGlobalAiTags === true ? true : false;
-    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - AI Tagging enabled: ${finalEnableGlobalAiTags}`);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Global AI Summary enabled: ${enableGlobalAiSummary}, Global AI Tagging enabled: ${finalEnableGlobalAiTags}`);
 
     const scrapeResults = await runScraperForSource(
       sourceId,
+      enableGlobalAiSummary, // Pass enableGlobalAiSummary
       finalEnableGlobalAiTags
     );
 

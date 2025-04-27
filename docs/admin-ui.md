@@ -20,7 +20,8 @@ This section provides statistics about the data stored in the application's data
 This section provides overall control and status information for the application, presented within a **shadcn/ui Card**.
 
 -   **Enable AI Summaries:** Control to globally enable or disable AI summary generation during scraping runs, using a **shadcn/ui Switch** component.
--   **Trigger Full Scraper Run:** Initiate a scraping process for all active news sources using a **shadcn/ui Button**. The scraping method used for each source (Open Source or Firecrawl) is determined by the setting configured for that source. Status information will be displayed indicating the status of the triggered run.
+-   **Enable AI Tags:** Control to globally enable or disable AI tag generation during scraping runs, using a **shadcn/ui Switch** component.
+-   **Trigger Full Scraper Run:** Initiate a scraping process for all active news sources using a **shadcn/ui Button**. The scraping method used for each source (Open Source or Firecrawl) and the AI toggle settings (global and per-source) will be applied. Status information will be displayed indicating the status of the triggered run.
 -   **Purge All Articles:** Delete all existing articles from the database using a **shadcn/ui Button** with a destructive style. Use this with caution as it is irreversible. Confirmation will be required before proceeding. Status information will be displayed indicating the status of the purge operation.
 
 ## Source Management
@@ -32,8 +33,8 @@ This section allows you to view, add, edit, and delete news sources, presented w
     -   **Discovered Sources List:** Any discovered sources will be listed with their name and URL. An "Add as New Source" **shadcn/ui Button** is available for each discovered source.
 -   **Existing Sources:** View a list of all configured news sources.
     -   **Add New Source Button:** A **shadcn/ui Button** to open the modal for adding a new source.
-    -   **Sources List:** Each source is displayed within a styled list item, showing its details (name, URL, active status, AI summary setting, scraping method, include/exclude selectors). Action buttons (**shadcn/ui Buttons** for "Scrape Now", "Edit", and "Delete") are available for each source.
--   **Add/Edit Source Modal:** A **shadcn/ui Dialog** component is used for the modal form to add or edit a news source. The form utilizes **shadcn/ui Input**, **Label**, **Select**, **Textarea**, and **Checkbox** components for input fields and controls. New fields have been added for "Article Link Template" and "Exclude Patterns" to configure open-source scraping behavior.
+    -   **Sources List:** Each source is displayed within a styled list item, showing its details (name, URL, active status, AI summary setting, AI tag setting, scraping method, include/exclude selectors). Action buttons (**shadcn/ui Buttons** for "Scrape Now", "Edit", and "Delete") are available for each source.
+-   **Add/Edit Source Modal:** A **shadcn/ui Dialog** component is used for the modal form to add or edit a news source. The form utilizes **shadcn/ui Input**, **Label**, **Select**, **Textarea**, and **Switch** components for input fields and controls. Fields for "Enable AI Summary" and "Enable AI Tags" are available to configure these settings per source. Additional fields have been added for "Article Link Template" and "Exclude Patterns" to configure open-source scraping behavior.
 
 ## Source Discovery
 

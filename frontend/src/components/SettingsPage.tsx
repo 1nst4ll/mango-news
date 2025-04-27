@@ -274,7 +274,7 @@ const SettingsPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ enableGlobalAiSummary }),
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags }), // Include enableGlobalAiTags
       });
       const data = await response.json();
       if (!response.ok) {
