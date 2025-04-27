@@ -113,7 +113,11 @@ async function generateAISummary(content) {
 }
 
 // This function assigns topics to an article using the Groq API
-async function assignTopicsWithAI(content) {
+async function assignTopicsWithAI(content, enableGlobalAiTags = true) { // Accept global toggle state
+  if (!enableGlobalAiTags) {
+    console.log('AI tag generation is disabled globally. Skipping topic assignment.');
+    return [];
+  }
   console.log('Assigning topics using Groq...');
   const topicsList = [
     "Breaking", "Crime", "Tourism", "Government", "Police", "Immigration",
@@ -163,7 +167,7 @@ async function assignTopicsWithAI(content) {
 
 
 // This function will process the scraped data and save it to the database
-async function processScrapedData(source, content, metadata, enableGlobalAiSummary = undefined) { // Accept global toggle state
+async function processScrapedData(source, content, metadata, enableGlobalAiSummary = undefined, enableGlobalAiTags = true) { // Accept global toggle states
   console.log(`Processing scraped data for source: ${source.name}`);
   try {
     if (content) {
@@ -172,9 +176,9 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
       let processedContent = content;
 
       // Add a text cleaning step to remove lines containing only "Search"
-      const lines = processedContent.split('\n');
-      const linesWithoutSearch = lines.filter(line => line.trim() !== 'Search');
-      processedContent = linesWithoutSearch.join('\n');
+      // const lines = processedContent.split('\n');
+      // const linesWithoutSearch = lines.filter(line => line.trim() !== 'Search');
+      // processedContent = linesWithoutSearch.join('\n');
 
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
@@ -284,7 +288,7 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
 
 
 // Function to scrape a single article page based on source method
-async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = undefined) { // Accept global toggle state
+async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = undefined, enableGlobalAiTags = true) { // Accept global toggle states
   console.log(`Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
   let scrapedResult = null;
   let metadata = null;
@@ -344,7 +348,7 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
         content = firecrawlResult.markdown; // Get markdown content
         metadata = firecrawlResult.extract; // Get extracted data as metadata
         console.log(`Successfully scraped article with Firecrawl: ${metadata?.title || 'No Title'}`);
-        await processScrapedData(source, content, metadata, enableGlobalAiSummary);
+        await processScrapedData(source, content, metadata, enableGlobalAiSummary, enableGlobalAiTags); // Pass enableGlobalAiTags
       } else {
         console.error(`Failed to scrape article page with Firecrawl: ${articleUrl}`, firecrawlResult);
       }
@@ -355,7 +359,7 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
 }
 
 
-async function runScraper(enableGlobalAiSummary = undefined) { // Accept global toggle state
+async function runScraper(enableGlobalAiSummary = undefined, enableGlobalAiTags = true) { // Accept global toggle states
   console.log('Starting news scraping process...');
   const activeSources = await getActiveSources();
 
@@ -416,7 +420,7 @@ async function runScraper(enableGlobalAiSummary = undefined) { // Accept global 
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, enableGlobalAiSummary);
+        const processed = await scrapeArticlePage(source, articleUrl, enableGlobalAiSummary, enableGlobalAiTags); // Pass enableGlobalAiTags
         if (processed) {
           articlesAdded++;
         }
@@ -509,7 +513,7 @@ async function runScraperForSource(sourceId) {
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary);
+        const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary, enableGlobalAiTags); // Pass enableGlobalAiTags
         if (processed) {
           articlesAdded++;
         }

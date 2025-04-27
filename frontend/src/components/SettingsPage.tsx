@@ -70,6 +70,7 @@ const SettingsPage: React.FC = () => {
   const [purgeStatus, setPurgeStatus] = useState<string | null>(null);
   const [purgeLoading, setPurgeLoading] = useState<boolean>(false);
   const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(true);
+  const [enableGlobalAiTags, setEnableGlobalAiTags] = useState<boolean>(true); // New state for AI tags
   const [stats, setStats] = useState<ArticleStats>({ totalArticles: null, totalSources: null, articlesPerSource: [], articlesPerYear: [] });
   const [statsLoading, setStatsLoading] = useState<boolean>(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -149,6 +150,21 @@ const SettingsPage: React.FC = () => {
     }
   }, [enableGlobalAiSummary]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('enableGlobalAiTags');
+      if (saved !== null) {
+        setEnableGlobalAiTags(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('enableGlobalAiTags', JSON.stringify(enableGlobalAiTags));
+    }
+  }, [enableGlobalAiTags]);
+
   // Effects from admin/sources/page.tsx
   useEffect(() => {
     const fetchSources = async () => {
@@ -196,7 +212,7 @@ const SettingsPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ enableGlobalAiSummary }),
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags }), // Include enableGlobalAiTags
       });
       const data = await response.json();
       if (!response.ok) {
@@ -618,6 +634,18 @@ const SettingsPage: React.FC = () => {
                   />
                   <Label htmlFor="enableGlobalAiSummary">
                     Enable AI Summaries for this scrape
+                  </Label>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableGlobalAiTags"
+                    checked={enableGlobalAiTags}
+                    onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)}
+                  />
+                  <Label htmlFor="enableGlobalAiTags">
+                    Enable AI Tags for this scrape
                   </Label>
                 </div>
               </li>

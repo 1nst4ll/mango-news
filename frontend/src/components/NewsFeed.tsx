@@ -104,6 +104,7 @@ function NewsFeed({
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data: Article[] = await response.json();
+        console.log('Fetched articles data:', data); // Log the fetched data
         setArticles(data);
       } catch (err: unknown) {
         setError(err);
@@ -158,60 +159,67 @@ function NewsFeed({
   return (
     <div className="container mx-auto p-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredArticles.map(article => (
-          <a href={`/article/${article.id}`} key={article.id} className="block"> {/* Wrap card with anchor tag */}
-            <Card className="flex flex-col pb-6 h-full"> {/* Add bottom padding and set height to full */}
-              {article.thumbnail_url && (
-                <div className="relative w-full h-48 overflow-hidden rounded-t-xl"> {/* Added rounded top corners */}
-                  <img src={article.thumbnail_url} alt={article.title} className="w-full h-full object-cover" />
-                  {article.topics && article.topics.length > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-                      <div className="flex flex-wrap gap-1">
-                        {article.topics.map(topic => (
-                          <span key={topic} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
+        {filteredArticles.map(article => {
+          try {
+            return (
+              <a href={`/article/${article.id}`} key={article.id} className="block"> {/* Wrap card with anchor tag */}
+                <Card className="flex flex-col pb-6 h-full"> {/* Add bottom padding and set height to full */}
+                  {article.thumbnail_url && (
+                    <div className="relative w-full h-48 overflow-hidden rounded-t-xl"> {/* Added rounded top corners */}
+                      <img src={article.thumbnail_url} alt={article.title} className="w-full h-full object-cover" />
+                      {article.topics && article.topics.length > 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                          <div className="flex flex-wrap gap-1">
+                            {article.topics.map(topic => (
+                              <span key={topic} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-              <CardHeader className="px-6 pt-0"> {/* Add horizontal padding, remove top padding */}
-                <CardTitle>{article.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  <span
-                    className="hover:underline cursor-pointer" // Add cursor-pointer for visual indication
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent card click
-                      window.open(article.source_url, '_blank', 'noopener,noreferrer'); // Open in new tab
-                    }}
-                  >
-                    {getDomainFromUrl(article.source_url)}
-                  </span>
-                  {article.author && (
-                    <span> | By {article.author}</span>
-                  )}
-                   <span> | Published: {
-                    new Date(article.publication_date).getFullYear() === 2001
-                      ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-                      : new Date(article.publication_date).toLocaleDateString()
-                  }</span>
-                  <span> | Added: {
-                    new Date(article.created_at).getFullYear() === 2001
-                      ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-                      : new Date(article.created_at).toLocaleDateString()
-                  }</span>
-                </p>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                  {/* Format AI summary bold text with accent color */}
-                  <p className="text-foreground" dangerouslySetInnerHTML={{ __html: article.summary.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') }}></p>
-              </CardContent>
-              {/* Removed CardFooter */}
-            </Card>
-          </a>
-        ))}
+                  <CardHeader className="px-6 pt-0"> {/* Add horizontal padding, remove top padding */}
+                    <CardTitle>{article.title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      <span
+                        className="hover:underline cursor-pointer" // Add cursor-pointer for visual indication
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click
+                          window.open(article.source_url, '_blank', 'noopener,noreferrer'); // Open in new tab
+                        }}
+                      >
+                        {getDomainFromUrl(article.source_url)}
+                      </span>
+                      {article.author && (
+                        <span> | By {article.author}</span>
+                      )}
+                       <span> | Published: {
+                        new Date(article.publication_date).getFullYear() === 2001
+                          ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+                          : new Date(article.publication_date).toLocaleDateString()
+                      }</span>
+                      <span> | Added: {
+                        new Date(article.created_at).getFullYear() === 2001
+                          ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+                          : new Date(article.created_at).toLocaleDateString()
+                      }</span>
+                    </p>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                      {/* Format AI summary bold text with accent color */}
+                      <p className="text-foreground" dangerouslySetInnerHTML={{ __html: article.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
+                  </CardContent>
+                  {/* Removed CardFooter */}
+                </Card>
+              </a>
+            );
+          } catch (error) {
+            console.error(`Error rendering article ${article.id}:`, error, article);
+            return null; // Don't render the problematic article
+          }
+        })}
       </div>
     </div>
   );

@@ -266,7 +266,8 @@ app.get('/api/articles/:id', async (req, res) => {
 // Trigger scraper for a specific source
 app.post('/api/scrape/run/:id', async (req, res) => {
   const sourceId = req.params.id;
-   try {
+  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body; // Get global toggles from request body
+  try {
     const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1', [sourceId]);
     const source = sourceResult.rows[0];
 
@@ -291,10 +292,11 @@ app.post('/api/scrape/run/:id', async (req, res) => {
 
 // Endpoint to trigger a full scraper run
 app.post('/api/scrape/run', async (req, res) => {
+  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body; // Get global toggles from request body
   try {
     console.log('Triggering full scraper run');
-    // Call the runScraper function from scraper.js
-    await runScraper();
+    // Call the runScraper function from scraper.js, passing the toggles
+    await runScraper(enableGlobalAiSummary, enableGlobalAiTags);
     res.json({ message: 'Full scraper run triggered successfully. Check backend logs for progress.' });
   } catch (error) {
     console.error('Error triggering full scraper run:', error);

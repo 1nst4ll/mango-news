@@ -25,7 +25,7 @@ This document guides you through setting up and configuring the Mango News backe
 
 3.  **Database Setup:**
     - Ensure your PostgreSQL database server is running.
-    - The database schema is defined in `db/schema.sql`. This schema includes tables for `sources`, `articles`, `topics`, and `article_topics`. The `articles` table now includes columns for `publication_date` and `author`. Apply this schema to your PostgreSQL database. You can use the `psql` command-line tool:
+    - The database schema is defined in `db/schema.sql`. This schema includes tables for `sources`, `articles`, `topics`, and `article_topics`. The `articles` table now includes columns for `publication_date`, `author`, `title`, `source_url`, and `thumbnail_url` as `TEXT` types to accommodate longer values. Apply this schema to your PostgreSQL database. You can use the `psql` command-line tool:
       ```bash
       psql -h your_db_host -d your_db_name -U your_db_username -f ../db/schema.sql
       ```

@@ -78,7 +78,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => { // Destructure id direct
     <div className="container mx-auto p-4">
       <article className="prose lg:prose-xl article-content"> {/* Using Tailwind Typography prose class */}
         <h1>{article.title}</h1>
-        <p className="text-sm text-muted-foreground mb-4">
+        <div className="text-sm text-muted-foreground mb-4"> {/* Changed p to div */}
         Source: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{article.source_url}</a>
         <div> {article.author && (
             <span> Author: {article.author} </span>
@@ -94,10 +94,11 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => { // Destructure id direct
                ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
                : new Date(article.created_at).toLocaleDateString()
            }</span></div>
-        </p>
+        </div> {/* Changed closing p to div */}
          {article.thumbnail_url && (
           <div className="mb-4">
-            <img src={article.thumbnail_url} alt={article.title} className="w-full h-auto object-cover rounded-lg" />
+            {/* Removed object-cover */}
+            <img src={article.thumbnail_url} alt={article.title} className="w-full h-auto rounded-lg" />
           </div>
         )}
         <div className="article-content">

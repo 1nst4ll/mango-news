@@ -26,11 +26,11 @@ CREATE TABLE sources (
 -- Create the 'articles' table
 CREATE TABLE articles (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
+    title TEXT NOT NULL,
     source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
-    source_url VARCHAR(255), -- Store source URL directly for easier access
-    thumbnail_url VARCHAR(255), -- Add column for thumbnail image URL
-    author VARCHAR(255), -- Add column for article author
+    source_url TEXT, -- Store source URL directly for easier access
+    thumbnail_url TEXT, -- Add column for thumbnail image URL
+    author TEXT, -- Add column for article author
     publication_date TIMESTAMP WITH TIME ZONE,
     raw_content TEXT,
     summary TEXT, -- AI-generated summary

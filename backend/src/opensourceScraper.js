@@ -125,14 +125,32 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
 
 
           const scrapedTitle = getText(selectors.title);
-          const scrapedDate = getText(selectors.date);
+          // Check if the date selector targets a meta tag
+          const scrapedDate = selectors.date?.startsWith('meta[')
+            ? getAttribute(selectors.date, 'content')
+            : getText(selectors.date);
           const scrapedAuthor = getText(selectors.author);
           let scrapedThumbnailUrl = null;
-          if (selectors.thumbnail === 'meta[property="og:image"]') {
-            scrapedThumbnailUrl = getAttribute(selectors.thumbnail, 'content');
-          } else {
-            scrapedThumbnailUrl = getAttribute(selectors.thumbnail, 'src');
+
+          // Handle thumbnail extraction based on selector format
+          if (selectors.thumbnail) {
+            const parts = selectors.thumbnail.split('::');
+            const selector = parts[0];
+            const attribute = parts[1];
+            const jsonKey = parts[2] || null; // Optional JSON key
+
+            if (attribute) {
+              scrapedThumbnailUrl = getAttribute(selector, attribute, jsonKey);
+              // For Wix images, construct the full URL
+              if (jsonKey === 'uri' && scrapedThumbnailUrl) {
+                 scrapedThumbnailUrl = `https://static.wixstatic.com/media/${scrapedThumbnailUrl}`;
+              }
+            } else {
+               // Default to getting the src attribute if only a selector is provided
+               scrapedThumbnailUrl = getAttribute(selector, 'src');
+            }
           }
+
 
           const scrapedTopics = getMultipleText(selectors.topics);
 
@@ -142,6 +160,9 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
           if (!scrapedThumbnailUrl) console.warn(`Missing thumbnail URL for ${window.location.href}`);
           if (scrapedTopics.length === 0) console.warn(`Missing topics for ${window.location.href}`);
 
+
+          console.log('Scraped Title:', scrapedTitle); // Log scraped title
+          console.log('Scraped Content (first 200 chars):', content ? content.substring(0, 200) + '...' : 'empty'); // Log scraped content
 
           return {
             title: scrapedTitle,
@@ -261,33 +282,11 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
                 }
               });
               url.search = params.toString();
-              link = url.toString(); // Update link with modified URL
             }
 
-            // Validate link against articleLinkTemplate if provided
-            if (articleLinkTemplate) {
-              // Convert template to a regex. Basic implementation: replace {slug}, {id}, etc. with regex patterns
-              // This is a simplified approach and might need refinement based on actual template formats
-              let regexPattern = articleLinkTemplate.replace(/\{[a-zA-Z0-9_]+\}/g, '[^\\/]+');
-              // Escape forward slashes for regex
-              regexPattern = regexPattern.replace(/\//g, '\\/');
-              // Handle optional trailing slash
-              regexPattern = `^${regexPattern}\\/?$`;
-
-              try {
-                const articleRegex = new RegExp(regexPattern);
-                if (!articleRegex.test(link)) {
-                  console.log(`Link "${link}" does not match articleLinkTemplate "${articleLinkTemplate}". Excluding.`);
-                  continue; // Skip this link if it doesn't match the template
-                }
-                 console.log(`Link "${link}" matches articleLinkTemplate "${articleLinkTemplate}".`);
-              } catch (e) {
-                 console.error(`Error creating or testing regex for template "${articleLinkTemplate}" and link "${link}":`, e);
-                 // If regex is invalid, perhaps log and continue without template validation for this link?
-                 // For now, we'll continue, effectively skipping validation for this link.
-              }
-            }
-
+            // Remove hash fragment
+            url.hash = '';
+            link = url.toString(); // Update link with modified URL
 
             // Check if the link is on the same domain and hasn't been visited
             if (url.hostname === sourceHostname) {
@@ -346,13 +345,21 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
               // Check for the specific magneticmediatv.com article link format
               const isMagneticMediaArticle = url.hostname === 'magneticmediatv.com' && /\/\d{4}\/\d{2}\/[^\/]+\/$/.test(path);
 
+              // Specific check for suntci.com article link format
+              const isSuntciArticle = url.hostname === 'suntci.com' && /\/[a-zA-Z0-9-]+\-p\d+\-\d+\.htm$/.test(path);
+
+
               // Refined heuristic to identify potential article links
               let isPotentialArticle = false;
 
               if (url.hostname === 'magneticmediatv.com') {
                 // Prioritize the specific magneticmediatv.com article format
                 isPotentialArticle = isMagneticMediaArticle;
-              } else {
+              } else if (url.hostname === 'suntci.com') {
+                 // Prioritize the specific suntci.com article format
+                 isPotentialArticle = isSuntciArticle;
+              }
+              else {
                 // General heuristics for other domains
                 isPotentialArticle =
                   !isExcludedPath &&
