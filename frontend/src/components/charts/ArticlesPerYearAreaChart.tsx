@@ -37,7 +37,7 @@ export function ArticlesPerYearBarChart({ data }: ArticlesPerYearBarChartProps) 
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pt-4"> {/* Added top padding */}
         <CardTitle>Articles per Year</CardTitle> {/* Updated title */}
         <CardDescription>Number of articles published each year</CardDescription> {/* Updated description */}
       </CardHeader>

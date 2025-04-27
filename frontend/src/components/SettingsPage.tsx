@@ -559,19 +559,18 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h2>Settings</h2>
 
-      {/* Database Section */}
-      <Card className="mb-6">
+      {/* Dashboard Section */}
+      <Card className="mb-6 pt-4">
         <CardHeader>
-          <CardTitle>Database</CardTitle>
+          <CardTitle className="pb-4">Database</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Database Statistics and Charts */}
+          {/* Dashboard Statistics and Charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
             <div className="grid grid-cols-1 gap-4 lg:col-span-2">
               <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
                   <div>
                     <CardDescription>Total Articles</CardDescription>
                     <CardTitle className="text-2xl">
@@ -586,12 +585,12 @@ const SettingsPage: React.FC = () => {
                   </div>
                   <img src="/file.svg" alt="Articles Icon" className="w-8 h-8 text-gray-500" />
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   {/* Additional content if needed */}
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
                   <div>
                     <CardDescription>Total Sources</CardDescription>
                     <CardTitle className="text-2xl">
@@ -606,7 +605,7 @@ const SettingsPage: React.FC = () => {
                   </div>
                   <img src="/globe.svg" alt="Sources Icon" className="w-8 h-8 text-gray-500" />
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   {/* Additional content if needed */}
                 </CardContent>
               </Card>
@@ -623,10 +622,10 @@ const SettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Dashboard Section */}
-      <Card className="mb-6">
+      {/* Database Section */}
+      <Card className="mb-6 pt-4">
         <CardHeader>
-          <CardTitle>Dashboard</CardTitle>
+          <CardTitle className="pb-4">Dashboard</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Controls */}
@@ -693,13 +692,13 @@ const SettingsPage: React.FC = () => {
 
 
       {/* Sources Section */}
-      <Card className="mb-6">
+      <Card className="mb-6 pt-4">
         <CardHeader>
-          <CardTitle>Sources</CardTitle>
+          <CardTitle className="pb-4">Sources</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Source Discovery Section */}
-          <Card className="mb-6">
+          <Card className="mb-6 pt-4">
             <CardHeader>
               <CardTitle className="text-md font-semibold">Discover New Sources</CardTitle>
             </CardHeader>
@@ -760,7 +759,7 @@ const SettingsPage: React.FC = () => {
           ) : (
             <ul className="space-y-4">
               {sources.map((source) => (
-                <li key={source.id} className="border rounded-lg p-4 shadow-sm">
+                <li key={source.id} className="border rounded-lg p-4 shadow-sm pt-4">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
                     <div>
                       <div className="text-lg font-medium">{source.name}</div>

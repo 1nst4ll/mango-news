@@ -163,7 +163,7 @@ function NewsFeed({
           try {
             return (
               <a href={`/article/${article.id}`} key={article.id} className="block"> {/* Wrap card with anchor tag */}
-                <Card className="flex flex-col pb-6 h-full"> {/* Add bottom padding and set height to full */}
+                <Card className="flex flex-col h-full"> {/* Removed pb-6 from here */}
                   {article.thumbnail_url && (
                     <div className="relative w-full h-48 overflow-hidden rounded-t-xl"> {/* Added rounded top corners */}
                       <img src={article.thumbnail_url} alt={article.title} className="w-full h-full object-cover" />
@@ -180,7 +180,7 @@ function NewsFeed({
                       )}
                     </div>
                   )}
-                  <CardHeader className="px-6 pt-0"> {/* Add horizontal padding, remove top padding */}
+                  <CardHeader className={article.thumbnail_url ? "px-6 pt-4" : "px-6 pt-4"}> {/* Always add top padding to header */}
                     <CardTitle>{article.title}</CardTitle>
                     <p className="text-sm text-muted-foreground">
                       <span
@@ -207,7 +207,7 @@ function NewsFeed({
                       }</span>
                     </p>
                   </CardHeader>
-                  <CardContent className="flex-grow">
+                  <CardContent className="flex-grow px-6 pb-4"> {/* Always add horizontal and bottom padding */}
                       {/* Format AI summary bold text with accent color */}
                       <p className="text-foreground" dangerouslySetInnerHTML={{ __html: article.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                   </CardContent>

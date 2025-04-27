@@ -23,6 +23,6 @@ The source add/edit dialog in `frontend/src/components/SettingsPage.tsx` has bee
 
 A new toggle has been added to the Settings page (`frontend/src/components/SettingsPage.tsx`) to globally enable or disable AI tag generation during the scraping process. This setting is saved to and loaded from `localStorage`.
 
-Further styling refinements and component integrations will continue as the migration progresses. The top padding has been removed from the `Card` component to allow images to be positioned at the very top.
+Further styling refinements and component integrations will continue as the migration progresses. Conditional top padding has been implemented on the newsfeed cards in `NewsFeed.tsx` to ensure no gap above the image when present, while providing padding when no image exists. The top padding was previously removed from the `Card` component to allow images to be positioned at the very top.
 
 An audit of the shadcn/ui components in `frontend/src/components/ui/` has been completed. The audited components include `button`, `calendar`, `card`, `chart`, `checkbox`, `DatePickerWithRange`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `select`, `switch`, and `textarea`. The implementations generally follow shadcn/ui documentation and best practices. A minor correction was made to `frontend/src/components/ui/chart.tsx` to use a path alias (`@/lib/utils`) for the `cn` utility function instead of a relative import.

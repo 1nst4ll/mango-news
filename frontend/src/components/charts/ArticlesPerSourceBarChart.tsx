@@ -38,7 +38,7 @@ export function ArticlesPerSourceBarChart({ data }: ArticlesPerSourceBarChartPro
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pt-4"> {/* Added top padding */}
         <CardTitle>Articles per Source</CardTitle>
         <CardDescription>Number of articles from each source</CardDescription>
       </CardHeader>
