@@ -761,7 +761,7 @@ const SettingsPage: React.FC = () => {
             <ul className="space-y-4">
               {sources.map((source) => (
                 <li key={source.id} className="border rounded-lg p-4 shadow-sm">
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
                     <div>
                       <div className="text-lg font-medium">{source.name}</div>
                       <div className="text-sm text-gray-600">
@@ -773,7 +773,7 @@ const SettingsPage: React.FC = () => {
                       {source.include_selectors && <div className="text-sm text-gray-600 break-words">Include: {source.include_selectors}</div>}
                       {source.exclude_selectors && <div>Exclude: {source.exclude_selectors}</div>}
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 mt-2 md:mt-0">
                       <Button
                         onClick={() => handleTriggerScraperForSource(source.id)}
                         disabled={sourceScrapingLoading[source.id]}
@@ -834,26 +834,26 @@ const SettingsPage: React.FC = () => {
               <DialogTitle>{editingSource ? 'Edit Source' : 'Add New Source'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleModalSubmit} className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="name" className="md:text-right">
                   Source Name:
                 </Label>
-                <Input id="name" name="name" value={modalFormData.name} onChange={handleModalInputChange} required className="col-span-3" />
+                <Input id="name" name="name" value={modalFormData.name} onChange={handleModalInputChange} required className="md:col-span-3" />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="url" className="text-right">
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="url" className="md:text-right">
                   Source URL:
                 </Label>
-                <Input id="url" name="url" value={modalFormData.url} onChange={handleModalInputChange} required className="col-span-3" />
+                <Input id="url" name="url" value={modalFormData.url} onChange={handleModalInputChange} required className="md:col-span-3" />
               </div>
               {/* New: Scraping Method Select */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="scraping_method" className="text-right">Scraping Method:</Label>
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="scraping_method" className="md:text-right">Scraping Method:</Label>
                 <Select
                   value={modalFormData.scraping_method || 'opensource'}
                   onValueChange={(value) => setModalFormData({ ...modalFormData, scraping_method: value })}
                 >
-                  <SelectTrigger className="col-span-3">
+                  <SelectTrigger className="md:col-span-3">
                     <SelectValue placeholder="Select scraping method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -862,74 +862,74 @@ const SettingsPage: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4"> {/* Adjusted layout */}
-                <Label htmlFor="enable_ai_summary" className="text-right">Enable AI Summary:</Label> {/* Adjusted label */}
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center"> {/* Adjusted layout */}
+                <Label htmlFor="enable_ai_summary" className="md:text-right">Enable AI Summary:</Label> {/* Adjusted label */}
                  <Switch
                   id="enable_ai_summary"
                   name="enable_ai_summary"
                   checked={modalFormData.enable_ai_summary}
                   onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_summary: Boolean(checked) })}
-                  className="col-span-3" // Adjusted layout
+                  className="md:col-span-3" // Adjusted layout
                 />
               </div>
               {/* New: Enable AI Tags Toggle */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="enable_ai_tags" className="text-right">Enable AI Tags:</Label>
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="enable_ai_tags" className="md:text-right">Enable AI Tags:</Label>
                 <Switch
                   id="enable_ai_tags"
                   name="enable_ai_tags"
                   checked={modalFormData.enable_ai_tags}
                   onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_tags: Boolean(checked) })}
-                  className="col-span-3"
+                  className="md:col-span-3"
                 />
               </div>
               {/* New: Specific Open Source Selectors */}
               {modalFormData.scraping_method === 'opensource' && (
                 <>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="os_title_selector" className="text-right">Title Selector:</Label>
-                    <Input id="os_title_selector" name="os_title_selector" value={modalFormData.os_title_selector || ''} onChange={handleModalInputChange} className="col-span-3" />
+                  <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                    <Label htmlFor="os_title_selector" className="md:text-right">Title Selector:</Label>
+                    <Input id="os_title_selector" name="os_title_selector" value={modalFormData.os_title_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="os_content_selector" className="text-right">Content Selector:</Label>
-                    <Input id="os_content_selector" name="os_content_selector" value={modalFormData.os_content_selector || ''} onChange={handleModalInputChange} className="col-span-3" />
+                  <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                    <Label htmlFor="os_content_selector" className="md:text-right">Content Selector:</Label>
+                    <Input id="os_content_selector" name="os_content_selector" value={modalFormData.os_content_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
                   </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="os_date_selector" className="text-right">Date Selector:</Label>
-                    <Input id="os_date_selector" name="os_date_selector" value={modalFormData.os_date_selector || ''} onChange={handleModalInputChange} className="col-span-3" />
+                   <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                    <Label htmlFor="os_date_selector" className="md:text-right">Date Selector:</Label>
+                    <Input id="os_date_selector" name="os_date_selector" value={modalFormData.os_date_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
                   </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="os_author_selector" className="text-right">Author Selector:</Label>
-                    <Input id="os_author_selector" name="os_author_selector" value={modalFormData.os_author_selector || ''} onChange={handleModalInputChange} className="col-span-3" />
+                   <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                    <Label htmlFor="os_author_selector" className="md:text-right">Author Selector:</Label>
+                    <Input id="os_author_selector" name="os_author_selector" value={modalFormData.os_author_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
                   </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="os_thumbnail_selector" className="text-right">Thumbnail Selector:</Label>
-                    <Input id="os_thumbnail_selector" name="os_thumbnail_selector" value={modalFormData.os_thumbnail_selector || ''} onChange={handleModalInputChange} className="col-span-3" />
+                   <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                    <Label htmlFor="os_thumbnail_selector" className="md:text-right">Thumbnail Selector:</Label>
+                    <Input id="os_thumbnail_selector" name="os_thumbnail_selector" value={modalFormData.os_thumbnail_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
                   </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="os_topics_selector" className="text-right">Topics Selector (comma-separated):</Label>
-                    <Input id="os_topics_selector" name="os_topics_selector" value={modalFormData.os_topics_selector || ''} onChange={handleModalInputChange} className="col-span-3" />
+                   <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                    <Label htmlFor="os_topics_selector" className="md:text-right">Topics Selector (comma-separated):</Label>
+                    <Input id="os_topics_selector" name="os_topics_selector" value={modalFormData.os_topics_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
                   </div>
                 </>
               )}
               {/* Existing Include/Exclude Selectors */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="include_selectors" className="text-right">Include Selectors (comma-separated):</Label>
-                <Input id="include_selectors" name="include_selectors" value={modalFormData.include_selectors || ''} onChange={handleModalInputChange} className="col-span-3" />
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="include_selectors" className="md:text-right">Include Selectors (comma-separated):</Label>
+                <Input id="include_selectors" name="include_selectors" value={modalFormData.include_selectors || ''} onChange={handleModalInputChange} className="md:col-span-3" />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="exclude_selectors" className="text-right">Exclude Selectors (comma-separated):</Label>
-                <Input id="exclude_selectors" name="exclude_selectors" value={modalFormData.exclude_selectors || ''} onChange={handleModalInputChange} className="col-span-3" />
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="exclude_selectors" className="md:text-right">Exclude Selectors (comma-separated):</Label>
+                <Input id="exclude_selectors" name="exclude_selectors" value={modalFormData.exclude_selectors || ''} onChange={handleModalInputChange} className="md:col-span-3" />
               </div>
               {/* New: Article Link Template */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="article_link_template" className="text-right">Article Link Template:</Label>
-                <Input id="article_link_template" name="article_link_template" value={modalFormData.article_link_template || ''} onChange={handleModalInputChange} className="col-span-3" />
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="article_link_template" className="md:text-right">Article Link Template:</Label>
+                <Input id="article_link_template" name="article_link_template" value={modalFormData.article_link_template || ''} onChange={handleModalInputChange} className="md:col-span-3" />
               </div>
               {/* New: Exclude Patterns */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="exclude_patterns" className="text-right">Exclude Patterns (comma-separated query params):</Label>
-                <Input id="exclude_patterns" name="exclude_patterns" value={modalFormData.exclude_patterns || ''} onChange={handleModalInputChange} className="col-span-3" />
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="exclude_patterns" className="md:text-right">Exclude Patterns (comma-separated query params):</Label>
+                <Input id="exclude_patterns" name="exclude_patterns" value={modalFormData.exclude_patterns || ''} onChange={handleModalInputChange} className="md:col-span-3" />
               </div>
               <DialogFooter>
                 <Button type="submit">{editingSource ? 'Save Changes' : 'Add Source'}</Button>
