@@ -28,6 +28,7 @@ interface Source {
   is_active: boolean;
   enable_ai_summary: boolean;
   enable_ai_tags: boolean; // Add enable_ai_tags field
+  enable_ai_image: boolean; // Add enable_ai_image field
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method?: string;
@@ -51,6 +52,7 @@ interface ModalFormData {
   url: string;
   enable_ai_summary: boolean;
   enable_ai_tags: boolean; // Add enable_ai_tags field
+  enable_ai_image: boolean; // Add enable_ai_image field
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method: string;
@@ -73,6 +75,7 @@ const SettingsPage: React.FC = () => {
   const [purgeLoading, setPurgeLoading] = useState<boolean>(false);
   const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(true);
   const [enableGlobalAiTags, setEnableGlobalAiTags] = useState<boolean>(true); // New state for AI tags
+  const [enableGlobalAiImage, setEnableGlobalAiImage] = useState<boolean>(true); // New state for AI image
   const [stats, setStats] = useState<ArticleStats>({ totalArticles: null, totalSources: null, articlesPerSource: [], articlesPerYear: [] });
   const [statsLoading, setStatsLoading] = useState<boolean>(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -95,6 +98,7 @@ const SettingsPage: React.FC = () => {
     url: '',
     enable_ai_summary: true,
     enable_ai_tags: true, // Initialize enable_ai_tags field
+    enable_ai_image: true, // Initialize enable_ai_image field
     include_selectors: null,
     exclude_selectors: null,
     scraping_method: 'opensource',
@@ -168,6 +172,21 @@ const SettingsPage: React.FC = () => {
     }
   }, [enableGlobalAiTags]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('enableGlobalAiImage');
+      if (saved !== null) {
+        setEnableGlobalAiImage(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('enableGlobalAiImage', JSON.stringify(enableGlobalAiImage));
+    }
+  }, [enableGlobalAiImage]);
+
   // Effects from admin/sources/page.tsx
   useEffect(() => {
     const fetchSources = async () => {
@@ -216,7 +235,7 @@ const SettingsPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags }), // Include enableGlobalAiTags
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }), // Include enableGlobalAiTags and enableGlobalAiImage
       });
       const data = await response.json();
       if (!response.ok) {
@@ -274,7 +293,7 @@ const SettingsPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags }), // Include enableGlobalAiTags
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }), // Include enableGlobalAiTags and enableGlobalAiImage
       });
       const data = await response.json();
       if (!response.ok) {
@@ -465,6 +484,7 @@ const SettingsPage: React.FC = () => {
       url: source.url,
       enable_ai_summary: true,
       enable_ai_tags: true, // Initialize enable_ai_tags field
+      enable_ai_image: true, // Initialize enable_ai_image field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -488,6 +508,7 @@ const SettingsPage: React.FC = () => {
       url: '',
       enable_ai_summary: true,
       enable_ai_tags: true, // Initialize enable_ai_tags field
+      enable_ai_image: true, // Initialize enable_ai_image field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -510,6 +531,7 @@ const SettingsPage: React.FC = () => {
       url: source.url,
       enable_ai_summary: source.enable_ai_summary,
       enable_ai_tags: source.enable_ai_tags, // Populate from source
+      enable_ai_image: source.enable_ai_image, // Populate from source
       include_selectors: source.include_selectors,
       exclude_selectors: source.exclude_selectors,
       scraping_method: source.scraping_method || 'opensource',
@@ -533,6 +555,7 @@ const SettingsPage: React.FC = () => {
       url: '',
       enable_ai_summary: true,
       enable_ai_tags: true, // Reset new field
+      enable_ai_image: true, // Reset new field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -653,6 +676,18 @@ const SettingsPage: React.FC = () => {
                   />
                   <Label htmlFor="enableGlobalAiTags">
                     Enable AI Tags for this scrape
+                  </Label>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableGlobalAiImage"
+                    checked={enableGlobalAiImage}
+                    onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)}
+                  />
+                  <Label htmlFor="enableGlobalAiImage">
+                    Enable AI Image Generation for this scrape
                   </Label>
                 </div>
               </li>
@@ -879,6 +914,17 @@ const SettingsPage: React.FC = () => {
                   name="enable_ai_tags"
                   checked={modalFormData.enable_ai_tags}
                   onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_tags: Boolean(checked) })}
+                  className="md:col-span-3"
+                />
+              </div>
+              {/* New: Enable AI Image Toggle */}
+              <div className="grid gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="enable_ai_image" className="md:text-right">Enable AI Image:</Label>
+                <Switch
+                  id="enable_ai_image"
+                  name="enable_ai_image"
+                  checked={modalFormData.enable_ai_image}
+                  onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_image: Boolean(checked) })}
                   className="md:col-span-3"
                 />
               </div>

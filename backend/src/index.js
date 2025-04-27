@@ -305,7 +305,7 @@ app.get('/api/articles/:id', async (req, res) => {
 app.post('/api/scrape/run/:id', async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/scrape/run/${sourceId}`;
-  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body;
+  const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
   try {
     const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1', [sourceId]);
     const source = sourceResult.rows[0];
@@ -322,7 +322,8 @@ app.post('/api/scrape/run/:id', async (req, res) => {
     const scrapeResults = await runScraperForSource(
       sourceId,
       enableGlobalAiSummary, // Pass enableGlobalAiSummary
-      finalEnableGlobalAiTags
+      finalEnableGlobalAiTags,
+      enableGlobalAiImage // Pass enableGlobalAiImage
     );
 
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Scrape for ${source.name} (ID: ${sourceId}) completed. Links found: ${scrapeResults.linksFound}, Articles added: ${scrapeResults.articlesAdded}`);
@@ -340,13 +341,13 @@ app.post('/api/scrape/run/:id', async (req, res) => {
 // Endpoint to trigger a full scraper run
 app.post('/api/scrape/run', async (req, res) => {
   const endpoint = '/api/scrape/run';
-  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body;
+  const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
   try {
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering full scraper run`);
     const finalEnableGlobalAiTags = enableGlobalAiTags === true ? true : false;
-    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Global AI Summary enabled: ${enableGlobalAiSummary}, Global AI Tagging enabled: ${finalEnableGlobalAiTags}`);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Global AI Summary enabled: ${enableGlobalAiSummary}, Global AI Tagging enabled: ${finalEnableGlobalAiTags}, Global AI Image enabled: ${enableGlobalAiImage}`); // Log enableGlobalAiImage
 
-    await runScraper(enableGlobalAiSummary, finalEnableGlobalAiTags);
+    await runScraper(enableGlobalAiSummary, finalEnableGlobalAiTags, enableGlobalAiImage); // Pass enableGlobalAiImage
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Full scraper run triggered successfully.`);
     res.json({ message: 'Full scraper run triggered successfully. Check backend logs for progress.' });
   } catch (error) {

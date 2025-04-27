@@ -8,6 +8,7 @@ CREATE TABLE sources (
     is_active BOOLEAN DEFAULT TRUE,
     enable_ai_summary BOOLEAN DEFAULT TRUE, -- Add column for AI summary toggle
     enable_ai_tags BOOLEAN DEFAULT TRUE, -- Add column for AI tags toggle
+    enable_ai_image BOOLEAN DEFAULT TRUE, -- Add column for AI image toggle
     -- Selectors for open-source scraping method
     os_title_selector TEXT,
     os_content_selector TEXT,
@@ -31,6 +32,7 @@ CREATE TABLE articles (
     source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
     source_url TEXT, -- Store source URL directly for easier access
     thumbnail_url TEXT, -- Add column for thumbnail image URL
+    ai_image_url TEXT, -- Add column for AI generated image URL
     author TEXT, -- Add column for article author
     publication_date TIMESTAMP WITH TIME ZONE,
     raw_content TEXT,
