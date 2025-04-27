@@ -7,6 +7,7 @@ CREATE TABLE sources (
     url VARCHAR(255) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     enable_ai_summary BOOLEAN DEFAULT TRUE, -- Add column for AI summary toggle
+    enable_ai_tags BOOLEAN DEFAULT TRUE, -- Add column for AI tags toggle
     -- Selectors for open-source scraping method
     os_title_selector TEXT,
     os_content_selector TEXT,

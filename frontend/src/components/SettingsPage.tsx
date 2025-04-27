@@ -27,6 +27,7 @@ interface Source {
   url: string;
   is_active: boolean;
   enable_ai_summary: boolean;
+  enable_ai_tags: boolean; // Add enable_ai_tags field
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method?: string;
@@ -49,6 +50,7 @@ interface ModalFormData {
   name: string;
   url: string;
   enable_ai_summary: boolean;
+  enable_ai_tags: boolean; // Add enable_ai_tags field
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method: string;
@@ -92,6 +94,7 @@ const SettingsPage: React.FC = () => {
     name: '',
     url: '',
     enable_ai_summary: true,
+    enable_ai_tags: true, // Initialize enable_ai_tags field
     include_selectors: null,
     exclude_selectors: null,
     scraping_method: 'opensource',
@@ -178,6 +181,7 @@ const SettingsPage: React.FC = () => {
         setSources(data.map((source: Source) => ({
           ...source,
           enable_ai_summary: source.enable_ai_summary !== undefined ? source.enable_ai_summary : true,
+          enable_ai_tags: source.enable_ai_tags !== undefined ? source.enable_ai_tags : true, // Include enable_ai_tags field
           is_active: source.is_active !== undefined ? source.is_active : true,
           include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
           exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
@@ -460,6 +464,7 @@ const SettingsPage: React.FC = () => {
       name: source.name,
       url: source.url,
       enable_ai_summary: true,
+      enable_ai_tags: true, // Initialize enable_ai_tags field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -482,6 +487,7 @@ const SettingsPage: React.FC = () => {
       name: '',
       url: '',
       enable_ai_summary: true,
+      enable_ai_tags: true, // Initialize enable_ai_tags field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -503,6 +509,7 @@ const SettingsPage: React.FC = () => {
       name: source.name,
       url: source.url,
       enable_ai_summary: source.enable_ai_summary,
+      enable_ai_tags: source.enable_ai_tags, // Populate from source
       include_selectors: source.include_selectors,
       exclude_selectors: source.exclude_selectors,
       scraping_method: source.scraping_method || 'opensource',
@@ -525,6 +532,7 @@ const SettingsPage: React.FC = () => {
       name: '',
       url: '',
       enable_ai_summary: true,
+      enable_ai_tags: true, // Reset new field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -862,6 +870,17 @@ const SettingsPage: React.FC = () => {
                   checked={modalFormData.enable_ai_summary}
                   onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_summary: Boolean(checked) })}
                   className="col-span-3" // Adjusted layout
+                />
+              </div>
+              {/* New: Enable AI Tags Toggle */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="enable_ai_tags" className="text-right">Enable AI Tags:</Label>
+                <Switch
+                  id="enable_ai_tags"
+                  name="enable_ai_tags"
+                  checked={modalFormData.enable_ai_tags}
+                  onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_tags: Boolean(checked) })}
+                  className="col-span-3"
                 />
               </div>
               {/* New: Specific Open Source Selectors */}

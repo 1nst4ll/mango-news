@@ -15,6 +15,24 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// Logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const method = req.method;
+  const url = req.url;
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+  let logMessage = `[INFO] ${timestamp} - ${method} ${url} from ${ip}`;
+
+  // Log request body for POST and PUT requests
+  if (['POST', 'PUT'].includes(method) && Object.keys(req.body).length > 0) {
+    logMessage += ` - Body: ${JSON.stringify(req.body)}`;
+  }
+
+  console.log(logMessage);
+  next();
+});
+
 // PostgreSQL Database Pool
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -27,10 +45,9 @@ const pool = new Pool({
 // Test database connection
 pool.connect((err, client, done) => {
   if (err) {
-    console.error('Database connection failed:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - Database connection failed:`, err);
   } else {
-    console.log('Database connected successfully');
-    // Removed redundant client.release()
+    console.log(`[INFO] ${new Date().toISOString()} - Database connected successfully`);
   }
   done(); // This also releases the client
 });
@@ -40,29 +57,34 @@ pool.connect((err, client, done) => {
 
 // Get all sources
 app.get('/api/sources', async (req, res) => {
+  const endpoint = '/api/sources';
   try {
     const result = await pool.query('SELECT * FROM sources ORDER BY id ASC');
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${result.rows.length} sources`);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching sources:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching sources:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 // Add a new source
 app.post('/api/sources', async (req, res) => {
-  const { name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method } = req.body;
+  const endpoint = '/api/sources';
+  const { name, url, is_active, enable_ai_summary, enable_ai_tags, include_selectors, exclude_selectors, scraping_method } = req.body;
   if (!name || !url) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing required fields (name or url)`);
     return res.status(400).json({ error: 'Source name and URL are required.' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO sources (name, url, is_active, enable_ai_summary, include_selectors, exclude_selectors, scraping_method) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [name, url, is_active !== undefined ? is_active : true, enable_ai_summary !== undefined ? enable_ai_summary : true, include_selectors || null, exclude_selectors || null, scraping_method || 'opensource']
+      'INSERT INTO sources (name, url, is_active, enable_ai_summary, enable_ai_tags, include_selectors, exclude_selectors, scraping_method) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [name, url, is_active !== undefined ? is_active : true, enable_ai_summary !== undefined ? enable_ai_summary : true, enable_ai_tags !== undefined ? enable_ai_tags : true, include_selectors || null, exclude_selectors || null, scraping_method || 'opensource']
     );
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Successfully added new source: ${result.rows[0].name} (ID: ${result.rows[0].id})`);
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error adding source:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error adding source:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -70,11 +92,17 @@ app.post('/api/sources', async (req, res) => {
 // Update a source
 app.put('/api/sources/:id', async (req, res) => {
   const sourceId = req.params.id;
+  const endpoint = `/api/sources/${sourceId}`;
   const updates = req.body;
+
+  if (updates.enable_ai_tags !== undefined) {
+    updates.enable_ai_tags = updates.enable_ai_tags;
+  }
   const fields = Object.keys(updates).map((field, index) => `"${field}" = $${index + 2}`).join(', ');
   const values = Object.values(updates);
 
   if (!fields) {
+    console.warn(`[WARN] ${new Date().toISOString()} - PUT ${endpoint} - No update fields provided`);
     return res.status(400).json({ error: 'No update fields provided.' });
   }
 
@@ -85,12 +113,13 @@ app.put('/api/sources/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - PUT ${endpoint} - Source with ID ${sourceId} not found`);
       return res.status(404).json({ error: 'Source not found.' });
     }
-
+    console.log(`[INFO] ${new Date().toISOString()} - PUT ${endpoint} - Successfully updated source with ID ${sourceId}`);
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error updating source:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error updating source with ID ${sourceId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -98,22 +127,25 @@ app.put('/api/sources/:id', async (req, res) => {
 // Delete a source
 app.delete('/api/sources/:id', async (req, res) => {
   const sourceId = req.params.id;
+  const endpoint = `/api/sources/${sourceId}`;
   try {
     const result = await pool.query('DELETE FROM sources WHERE id = $1 RETURNING *', [sourceId]);
 
     if (result.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - DELETE ${endpoint} - Source with ID ${sourceId} not found`);
       return res.status(404).json({ error: 'Source not found.' });
     }
-
+    console.log(`[INFO] ${new Date().toISOString()} - DELETE ${endpoint} - Successfully deleted source with ID ${sourceId}`);
     res.status(204).send(); // No content on successful deletion
   } catch (err) {
-    console.error('Error deleting source:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - DELETE ${endpoint} - Error deleting source with ID ${sourceId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 // Get topics based on applied filters
 app.get('/api/topics', async (req, res) => {
+  const endpoint = '/api/topics';
   const { searchTerm, startDate, endDate, sources } = req.query;
   let query = `
     SELECT DISTINCT t.id, t.name
@@ -156,12 +188,13 @@ app.get('/api/topics', async (req, res) => {
 
   try {
     const result = await pool.query(query, values);
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${result.rows.length} topics with filters: ${JSON.stringify(req.query)}`);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching filtered topics:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching filtered topics:`, err);
      // If tables don't exist yet, return an empty array as a fallback
     if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
-       console.warn('Topics, article_topics, or articles table not found, returning empty array. Ensure database schema is applied.');
+       console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Topics, article_topics, or articles table not found, returning empty array. Ensure database schema is applied.`);
        res.json([]);
     } else {
       res.status(500).json({ error: 'Internal Server Error' });
@@ -171,6 +204,7 @@ app.get('/api/topics', async (req, res) => {
 
 // Get all articles
 app.get('/api/articles', async (req, res) => {
+  const endpoint = '/api/articles';
   const { topic, startDate, endDate, searchTerm, sources } = req.query;
   let query = `
     SELECT
@@ -234,12 +268,13 @@ app.get('/api/articles', async (req, res) => {
 
   try {
     const result = await pool.query(query, values);
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${result.rows.length} articles with filters: ${JSON.stringify(req.query)}`);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching articles:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching articles:`, err);
      // If the articles table doesn't exist yet, return an empty array as a fallback
     if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
-       console.warn('Articles table not found, returning empty array. Ensure database schema is applied.'); // Added note about applying schema
+       console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Articles table not found, returning empty array. Ensure database schema is applied.`);
        res.json([]);
     } else {
       res.status(500).json({ error: 'Internal Server Error' });
@@ -250,14 +285,17 @@ app.get('/api/articles', async (req, res) => {
 // Get a single article by ID
 app.get('/api/articles/:id', async (req, res) => {
   const articleId = req.params.id;
+  const endpoint = `/api/articles/${articleId}`;
   try {
     const result = await pool.query('SELECT * FROM articles WHERE id = $1', [articleId]);
     if (result.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Article with ID ${articleId} not found`);
       return res.status(404).json({ error: 'Article not found.' });
     }
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched article with ID ${articleId}`);
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching article by ID:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching article by ID ${articleId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -266,40 +304,52 @@ app.get('/api/articles/:id', async (req, res) => {
 // Trigger scraper for a specific source
 app.post('/api/scrape/run/:id', async (req, res) => {
   const sourceId = req.params.id;
-  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body; // Get global toggles from request body
+  const endpoint = `/api/scrape/run/${sourceId}`;
+  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body;
   try {
     const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1', [sourceId]);
     const source = sourceResult.rows[0];
 
     if (!source) {
+      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Source with ID ${sourceId} not found`);
       return res.status(404).json({ error: 'Source not found.' });
     }
 
-    console.log(`Triggering scrape for source: ${source.name}`);
-    // Call the runScraperForSource function from scraper.js and capture the results
-    const scrapeResults = await runScraperForSource(sourceId);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering scrape for source: ${source.name} (ID: ${sourceId})`);
+    const finalEnableGlobalAiTags = enableGlobalAiTags === true ? true : false;
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - AI Tagging enabled: ${finalEnableGlobalAiTags}`);
 
+    const scrapeResults = await runScraperForSource(
+      sourceId,
+      finalEnableGlobalAiTags
+    );
+
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Scrape for ${source.name} (ID: ${sourceId}) completed. Links found: ${scrapeResults.linksFound}, Articles added: ${scrapeResults.articlesAdded}`);
     res.json({
       message: `Scraping triggered for ${source.name}`,
       linksFound: scrapeResults.linksFound,
       articlesAdded: scrapeResults.articlesAdded,
     });
   } catch (error) {
-    console.error(`Error triggering scrape for source ${sourceId}:`, error);
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering scrape for source ${sourceId}:`, error);
     res.status(500).json({ error: 'Failed to trigger scrape.' });
   }
 });
 
 // Endpoint to trigger a full scraper run
 app.post('/api/scrape/run', async (req, res) => {
-  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body; // Get global toggles from request body
+  const endpoint = '/api/scrape/run';
+  const { enableGlobalAiSummary, enableGlobalAiTags } = req.body;
   try {
-    console.log('Triggering full scraper run');
-    // Call the runScraper function from scraper.js, passing the toggles
-    await runScraper(enableGlobalAiSummary, enableGlobalAiTags);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering full scraper run`);
+    const finalEnableGlobalAiTags = enableGlobalAiTags === true ? true : false;
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Global AI Summary enabled: ${enableGlobalAiSummary}, Global AI Tagging enabled: ${finalEnableGlobalAiTags}`);
+
+    await runScraper(enableGlobalAiSummary, finalEnableGlobalAiTags);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Full scraper run triggered successfully.`);
     res.json({ message: 'Full scraper run triggered successfully. Check backend logs for progress.' });
   } catch (error) {
-    console.error('Error triggering full scraper run:', error);
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering full scraper run:`, error);
     res.status(500).json({ error: 'Failed to trigger full scraper run.' });
   }
 });
@@ -307,40 +357,39 @@ app.post('/api/scrape/run', async (req, res) => {
 
 // Basic endpoint for source discovery (currently calls opensourceDiscoverSources)
 app.get('/api/discover-sources', async (req, res) => {
+  const endpoint = '/api/discover-sources';
   try {
-    // In a real application, you might pass parameters like a starting URL
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Triggering source discovery`);
     const discovered = await discoverArticleUrls('https://example.com'); // Use opensourceDiscoverSources
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Source discovery completed. Discovered: ${JSON.stringify(discovered)}`);
     res.json(discovered);
   } catch (error) {
-    console.error('Error during source discovery:', error);
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error during source discovery:`, error);
     res.status(500).json({ error: 'Failed to discover sources.' });
   }
 });
 
 // Endpoint to delete all articles, topics, and article links
 app.post('/api/articles/purge', async (req, res) => {
+  const endpoint = '/api/articles/purge';
   try {
-    console.log('Purging all articles, topics, and article links...');
-    // Delete from article_topics first due to foreign key constraints
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Purging all articles, topics, and article links...`);
     await pool.query('DELETE FROM article_topics');
-    console.log('Deleted all entries from article_topics.');
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Deleted all entries from article_topics.`);
 
-    // Delete all articles
     await pool.query('DELETE FROM articles');
-    console.log('Deleted all entries from articles.');
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Deleted all entries from articles.`);
 
-    // Delete all topics (optional, depending on whether topics should persist if no articles reference them)
-    // Based on the placeholder comment, we will delete topics as well.
     await pool.query('DELETE FROM topics');
-    console.log('Deleted all entries from topics.');
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Deleted all entries from topics.`);
 
-    // Reset the primary key sequence for the articles table
     await pool.query('ALTER SEQUENCE articles_id_seq RESTART WITH 1;');
-    console.log('Reset articles table sequence.');
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Reset articles table sequence.`);
 
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - All articles, topics, and article links purged successfully.`);
     res.json({ message: 'All articles, topics, and article links purged successfully.' });
   } catch (err) {
-    console.error('Error during purge:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error during purge:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -348,26 +397,26 @@ app.post('/api/articles/purge', async (req, res) => {
 // Endpoint to delete all articles for a specific source
 app.post('/api/articles/purge/:sourceId', async (req, res) => {
   const sourceId = req.params.sourceId;
+  const endpoint = `/api/articles/purge/${sourceId}`;
   try {
-    console.log(`Purging articles for source ID: ${sourceId}...`);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Purging articles for source ID: ${sourceId}...`);
 
-    // Check if the source exists
     const sourceCheck = await pool.query('SELECT id FROM sources WHERE id = $1', [sourceId]);
     if (sourceCheck.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Source with ID ${sourceId} not found`);
       return res.status(404).json({ error: 'Source not found.' });
     }
 
-    // Delete from article_topics first due to foreign key constraints
     await pool.query('DELETE FROM article_topics WHERE article_id IN (SELECT id FROM articles WHERE source_id = $1)', [sourceId]);
-    console.log(`Deleted article_topics entries for source ID ${sourceId}.`);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Deleted article_topics entries for source ID ${sourceId}.`);
 
-    // Delete articles for the specified source
     const deleteResult = await pool.query('DELETE FROM articles WHERE source_id = $1 RETURNING id', [sourceId]);
-    console.log(`Deleted ${deleteResult.rows.length} articles for source ID ${sourceId}.`);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Deleted ${deleteResult.rows.length} articles for source ID ${sourceId}.`);
 
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - All articles for source ID ${sourceId} purged successfully.`);
     res.json({ message: `All articles for source ID ${sourceId} purged successfully.`, articlesDeleted: deleteResult.rows.length });
   } catch (err) {
-    console.error(`Error during purge for source ID ${sourceId}:`, err);
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error during purge for source ID ${sourceId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -375,7 +424,9 @@ app.post('/api/articles/purge/:sourceId', async (req, res) => {
 
 // API endpoint to get database statistics
 app.get('/api/stats', async (req, res) => {
+  const endpoint = '/api/stats';
   try {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching database statistics...`);
     const articlesCountResult = await pool.query('SELECT COUNT(*) FROM articles');
     const sourcesCountResult = await pool.query('SELECT COUNT(*) FROM sources');
     const articlesPerSourceResult = await pool.query(`
@@ -418,9 +469,10 @@ app.get('/api/stats', async (req, res) => {
       article_count: parseInt(row.article_count, 10),
     }));
 
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched database statistics. Total Articles: ${totalArticles}, Total Sources: ${totalSources}`);
     res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear });
   } catch (err) {
-    console.error('Error fetching stats:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching stats:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -438,12 +490,12 @@ async function updateNewslineSource() {
     );
 
     if (result.rows.length > 0) {
-      console.log(`NewslineTCI source (ID ${sourceId}) updated successfully on startup.`);
+      console.log(`[INFO] ${new Date().toISOString()} - NewslineTCI source (ID ${sourceId}) updated successfully on startup.`);
     } else {
-      console.log(`NewslineTCI source (ID ${sourceId}) not found on startup.`);
+      console.warn(`[WARN] ${new Date().toISOString()} - NewslineTCI source (ID ${sourceId}) not found on startup.`);
     }
   } catch (err) {
-    console.error('Error updating NewslineTCI source on startup:', err);
+    console.error(`[ERROR] ${new Date().toISOString()} - Error updating NewslineTCI source on startup:`, err);
   }
 }
 
@@ -452,8 +504,8 @@ async function updateNewslineSource() {
 // scheduleScraper('0 * * * *'); // Uncomment and configure as needed
 
 app.listen(port, () => {
-  console.log(`Backend server listening on port ${port}`);
-  console.log('News scraper scheduled to run.'); // This message might be misleading if scheduleScraper is commented out
+  console.log(`[INFO] ${new Date().toISOString()} - Backend server listening on port ${port}`);
+  console.log(`[INFO] ${new Date().toISOString()} - News scraper scheduled to run.`); // This message might be misleading if scheduleScraper is commented out
 });
 
 // Removed temporary startup actions as requested.

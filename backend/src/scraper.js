@@ -118,7 +118,7 @@ async function assignTopicsWithAI(content, enableGlobalAiTags = true) { // Accep
     console.log('AI tag generation is disabled globally. Skipping topic assignment.');
     return [];
   }
-  console.log('Assigning topics using Groq...');
+  console.log('AI tag generation is enabled. Assigning topics using Groq...'); // Corrected log
   const topicsList = [
     "Breaking", "Crime", "Tourism", "Government", "Police", "Immigration",
     "Weather", "Environment", "BusinessTCI", "Politics", "Health", "Education",
@@ -169,6 +169,7 @@ async function assignTopicsWithAI(content, enableGlobalAiTags = true) { // Accep
 // This function will process the scraped data and save it to the database
 async function processScrapedData(source, content, metadata, enableGlobalAiSummary = undefined, enableGlobalAiTags = true) { // Accept global toggle states
   console.log(`Processing scraped data for source: ${source.name}`);
+  console.log(`processScrapedData received enableGlobalAiTags: ${enableGlobalAiTags}`); // Log received value
   try {
     if (content) {
       console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`);
@@ -247,7 +248,10 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
       const shouldGenerateSummary = enableGlobalAiSummary !== undefined ? enableGlobalAiSummary : source.enable_ai_summary;
 
       if (shouldGenerateSummary) {
+        console.log('AI summary generation is enabled. Generating summary using Groq...'); // Added log
         summary = await generateAISummary(raw_content);
+      } else {
+        console.log('AI summary generation is disabled globally. Skipping summary generation.'); // Added log
       }
 
       // Save article to database
@@ -258,7 +262,8 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
       const articleId = articleResult.rows[0].id;
 
       // Assign topics using AI
-      const assignedTopics = await assignTopicsWithAI(raw_content);
+      console.log(`processScrapedData passing enableGlobalAiTags to assignTopicsWithAI: ${enableGlobalAiTags}`); // Log value before calling assignTopicsWithAI
+      const assignedTopics = await assignTopicsWithAI(raw_content, enableGlobalAiTags); // Pass the global toggle state
 
       // Save assigned topics and link to article
       for (const topicName of assignedTopics) {
@@ -290,6 +295,7 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
 // Function to scrape a single article page based on source method
 async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = undefined, enableGlobalAiTags = true) { // Accept global toggle states
   console.log(`Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
+  console.log(`scrapeArticlePage received enableGlobalAiTags: ${enableGlobalAiTags}`); // Log received value
   let scrapedResult = null;
   let metadata = null;
   let content = null;
@@ -319,7 +325,7 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
           keywords: opensourceData.topics ? opensourceData.topics.join(',') : undefined, // Convert topics array to comma-separated string
         };
         console.log(`Successfully scraped article with opensource: ${metadata?.title || 'No Title'}`);
-        await processScrapedData(source, content, metadata, enableGlobalAiSummary);
+        await processScrapedData(source, content, metadata, enableGlobalAiSummary, enableGlobalAiTags); // Pass enableGlobalAiTags
       } else {
         console.error(`Failed to scrape article page with opensource: ${articleUrl}`);
       }
@@ -420,7 +426,7 @@ async function runScraper(enableGlobalAiSummary = undefined, enableGlobalAiTags 
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, enableGlobalAiSummary, enableGlobalAiTags); // Pass enableGlobalAiTags
+        const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary, enableGlobalAiTags); // Pass enableGlobalAiTags
         if (processed) {
           articlesAdded++;
         }
@@ -444,8 +450,9 @@ cron.schedule('0 * * * *', () => {
 console.log('News scraper scheduled to run.');
 
 // Function to run the scraper for a specific source ID
-async function runScraperForSource(sourceId) {
+async function runScraperForSource(sourceId, enableGlobalAiTags = true) { // Accept global toggle state
   console.log(`Starting news scraping process for source ID: ${sourceId}`);
+  console.log(`runScraperForSource received enableGlobalAiTags: ${enableGlobalAiTags}`); // Log received value
   let linksFound = 0;
   let articlesAdded = 0;
 

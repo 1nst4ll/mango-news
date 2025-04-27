@@ -54,6 +54,12 @@ This method leverages the Firecrawl API to scrape web pages. Firecrawl provides 
 
 The choice between open-source and Firecrawl scraping depends on your specific needs and technical expertise. Open-source scraping offers more control but requires more development and maintenance effort. Firecrawl provides a convenient, managed solution but introduces an external dependency and potential costs.
 
+## AI Features and Global Settings
+
+The scraping process includes optional AI-powered features for generating article summaries and assigning topics using the Groq API. These features can be enabled or disabled on a per-source basis through the Admin UI.
+
+Additionally, when triggering a scrape via the API endpoints (`POST /api/scrape/run/:id` and `POST /api/scrape/run`), you can provide `enableGlobalAiSummary` and `enableGlobalAiTags` boolean parameters in the request body. If provided, these global parameters will override the individual source settings for that specific scrape run. This allows for temporary disabling or enabling of AI features for testing or specific scraping tasks without changing the persistent source configuration.
+
 ---
 
 Next: [Using CSS Selectors for Scraping](css-selectors.md)

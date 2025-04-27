@@ -73,8 +73,26 @@
 - Integrated the shadcn/ui `Card` component into `NewsFeed.tsx`.
 - Created the main news feed page (`astro-frontend/src/pages/index.astro`) using the base layout and `NewsFeed` component.
 - Created the dynamic article detail page (`astro-frontend/src/pages/article/[id].astro`) using the base layout and `ArticleDetail` component.
-- Created the settings page (`astro-frontend/src/pages/settings.astro`) using the base layout and `SettingsPage` component.
+- Created the settings page (`astro-frontend/src/pages/settings.astro`) using the base layout and `SettingsPage.astro`).
 - Updated `docs/frontend-ui.md` and `README.md` to reflect the Astro migration.
+
+## Backend Enhancements (In Progress)
+
+- Implemented AI summary generation for articles using Groq.
+- Implemented global toggle for AI tag generation in the scraper.
+- Added API endpoints to trigger scraper runs (`/api/scrape/run` and `/api/scrape/run/:id`). These endpoints now accept optional parameters to override global AI settings.
+- Added API endpoint to discover sources (`/api/discover-sources`).
+- Added API endpoints to purge articles (`/api/articles/purge` and `/api/articles/purge/:sourceId`).
+- Added API endpoint to get database statistics (`/api/stats`).
+
+## AI Tags Toggle in Frontend (Completed on 2025-04-27)
+
+- Added `enable_ai_tags` field to the `Source` and `ModalFormData` interfaces in `frontend/src/components/SettingsPage.tsx`.
+- Added a Switch component for `enable_ai_tags` to the add/edit source modal form in `frontend/src/components/SettingsPage.tsx`.
+- Updated the state initialization and reset logic for `modalFormData` in `frontend/src/components/SettingsPage.tsx` to include the `enable_ai_tags` field.
+- Updated the `handleAddDiscoveredSourceToForm`, `openAddModal`, `openEditModal`, and `closeAddEditModal` functions in `frontend/src/components/SettingsPage.tsx` to handle the `enable_ai_tags` field.
+- Updated the source mapping in the `useEffect` hook in `frontend/src/components/SettingsPage.tsx` to include the `enable_ai_tags` field when fetching sources.
+- Updated `docs/backend-setup.md` and `docs/frontend-ui.md` to reflect the addition of the AI tags toggle.
 
 ## Next Steps: Astro Frontend Migration
 

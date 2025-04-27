@@ -24,12 +24,12 @@ This document guides you through setting up and configuring the Mango News backe
     Ensure the `pg` package is installed for PostgreSQL connectivity.
 
 3.  **Database Setup:**
-    - Ensure your PostgreSQL database server is running.
-    - The database schema is defined in `db/schema.sql`. This schema includes tables for `sources`, `articles`, `topics`, and `article_topics`. The `articles` table now includes columns for `publication_date`, `author`, `title`, `source_url`, and `thumbnail_url` as `TEXT` types to accommodate longer values. Apply this schema to your PostgreSQL database. You can use the `psql` command-line tool:
-      ```bash
-      psql -h your_db_host -d your_db_name -U your_db_username -f ../db/schema.sql
-      ```
-      Replace `your_db_host`, `your_db_name`, and `your_db_username` with your PostgreSQL details. You will be prompted for the password.
+- Ensure your PostgreSQL database server is running.
+- The database schema is defined in `db/schema.sql`. This schema includes tables for `sources` (now including `enable_ai_tags` column), `articles`, `topics`, and `article_topics`. The `articles` table now includes columns for `publication_date`, `author`, `title`, `source_url`, and `thumbnail_url` as `TEXT` types to accommodate longer values. Apply this schema to your PostgreSQL database. You can use the `psql` command-line tool:
+  ```bash
+  psql -h your_db_host -d your_db_name -U your_db_username -f ../db/schema.sql
+  ```
+  Replace `your_db_host`, `your_db_name`, and `your_db_username` with your PostgreSQL details. You will be prompted for the password.
 
 4.  **Environment Variables:**
     - Create a `.env` file in the `backend` directory.
@@ -60,7 +60,12 @@ This document guides you through setting up and configuring the Mango News backe
 ## Configuration
 
 - **Database Configuration:** Database connection details are configured using environment variables in the `.env` file.
-- **API Endpoints:** The main API endpoints are defined in `backend/src/index.js`. Refer to this file for available endpoints and their functionalities, including source management (`/api/sources`), article fetching (`/api/articles`, `/api/articles/:id`), topic fetching (`/api/topics`), triggering scrapes (`/api/scrape/run`, `/api/scrape/run/:id`), source discovery (`/api/discover-sources`), purging all articles (`/api/articles/purge`), and purging articles by source (`/api/articles/purge/:sourceId`).
+- **API Endpoints:** The main API endpoints are defined in `backend/src/index.js`. Refer to this file for available endpoints and their functionalities, including source management (`/api/sources` - now supports `enable_ai_tags`), article fetching (`/api/articles`, `/api/articles/:id`), topic fetching (`/api/topics`), triggering scrapes (`/api/scrape/run`, `/api/scrape/run/:id`), source discovery (`/api/discover-sources`), purging all articles (`/api/articles/purge`), and purging articles by source (`/api/articles/purge/:sourceId`).
+-   `POST /api/scrape/run/:id`: Triggers the scraper for a specific source by ID. Accepts an optional JSON body with `{ "enableGlobalAiSummary": boolean, "enableGlobalAiTags": boolean }` to override global AI settings for this run.
+-   `POST /api/scrape/run`: Triggers a full scraper run for all active sources. Accepts an optional JSON body with `{ "enableGlobalAiSummary": boolean, "enableGlobalAiTags": boolean }` to override global AI settings for this run.
+-   `GET /api/discover-sources`: Initiates a basic source discovery process (currently uses opensourceScraper).
+-   `POST /api/articles/purge`: Deletes all articles, topics, and article links from the database.
+-   `GET /api/stats`: Retrieves database statistics, including total article count, total source count, article count per source, and article count per year.
 - **Scraping Configuration:** Scraping methods (Open Source or Firecrawl) are configured per source in the [Admin UI (Source Management section)](admin-ui.md#source-management) and stored in the database. Firecrawl requires the `FIRECRAWL_API_KEY` environment variable.
 
 ---

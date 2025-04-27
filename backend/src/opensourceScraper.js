@@ -101,7 +101,7 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
 
           // Handle exclude selectors
           if (content && selectors.exclude) {
-              const excludeSelectors = selectors.exclude.split(',').map(s => s.trim()).filter(s => s);
+              const excludeSelectors = selectors.exclude ? selectors.exclude.split(',').map(s => s.trim()) : [];
               console.log(`Processing exclude selectors: ${excludeSelectors.join(', ')}`);
               // Create a temporary DOM element to perform exclusions without affecting the actual page structure
               const tempDiv = document.createElement('div');
@@ -216,9 +216,8 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
     }
 
 /**
- * Discovers potential article URLs from a given source URL.
- * This is a basic example and would need significant enhancement for real-world use.
- * It finds links on the page that are on the same domain.
+ * Discovers potential article URLs from a given source URL using a provided template.
+ * This function prioritizes matching links against the articleLinkTemplate.
  * @param {string} sourceUrl - The URL of the source to discover articles from.
  * @param {string} articleLinkTemplate - The template for article links.
  * @param {string} excludePatterns - Comma-separated query parameter names to exclude.
@@ -240,7 +239,28 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
     const page = await browser.newPage();
     const sourceHostname = new URL(sourceUrl).hostname;
 
-    while (urlsToVisit.length > 0 && articleUrls.size < limit) { // Use articleUrls.size and limit
+    // Convert template to a regex pattern
+    let templateRegex = null;
+    if (articleLinkTemplate) {
+      try {
+        templateRegex = new RegExp('^' + articleLinkTemplate
+          .replace(/\{YYYY\}/g, '\\d{4}')
+          .replace(/\{MM\}/g, '\\d{2}')
+          .replace(/\{DD\}/g, '\\d{2}')
+          .replace(/\{article_slug\}/g, '[^\\/]+')
+          .replace(/\{id\d*\}/g, '\\d+') // Handle {id}, {id1}, {id2}, etc.
+          .replace(/\./g, '\\.') // Escape dots
+          .replace(/\//g, '\\/') // Escape slashes
+          + '$');
+        console.log(`Generated template regex: ${templateRegex}`);
+      } catch (e) {
+        console.error(`Error creating regex from template "${articleLinkTemplate}":`, e);
+        templateRegex = null; // Invalidate regex if creation fails
+      }
+    }
+
+
+    while (urlsToVisit.length > 0 && articleUrls.size < limit) {
       const { url: currentUrl, depth } = urlsToVisit.shift();
 
       if (visitedUrls.has(currentUrl) || depth > maxDepth) {
@@ -252,7 +272,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
       visitedUrls.add(currentUrl);
 
       try {
-        await page.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }); // Increased timeout
+        await page.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
         console.log(`Successfully navigated to ${currentUrl} for discovery`);
 
         const links = await page.evaluate(() => {
@@ -286,145 +306,31 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
 
             // Remove hash fragment
             url.hash = '';
-            link = url.toString(); // Update link with modified URL
+            const cleanedLink = url.toString(); // Use a new variable for the modified link
 
-            // Check if the link is on the same domain and hasn't been visited
+            // Check if the link is on the same domain
             if (url.hostname === sourceHostname) {
-              const path = url.pathname;
-
-              // Exclude common non-article paths
-              const isExcludedPath =
-                path.endsWith('/') || // Root or directory index
-                path.includes('/category/') ||
-                path.includes('/tag/') ||
-                path.includes('/author/') ||
-                path.includes('/archive/') ||
-                path.includes('/page/') || // Pagination
-                path.includes('/comment/') ||
-                path.includes('/feed/') ||
-                path.includes('/news/categories/') || // Exclude category pages
-                path.includes('/print/') ||
-                path.includes('/share/') ||
-                path.includes('/replytocom/') ||
-                path.includes('/cdn-cgi/') || // Cloudflare
-                path.includes('/wp-admin/') || // WordPress admin
-                path.includes('/wp-login.php') ||
-                path.includes('/wp-json/') ||
-                path.includes('/uploads/') ||
-                path.includes('/plugins/') ||
-                path.includes('/themes/') ||
-                path.includes('/xmlrpc.php') ||
-                path.includes('/feed/') ||
-                path.includes('/trackback/') ||
-                path.includes('/comments/') ||
-                path.includes('/search/') ||
-                path.includes('/shop/') || // E-commerce
-                path.includes('/product/') ||
-                path.includes('/cart/') ||
-                path.includes('/checkout/') ||
-                path.includes('/my-account/') ||
-                path.includes('/wishlist/') ||
-                path.includes('/compare/') ||
-                path.includes('/privacy-policy/') ||
-                path.includes('/terms-of-service/') ||
-                path.includes('/contact/') ||
-                path.includes('/about/') ||
-                path.includes('/faq/') ||
-                path.includes('/sitemap') || // Sitemap files
-                path.endsWith('.xml') ||
-                path.endsWith('.txt') ||
-                path.endsWith('.css') ||
-                path.endsWith('.js') ||
-                path.endsWith('.png') ||
-                path.endsWith('.jpg') ||
-                path.endsWith('.jpeg') ||
-                path.endsWith('.gif') ||
-                path.endsWith('.svg') ||
-                path.endsWith('.pdf');
-
-              // Check for the specific magneticmediatv.com article link format
-              const isMagneticMediaArticle = url.hostname === 'magneticmediatv.com' && /\/\d{4}\/\d{2}\/[^\/]+\/$/.test(path);
-
-              // Specific check for suntci.com article link format
-              const isSuntciArticle = url.hostname === 'suntci.com' && /\/[a-zA-Z0-9-]+\-p\d+\-\d+\.htm$/.test(path);
-
-
-              // Refined heuristic to identify potential article links
               let isPotentialArticle = false;
 
-              if (url.hostname === 'magneticmediatv.com') {
-                // Prioritize the specific magneticmediatv.com article format
-                isPotentialArticle = isMagneticMediaArticle;
-              } else if (url.hostname === 'suntci.com') {
-                 // Prioritize the specific suntci.com article format
-                 isPotentialArticle = isSuntciArticle;
+              // Prioritize matching against the articleLinkTemplate if provided
+              if (templateRegex && templateRegex.test(cleanedLink)) {
+                isPotentialArticle = true;
+                console.log(`Link "${cleanedLink}" matches articleLinkTemplate "${articleLinkTemplate}". Including.`);
+              } else {
+                 console.log(`Link "${cleanedLink}" does not match articleLinkTemplate "${articleLinkTemplate}". Excluding based on template.`);
               }
-              else {
-                // General heuristics for other domains
-                isPotentialArticle =
-                  !isExcludedPath &&
-                  (
-                    /\/\d{4}\/\d{2}\/\d{2}\/[^\/]+/.test(path) || // /year/month/day/slug
-                    /\/\w+\/\w+-\w+/.test(path) || // /category/slug
-                    /\/article\/\d+/.test(path) || // /article/id
-                    /\/news\//.test(path) || // /news/
-                    /\/story\//.test(path) || // /story/
-                    /\.html?$/.test(path) || // .html or .htm extension
-                    /\/[a-zA-Z0-9-]+\/\d+$/.test(path) || // /slug/id
-                    /\/[a-zA-Z0-9-]+\/\d{4}-\d{2}-\d{2}\/[a-zA-Z0-9-]+/.test(path) || // /category/year-month-day/slug
-                    /\/\d{4}\/\d{2}\/[a-zA-Z0-9-]+\.html?$/.test(path) || // /year/month/slug.html
-                    /\/p\/\d+$/.test(path) || // /p/id (common for some blogs/news)
-                    /\/post\/\d+$/.test(path) || // /post/id (another common pattern)
-                    /\/story\/\d+$/.test(path) || // /story/id
-                    /\/article\/[a-zA-Z0-9-]+$/.test(path) || // /article/slug
-                    /\/news\/[a-zA-Z0-9-]+$/.test(path) || // /news/slug
-                    /\/\w+\/\d{4}\/\d{2}\/\d{2}\/[^\/]+/.test(path) || // /category/year/month/day/slug
-                    /\/\d{4}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/slug/slug
-                    /\/\d{4}\/\d{2}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/slug/slug
-                    /\/\w+\/\d{4}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /category/year/slug/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/slug/slug
-                    /\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/id
-                    /\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+$/.test(path) || // /year/month/day/category/slug
-                    /\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/slug/slug
-                    /\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/id
-                    /\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/slug
-                    /\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/slug
-                    /\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/id
-                    /\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/id
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/id
-                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/\d+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/id
-                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/slug
-                    /\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /category/subcategory/subsubcategory/subsub/subsub/subsub/slug
-                    /\/\d{4}\/\d{2}\/\d{2}\/\w+\/\w+\/\w+\/\w+\/\w+\/\w+\/[a-zA-Z0-9-]+$/.test(path) || // /year/month/day/category/subcategory/subsubcategory/subsub/subsub/slug
-                    path.split('/').filter(segment => segment.length > 0).pop().length > 20 // Check for longer final path segments
-                  );
-              }
-
 
               if (isPotentialArticle) {
-                 articleUrls.add(link);
-                 console.log(`Link "${link}" matches articleLinkTemplate "${articleLinkTemplate}". Including.`);
+                 articleUrls.add(cleanedLink);
                  // Only add potential article links to urlsToVisit for further exploration
-                 if (!visitedUrls.has(link) && urlsToVisit.length < 200 && depth + 1 <= maxDepth) {
-                    urlsToVisit.push({ url: link, depth: depth + 1 });
+                 if (!visitedUrls.has(cleanedLink) && urlsToVisit.length < 200 && depth + 1 <= maxDepth) {
+                    urlsToVisit.push({ url: cleanedLink, depth: depth + 1 });
                  }
-              } else {
-                 // console.log(`Link "${link}" does not match articleLinkTemplate "${articleLinkTemplate}". Excluding.`); // Comment out this line
               }
             }
           } catch (e) {
             // Ignore invalid URLs
+            console.warn(`Skipping invalid URL: ${link}`, e);
           }
         }
       } catch (e) {
@@ -432,7 +338,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
       }
     }
 
-    return Array.from(articleUrls); // Return only the links that were added (matched the template)
+    return Array.from(articleUrls);
 
   } catch (error) {
     console.error(`Error discovering article URLs from ${sourceUrl}:`, error);
@@ -447,5 +353,5 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
 
 module.exports = {
   scrapeArticle,
-  discoverArticleUrls, // Export the new discovery function
+  discoverArticleUrls, // Export the updated discovery function
 };
