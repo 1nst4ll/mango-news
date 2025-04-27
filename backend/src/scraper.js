@@ -1,3 +1,5 @@
+require('dotenv').config({ path: './backend/.env' }); // Load environment variables from backend/.env
+
 const { Pool } = require('pg');
 const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting .default)
 const cron = require('node-cron'); // Import node-cron for scheduling

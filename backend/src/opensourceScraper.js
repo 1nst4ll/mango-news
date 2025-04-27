@@ -248,6 +248,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
           .replace(/\{MM\}/g, '\\d{2}')
           .replace(/\{DD\}/g, '\\d{2}')
           .replace(/\{article_slug\}/g, '[^\\/]+')
+          .replace(/\{slug\}/g, '[^\\/]+') // Add replacement for {slug}
           .replace(/\{id\d*\}/g, '\\d+') // Handle {id}, {id1}, {id2}, etc.
           .replace(/\./g, '\\.') // Escape dots
           .replace(/\//g, '\\/') // Escape slashes
@@ -269,6 +270,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
       }
 
       console.log(`Visiting for discovery (Depth ${depth}): ${currentUrl}`);
+      // Mark the current URL as visited *before* processing its links
       visitedUrls.add(currentUrl);
 
       try {
@@ -282,6 +284,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
 
         console.log(`Found ${links.length} links on ${currentUrl}`);
 
+        // Process links in the Node.js environment
         for (const link of links) {
           try {
             const url = new URL(link);
@@ -306,13 +309,14 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
 
             // Remove hash fragment
             url.hash = '';
-            const cleanedLink = url.toString(); // Use a new variable for the modified link
+            const cleanedLink = url.toString();
 
             // Check if the link is on the same domain
             if (url.hostname === sourceHostname) {
               let isPotentialArticle = false;
 
               // Prioritize matching against the articleLinkTemplate if provided
+              console.log(`Checking link: ${cleanedLink} against regex: ${templateRegex}`);
               if (templateRegex && templateRegex.test(cleanedLink)) {
                 isPotentialArticle = true;
                 console.log(`Link "${cleanedLink}" matches articleLinkTemplate "${articleLinkTemplate}". Including.`);
@@ -321,12 +325,35 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
               }
 
               if (isPotentialArticle) {
-                 articleUrls.add(cleanedLink);
-                 // Only add potential article links to urlsToVisit for further exploration
-                 if (!visitedUrls.has(cleanedLink) && urlsToVisit.length < 200 && depth + 1 <= maxDepth) {
+                 // Check if we have already found this article URL
+                 if (!articleUrls.has(cleanedLink)) {
+                    articleUrls.add(cleanedLink);
+                    console.log(`Added potential article URL: ${cleanedLink}. Total found: ${articleUrls.size}`);
+                    // Only add potential article links to urlsToVisit for further exploration if under limit
+                    // We don't add article URLs to urlsToVisit because we only want to scrape them, not discover links from them.
+                    // The discovery process should explore non-article pages to find more article links.
+                    // if (articleUrls.size < limit && depth + 1 <= maxDepth) {
+                    //    urlsToVisit.push({ url: cleanedLink, depth: depth + 1 });
+                    //    console.log(`Added ${cleanedLink} to urlsToVisit. Queue size: ${urlsToVisit.length}`);
+                    // } else if (articleUrls.size >= limit) {
+                    //    console.log(`Reached article URL limit (${limit}). Stopping discovery.`);
+                    // }
+                 } else {
+                    console.log(`Link "${cleanedLink}" already discovered.`);
+                 }
+              } else {
+                 // If it's not a potential article but is on the same domain and not visited, add it to urlsToVisit
+                 if (!visitedUrls.has(cleanedLink) && depth + 1 <= maxDepth) {
                     urlsToVisit.push({ url: cleanedLink, depth: depth + 1 });
+                    console.log(`Link "${cleanedLink}" is not an article but on same domain. Added to urlsToVisit. Queue size: ${urlsToVisit.length}`);
+                    // Mark as visited here to prevent adding it multiple times to the queue
+                    visitedUrls.add(cleanedLink);
+                 } else {
+                    console.log(`Link "${cleanedLink}" is not an article, on same domain, but already visited or max depth reached.`);
                  }
               }
+            } else {
+               console.log(`Link "${cleanedLink}" is on a different domain (${url.hostname}). Excluding.`);
             }
           } catch (e) {
             // Ignore invalid URLs
@@ -338,6 +365,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
       }
     }
 
+    console.log(`Finished discovery. Discovered ${articleUrls.size} potential article URLs.`);
     return Array.from(articleUrls);
 
   } catch (error) {
