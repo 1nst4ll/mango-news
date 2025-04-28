@@ -379,17 +379,17 @@ async function generateAIImage(title, content) {
     : content;
 
   try {
-    const prompt = `Generate a visual representation based on the following news article title and content. Focus on the main subject and a visual style. Avoid any sensitive, harmful, or policy-violating terms. The image should be suitable for a general audience.
+    const prompt = `Create a news thumbnail that visually represents the following article. Set in Turks and Caicos, featuring local Caribbean residents with dark skin tones. The image should capture the essence of the article's content while being suitable for general audiences. Create a balanced composition with good lighting that works well as a clickable thumbnail.
 
 Title: ${title}
-Content: ${truncatedContent}
-
-Generate this image in a dramatic and impactful style suitable for a news headline. Ensure the setting is clearly Caribbean and depict people with dark skin.`; // Updated prompt with location and skin tone
+Content: ${truncatedContent}`;
 
     const requestBody = {
       image_request: { // Added required image_request object
         prompt: prompt,
-        aspect_ratio: "ASPECT_16_9" // Added aspect ratio
+        aspect_ratio: "ASPECT_16_9", // Added aspect ratio
+        model: "V_3_TURBO", // Added missing comma
+        magic_prompt_option: "AUTO"
         // Add other Ideogram API parameters as needed within image_request, e.g., model, etc.
       }
     };
