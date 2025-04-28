@@ -4,10 +4,10 @@ const { Pool } = require('pg');
 const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting .default)
 const cron = require('node-cron'); // Import node-cron for scheduling
 const Groq = require('groq-sdk'); // Import Groq SDK
-const { GoogleGenerativeAI } = require('@google/generative-ai'); // Import Google Generative AI SDK
 const { scrapeArticle: opensourceScrapeArticle, discoverArticleUrls: opensourceDiscoverSources } = require('./opensourceScraper'); // Import open-source scraper functions
 const fs = require('fs').promises; // Import Node.js file system promises API
 const path = require('path'); // Import Node.js path module
+const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
 
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
@@ -22,11 +22,6 @@ const pool = new Pool({
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY // Assuming API key is in environment variable
 });
-
-// Initialize Google Generative AI SDK
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// Use the model capable of generating text and images
-const imageGenerationModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash-experimental" }); // Using the specified model
 
 // Initialize Firecrawl client with API key
 const firecrawl = new Firecrawl({
@@ -75,8 +70,8 @@ async function scrapeSource(source) {
       // Check if the scrape was successful and data is available
       if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
         console.log(`Successfully scraped: ${scrapedResult.metadata?.title || 'No Title'}`);
-        // Pass the relevant data to processScrapedData
-        await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata);
+        // Removed call to processScrapedData as this function is for discovery, not article processing
+        // await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata);
       } else {
         console.error(`Failed to scrape source: ${source.name}`, scrapedResult); // Log the full result object
       }
@@ -186,9 +181,11 @@ async function assignTopicsWithAI(source, content, enableGlobalAiTags = true) { 
 
 
 // This function will process the scraped data and save it to the database
-async function processScrapedData(source, content, metadata, enableGlobalAiSummary = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
-  console.log(`Processing scraped data for source: ${source.name}`);
-  console.log(`processScrapedData received enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
+async function processScrapedData(data) { // Accept a single data object
+  const { source, content, metadata, scrapeType, enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = data; // Destructure data object
+  console.log(`processScrapedData function started. scrapeType received: ${scrapeType}`); // Added log at the beginning
+  console.log(`Processing scraped data for source: ${source.name} (Scrape Type: ${scrapeType})`);
+  console.log(`processScrapedData received scrapeType: ${scrapeType}, enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
   try {
     if (content) {
       console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`);
@@ -262,41 +259,78 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
         return; // Skip saving if article already exists
       }
 
-      // Generate AI summary only if enabled for the source or globally
-      let summary = null; // Initialize summary as null
-      const shouldGenerateSummary = enableGlobalAiSummary !== undefined ? enableGlobalAiSummary : source.enable_ai_summary;
+      // Determine if AI features should be enabled based on scrape type and toggles
+      let shouldGenerateSummary = false;
+      let shouldAssignTags = false;
+      let shouldGenerateImage = false;
 
-      if (shouldGenerateSummary) {
-        console.log('AI summary generation is enabled. Generating summary using Groq...'); // Added log
-        summary = await generateAISummary(raw_content);
-      } else {
-        console.log('AI summary generation is disabled globally. Skipping summary generation.'); // Added log
+      if (scrapeType === 'per-source') {
+        shouldGenerateSummary = source.enable_ai_summary;
+        shouldAssignTags = source.enable_ai_tags;
+        shouldGenerateImage = source.enable_ai_image;
+      } else if (scrapeType === 'global') { // Includes scheduled scrapes
+        shouldGenerateSummary = enableGlobalAiSummary && source.enable_ai_summary;
+        shouldAssignTags = enableGlobalAiTags && source.enable_ai_tags;
+        shouldGenerateImage = enableGlobalAiImage && source.enable_ai_image;
       }
 
-      // Generate AI image only if enabled and no thumbnail exists
-      let aiImageUrl = null;
-      const shouldGenerateImage = enableGlobalAiImage !== undefined ? enableGlobalAiImage : source.enable_ai_image;
+      // Generate AI summary if enabled
+      let summary = null;
+      if (shouldGenerateSummary) {
+        console.log('AI summary generation is enabled. Generating summary using Groq...');
+        summary = await generateAISummary(raw_content);
+      } else {
+        console.log('AI summary generation is disabled. Skipping summary generation.');
+      }
 
+      // Generate AI image if enabled and no thumbnail exists
+      let aiImageUrl = null;
       if (shouldGenerateImage && (!metadata?.thumbnail_url || metadata.thumbnail_url.trim() === '')) {
         console.log('AI image generation is enabled and no thumbnail exists. Generating image...');
         aiImageUrl = await generateAIImage(title, raw_content); // Pass title and content for prompt
       } else if (!shouldGenerateImage) {
-        console.log('AI image generation is disabled globally or for this source. Skipping image generation.');
+        console.log('AI image generation is disabled. Skipping image generation.');
       } else {
         console.log('Thumbnail URL already exists. Skipping AI image generation.');
       }
 
+      // Determine the final thumbnail URL: use AI image if generated, otherwise use scraped thumbnail
+      const finalThumbnailUrl = aiImageUrl || metadata?.thumbnail_url || null;
+
       // Save article to database
       const articleResult = await pool.query(
         'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-        [title, source.id, source_url, author, publication_date, raw_content, summary, metadata?.thumbnail_url || null, aiImageUrl]
+        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImageUrl] // Save AI image URL to thumbnail_url
       );
       const articleId = articleResult.rows[0].id;
 
-      // Assign topics using AI
-      console.log(`processScrapedData passing enableGlobalAiTags to assignTopicsWithAI: ${enableGlobalAiTags}`); // Log value before calling assignTopicsWithAI
-      // Pass the source object and the global toggle state
-      const assignedTopics = await assignTopicsWithAI(source, raw_content, enableGlobalAiTags);
+      // Assign topics using AI if enabled
+      let assignedTopics = [];
+      if (shouldAssignTags) {
+        console.log('AI tag assignment is enabled. Assigning topics using Groq...');
+        // Pass the source object and raw content. The global toggle check is now done here.
+        assignedTopics = await assignTopicsWithAI(source, raw_content);
+      } else {
+         console.log('AI tag assignment is disabled. Skipping topic assignment.');
+      }
+
+      // Save assigned topics and link to article
+      for (const topicName of assignedTopics) {
+        let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
+        let topicId;
+        if (topicResult.rows.length === 0) {
+          // Topic doesn't exist, create it
+          topicResult = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
+          topicId = topicResult.rows[0].id;
+        } else {
+          topicId = topicResult.rows[0].id;
+        }
+
+        // Link article and topic
+        await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
+      }
+
+      console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}.`);
 
       // Save assigned topics and link to article
       for (const topicName of assignedTopics) {
@@ -325,14 +359,17 @@ async function processScrapedData(source, content, metadata, enableGlobalAiSumma
 }
 
 
-// Function to generate AI image using Gemini API (Gemini 2.0 Flash Experimental)
+// Function to generate AI image using Ideogram API
 async function generateAIImage(title, content) {
-  console.log('Generating AI image using Gemini 2.0 Flash Experimental...');
+  console.log('Attempting to generate AI image using Ideogram API...');
 
-  if (!process.env.GEMINI_API_KEY) {
-    console.warn('GEMINI_API_KEY is not set. Skipping AI image generation.');
+  const ideogramApiKey = process.env.IDEOGRAM_API_KEY;
+  if (!ideogramApiKey) {
+    console.warn('IDEOGRAM_API_KEY is not set. Skipping AI image generation.');
     return null;
   }
+
+  const ideogramApiUrl = 'https://api.ideogram.ai/generate'; // Corrected endpoint
 
   const maxContentLength = 5000; // Define max content length for prompt generation
 
@@ -342,64 +379,58 @@ async function generateAIImage(title, content) {
     : content;
 
   try {
-    // Use the image generation model to generate content with an image
-    const result = await imageGenerationModel.generateContent([
-      `Generate a visual representation based on the following news article title and content. Focus on the main subject and a visual style. Avoid any sensitive, harmful, or policy-violating terms. The image should be suitable for a general audience.
+    const prompt = `Generate a visual representation based on the following news article title and content. Focus on the main subject and a visual style. Avoid any sensitive, harmful, or policy-violating terms. The image should be suitable for a general audience.
 
 Title: ${title}
-Content: ${truncatedContent}`,
-    ]);
+Content: ${truncatedContent}
 
-    const response = result.response;
-    const parts = response.candidates?.[0]?.content?.parts;
+Generate this image in a dramatic and impactful style suitable for a news headline. Ensure the setting is clearly Caribbean and depict people with dark skin.`; // Updated prompt with location and skin tone
 
-    if (parts && parts.length > 0) {
-      // Find the image part (assuming it's inlineData)
-      const imagePart = parts.find(part => part.inlineData && part.inlineData.mimeType.startsWith('image/'));
-
-      if (imagePart) {
-        const base64Data = imagePart.inlineData.data;
-        const mimeType = imagePart.inlineData.mimeType;
-        const fileExtension = mimeType.split('/')[1]; // e.g., 'png', 'jpeg'
-
-        // Define the directory to save images
-        const uploadDir = path.join(__dirname, '../frontend/public/ai-images');
-        // Ensure the directory exists
-        await fs.mkdir(uploadDir, { recursive: true });
-
-        // Generate a unique filename (e.g., timestamp + random string)
-        const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
-        const filePath = path.join(uploadDir, filename);
-
-        // Save the base64 data to a file
-        const buffer = Buffer.from(base64Data, 'base64');
-        await fs.writeFile(filePath, buffer);
-
-        // Return the public URL path to the saved image
-        const publicPath = `/ai-images/${filename}`;
-        console.log('Generated and saved AI image:', publicPath);
-        return publicPath;
-
-      } else {
-        console.warn('Gemini response did not contain inline image data.');
-        return null;
+    const requestBody = {
+      image_request: { // Added required image_request object
+        prompt: prompt,
+        aspect_ratio: "ASPECT_16_9" // Added aspect ratio
+        // Add other Ideogram API parameters as needed within image_request, e.g., model, etc.
       }
+    };
+
+    const response = await fetch(ideogramApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Api-Key': ideogramApiKey,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ideogram API request failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const responseData = await response.json();
+
+    // Assuming the response structure includes a 'data' array with image objects, each having a 'url'
+    if (responseData && responseData.data && responseData.data.length > 0) {
+      const imageUrl = responseData.data[0].url; // Get the URL of the first generated image
+      console.log('Generated AI image URL:', imageUrl);
+      return imageUrl;
     } else {
-      console.warn('Gemini response did not contain content parts.');
+      console.warn('Ideogram API response did not contain expected image data.', responseData);
       return null;
     }
 
-  } catch (llmErr) {
-    console.error('Error generating AI image with Gemini:', llmErr);
+  } catch (apiErr) {
+    console.error('Error generating AI image with Ideogram API:', apiErr);
     return null; // Return null on error
   }
 }
 
 
 // Function to scrape a single article page based on source method
-async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
+async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept scrape type and global toggle states
   console.log(`Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
-  console.log(`scrapeArticlePage received enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
+  console.log(`scrapeArticlePage received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
   let scrapedResult = null;
   let metadata = null;
   let content = null;
@@ -429,7 +460,8 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
           keywords: opensourceData.topics ? opensourceData.topics.join(',') : undefined, // Convert topics array to comma-separated string
         };
         console.log(`Successfully scraped article with opensource: ${metadata?.title || 'No Title'}`);
-        await processScrapedData(source, content, metadata, enableGlobalAiSummary, enableGlobalAiTags); // Pass enableGlobalAiTags
+        console.log(`scrapeArticlePage passing scrapeType to processScrapedData: ${scrapeType}`); // Added log
+        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage }); // Pass data as an object
       } else {
         console.error(`Failed to scrape article page with opensource: ${articleUrl}`);
       }
@@ -458,7 +490,7 @@ async function scrapeArticlePage(source, articleUrl, enableGlobalAiSummary = und
         content = firecrawlResult.markdown; // Get markdown content
         metadata = firecrawlResult.extract; // Get extracted data as metadata
         console.log(`Successfully scraped article with Firecrawl: ${metadata?.title || 'No Title'}`);
-        await processScrapedData(source, content, metadata, enableGlobalAiSummary, enableGlobalAiTags); // Pass enableGlobalAiTags
+        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage }); // Pass data as an object
       } else {
         console.error(`Failed to scrape article page with Firecrawl: ${articleUrl}`, firecrawlResult);
       }
@@ -530,7 +562,7 @@ async function runScraper(enableGlobalAiSummary = undefined, enableGlobalAiTags 
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary, enableGlobalAiTags, enableGlobalAiImage); // Pass global toggles
+        const processed = await scrapeArticlePage(source, articleUrl, 'global', enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage); // Pass scrape type and global toggles
         if (processed) {
           articlesAdded++;
         }
@@ -624,7 +656,7 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, source.enable_ai_summary, enableGlobalAiTags, enableGlobalAiImage); // Pass global toggles
+        const processed = await scrapeArticlePage(source, articleUrl, 'per-source', source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image); // Pass scrape type and source toggles
         if (processed) {
           articlesAdded++;
         }

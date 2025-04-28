@@ -45,6 +45,9 @@ This document guides you through setting up and configuring the Mango News backe
     # Firecrawl API Key (if using Firecrawl scraping)
     FIRECRAWL_API_KEY=your_firecrawl_api_key
 
+    # Gemini API Key (for AI features like image generation)
+    GEMINI_API_KEY=your_gemini_api_key
+
     # Add other environment variables as needed
     ```
     Replace placeholder values with your actual database credentials and API keys.
@@ -67,6 +70,22 @@ This document guides you through setting up and configuring the Mango News backe
 -   `POST /api/articles/purge`: Deletes all articles, topics, and article links from the database.
 -   `GET /api/stats`: Retrieves database statistics, including total article count, total source count, article count per source, and article count per year.
 - **Scraping Configuration:** Scraping methods (Open Source or Firecrawl) are configured per source in the [Admin UI (Source Management section)](admin-ui.md#source-management) and stored in the database. Firecrawl requires the `FIRECRAWL_API_KEY` environment variable.
+
+## CLI Usage
+
+In addition to triggering scrapes via the API, you can also run the scraper directly from the command line. This is useful for manual testing or specific scraping tasks.
+
+1.  **Run the global scraper for all active sources:**
+    ```bash
+    node backend/src/scraper.js runScraper
+    ```
+    This command will discover and scrape new articles from all sources marked as active in the database, respecting their individual AI feature settings and the global toggles (if provided as arguments, though not currently supported via CLI).
+
+2.  **Run the scraper for a specific source ID:**
+    ```bash
+    node backend/src/scraper.js runScraperForSource <sourceId>
+    ```
+    Replace `<sourceId>` with the ID of the source you want to scrape. This command will discover and scrape new articles only from the specified source, respecting its individual AI feature settings.
 
 ---
 

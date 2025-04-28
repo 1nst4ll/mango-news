@@ -54,11 +54,16 @@ This method leverages the Firecrawl API to scrape web pages. Firecrawl provides 
 
 The choice between open-source and Firecrawl scraping depends on your specific needs and technical expertise. Open-source scraping offers more control but requires more development and maintenance effort. Firecrawl provides a convenient, managed solution but introduces an external dependency and potential costs.
 
-## AI Features and Global Settings
+## AI Features and Toggle Logic
 
-The scraping process includes optional AI-powered features for generating article summaries and assigning topics using the Groq API. These features can be enabled or disabled on a per-source basis through the Admin UI.
+The scraping process includes optional AI-powered features for generating article summaries, assigning topics, and generating images. AI image generation currently uses the `gemini-2.0-flash-001` model. These features can be enabled or disabled on a per-source basis through the Admin UI.
 
-Additionally, when triggering a scrape via the API endpoints (`POST /api/scrape/run/:id` and `POST /api/scrape/run`), you can provide `enableGlobalAiSummary` and `enableGlobalAiTags` boolean parameters in the request body. If provided, these global parameters will override the individual source settings for that specific scrape run. This allows for temporary disabling or enabling of AI features for testing or specific scraping tasks without changing the persistent source configuration.
+The behavior of these AI features depends on how the scrape is initiated:
+
+*   **Global Scrapes (e.g., Scheduled Scrapes or `POST /api/scrape/run`):** AI features (summary, tags, image) for a specific article are enabled *only if* the corresponding global AI toggle (if provided in the API request) *and* the source-specific AI toggle are both enabled. If global toggles are not explicitly provided in the API request, the default values (currently `true` for tags and image, `undefined` for summary) are used in conjunction with the source-specific toggles.
+*   **Per-Source Scrapes (`POST /api/scrape/run/:id`):** AI features (summary, tags, image) for articles from this source are enabled *only if* the corresponding source-specific AI toggle is enabled. Any global AI toggles provided in the API request body for this endpoint are ignored.
+
+This logic ensures that scheduled and global manual scrapes respect both global preferences and source-specific configurations, while per-source manual scrapes strictly adhere to the source's own AI settings.
 
 ---
 
