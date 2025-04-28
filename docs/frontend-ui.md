@@ -10,7 +10,17 @@ The frontend of the Mango News application is being migrated to a new stack for 
 *   **Component Library:** shadcn/ui (built with Radix UI and Tailwind CSS)
 *   **State Management:** React's built-in hooks (useState, useEffect) are currently used within React components (Astro Islands). Integration with TanStack Query is a potential future enhancement.
 *   **Content Fetching:** Data is fetched from the backend API. The API URL is configured using environment variables.
-*   **Environment Variables:** The backend API URL is set using the `PUBLIC_API_URL` environment variable in a `.env` file located in the `frontend` directory. For local development, this is typically `PUBLIC_API_URL=http://localhost:3000`. For production, this should be set to the actual backend URL.
+*   **Environment Variables:** The backend API URL is configured using environment variables. An example file, `.env.example`, is provided in the `frontend` directory.
+    *   Copy the example file:
+        ```bash
+        cp .env.example .env
+        ```
+    *   Edit the newly created `.env` file and fill in the required value:
+        ```env
+        # Backend API URL
+        PUBLIC_BACKEND_API_URL=http://localhost:3000/api
+        ```
+    Replace `http://localhost:3000/api` with the actual URL of your backend API.
 *   **Routing:** Astro's file-based routing.
 
 **Current Styling State:**
@@ -26,3 +36,8 @@ A new toggle has been added to the Settings page (`frontend/src/components/Setti
 Further styling refinements and component integrations will continue as the migration progresses. Conditional top padding has been implemented on the newsfeed cards in `NewsFeed.tsx` to ensure no gap above the image when present, while providing padding when no image exists. The top padding was previously removed from the `Card` component to allow images to be positioned at the very top.
 
 An audit of the shadcn/ui components in `frontend/src/components/ui/` has been completed. The audited components include `button`, `calendar`, `card`, `chart`, `checkbox`, `DatePickerWithRange`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `select`, `switch`, and `textarea`. The implementations generally follow shadcn/ui documentation and best practices. A minor correction was made to `frontend/src/components/ui/chart.tsx` to use a path alias (`@/lib/utils`) for the `cn` utility function instead of a relative import.
+
+---
+
+Further Documentation:
+* [Server Deployment Instructions](../deployment.md)

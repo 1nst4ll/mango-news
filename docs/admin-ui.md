@@ -42,4 +42,6 @@ This section helps you find potential new news sources to add to your collection
 
 ---
 
-Next: [Troubleshooting Common Issues](troubleshooting.md)
+Further Documentation:
+* [Server Deployment Instructions](../deployment.md)
+* [Troubleshooting Common Issues](troubleshooting.md)

@@ -1,0 +1,71 @@
+# Server Deployment Instructions
+
+This document provides guidance on deploying the Mango News application to a server environment, specifically considering an Inmotion Hosting environment with Nginx and WP Launch.
+
+## Prerequisites
+
+*   A server environment (e.g., Inmotion Hosting with Nginx).
+*   Access to a PostgreSQL database server.
+*   Node.js and npm installed on the server (for the backend).
+*   Necessary environment variables configured on the server.
+
+## Database Deployment
+
+1.  **Set up PostgreSQL Database:** Ensure you have a PostgreSQL database set up on your server or a managed database service. Note the database credentials (host, name, user, password).
+2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your server's PostgreSQL database. You can typically do this using a database management tool or the `psql` command-line utility.
+
+## Backend Deployment (Node.js/Express)
+
+1.  **Transfer Backend Files:** Transfer the contents of the `backend/` directory to your server. The specific location may depend on your hosting setup (e.g., within a user's home directory or a specific application directory).
+2.  **Install Dependencies:** Navigate to the backend directory on your server using the terminal and install dependencies:
+    ```bash
+    cd /path/to/your/backend
+    npm install --production
+    ```
+    Using `--production` ensures only production dependencies are installed.
+3.  **Configure Environment Variables:** Configure the necessary environment variables for the backend on your server. The required variables are listed in `backend/.env.example`. The method for setting environment variables varies depending on your server setup (e.g., using a process manager like PM2, systemd service files, or your hosting control panel's configuration).
+    *   `DB_HOST`
+    *   `DB_NAME`
+    *   `DB_USER`
+    *   `DB_PASSWORD`
+    *   `GROQ_API_KEY`
+    *   `IDEOGRAM_API_KEY`
+    *   (Optional) `FIRECRAWL_API_KEY` (if not using the MCP server)
+4.  **Start the Backend Process:** Start the backend application. For production environments, it's recommended to use a process manager like PM2 to keep the application running and manage restarts.
+    ```bash
+    # Example using PM2
+    npm install -g pm2 # Install PM2 globally if not already installed
+    pm2 start index.js --name mango-news-backend
+    pm2 save # Save the process list to restart on boot
+    ```
+5.  **Configure Nginx (or other web server):** Configure your web server (Nginx in the case of Inmotion Hosting) to proxy requests to your running Node.js backend process. This typically involves setting up a server block that listens on a public port (e.g., 80 or 443) and forwards requests to the port your Node.js application is listening on (default 3000).
+
+## Frontend Deployment (Astro)
+
+1.  **Build the Astro Project:** On your local machine or a build server, build the Astro frontend project for production.
+    ```bash
+    cd frontend
+    npm install # Ensure dependencies are installed
+    npm run build
+    ```
+    This will generate a `dist/` directory containing the static production build.
+2.  **Transfer Frontend Files:** Transfer the contents of the `dist/` directory from your local machine to the webroot directory of your server where your domain is pointed (e.g., `public_html` or a subdomain directory).
+3.  **Configure Environment Variables:** Ensure the frontend environment variables are correctly set for the production build. For Astro, environment variables prefixed with `PUBLIC_` are exposed to the browser. The primary variable needed is `PUBLIC_BACKEND_API_URL`. This is typically handled during the build process or by your hosting environment's configuration.
+    *   `PUBLIC_BACKEND_API_URL=https://your-backend-api-url.com/api`
+    Replace `https://your-backend-api-url.com/api` with the public URL of your deployed backend API.
+4.  **Configure Nginx (or other web server):** Configure your web server (Nginx) to serve the static files from the frontend `dist/` directory. Ensure that routing is configured correctly to handle client-side routing if necessary (Astro's default build is static, but dynamic routes like `[id].astro` are handled by Astro itself if deployed as a server). For a fully static build, ensure Nginx is configured to serve `index.html` for any route that doesn't match a file.
+
+## Inmotion Hosting Specifics (WP Launch)
+
+*   **Environment:** Inmotion Hosting often uses cPanel. You can typically manage databases (PostgreSQL via phpPgAdmin or similar), set up Node.js applications (sometimes via a "Setup Node.js App" tool), and configure Nginx/Apache via `.htaccess` files or cPanel's "Indexes" or "Directory Privacy" tools, although direct Nginx configuration might require contacting support or using advanced features.
+*   **WP Launch:** If using a WP Launch package, the environment is primarily optimized for WordPress. Deploying a custom Node.js backend and Astro frontend might require using a subdomain or a separate directory outside the main WordPress installation and potentially more advanced server configuration than readily available through standard cPanel. Consult Inmotion Hosting's documentation or support for the best approach for deploying custom applications.
+
+## Updating Documentation
+
+After successfully deploying, remember to update the `PROGRESS.md` and potentially other documentation files to reflect the deployment status and any specific server configurations or notes relevant to your setup.
+
+## Further Documentation
+
+*   [Backend Setup and Configuration](./backend-setup.md)
+*   [Frontend UI Styling and Stack](./frontend-ui.md)
+*   [Troubleshooting Common Issues](./troubleshooting.md)

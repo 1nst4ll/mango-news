@@ -25,9 +25,9 @@ This document provides guidance on troubleshooting common issues you might encou
 
 ### Frontend Not Displaying Correctly
 
--   **Frontend Server Not Running:** Ensure your frontend development server is running (typically `npm run dev` or `yarn dev` in the `frontend` directory).
+-   **Frontend Server Not Running:** Ensure your frontend development server is running (typically `npm run dev` in the `astro-frontend` directory).
 -   **Backend Server Not Running:** The frontend relies on the backend API. Ensure your backend server is running.
--   **API Endpoint Configuration:** Verify that the frontend is configured to connect to the correct backend API URL (check the fetch calls in the frontend code, e.g., in `frontend/src/app/admin/sources/page.tsx`).
+-   **API Endpoint Configuration:** Verify that the frontend is configured to connect to the correct backend API URL (check the fetch calls in the frontend code, e.g., in `astro-frontend/src/pages/settings.astro` or relevant component files).
 -   **Browser Cache:** Clear your browser's cache and cookies to ensure you are loading the latest version of the frontend code.
 -   **Console Errors:** Check the browser's developer console for any JavaScript errors.
 
@@ -40,3 +40,8 @@ This document provides guidance on troubleshooting common issues you might encou
 -   **Database Schema:** Verify that the necessary tables and columns exist in your database by checking the `db/schema.sql` file and running any pending migrations.
 
 If you encounter an issue that is not covered in this document, please refer to the specific error messages in your console or logs and consult the relevant documentation for the technologies being used (Node.js, your database system, Puppeteer/Playwright, Firecrawl, Next.js, React).
+
+---
+
+Further Documentation:
+* [Server Deployment Instructions](../deployment.md)

@@ -1,92 +1,84 @@
 # Backend Setup and Configuration
 
-This document guides you through setting up and configuring the Mango News backend.
+This document guides you through setting up and configuring the backend for the Mango News application.
 
 ## Prerequisites
 
-- Node.js installed
-- npm or yarn installed
-- PostgreSQL database server running
+*   Node.js and npm installed.
+*   Access to a PostgreSQL database.
+*   A Groq API key for AI features (summaries and topic assignment).
 
-## Setup Steps
+## Database Setup
 
-1.  **Navigate to the backend directory:**
+The backend connects to a PostgreSQL database.
+
+1.  **Database Details:**
+    *   **Type:** PostgreSQL
+    *   **Host:** For local development, use `localhost`. For production, this will be your database server address (e.g., `news.hoffmanntci.com`).
+    *   **Database Name:** `hoffma24_mangonews`
+    *   **Username:** `hoffma24_mangoadmin`
+    *   **Password:** This should be stored securely in your backend's `.env` file.
+
+2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your PostgreSQL database.
+
+## Backend Configuration
+
+1.  **Navigate to Backend Directory:** Open your terminal and change to the backend directory:
     ```bash
     cd backend
     ```
 
-2.  **Install dependencies:**
+2.  **Install Dependencies:** Install the required Node.js packages:
     ```bash
     npm install
-    # or
-    yarn install
     ```
-    Ensure the `pg` package is installed for PostgreSQL connectivity.
 
-3.  **Database Setup:**
-- Ensure your PostgreSQL database server is running.
-- The database schema is defined in `db/schema.sql`. This schema includes tables for `sources` (now including `enable_ai_tags` column), `articles`, `topics`, and `article_topics`. The `articles` table now includes columns for `publication_date`, `author`, `title`, `source_url`, and `thumbnail_url` as `TEXT` types to accommodate longer values. Apply this schema to your PostgreSQL database. You can use the `psql` command-line tool:
-  ```bash
-  psql -h your_db_host -d your_db_name -U your_db_username -f ../db/schema.sql
-  ```
-  Replace `your_db_host`, `your_db_name`, and `your_db_username` with your PostgreSQL details. You will be prompted for the password.
+3.  **Environment Variables:** Environment variables are used to configure the backend, especially for sensitive information like database credentials and API keys. An example file, `.env.example`, is provided in the `backend` directory.
+    *   Copy the example file:
+        ```bash
+        cp .env.example .env
+        ```
+    *   Edit the newly created `.env` file and fill in the required values:
+        ```env
+        # Database Configuration
+        DB_HOST=localhost
+        DB_NAME=hoffma24_mangonews
+        DB_USER=hoffma24_mangoadmin
+        DB_PASSWORD=your_database_password
 
-4.  **Environment Variables:**
-    - Create a `.env` file in the `backend` directory.
-    - Add necessary environment variables for database connection and API keys:
-    ```dotenv
-    # Database Configuration
-    DB_USER=your_db_username
-    DB_HOST=your_db_host
-    DB_NAME=your_db_name
-    DB_PASSWORD=your_db_password
-    DB_PORT=5432 # Default PostgreSQL port
+        # API Keys
+        GROQ_API_KEY=your_groq_api_key
+        IDEOGRAM_API_KEY=your_ideogram_api_key
 
-    # Firecrawl API Key (if using Firecrawl scraping)
-    FIRECRAWL_API_KEY=your_firecrawl_api_key
+        # Firecrawl API Key (if needed directly by backend, otherwise handled by MCP)
+        # FIRECRAWL_API_KEY=your_firecrawl_api_key
+        ```
+    Replace the placeholder values (`your_database_password`, `your_groq_api_key`, `your_ideogram_api_key`) with your actual credentials and keys.
 
-    # Gemini API Key (for AI features like image generation)
-    GEMINI_API_KEY=your_gemini_api_key
+4.  **Database Connection in Code:** The database connection details are configured in `backend/src/index.js` and `backend/src/scraper.js`. Ensure these files are configured to read the database password and other sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`). **Note:** Currently, the host is hardcoded to `news.hoffmanntci.com` in some places. This should be updated to use an environment variable for flexibility between local and production environments.
 
-    # Add other environment variables as needed
-    ```
-    Replace placeholder values with your actual database credentials and API keys.
+## Running the Backend
 
-5.  **Start the Backend Server:**
+You can run the backend server in different modes:
+
+*   **Production Mode:**
     ```bash
     npm start
-    # or for development with auto-restarts:
-    # npm run dev
     ```
-    The backend server should now be running, typically on `http://localhost:3000` (check the backend code for the exact port).
+    This will start the backend server, typically listening on port 3000.
 
-## Configuration
-
-- **Database Configuration:** Database connection details are configured using environment variables in the `.env` file.
-- **API Endpoints:** The main API endpoints are defined in `backend/src/index.js`. Refer to this file for available endpoints and their functionalities, including source management (`/api/sources` - now supports `enable_ai_tags`), article fetching (`/api/articles`, `/api/articles/:id`), topic fetching (`/api/topics`), triggering scrapes (`/api/scrape/run`, `/api/scrape/run/:id`), source discovery (`/api/discover-sources`), purging all articles (`/api/articles/purge`), and purging articles by source (`/api/articles/purge/:sourceId`).
--   `POST /api/scrape/run/:id`: Triggers the scraper for a specific source by ID. Accepts an optional JSON body with `{ "enableGlobalAiSummary": boolean, "enableGlobalAiTags": boolean }` to override global AI settings for this run.
--   `POST /api/scrape/run`: Triggers a full scraper run for all active sources. Accepts an optional JSON body with `{ "enableGlobalAiSummary": boolean, "enableGlobalAiTags": boolean }` to override global AI settings for this run.
--   `GET /api/discover-sources`: Initiates a basic source discovery process (currently uses opensourceScraper).
--   `POST /api/articles/purge`: Deletes all articles, topics, and article links from the database.
--   `GET /api/stats`: Retrieves database statistics, including total article count, total source count, article count per source, and article count per year.
-- **Scraping Configuration:** Scraping methods (Open Source or Firecrawl) are configured per source in the [Admin UI (Source Management section)](admin-ui.md#source-management) and stored in the database. Firecrawl requires the `FIRECRAWL_API_KEY` environment variable.
-
-## CLI Usage
-
-In addition to triggering scrapes via the API, you can also run the scraper directly from the command line. This is useful for manual testing or specific scraping tasks.
-
-1.  **Run the global scraper for all active sources:**
+*   **Development Mode:**
     ```bash
-    node backend/src/scraper.js runScraper
+    npm run dev
     ```
-    This command will discover and scrape new articles from all sources marked as active in the database, respecting their individual AI feature settings and the global toggles (if provided as arguments, though not currently supported via CLI).
+    This mode uses `nodemon` to automatically restart the server whenever code changes are detected, which is convenient for development.
 
-2.  **Run the scraper for a specific source ID:**
-    ```bash
-    node backend/src/scraper.js runScraperForSource <sourceId>
-    ```
-    Replace `<sourceId>` with the ID of the source you want to scrape. This command will discover and scrape new articles only from the specified source, respecting its individual AI feature settings.
+The backend API will be accessible at the address and port it is configured to listen on (defaulting to `http://localhost:3000` for local development).
 
----
+## Further Documentation
 
-Next: [Scraping Methods (Open Source and Firecrawl)](scraping-methods.md)
+*   [Server Deployment Instructions](../deployment.md)
+*   [Scraping Methods (Open Source and Firecrawl)](./scraping-methods.md)
+*   [Using CSS Selectors for Scraping](css-selectors.md)
+*   [Settings Page (Admin Controls and Source Management)](admin-ui.md)
+*   [Troubleshooting Common Issues](troubleshooting.md)

@@ -4,6 +4,7 @@ Welcome to the Mango News documentation. This guide provides comprehensive infor
 
 ## Table of Contents
 
+- [Server Deployment Instructions](../deployment.md) - **New**
 - [Backend Setup and Configuration](backend-setup.md)
 - [Scraping Methods (Open Source and Firecrawl)](scraping-methods.md)
 - [Using CSS Selectors for Scraping](css-selectors.md)

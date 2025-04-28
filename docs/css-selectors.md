@@ -16,3 +16,8 @@ This document lists CSS selectors identified for scraping various websites for t
 **Notes:**
 - The content selector targets the main container div holding the article text. Openscraper should be able to extract the text content from this block.
 - The date and author are in separate divs within the same table cell, consider this when extracting.
+
+---
+
+Further Documentation:
+* [Server Deployment Instructions](../deployment.md)

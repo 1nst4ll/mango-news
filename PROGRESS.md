@@ -1,5 +1,13 @@
 # Project Progress
 
+## Documentation Audit and Update (Completed on 2025-04-28)
+
+- Audited all documentation files in the root directory (`README.md`, `PROGRESS.md`) and the `docs/` directory (`README.md`, `backend-setup.md`, `admin-ui.md`, `css-selectors.md`, `frontend-ui.md`, `scraping-methods.md`, `troubleshooting.md`, `deployment.md`).
+- Ensured documentation reflects the current project state, including the Astro frontend migration, backend enhancements (AI features, database stats, source discovery, purge), and UI updates (shadcn/ui integration, settings page consolidation).
+- Added links to the new `docs/deployment.md` file in `README.md` and all relevant files within the `docs/` directory for better cross-referencing.
+- Updated the Table of Contents in `docs/README.md` to include the new deployment documentation.
+- Verified consistency in terminology and feature descriptions across all documentation files.
+
 ## Article Link Formatting and Exclusion Patterns (Completed on 2025-04-24)
 
 - Added `article_link_template` and `exclude_patterns` columns to the `sources` table in `db/schema.sql`.
@@ -93,6 +101,16 @@
 - Updated the `handleAddDiscoveredSourceToForm`, `openAddModal`, `openEditModal`, and `closeAddEditModal` functions in `frontend/src/components/SettingsPage.tsx` to handle the `enable_ai_tags` field.
 - Updated the source mapping in the `useEffect` hook in `frontend/src/components/SettingsPage.tsx` to include the `enable_ai_tags` field when fetching sources.
 - Updated `docs/backend-setup.md` and `docs/frontend-ui.md` to reflect the addition of the AI tags toggle.
+
+## AI Image Generation (Completed on 2025-04-28)
+
+- Implemented AI image generation using the Ideogram API in `backend/src/scraper.js`.
+- Added logic to generate an image only if no thumbnail URL is found during scraping.
+- Added global and per-source toggles for AI image generation.
+- Added `ai_image_url` column to the `articles` table in `db/schema.sql` to store the generated image URL.
+- Updated the `processScrapedData` function in `backend/src/scraper.js` to handle the generated image URL and save it to the database.
+- Updated the frontend `SettingsPage.tsx` to include a toggle for global AI image generation and a toggle in the add/edit source modal for per-source AI image generation.
+- Updated `README.md` and `docs/scraping-methods.md` to document the AI image generation feature.
 
 ## Next Steps: Astro Frontend Migration
 
