@@ -7,7 +7,7 @@ const { Pool } = require('pg'); // Import Pool from pg
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
-const { runScraper, runScraperForSource } = require('./scraper'); // Import scraper functions
+const { runScraper, runScraperForSource, processMissingAiForSource } = require('./scraper'); // Import scraper functions including processMissingAiForSource
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -353,6 +353,35 @@ app.post('/api/scrape/run', async (req, res) => {
   } catch (error) {
     console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering full scraper run:`, error);
     res.status(500).json({ error: 'Failed to trigger full scraper run.' });
+  }
+});
+
+// Endpoint to process missing AI data for a specific source
+app.post('/api/process-missing-ai/:sourceId', async (req, res) => {
+  const sourceId = req.params.sourceId;
+  const endpoint = `/api/process-missing-ai/${sourceId}`;
+  const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image') in the request body
+
+  if (!featureType || !['summary', 'tags', 'image'].includes(featureType)) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Invalid or missing featureType: ${featureType}`);
+    return res.status(400).json({ error: 'Invalid or missing featureType. Must be "summary", "tags", or "image".' });
+  }
+
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering missing AI processing for source ID: ${sourceId}, feature: ${featureType}`);
+
+    const result = await processMissingAiForSource(sourceId, featureType);
+
+    if (result.success) {
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Missing AI processing completed for source ID ${sourceId}, feature ${featureType}.`);
+      res.json({ message: result.message, processedCount: result.processedCount, errorCount: result.errorCount });
+    } else {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Missing AI processing failed for source ID ${sourceId}, feature ${featureType}: ${result.message}`);
+      res.status(500).json({ error: result.message });
+    }
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering missing AI processing for source ${sourceId}, feature ${featureType}:`, error);
+    res.status(500).json({ error: 'Failed to trigger missing AI processing.' });
   }
 });
 

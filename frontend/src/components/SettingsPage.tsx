@@ -89,6 +89,10 @@ const SettingsPage: React.FC = () => {
   const [sourceScrapingLoading, setSourceScrapingLoading] = useState<{ [key: number]: boolean }>({});
   const [sourceArticleDeletionStatus, setSourceArticleDeletionStatus] = useState<{ [key: number]: string | null }>({});
   const [sourceArticleDeletionLoading, setSourceArticleDeletionLoading] = useState<{ [key: number]: boolean }>({});
+  // New state for processing missing AI data
+  const [sourceProcessingLoading, setSourceProcessingLoading] = useState<{ [key: number]: { summary?: boolean; tags?: boolean; image?: boolean } }>({});
+  const [sourceProcessingStatus, setSourceProcessingStatus] = useState<{ [key: number]: { summary?: string | null; tags?: string | null; image?: string | null } }>({});
+
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null); // Changed type to string | null
@@ -319,6 +323,53 @@ const SettingsPage: React.FC = () => {
     setConfirmDialogAction('deleteSourceArticles');
     setConfirmDialogSourceId(sourceId);
     setIsConfirmDialogOpen(true);
+  };
+
+  // New handler function to process missing AI data for a source
+  const handleProcessMissingAi = async (sourceId: number, featureType: 'summary' | 'tags' | 'image') => {
+    setSourceProcessingLoading(prev => ({
+      ...prev,
+      [sourceId]: { ...prev[sourceId], [featureType]: true }
+    }));
+    setSourceProcessingStatus(prev => ({
+      ...prev,
+      [sourceId]: { ...prev[sourceId], [featureType]: null }
+    }));
+
+    try {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const response = await fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ featureType }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to process missing ${featureType} for source ${sourceId}`);
+      }
+      setSourceProcessingStatus(prev => ({
+        ...prev,
+        [sourceId]: { ...prev[sourceId], [featureType]: data.message || `Processed missing ${featureType} for source ${sourceId}.` }
+      }));
+      // Optionally refetch stats after processing tags or images
+      if (featureType === 'tags' || featureType === 'image') {
+         // Consider if refetching stats is necessary or too heavy
+         // fetchStats();
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setSourceProcessingStatus(prev => ({ ...prev, [sourceId]: { ...prev[sourceId], [featureType]: `Error: ${error.message}` } }));
+      } else {
+        setSourceProcessingStatus(prev => ({ ...prev, [sourceId]: { ...prev[sourceId], [featureType]: `An unknown error occurred during ${featureType} processing.` } }));
+      }
+    } finally {
+      setSourceProcessingLoading(prev => ({
+        ...prev,
+        [sourceId]: { ...prev[sourceId], [featureType]: false }
+      }));
+    }
   };
 
   const handleConfirmDeleteArticlesForSource = async () => {
@@ -851,6 +902,75 @@ const SettingsPage: React.FC = () => {
                       Deletion Status: {sourceArticleDeletionStatus[source.id]}
                     </div>
                   )}
+
+                  {/* New: Buttons and Status for Processing Missing AI Data */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h5 className="text-md font-semibold mb-2">Process Missing AI Data:</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Process Missing Summary */}
+                      <div>
+                        <Button
+                          onClick={() => handleProcessMissingAi(source.id, 'summary')}
+                          disabled={sourceProcessingLoading[source.id]?.summary || !source.enable_ai_summary}
+                          size="sm"
+                          variant="secondary"
+                          className="w-full"
+                        >
+                          {sourceProcessingLoading[source.id]?.summary ? 'Processing...' : 'Process Missing Summary'}
+                        </Button>
+                        {sourceProcessingStatus[source.id]?.summary && (
+                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            {sourceProcessingStatus[source.id]?.summary}
+                          </div>
+                        )}
+                         {!source.enable_ai_summary && (
+                           <div className="text-xs mt-1 text-gray-500">AI Summary disabled for this source.</div>
+                         )}
+                      </div>
+
+                      {/* Process Missing Tags */}
+                      <div>
+                        <Button
+                          onClick={() => handleProcessMissingAi(source.id, 'tags')}
+                          disabled={sourceProcessingLoading[source.id]?.tags || !source.enable_ai_tags}
+                          size="sm"
+                          variant="secondary"
+                          className="w-full"
+                        >
+                          {sourceProcessingLoading[source.id]?.tags ? 'Processing...' : 'Process Missing Tags'}
+                        </Button>
+                         {sourceProcessingStatus[source.id]?.tags && (
+                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            {sourceProcessingStatus[source.id]?.tags}
+                          </div>
+                        )}
+                         {!source.enable_ai_tags && (
+                           <div className="text-xs mt-1 text-gray-500">AI Tags disabled for this source.</div>
+                         )}
+                      </div>
+
+                      {/* Process Missing Image */}
+                      <div>
+                        <Button
+                          onClick={() => handleProcessMissingAi(source.id, 'image')}
+                          disabled={sourceProcessingLoading[source.id]?.image || !source.enable_ai_image}
+                          size="sm"
+                          variant="secondary"
+                          className="w-full"
+                        >
+                          {sourceProcessingLoading[source.id]?.image ? 'Processing...' : 'Process Missing Image'}
+                        </Button>
+                         {sourceProcessingStatus[source.id]?.image && (
+                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            {sourceProcessingStatus[source.id]?.image}
+                          </div>
+                        )}
+                         {!source.enable_ai_image && (
+                           <div className="text-xs mt-1 text-gray-500">AI Image disabled for this source.</div>
+                         )}
+                      </div>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>

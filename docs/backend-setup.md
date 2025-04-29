@@ -82,3 +82,33 @@ The backend API will be accessible at the address and port it is configured to l
 *   [Using CSS Selectors for Scraping](css-selectors.md)
 *   [Settings Page (Admin Controls and Source Management)](admin-ui.md)
 *   [Troubleshooting Common Issues](troubleshooting.md)
+
+## Processing Missing AI Data
+
+A new function, `processMissingAiForSource`, has been added to `backend/src/scraper.js`. This function allows you to process existing articles for a specific source and generate/assign missing AI-generated data (summary, tags, or image) based on the source's AI settings.
+
+This functionality is exposed via a new API endpoint:
+
+### `POST /api/process-missing-ai/:sourceId`
+
+This endpoint triggers the `processMissingAiForSource` function for the specified source.
+
+*   **URL Parameters:**
+    *   `:sourceId` (required): The ID of the source for which to process missing AI data.
+*   **Request Body:**
+    *   `featureType` (required): A string specifying which type of AI data to process. Must be one of:
+        *   `"summary"`: Process articles missing an AI summary.
+        *   `"tags"`: Process articles missing AI-assigned tags.
+        *   `"image"`: Process articles missing an AI-generated image (thumbnail).
+*   **Response:**
+    *   Returns a JSON object indicating the success or failure of the operation, along with counts of processed articles and errors.
+
+**Example Usage (using `curl`):**
+
+```bash
+curl -X POST http://localhost:3000/api/process-missing-ai/123 \
+-H "Content-Type: application/json" \
+-d '{"featureType": "tags"}'
+```
+
+(Replace `123` with the actual source ID and `http://localhost:3000` with your backend URL if not running locally.)

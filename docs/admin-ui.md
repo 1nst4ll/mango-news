@@ -33,12 +33,13 @@ This section allows you to view, add, edit, and delete news sources, presented w
     -   **Discovered Sources List:** Any discovered sources will be listed with their name and URL. An "Add as New Source" **shadcn/ui Button** is available for each discovered source.
 -   **Existing Sources:** View a list of all configured news sources.
     -   **Add New Source Button:** A **shadcn/ui Button** to open the modal for adding a new source.
-    -   **Sources List:** Each source is displayed within a styled list item, showing its details (name, URL, active status, AI summary setting, AI tag setting, scraping method, include/exclude selectors). Action buttons (**shadcn/ui Buttons** for "Scrape Now", "Edit", and "Delete") are available for each source.
--   **Add/Edit Source Modal:** A **shadcn/ui Dialog** component is used for the modal form to add or edit a news source. The form utilizes **shadcn/ui Input**, **Label**, **Select**, **Textarea**, and **Switch** components for input fields and controls. Fields for "Enable AI Summary" and "Enable AI Tags" are available to configure these settings per source. Additional fields have been added for "Article Link Template" and "Exclude Patterns" to configure open-source scraping behavior.
-
-## Source Discovery
-
-This section helps you find potential new news sources to add to your collection. (Note: This section is now integrated into the Source Management card on the Settings page).
+-   **Sources List:** Each source is displayed within a styled list item, showing its details (name, URL, active status, AI summary setting, AI tag setting, AI image setting, scraping method, include/exclude selectors, article link template, exclude patterns). Action buttons (**shadcn/ui Buttons** for "Scrape Now", "Delete Articles", "Edit", and "Delete Source") are available for each source.
+    -   **Process Missing AI Data:** A dedicated section within each source card allows triggering the processing of missing AI-generated data for that specific source. It includes buttons (**shadcn/ui Buttons**) for:
+        -   "Process Missing Summary": Triggers AI summary generation for articles from this source that are missing a summary.
+        -   "Process Missing Tags": Triggers AI tag assignment for articles from this source that are missing tags.
+        -   "Process Missing Image": Triggers AI image generation for articles from this source that are missing a thumbnail and an AI image.
+        Status messages are displayed below each button indicating the result of the processing. These buttons are disabled if the corresponding AI feature is disabled for the source.
+-   **Add/Edit Source Modal:** A **shadcn/ui Dialog** component is used for the modal form to add or edit a news source. The form utilizes **shadcn/ui Input**, **Label**, **Select**, **Textarea**, and **Switch** components for input fields and controls. Fields for "Enable AI Summary", "Enable AI Tags", and "Enable AI Image" are available to configure these settings per source. Additional fields have been added for "Article Link Template" and "Exclude Patterns" to configure open-source scraping behavior.
 
 ---
 

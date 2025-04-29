@@ -379,7 +379,7 @@ async function generateAIImage(title, content) {
     : content;
 
   try {
-    const prompt = `Create a news thumbnail that visually represents the following article. Set in Turks and Caicos, featuring local Caribbean residents with dark skin tones. The image should capture the essence of the article's content while being suitable for general audiences. Create a balanced composition with good lighting that works well as a clickable thumbnail.
+    const prompt = `Create a news thumbnail that visually represents the following article. Set in Turks and Caicos, featuring local Caribbean residents with dark skin tones. The image should capture the essence of the article's content while being suitable for general audiences. Create a balanced composition with good lighting that works well as a clickable thumbnail. if using text only short key words
 
 Title: ${title}
 Content: ${truncatedContent}`;
@@ -388,7 +388,7 @@ Content: ${truncatedContent}`;
       image_request: { // Added required image_request object
         prompt: prompt,
         aspect_ratio: "ASPECT_16_9", // Added aspect ratio
-        model: "V_3_TURBO", // Added missing comma
+        model: "V_2A_TURBO", // Corrected model name based on API error
         magic_prompt_option: "AUTO"
         // Add other Ideogram API parameters as needed within image_request, e.g., model, etc.
       }
@@ -677,6 +677,113 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
 }
 
 
+// Function to process missing AI data for existing articles of a specific source
+async function processMissingAiForSource(sourceId, featureType) { // featureType can be 'summary', 'tags', or 'image'
+  console.log(`Starting missing AI processing for source ID: ${sourceId}, feature: ${featureType}`);
+  let processedCount = 0;
+  let errorCount = 0;
+
+  try {
+    // 1. Fetch source configuration
+    const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1', [sourceId]);
+    const source = sourceResult.rows[0];
+
+    if (!source) {
+      console.error(`Source with ID ${sourceId} not found.`);
+      return { success: false, message: `Source with ID ${sourceId} not found.` };
+    }
+
+    // 2. Query for articles missing the specified feature
+    let articlesToProcess = [];
+    let query = '';
+    const queryParams = [sourceId];
+
+    if (featureType === 'summary' && source.enable_ai_summary) {
+      query = 'SELECT id, raw_content FROM articles WHERE source_id = $1 AND summary IS NULL';
+    } else if (featureType === 'tags' && source.enable_ai_tags) {
+      // Find articles that don't have an entry in article_topics
+      query = `
+        SELECT a.id, a.raw_content
+        FROM articles a
+        LEFT JOIN article_topics at ON a.id = at.article_id
+        WHERE a.source_id = $1 AND at.article_id IS NULL
+      `;
+    } else if (featureType === 'image' && source.enable_ai_image) {
+      // Find articles missing ai_image_url AND thumbnail_url (don't overwrite scraped thumbnails)
+      query = 'SELECT id, title, raw_content FROM articles WHERE source_id = $1 AND ai_image_url IS NULL AND (thumbnail_url IS NULL OR thumbnail_url = \'\')';
+    } else {
+      console.log(`AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. Skipping.`);
+      return { success: true, message: `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. No processing needed.` };
+    }
+
+    const result = await pool.query(query, queryParams);
+    articlesToProcess = result.rows;
+
+    console.log(`Found ${articlesToProcess.length} articles missing AI feature '${featureType}' for source ${source.name}.`);
+
+    // 3. Iterate and process
+    for (const article of articlesToProcess) {
+      try {
+        if (featureType === 'summary') {
+          console.log(`Processing summary for article ID: ${article.id}`);
+          const summary = await generateAISummary(article.raw_content);
+          if (summary && summary !== "Summary generation failed.") {
+            await pool.query('UPDATE articles SET summary = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [summary, article.id]);
+            processedCount++;
+          } else {
+            errorCount++;
+          }
+        } else if (featureType === 'tags') {
+          console.log(`Processing tags for article ID: ${article.id}`);
+          const assignedTopics = await assignTopicsWithAI(source, article.raw_content); // Pass the full source object
+          if (assignedTopics && assignedTopics.length > 0) {
+            // Save assigned topics and link to article
+            for (const topicName of assignedTopics) {
+              let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
+              let topicId;
+              if (topicResult.rows.length === 0) {
+                topicResult = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
+                topicId = topicResult.rows[0].id;
+              } else {
+                topicId = topicResult.rows[0].id;
+              }
+              await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
+            }
+             // Also update the article's updated_at timestamp
+            await pool.query('UPDATE articles SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [article.id]);
+            processedCount++;
+          } else {
+            console.warn(`No tags assigned for article ID: ${article.id}`);
+            // Don't increment error count here, as it might just be no relevant tags found
+          }
+        } else if (featureType === 'image') {
+          console.log(`Processing image for article ID: ${article.id}`);
+          const aiImageUrl = await generateAIImage(article.title, article.raw_content);
+          if (aiImageUrl) {
+            // Update both ai_image_url and potentially thumbnail_url if it was also null
+            await pool.query('UPDATE articles SET ai_image_url = $1, thumbnail_url = COALESCE(thumbnail_url, $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImageUrl, article.id]);
+            processedCount++;
+          } else {
+            errorCount++;
+          }
+        }
+      } catch (processErr) {
+        console.error(`Error processing article ID ${article.id} for feature '${featureType}':`, processErr);
+        errorCount++;
+      }
+    }
+
+    const message = `Finished processing feature '${featureType}' for source ${source.name}. Processed: ${processedCount}, Errors: ${errorCount}.`;
+    console.log(message);
+    return { success: true, message: message, processedCount, errorCount };
+
+  } catch (err) {
+    console.error(`Error during missing AI processing for source ID ${sourceId}, feature ${featureType}:`, err);
+    return { success: false, message: `Error processing source ${sourceId}: ${err.message}` };
+  }
+}
+
+
 // Optional: Run the scraper immediately when the script starts
 // runScraper();
 
@@ -684,4 +791,5 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
 module.exports = {
   runScraper,
   runScraperForSource, // Export the new function
+  processMissingAiForSource, // Export the new function for processing missing AI data
 };

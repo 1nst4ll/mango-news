@@ -92,6 +92,12 @@
 - Added API endpoint to discover sources (`/api/discover-sources`).
 - Added API endpoints to purge articles (`/api/articles/purge` and `/api/articles/purge/:sourceId`).
 - Added API endpoint to get database statistics (`/api/stats`).
+- Implemented functionality to process missing AI data (summary, tags, image) for existing articles on a per-source basis. This includes:
+    - Adding the `processMissingAiForSource` function in `backend/src/scraper.js`.
+    - Adding the `POST /api/process-missing-ai/:sourceId` API endpoint in `backend/src/index.js`.
+    - Updating the frontend `SettingsPage.tsx` to include buttons and status display for processing missing AI data per source.
+    - Correcting the Ideogram API model name in `backend/src/scraper.js`.
+    - Updating `docs/backend-setup.md` and `docs/admin-ui.md` to document this new feature.
 
 ## AI Tags Toggle in Frontend (Completed on 2025-04-27)
 
