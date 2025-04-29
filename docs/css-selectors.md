@@ -19,5 +19,26 @@ This document lists CSS selectors identified for scraping various websites for t
 
 ---
 
+
+## gov.tc
+
+**Article URL Pattern:** `https://gov.tc/pressoffice/latest/*`
+
+**Selectors:**
+
+*   **Title:** `h1[itemprop="headline"]`
+*   **Author:** `Not found`
+*   **Date:** `time[itemprop="datePublished"]`
+*   **Content:** `div[itemprop="articleBody"]`
+*   **Image:** `div[itemprop="articleBody"] img`
+
+**Notes:**
+- The author information was not explicitly found in the standard HTML tags for this article.
+- The date selector targets the time tag with the itemprop attribute.
+- The content selector targets the div containing the main article body.
+- The image selector targets any image tag within the article body div.
+
+---
+
 Further Documentation:
 * [Server Deployment Instructions](../deployment.md)
