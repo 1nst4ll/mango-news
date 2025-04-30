@@ -14,6 +14,7 @@ frontend/.astro/
 
 # Ignore environment variables file
 .env
+.env.render
 
 # --- Added by Roo ---
 
