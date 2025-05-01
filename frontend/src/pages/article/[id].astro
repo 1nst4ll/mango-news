@@ -2,17 +2,6 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArticleDetail from '../../components/ArticleDetail'; // Import as a React component
 
-// Implement getStaticPaths for static generation
-export async function getStaticPaths() {
-  // TODO: Fetch actual article IDs from your backend API here
-  // Example placeholder IDs:
-  const articleIds = ['1', '2', '3']; // Replace with logic to fetch real IDs
-
-  return articleIds.map(id => ({
-    params: { id },
-  }));
-}
-
 const { id } = Astro.params;
 const pageTitle = `Article ${id}`; // Basic title for now
 ---
