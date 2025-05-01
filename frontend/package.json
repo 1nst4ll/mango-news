@@ -35,7 +35,7 @@
     "tailwindcss": "^4.1.4"
   },
   "devDependencies": {
-    "@astrojs/tsconfig": "^0.5.0",
+    "@astrojs/tsconfig": "latest",
     "tw-animate-css": "^1.2.8"
   }
 }
