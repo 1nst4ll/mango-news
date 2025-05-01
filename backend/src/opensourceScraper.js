@@ -13,7 +13,18 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
   console.log(`Starting article scraping for: ${url} (Attempt ${4 - retries})`);
   let browser;
   try {
-    browser = await puppeteer.launch({ headless: true }); // Use headless mode
+    browser = await puppeteer.launch({
+      headless: true, // Use headless mode
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
+    });
     const page = await browser.newPage();
 
     // Set a reasonable timeout for page navigation
@@ -235,7 +246,18 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
   console.log(`Starting article URL discovery for: ${sourceUrl} (Limit: ${limit})`);
 
   try {
-    browser = await puppeteer.launch({ headless: true }); // Use headless mode
+    browser = await puppeteer.launch({
+      headless: true, // Use headless mode
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
+    });
     const page = await browser.newPage();
     const sourceHostname = new URL(sourceUrl).hostname;
 
