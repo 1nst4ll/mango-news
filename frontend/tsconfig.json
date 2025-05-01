@@ -1,13 +1,15 @@
 {
-  "extends": "@astrojs/tsconfig",
-  "include": [
-    ".astro/types.d.ts",
-    "**/*"
-  ],
-  "exclude": [
-    "dist"
-  ],
   "compilerOptions": {
+    // Recommended options for Astro projects
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "bundler", // Or "node" depending on your setup, "bundler" is common with Vite/Astro
+
+    // Existing options
     "baseUrl": "./", // Set base URL for path aliases
     "jsx": "react-jsx",
     "jsxImportSource": "react",
@@ -16,5 +18,12 @@
         "src/*"
       ]
     }
-  }
+  },
+  "include": [
+    ".astro/types.d.ts",
+    "**/*"
+  ],
+  "exclude": [
+    "dist"
+  ]
 }
