@@ -2,6 +2,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArticleDetail from '../../components/ArticleDetail'; // Import as a React component
 
+export const prerender = false; // Mark this page for dynamic rendering
+
 const { id } = Astro.params;
 const pageTitle = `Article ${id}`; // Basic title for now
 ---
