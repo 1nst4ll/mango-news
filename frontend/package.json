@@ -35,6 +35,7 @@
     "tailwindcss": "^4.1.4"
   },
   "devDependencies": {
+    "@astrojs/node": "^8.3.0",
     "tw-animate-css": "^1.2.8"
   }
 }

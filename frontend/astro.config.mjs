@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 
 import react from '@astrojs/react';
+import node from '@astrojs/node'; // Import the Node adapter
 
 
 import tailwindcss from '@tailwindcss/vite';
@@ -10,9 +11,11 @@ import mdx from '@astrojs/mdx';
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [react(), mdx()],
+  integrations: [react(), mdx(), node({
+    mode: 'standalone' // Configure the adapter mode
+  })], // Add the Node adapter to integrations
 
-  output: 'static',
+  output: 'server', // Change output to server
 
   vite: {
     plugins: [tailwindcss()]
