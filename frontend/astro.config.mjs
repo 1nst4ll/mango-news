@@ -11,13 +11,19 @@ import mdx from '@astrojs/mdx';
 
 // https://astro.build/config
 export default defineConfig({
+  // Add the Node adapter to integrations
   integrations: [react(), mdx(), node({
     mode: 'standalone' // Configure the adapter mode
-  })], // Add the Node adapter to integrations
+  })],
 
-  output: 'server', // Change output to server
+  // Change output to server
+  output: 'server',
 
   vite: {
     plugins: [tailwindcss()]
-  }
+  },
+
+  adapter: node({
+    mode: 'standalone'
+  })
 });
