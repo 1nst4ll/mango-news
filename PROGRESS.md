@@ -7,7 +7,7 @@
 - Added links to the new `docs/deployment.md` file in `README.md` and all relevant files within the `docs/` directory for better cross-referencing.
 - Updated the Table of Contents in `docs/README.md` to include the new deployment documentation.
 - Verified consistency in terminology and feature descriptions across all documentation files.
-- Confirmed that the `docs/deployment.md` file includes a section on deploying to Render.
+- Enhanced the Render deployment section in `docs/deployment.md` to provide more specific details for deploying the separate backend and frontend services.
 
 ## Article Link Formatting and Exclusion Patterns (Completed on 2025-04-24)
 

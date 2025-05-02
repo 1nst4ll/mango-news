@@ -1,3 +1,4 @@
+// Configuration file for the Astro frontend project.
 // @ts-check
 import { defineConfig } from 'astro/config';
 

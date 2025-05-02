@@ -55,7 +55,7 @@ The backend connects to a PostgreSQL database.
         ```
     Replace the placeholder values (`your_database_password`, `your_groq_api_key`, `your_ideogram_api_key`) with your actual credentials and keys.
 
-4.  **Database Connection in Code:** The database connection details are configured in `backend/src/index.js` and `backend/src/scraper.js`. Ensure these files are configured to read the database password and other sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`). **Note:** Currently, the host is hardcoded to `news.hoffmanntci.com` in some places. This should be updated to use an environment variable for flexibility between local and production environments.
+4.  **Database Connection in Code:** The database connection details are configured in `backend/src/index.js` and `backend/src/scraper.js`. These files are configured to read the database password and other sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.DB_HOST`).
 
 ## Running the Backend
 

@@ -1,3 +1,4 @@
+# Provides a comprehensive overview of the project, setup instructions, and links to other documentation.
 # Turks and Caicos News Aggregator
 
 ## Project Overview
@@ -10,7 +11,7 @@ This project aims to build a centralized platform for accessing local news from 
 
 **Note:** This section and the "Implemented Functionality" and "Next Steps" sections should be updated regularly to reflect the current state and plan of the project. Refer to the [Project Progress Log](./PROGRESS.md) for detailed updates and task checklists.
 
-The project has largely completed the migration of the frontend from Next.js to Astro. The new Astro frontend (`frontend/`) uses React components as Astro Islands, styled with Tailwind CSS and Shadcn UI. The backend remains Node.js with Express.js and connects to a PostgreSQL database. Significant progress has been made on both frontend migration and backend enhancements, including AI integration for summaries, tags, and images, and robust API endpoints for scraping and data management. The main news feed, article detail page, and the administrative settings page are functional in the new Astro frontend. Both the frontend and backend are configured for deployment as Web Services on Render.
+The project has largely completed the migration of the frontend from Next.js to Astro. The new Astro frontend (`frontend/`) uses React components as Astro Islands, styled with Tailwind CSS and Shadcn UI. The backend remains Node.js with Express.js and connects to a PostgreSQL database. Significant progress has been made on both frontend migration and backend enhancements, including AI integration for summaries, tags, and images, and robust API endpoints for scraping and data management. The main news feed, article detail page, and the administrative settings page are functional in the new Astro frontend. Both the frontend and backend are configured for deployment as Web Services on Render. The project documentation, including the `README.md`, `PROGRESS.md`, and files in the `docs/` directory, has been audited and updated to reflect the current project state, with enhanced details for deployment on Render.
 
 ## Technology Stack
 
@@ -22,84 +23,106 @@ The project has largely completed the migration of the frontend from Next.js to 
 
 ## Project Structure
 
-```
-/
-├── backend/                  # Backend application code
-│   ├── package.json          # Backend dependencies (Node.js, Express, pg)
-│   └── src/
-│       ├── index.js          # Main backend application file (API routes)
-│       ├── opensourceScraper.js # Open-source scraping logic (Puppeteer)
-│       └── scraper.js        # Logic for scraping (integration with Firecrawl MCP and open-source)
-├── db/                       # Database related files
-│   └── schema.sql            # PostgreSQL database schema definition - see [Database Schema](./db/schema.sql) for details
-├── docs/                     # Project documentation files
-│   ├── README.md             # Main documentation index
-│   ├── backend-setup.md      # Backend setup and configuration guide
-│   ├── scraping-methods.md   # Details on scraping methods
-│   ├── css-selectors.md      # Guide to using CSS selectors
-│   ├── admin-ui.md           # Documentation for Admin UI features
-│   └── troubleshooting.md    # Troubleshooting common issues
-├── frontend/                 # Frontend application code (Mixed Next.js and Astro during migration)
-│   ├── .gitignore
-│   ├── package.json          # Frontend dependencies (Astro, React, Tailwind, Shadcn, Next.js)
-│   ├── README.md
-│   ├── astro.config.mjs      # Astro configuration
-│   ├── components.json       # Shadcn UI configuration
-│   ├── tsconfig.json         # TypeScript configuration for the frontend
-│   ├── public/               # Static assets
-│   │   ├── favicon.svg
-│   │   ├── file.svg
-│   │   ├── globe.svg
-│   │   ├── logo.png
-│   │   └── window.svg
-│   └── src/                  # Frontend source files (Mixed Next.js and Astro)
-│       ├── assets/           # Astro assets
-│       │   ├── astro.svg
-│       │   └── background.svg
-│       ├── components/       # Reusable React components (migrated)
-│       │   ├── ui/           # Shadcn UI components
-│       │   │   ├── button.tsx
-│       │   │   ├── calendar.tsx
-│       │   │   ├── card.tsx
-│       │   │   ├── chart.tsx
-│       │   │   ├── checkbox.tsx
-│       │   │   ├── DatePickerWithRange.tsx
-│       │   │   ├── dialog.tsx
-│       │   │   ├── dropdown-menu.tsx
-│       │   │   ├── input.tsx
-│       │   │   ├── label.tsx
-│       │   │   ├── popover.tsx
-│       │   │   ├── select.tsx
-│       │   │   ├── switch.tsx
-│       │   │   └── textarea.tsx
-│       │   ├── ArticleDetail.tsx
-│       │   ├── Footer.tsx
-│       │   ├── Header.tsx
-│       │   ├── IndexPage.tsx
-│       │   ├── ModeToggle.tsx
-│       │   ├── NewsFeed.tsx
-│       │   ├── SettingsPage.tsx
-│       │   └── Welcome.astro
-│       │   └── charts/
-│       │       ├── ArticlesPerSourceBarChart.tsx
-│       │       └── ArticlesPerYearAreaChart.tsx
-│       ├── layouts/          # Astro layouts
-│       │   ├── BaseLayout.astro # Base layout for pages
-│       │   └── Layout.astro
-│       ├── lib/              # Utility functions
-│       │   ├── nav-items.ts
-│       │   └── utils.ts      # Shadcn UI utils
-│       ├── pages/            # Astro pages (file-based routing)
-│       │   ├── index.astro   # Home page (News Feed)
-│       │   ├── settings.astro # Settings/Admin page
-│       │   └── article/      # Article detail pages
-│       │       └── [id].astro
-│       └── styles/           # Global styles (Tailwind)
-│           └── global.css
-├── .gitignore
-├── package.json              # Root package.json (if any workspace setup)
-├── PROGRESS.md               # Project progress log - see [Project Progress Log](./PROGRESS.md) for details
-└── README.md                 # This file
+```text
+.
+|   .gitignore              # Specifies intentionally untracked files that Git should ignore.
+|   PROGRESS.md             # Tracks project development progress and completed tasks.
+|   README.md               # Provides a comprehensive overview of the project.
+|
++---backend                 # Contains the backend Node.js application.
+|   |   .env                # Environment variables for the backend (local configuration).
+|   |   .env.example        # Example environment variables for the backend.
+|   |   .env.render         # Environment variables for Render deployment.
+|   |   .puppeteerrc.cjs    # Configuration file for Puppeteer.
+|   |   package.json        # Lists backend dependencies and scripts.
+|   |
+|   \---src                 # Backend source code files.
+|           index.js          # Main entry point for the backend application.
+|           opensourceScraper.js # Logic for the open-source scraping method.
+|           scraper.js        # Main scraping logic, including AI integration and scheduling.
+|
++---db                      # Database related files.
+|       local_sources_data.csv # Local data for news sources (potentially for initial seeding).
+|       schema.sql          # Defines the database schema.
+|
++---docs                    # Project documentation files.
+|       admin-ui.md         # Documents the features and usage of the admin UI.
+|       backend-setup.md    # Details backend setup and configuration.
+|       css-selectors.md    # Provides guidance on using CSS selectors for scraping.
+|       deployment.md       # Provides instructions for deploying the application.
+|       frontend-ui.md      # Describes the frontend UI styling and stack.
+|       README.md           # Index and overview of documentation files.
+|       scraping-methods.md # Explains the different scraping methods used.
+|       troubleshooting.md  # Lists common issues and their solutions.
+|
+\---frontend                # Contains the frontend Astro application.
+    |   .env                # Environment variables for the frontend (local configuration).
+    |   .env.example        # Example environment variables for the frontend.
+    |   astro.config.mjs    # Configuration file for the Astro project.
+    |   components.json     # Configuration for Shadcn UI components.
+    |   package.json        # Lists frontend dependencies and scripts.
+    |   README.md           # README file for the frontend project.
+    |   tsconfig.json       # TypeScript configuration for the frontend.
+    |
+    +---public              # Static assets served directly.
+    |       favicon.svg       # Website favicon.
+    |       file.svg          # SVG icon.
+    |       globe.svg         # SVG icon.
+    |       logo.png          # Project logo image.
+    |       window.svg        # SVG icon.
+    |
+    \---src                 # Frontend source code files.
+        +---assets            # Static assets used in components.
+        |       astro.svg         # Astro logo SVG.
+        |       background.svg    # Background SVG image.
+        |
+        +---components        # Reusable UI components (React and Astro Islands).
+        |   |   ArticleDetail.tsx # React component for displaying article details.
+        |   |   footer.tsx        # React component for the website footer.
+        |   |   Header.tsx        # React component for the website header.
+        |   |   IndexPage.tsx     # React component for the main news feed page.
+        |   |   ModeToggle.tsx    # React component for theme switching.
+        |   |   NewsFeed.tsx      # React component for displaying the news feed.
+        |   |   SettingsPage.tsx  # React component for the settings/admin page.
+        |   |   Welcome.astro     # Example Astro component.
+        |   |
+        |   +---charts          # Chart components.
+        |   |       ArticlesPerSourceBarChart.tsx # Bar chart for articles per source.
+        |   |       ArticlesPerYearAreaChart.tsx # Area chart for articles per year.
+        |   |
+        |   \---ui              # Shadcn UI components.
+        |           button.tsx        # Button component.
+        |           calendar.tsx      # Calendar component.
+        |           card.tsx          # Card component.
+        |           chart.tsx         # Chart component wrapper.
+        |           checkbox.tsx      # Checkbox component.
+        |           DatePickerWithRange.tsx # Date picker component with range selection.
+        |           dialog.tsx        # Dialog component.
+        |           dropdown-menu.tsx # Dropdown menu component.
+        |           input.tsx         # Input component.
+        |           label.tsx         # Label component.
+        |           popover.tsx       # Popover component.
+        |           select.tsx        # Select component.
+        |           switch.tsx        # Switch component.
+        |           textarea.tsx      # Textarea component.
+        |
+        +---layouts           # Astro layout components.
+        |       BaseLayout.astro  # Base layout with header and footer.
+        |       Layout.astro      # Basic layout.
+        |
+        +---lib               # Utility functions and libraries.
+        |       nav-items.ts      # Defines navigation items.
+        |       utils.ts          # Utility functions (e.g., for Tailwind CSS).
+        |
+        +---pages             # Astro pages (file-based routing).
+        |   |   index.astro       # Main index page (news feed).
+        |   |   settings.astro    # Settings/admin page.
+        |   |
+        |   \---article         # Dynamic route for individual articles.
+        |           [id].astro      # Displays a single article by ID.
+        |
+        \---styles            # Global styles.
+                global.css        # Global CSS styles, including Tailwind imports.
 ```
 This structure separates the backend, database, and frontend concerns into distinct directories. The `frontend` directory now primarily contains the Astro-based frontend project. Any remaining legacy Next.js files are intended for removal.
 
@@ -142,8 +165,8 @@ This structure separates the backend, database, and frontend concerns into disti
 
 *   **Type:** PostgreSQL
 *   **Host:** `localhost`
-*   **Database Name:** `hoffma24_mangonews`
-*   **Username:** `hoffma24_mangoadmin`
+*   **Database Name:** `mangonews`
+*   **Username:** `mangoadmin`
 *   **Password:** `See backend/.env`
 
 ## Setup Instructions

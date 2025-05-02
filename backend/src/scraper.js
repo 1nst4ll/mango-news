@@ -1,3 +1,4 @@
+// Contains the main scraping logic, including AI integration and scheduling.
 require('dotenv').config({ path: './backend/.env' }); // Load environment variables from backend/.env
 
 const { Pool } = require('pg');

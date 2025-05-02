@@ -1,3 +1,4 @@
+// Configuration file for Puppeteer.
 // .puppeteerrc.cjs
 const { join } = require('path');
 

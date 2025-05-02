@@ -1,3 +1,4 @@
+# Specifies intentionally untracked files that Git should ignore.
 # Ignore Node.js modules
 backend/node_modules/
 frontend/node_modules/

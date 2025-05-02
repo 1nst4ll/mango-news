@@ -1,3 +1,4 @@
+# README file for the frontend Astro project.
 # Astro Starter Kit: Basics
 
 ```sh

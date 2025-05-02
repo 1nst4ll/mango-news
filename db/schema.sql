@@ -1,3 +1,4 @@
+-- Defines the database schema for the Turks and Caicos News Aggregator project.
 -- Database Schema for Turks and Caicos News Aggregator
 
 -- Create the 'sources' table

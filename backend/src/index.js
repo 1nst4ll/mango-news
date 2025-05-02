@@ -1,3 +1,4 @@
+// Main entry point for the backend application, handling API routes and database interactions.
 require('dotenv').config(); // Load environment variables from .env file
 
 const express = require('express');

@@ -1,3 +1,4 @@
+/* Contains global CSS styles, including Tailwind CSS imports and custom styles. */
 @import "tailwindcss";
 @import "tw-animate-css";
 

@@ -44,17 +44,26 @@ The backend can be deployed to various Node.js compatible hosting environments.
 
 ### Render Web Service Deployment (Backend)
 
+Deploy the Node.js backend as a separate Web Service on Render.
+
 1.  **Create a New Web Service:** In your Render dashboard, create a new Web Service.
 2.  **Connect Repository:** Connect your Git repository containing the Mango News code.
 3.  **Root Directory:** Specify the `backend` directory as the Root Directory for this service.
 4.  **Build Command:** Set the Build Command to `npm install`.
 5.  **Start Command:** Set the Start Command to `node src/index.js`.
-6.  **Environment Variables:** Add the required environment variables listed in `backend/.env.example` to the service's environment settings in Render.
-7.  **Deploy:** Render will automatically build and deploy your backend service. Note the public URL provided by Render for your backend service.
+6.  **Environment Variables:** Add the required environment variables listed in `backend/.env.example` to the service's environment settings in Render. These include database credentials and API keys.
+    *   `DB_HOST`
+    *   `DB_NAME`
+    *   `DB_USER`
+    *   `DB_PASSWORD`
+    *   `GROQ_API_KEY`
+    *   `IDEOGRAM_API_KEY`
+    *   (Optional) `FIRECRAWL_API_KEY` (if not using the MCP server)
+7.  **Deploy:** Render will automatically build and deploy your backend service. Note the public URL provided by Render for your backend service – you will need this for the frontend configuration.
 
 ## Frontend Deployment (Astro)
 
-The frontend is configured for server-side rendering (SSR) using the `@astrojs/node` adapter, requiring a Node.js compatible server environment.
+The frontend is configured for server-side rendering (SSR) using the `@astrojs/node` adapter, requiring a Node.js compatible server environment. It will also be deployed as a separate Web Service on Render.
 
 ### General Node.js Server Deployment (Frontend)
 

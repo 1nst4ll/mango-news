@@ -1,3 +1,4 @@
+// Contains the logic for the open-source scraping method using Puppeteer.
 const puppeteer = require('puppeteer');
 
 /**
