@@ -391,9 +391,9 @@ Content: ${truncatedContent}`;
 
     // Add style reference images if provided
     // The API expects each image file to be appended with the key 'style_reference_images'
-    if (styleReferenceImagePaths && styleReferenceImagePaths.length > 0) {
-      console.log(`Adding ${styleReferenceImagePaths.length} style reference image(s)...`);
-      for (const imagePath of styleReferenceImagePaths) {
+    if (imagePaths.length > 0) {
+      console.log(`Adding ${imagePaths.length} style reference image(s)...`);
+      for (const imagePath of imagePaths) {
         try {
           const fileContent = await fs.readFile(imagePath);
           // Use a dummy filename, the API likely uses the content
