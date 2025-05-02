@@ -369,6 +369,9 @@ async function generateAIImage(title, content) {
   // Ideogram 3.0 API endpoint
   const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
 
+  // Ensure styleReferenceImagePaths is an array, even if not provided in the call
+  const imagePaths = Array.isArray(styleReferenceImagePaths) ? styleReferenceImagePaths : [];
+
   const maxContentLength = 5000; // Define max content length for prompt generation
 
   // Truncate content if it's too long
