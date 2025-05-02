@@ -10,7 +10,7 @@ This project aims to build a centralized platform for accessing local news from 
 
 **Note:** This section and the "Implemented Functionality" and "Next Steps" sections should be updated regularly to reflect the current state and plan of the project. Refer to the [Project Progress Log](./PROGRESS.md) for detailed updates and task checklists.
 
-The project has largely completed the migration of the frontend from Next.js to Astro. The new Astro frontend (`frontend/`) uses React components as Astro Islands, styled with Tailwind CSS and Shadcn UI. The backend remains Node.js with Express.js and connects to a PostgreSQL database. Significant progress has been made on both frontend migration and backend enhancements, including AI integration for summaries, tags, and images, and robust API endpoints for scraping and data management. The main news feed, article detail page, and the administrative settings page are functional in the new Astro frontend.
+The project has largely completed the migration of the frontend from Next.js to Astro. The new Astro frontend (`frontend/`) uses React components as Astro Islands, styled with Tailwind CSS and Shadcn UI. The backend remains Node.js with Express.js and connects to a PostgreSQL database. Significant progress has been made on both frontend migration and backend enhancements, including AI integration for summaries, tags, and images, and robust API endpoints for scraping and data management. The main news feed, article detail page, and the administrative settings page are functional in the new Astro frontend. Both the frontend and backend are configured for deployment as Web Services on Render.
 
 ## Technology Stack
 

@@ -1,22 +1,24 @@
-# Server Deployment Instructions
+# Deployment Instructions
 
-This document provides guidance on deploying the Mango News application to a server environment, specifically considering an Inmotion Hosting environment with Nginx and WP Launch.
+This document provides guidance on deploying the Mango News application to various server environments.
 
 ## Prerequisites
 
-*   A server environment (e.g., Inmotion Hosting with Nginx).
 *   Access to a PostgreSQL database server.
-*   Node.js and npm installed on the server (for the backend).
-*   Necessary environment variables configured on the server.
+*   Necessary environment variables configured on the server(s).
 
 ## Database Deployment
 
-1.  **Set up PostgreSQL Database:** Ensure you have a PostgreSQL database set up on your server or a managed database service. Note the database credentials (host, name, user, password).
-2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your server's PostgreSQL database. You can typically do this using a database management tool or the `psql` command-line utility.
+1.  **Set up PostgreSQL Database:** Ensure you have a PostgreSQL database set up on your server or a managed database service (like Render's PostgreSQL service). Note the database credentials (host, name, user, password).
+2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your database. You can typically do this using a database management tool or the `psql` command-line utility.
 
 ## Backend Deployment (Node.js/Express)
 
-1.  **Transfer Backend Files:** Transfer the contents of the `backend/` directory to your server. The specific location may depend on your hosting setup (e.g., within a user's home directory or a specific application directory).
+The backend can be deployed to various Node.js compatible hosting environments.
+
+### General Node.js Server Deployment
+
+1.  **Transfer Backend Files:** Transfer the contents of the `backend/` directory to your server.
 2.  **Install Dependencies:** Navigate to the backend directory on your server using the terminal and install dependencies:
     ```bash
     cd /path/to/your/backend
@@ -38,32 +40,54 @@ This document provides guidance on deploying the Mango News application to a ser
     pm2 start index.js --name mango-news-backend
     pm2 save # Save the process list to restart on boot
     ```
-5.  **Configure Nginx (or other web server):** Configure your web server (Nginx in the case of Inmotion Hosting) to proxy requests to your running Node.js backend process. This typically involves setting up a server block that listens on a public port (e.g., 80 or 443) and forwards requests to the port your Node.js application is listening on (default 3000).
+5.  **Configure Web Server (Reverse Proxy):** Configure your web server (like Nginx or Apache) to proxy requests to your running Node.js backend process. This typically involves setting up a server block that listens on a public port (e.g., 80 or 443) and forwards requests to the port your Node.js application is listening on (default 3000).
+
+### Render Web Service Deployment (Backend)
+
+1.  **Create a New Web Service:** In your Render dashboard, create a new Web Service.
+2.  **Connect Repository:** Connect your Git repository containing the Mango News code.
+3.  **Root Directory:** Specify the `backend` directory as the Root Directory for this service.
+4.  **Build Command:** Set the Build Command to `npm install`.
+5.  **Start Command:** Set the Start Command to `node src/index.js`.
+6.  **Environment Variables:** Add the required environment variables listed in `backend/.env.example` to the service's environment settings in Render.
+7.  **Deploy:** Render will automatically build and deploy your backend service. Note the public URL provided by Render for your backend service.
 
 ## Frontend Deployment (Astro)
 
-1.  **Install Server Adapter:** For server-side rendering (SSR), an Astro adapter is required. For environments like Inmotion Hosting with Nginx, the `@astrojs/node` adapter is suitable. Install and configure it by running the following command in the `frontend` directory:
-    ```bash
-    cd frontend
-    npx astro add node
-    ```
-    This command will install the necessary package and update `astro.config.mjs` to use the Node adapter and set the output mode to 'server'.
+The frontend is configured for server-side rendering (SSR) using the `@astrojs/node` adapter, requiring a Node.js compatible server environment.
 
-2.  **Build the Astro Project:** On your local machine or a build server, build the Astro frontend project for production with server-side rendering enabled.
+### General Node.js Server Deployment (Frontend)
+
+1.  **Install Server Adapter:** Ensure the `@astrojs/node` adapter is installed and configured in `frontend/astro.config.mjs` with `output: 'server'` and the adapter added to `integrations`. This was done by running `npx astro add node` previously.
+2.  **Build the Astro Project:** On your local machine or a build server, build the Astro frontend project for production:
     ```bash
     cd frontend
     npm install # Ensure dependencies are installed
     npm run build
     ```
     This will generate a `dist/` directory containing the server build output.
+3.  **Transfer Frontend Files:** Transfer the contents of the `dist/` directory from your local machine to your server.
+4.  **Configure Environment Variables:** Ensure the `PUBLIC_API_URL` environment variable is set to the public URL of your deployed backend API. This is typically handled by your hosting environment's configuration.
+    *   `PUBLIC_API_URL=https://your-backend-api-url.com`
+    Replace `https://your-backend-api-url.com` with the public URL of your deployed backend API.
+5.  **Run the Node.js server:** The Astro build for the Node adapter in standalone mode generates a server entrypoint at `./dist/server/entry.mjs`. To run this server and ensure it binds to the correct network interface and port for your hosting environment, use the following command:
+    ```bash
+    HOST=0.0.0.0 PORT=$PORT node ./dist/server/entry.mjs
+    ```
+    Replace `$PORT` with the actual environment variable name provided by your hosting provider if it's not `PORT`. You will need to configure your hosting environment to run this command to start the application.
+6.  **Configure Web Server (Reverse Proxy):** Configure your web server (like Nginx or Apache) to act as a reverse proxy, forwarding incoming requests to the port your Node.js server is listening on.
 
-3.  **Transfer Frontend Files:** Transfer the contents of the `dist/` directory from your local machine to your server. The specific location will depend on how you configure your web server (Nginx) to run the Node.js server output.
+### Render Web Service Deployment (Frontend)
 
-4.  **Configure Environment Variables:** Ensure the frontend environment variables are correctly set for the production build. For Astro, environment variables prefixed with `PUBLIC_` are exposed to the browser. The primary variable needed is `PUBLIC_BACKEND_API_URL`. This is typically handled during the build process or by your hosting environment's configuration.
-    *   `PUBLIC_BACKEND_API_URL=https://your-backend-api-url.com/api`
-    Replace `https://your-backend-api-url.com/api` with the public URL of your deployed backend API.
-
-5.  **Configure Nginx (or other web server) to run the Node.js server:** Configure your web server (Nginx) to run the Node.js server output generated by the Astro build. This typically involves setting up a reverse proxy to forward requests to the Node.js process. The exact configuration will depend on your server setup and how you manage Node.js processes (e.g., using PM2, systemd, or a hosting control panel tool).
+1.  **Create a New Web Service:** In your Render dashboard, create a new Web Service.
+2.  **Connect Repository:** Connect your Git repository containing the Mango News code.
+3.  **Root Directory:** Specify the `frontend` directory as the Root Directory for this service.
+4.  **Build Command:** Set the Build Command to `npm install && npm run build`.
+5.  **Start Command:** Set the Start Command to `node ./dist/server/entry.mjs`.
+6.  **Environment Variables:** Add the `PUBLIC_API_URL` environment variable to the service's environment settings in Render. The value should be the public URL of your deployed backend service.
+    *   **Key:** `PUBLIC_API_URL`
+    *   **Value:** `https://your-backend-api-url.com` (Replace with your actual backend URL)
+7.  **Deploy:** Render will automatically build and deploy your frontend service.
 
 ## Inmotion Hosting Specifics (WP Launch)
 

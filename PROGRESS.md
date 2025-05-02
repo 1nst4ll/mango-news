@@ -1,12 +1,13 @@
 # Project Progress
 
-## Documentation Audit and Update (Completed on 2025-04-28)
+## Documentation Audit and Update (Completed on 2025-05-01)
 
 - Audited all documentation files in the root directory (`README.md`, `PROGRESS.md`) and the `docs/` directory (`README.md`, `backend-setup.md`, `admin-ui.md`, `css-selectors.md`, `frontend-ui.md`, `scraping-methods.md`, `troubleshooting.md`, `deployment.md`).
 - Ensured documentation reflects the current project state, including the Astro frontend migration, backend enhancements (AI features, database stats, source discovery, purge), and UI updates (shadcn/ui integration, settings page consolidation).
 - Added links to the new `docs/deployment.md` file in `README.md` and all relevant files within the `docs/` directory for better cross-referencing.
 - Updated the Table of Contents in `docs/README.md` to include the new deployment documentation.
 - Verified consistency in terminology and feature descriptions across all documentation files.
+- Confirmed that the `docs/deployment.md` file includes a section on deploying to Render.
 
 ## Article Link Formatting and Exclusion Patterns (Completed on 2025-04-24)
 
@@ -83,6 +84,7 @@
 - Created the dynamic article detail page (`astro-frontend/src/pages/article/[id].astro`) using the base layout and `ArticleDetail` component.
 - Created the settings page (`astro-frontend/src/pages/settings.astro`) using the base layout and `SettingsPage.astro`).
 - Updated `docs/frontend-ui.md` and `README.md` to reflect the Astro migration.
+- Successfully deployed the Astro frontend as a Web Service on Render.
 
 ## Backend Enhancements (In Progress)
 
