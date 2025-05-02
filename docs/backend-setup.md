@@ -15,8 +15,8 @@ The backend connects to a PostgreSQL database.
 1.  **Database Details:**
     *   **Type:** PostgreSQL
     *   **Host:** For local development, use `localhost`. For production, this will be your database server address (e.g., `news.hoffmanntci.com`).
-    *   **Database Name:** `hoffma24_mangonews`
-    *   **Username:** `hoffma24_mangoadmin`
+    *   **Database Name:** `mangonews`
+    *   **Username:** `mangoadmin`
     *   **Password:** This should be stored securely in your backend's `.env` file.
 
 2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your PostgreSQL database.
@@ -42,8 +42,8 @@ The backend connects to a PostgreSQL database.
         ```env
         # Database Configuration
         DB_HOST=localhost
-        DB_NAME=hoffma24_mangonews
-        DB_USER=hoffma24_mangoadmin
+        DB_NAME=mangonews
+        DB_USER=mangoadmin
         DB_PASSWORD=your_database_password
 
         # API Keys

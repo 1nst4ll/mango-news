@@ -379,7 +379,7 @@ async function generateAIImage(title, content) {
     : content;
 
   try {
-    const prompt = `Create a photorealistic news thumbnail featuring local Turks and Caicos residents with rich dark brown skin tones engaged in a relevant community activity. Frame the subjects from behind, at an angle, or with intentionally obscured/partial facial features to avoid misrepresentation of specific individuals. Set against a backdrop of turquoise waters and distinctive local architecture with vibrant Caribbean colors. Use golden hour lighting with high contrast to ensure visibility at small sizes. Incorporate authentic cultural elements and environmental details specific to Turks and Caicos (like limestone walls or local vegetation). If text is needed, add only 1-2 bold keywords in high-contrast sans-serif positioned at the top center. Avoid tourist clichés or stereotypical representation.
+    const prompt = `Create a professional news thumbnail optimized for a Turks and Caicos local news outlet. Ensure the image represents local context authentically while avoiding detailed facial representations of any individuals to prevent misidentification. Use compositional techniques that work well for small formats (rule of thirds, clear focal point, high contrast). Apply golden hour or bright natural lighting to enhance visibility and appeal. Incorporate vibrant colors that pop on small screens. If text is needed, use maximum 2 key words in a bold, highly legible font positioned away from the lower right corner. The final image should immediately signal local TCI relevance while remaining ethical in representation and optimized for clickability.
 
 Title: ${title}
 Content: ${truncatedContent}`;
