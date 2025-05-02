@@ -27,6 +27,7 @@ Thumbs.db
 build/
 dist/
 coverage/
+backend/.cache/
 
 # Log files
 *.log
