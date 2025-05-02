@@ -107,19 +107,17 @@ async function generateAISummary(content) {
       ],
       model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
       temperature: 0.5, // Adjust temperature for more focused topic selection
-      max_tokens: 50, // Adjust max tokens for topic list
+      max_tokens: 150, // Increased max tokens for summary
     });
 
-    const assignedTopicsString = chatCompletion.choices[0]?.message?.content || "";
-    // Parse the comma-separated string into an array of topics
-    const assignedTopics = assignedTopicsString.split(',').map(topic => topic.trim()).filter(topic => topicsList.includes(topic));
+    const summary = chatCompletion.choices[0]?.message?.content || "Summary generation failed."; // Get the summary string
 
-    console.log('Assigned topics:', assignedTopics);
-    return assignedTopics;
+    console.log('Generated summary:', summary);
+    return summary; // Return the summary string
 
   } catch (llmErr) {
-    console.error('Error assigning topics with Groq:', llmErr);
-    return []; // Return an empty array on error
+    console.error('Error generating summary with Groq:', llmErr);
+    return "Summary generation failed."; // Return a default error message
   }
 }
 

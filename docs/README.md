@@ -98,7 +98,7 @@ Retrieves database statistics, including total article count, total source count
 ## Scraping Enhancements
 
 - **AI Topic Assignment:** Integrated AI using the Groq SDK in `backend/src/scraper.js` to analyze article content and assign exactly 3 relevant topics from a predefined list of 31 general topics (including Sport). This ensures consistent tagging across articles.
-- **AI Summary Generation:** Enhanced the AI summary generation in `backend/src/scraper.js` to be optimized for SEO by focusing on key information and incorporating relevant keywords.
+- **AI Summary Generation:** Enhanced the AI summary generation in `backend/src/scraper.js` using Groq's Llama 3.3 70B model to create concise, SEO-optimized text summaries focusing on key information and relevant keywords.
 - **Relative Date Parsing:** Implemented logic in `backend/src/scraper.js` to parse relative date formats (e.g., "x days ago", "x hours ago") and convert them to absolute timestamps for accurate storage and display.
 
 ## Frontend Features
