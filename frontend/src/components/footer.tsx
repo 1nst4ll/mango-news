@@ -41,7 +41,11 @@ const Footer: React.FC = () => {
     <footer className="bg-gray-800 text-white p-8 mt-8">
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <h2 className="text-xl font-bold mb-2">mango.tc news</h2>
+          <h2 className="text-xl font-bold mb-2">
+            <a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">
+              mango.tc news
+            </a>
+          </h2>
           <p className="text-gray-400">Aggregating news from across the Turks and Caicos Islands</p>
         </div>
         <div>
@@ -64,7 +68,7 @@ const Footer: React.FC = () => {
         </div>
       </div>
       <div className="container mx-auto mt-8 pt-4 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-        <p>&copy; {new Date().getFullYear()} mango.tc news | Developed by Hoffmann Ltd</p>
+        <p>&copy; {new Date().getFullYear()} <a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="hover:underline">mango.tc</a> news | Developed by <a href="https://hoffmanntci.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Hoffmann Ltd</a></p>
         <div className="flex space-x-4 mt-4 md:mt-0">
           <div>
             <span>Verified Source</span>
