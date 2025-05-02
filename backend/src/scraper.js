@@ -10,6 +10,17 @@ const fs = require('fs').promises; // Import Node.js file system promises API
 const path = require('path'); // Import Node.js path module
 const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
 
+// Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
+const topicsList = [
+  "Politics", "Economy", "Business", "Technology", "Health", "Science",
+  "Environment", "Education", "Sports", "Entertainment", "Culture", "Travel",
+  "Crime", "Justice", "Weather", "Community", "Infrastructure", "Tourism",
+  "Real Estate", "Finance", "Agriculture", "Fishing", "History", "Arts",
+  "Religion", "Opinion", "Editorial", "Local News", "Regional News", "International News",
+  "Sport" // Added Sport based on previous analysis
+];
+
+
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -118,6 +129,50 @@ async function generateAISummary(content) {
   } catch (llmErr) {
     console.error('Error generating summary with Groq:', llmErr);
     return "Summary generation failed."; // Return a default error message
+  }
+}
+
+// This function assigns topics to an article using the Groq API
+async function assignTopicsWithAI(source, content) {
+  console.log('Assigning topics using Groq...');
+  const maxContentLength = 5000; // Define max content length for topic assignment
+
+  // Truncate content if it's too long
+  const truncatedContent = content.length > maxContentLength
+    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
+    : content;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `Analyze the following news article content and identify the 3 most relevant topics from the provided list. Return only a comma-separated list of exactly 3 topics. The topics must be from this list: ${topicsList.join(', ')}. Do not include any other text.`
+        },
+        {
+          role: "user",
+          content: truncatedContent, // Use truncated content
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
+      temperature: 0.5, // Adjust temperature for more focused topic selection
+      max_tokens: 50, // Adjust max tokens for topic list
+    });
+
+    const assignedTopicsString = chatCompletion.choices[0]?.message?.content || "";
+    // Parse the comma-separated string into an array of topics, trim whitespace, and filter to ensure they are in the allowed list
+    const assignedTopics = assignedTopicsString
+      .split(',')
+      .map(topic => topic.trim())
+      .filter(topic => topicsList.includes(topic))
+      .slice(0, 3); // Ensure exactly 3 topics are returned
+
+    console.log('Assigned topics:', assignedTopics);
+    return assignedTopics;
+
+  } catch (llmErr) {
+    console.error('Error assigning topics with Groq:', llmErr);
+    return []; // Return an empty array on error
   }
 }
 
@@ -340,7 +395,7 @@ Content: ${truncatedContent}`;
       method: 'POST',
       headers: {
         'Api-Key': ideogramApiKey,
-        // Do NOT set Content-Type for FormData, it's set automatically
+        'Content-Type': 'multipart/form-data', // Explicitly set Content-Type for FormData
       },
       body: formData // Use FormData for the body
     });
