@@ -698,7 +698,7 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
     const queryParams = [sourceId];
 
     if (featureType === 'summary' && source.enable_ai_summary) {
-      query = 'SELECT id, raw_content FROM articles WHERE source_id = $1 AND summary IS NULL';
+      query = 'SELECT id, raw_content FROM articles WHERE source_id = $1 AND (summary IS NULL OR summary = \'Summary generation failed.\')';
     } else if (featureType === 'tags' && source.enable_ai_tags) {
       // Find articles that don't have an entry in article_topics
       query = `

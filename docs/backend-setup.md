@@ -100,6 +100,8 @@ This endpoint triggers the `processMissingAiForSource` function for the specifie
         *   `"summary"`: Process articles missing an AI summary.
         *   `"tags"`: Process articles missing AI-assigned tags.
         *   `"image"`: Process articles missing an AI-generated image (thumbnail).
+
+A fix has been implemented in the `processMissingAiForSource` function to address cases where AI summary generation previously failed. The function now correctly identifies and attempts to re-process articles where the `summary` field contains the specific text "Summary generation failed.", in addition to articles where the `summary` is `NULL`.
 *   **Response:**
     *   Returns a JSON object indicating the success or failure of the operation, along with counts of processed articles and errors.
 
