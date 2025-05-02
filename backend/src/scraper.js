@@ -106,63 +106,6 @@ async function generateAISummary(content) {
         }
       ],
       model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
-      temperature: 0.7, // Adjust temperature as needed
-      max_tokens: 100, // Adjust max tokens for summary length
-    });
-
-    return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
-
-  } catch (llmErr) {
-    console.error('Error generating AI summary with Groq:', llmErr);
-    return "Summary generation failed."; // Return a default or error message
-  }
-}
-
-// This function assigns topics to an article using the Groq API
-async function assignTopicsWithAI(source, content, enableGlobalAiTags = true) { // Accept source and global toggle state
-  // Check per-source setting first
-  if (!source.enable_ai_tags) {
-    console.log(`AI tag generation is disabled for source ${source.name}. Skipping topic assignment.`);
-    return [];
-  }
-  // Optionally check global toggle as well (per-source enabled + global enabled = generate)
-  // If global toggle is intended to be an override, the logic might be different.
-  // Let's assume per-source is the primary control, but global can disable everything.
-  if (!enableGlobalAiTags) {
-     console.log('AI tag generation is disabled globally. Skipping topic assignment.');
-     return [];
-  }
-
-  console.log('AI tag generation is enabled. Assigning topics using Groq...'); // Corrected log
-  const topicsList = [
-    "Breaking", "Crime", "Tourism", "Government", "Police", "Immigration",
-    "Weather", "Environment", "BusinessTCI", "Politics", "Health", "Education",
-    "ResortNews", "Community", "Events", "Transportation", "Marine", "Construction",
-    "RealEstate", "CruiseShips", "Airport", "Openings", "GrandTurk", "North",
-    "South", "Infrastructure", "Development", "Fishing", "Heritage", "Celebrations",
-    "Announcement", "Sport" // Added Sport topic
-  ]; // The full list of 31 topics
-
-  const maxContentLength = 10000; // Define max content length to avoid hitting token limits
-
-  // Truncate content if it's too long
-  const truncatedContent = content.length > maxContentLength
-    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
-    : content;
-
-  try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `Analyze the following news article content and assign exactly 3 relevant topics from the provided list. Return only the topic names as a comma-separated string. The allowed topics are: ${topicsList.join(', ')}.`
-        },
-        {
-          role: "user",
-          content: truncatedContent, // Use truncated content
-        }
-      ],
-      model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
       temperature: 0.5, // Adjust temperature for more focused topic selection
       max_tokens: 50, // Adjust max tokens for topic list
     });
@@ -370,7 +313,8 @@ async function generateAIImage(title, content) {
     return null;
   }
 
-  const ideogramApiUrl = 'https://api.ideogram.ai/generate'; // Corrected endpoint
+  // Ideogram 3.0 API endpoint
+  const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
 
   const maxContentLength = 5000; // Define max content length for prompt generation
 
@@ -385,23 +329,22 @@ async function generateAIImage(title, content) {
 Title: ${title}
 Content: ${truncatedContent}`;
 
-    const requestBody = {
-      image_request: { // Added required image_request object
-        prompt: prompt,
-        aspect_ratio: "ASPECT_16_9", // Added aspect ratio
-        model: "V_2A_TURBO", // Corrected model name based on API error
-        magic_prompt_option: "AUTO"
-        // Add other Ideogram API parameters as needed within image_request, e.g., model, etc.
-      }
-    };
+    const formData = new FormData();
+    formData.append('prompt', prompt);
+    formData.append('rendering_speed', 'TURBO'); // Required parameter for V3
+    formData.append('aspect_ratio', '16:9'); // Use the string format for aspect ratio
+    formData.append('magic_prompt', 'OFF'); // Use magic_prompt for V3
+    formData.append('style_type', 'REALISTIC'); // Add realistic style type
+
+    // Add other Ideogram API parameters as needed, e.g., seed, resolution, negative_prompt, num_images, color_palette, style_codes, style_type, style_reference_images
 
     const response = await fetch(ideogramApiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'Api-Key': ideogramApiKey,
+        // Do NOT set Content-Type for FormData, it's set automatically
       },
-      body: JSON.stringify(requestBody),
+      body: formData // Use FormData for the body
     });
 
     if (!response.ok) {
