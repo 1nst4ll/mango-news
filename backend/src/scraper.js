@@ -379,7 +379,7 @@ async function generateAIImage(title, content) {
     : content;
 
   try {
-    const prompt = `Create a professional news thumbnail optimized for a Turks and Caicos local news outlet. Ensure the image represents local context authentically while avoiding detailed facial representations of any individuals to prevent misidentification. Use compositional techniques that work well for small formats (rule of thirds, clear focal point, high contrast). Apply golden hour or bright natural lighting to enhance visibility and appeal. Incorporate vibrant colors that pop on small screens. If text is needed, use maximum 2 key words in a bold, highly legible font positioned away from the lower right corner. The final image should immediately signal local TCI relevance while remaining ethical in representation and optimized for clickability.
+    const prompt = `Create local TCI news thumbnail. Optimize for click: rule of thirds, close-up focus, high contrast, golden hour lighting. Represent residents authentically without identifiable faces. Vibrant colors, clear focal point, avoid lower-right text placement. Maximum 2 keyword text if needed, bold sans-serif. Image must reflect Turks and Caicos context while preventing misrepresentation through non-face-focused composition (silhouettes, backs, angles).
 
 Title: ${title}
 Content: ${truncatedContent}`;
