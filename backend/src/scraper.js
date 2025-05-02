@@ -9,6 +9,7 @@ const { scrapeArticle: opensourceScrapeArticle, discoverArticleUrls: opensourceD
 const fs = require('fs').promises; // Import Node.js file system promises API
 const path = require('path'); // Import Node.js path module
 const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
+const FormData = require('form-data'); // Import the form-data library
 
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
 const topicsList = [
@@ -369,8 +370,6 @@ async function generateAIImage(title, content) {
   // Ideogram 3.0 API endpoint
   const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
 
-  // Ensure styleReferenceImagePaths is an array, even if not provided in the call
-  const imagePaths = Array.isArray(styleReferenceImagePaths) ? styleReferenceImagePaths : [];
 
   const maxContentLength = 5000; // Define max content length for prompt generation
 
@@ -380,12 +379,12 @@ async function generateAIImage(title, content) {
     : content;
 
   try {
-    const prompt = `Create a news thumbnail that visually represents the following article. Set in Turks and Caicos, featuring local Caribbean residents with dark skin tones. The image should capture the essence of the article's content while being suitable for general audiences. Create a balanced composition with good lighting that works well as a clickable thumbnail. if using text only short key words
+    const prompt = `Create a photorealistic news thumbnail featuring local Turks and Caicos residents with rich dark brown skin tones engaged in a relevant community activity. Frame using the rule of thirds with a close-up on expressive faces showing clear emotion. Set against a backdrop of turquoise waters and distinctive local architecture with vibrant Caribbean colors. Use golden hour lighting with high contrast to ensure visibility at small sizes. Incorporate authentic cultural elements and environmental details specific to Turks and Caicos (like limestone walls or local vegetation). If text is needed, add only 1-2 bold keywords in high-contrast sans-serif positioned at the top center. Avoid tourist clichés or stereotypical representation.
 
 Title: ${title}
 Content: ${truncatedContent}`;
 
-    const formData = new FormData();
+    const formData = new FormData(); // Use the imported FormData
     formData.append('prompt', prompt);
     formData.append('rendering_speed', 'TURBO'); // Required parameter for V3
     formData.append('aspect_ratio', '16:9'); // Use the string format for aspect ratio
@@ -394,12 +393,12 @@ Content: ${truncatedContent}`;
 
     // Add other Ideogram API parameters as needed, e.g., seed, resolution, negative_prompt, num_images, color_palette, style_codes, style_type
 
+    const headers = formData.getHeaders();
+    headers['Api-Key'] = ideogramApiKey; // Add the API key to the headers
+
     const response = await fetch(ideogramApiUrl, {
       method: 'POST',
-      headers: {
-        'Api-Key': ideogramApiKey,
-        // Let FormData handle Content-Type and boundary automatically
-      },
+      headers: headers, // Use headers from formData.getHeaders()
       body: formData // Use FormData for the body
     });
 
