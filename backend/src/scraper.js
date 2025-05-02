@@ -109,7 +109,7 @@ async function generateAISummary(content) {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary ends on a complete sentence."
+          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 100 words and ends on a complete sentence."
         },
         {
           role: "user",
@@ -118,7 +118,7 @@ async function generateAISummary(content) {
       ],
       model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
       temperature: 0.5, // Adjust temperature for more focused topic selection
-      max_tokens: 150, // Increased max tokens for summary
+      max_tokens: 250, // Further increased max tokens for summary to prevent truncation
     });
 
     const summary = chatCompletion.choices[0]?.message?.content || "Summary generation failed."; // Get the summary string
