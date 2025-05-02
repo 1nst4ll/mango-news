@@ -387,7 +387,7 @@ Content: ${truncatedContent}`;
     const formData = new FormData(); // Use the imported FormData
     formData.append('prompt', prompt);
     formData.append('rendering_speed', 'TURBO'); // Required parameter for V3
-    formData.append('aspect_ratio', '16:9'); // Use the string format for aspect ratio
+    formData.append('aspect_ratio', '16x9'); // Use the string format for aspect ratio
     formData.append('magic_prompt', 'OFF'); // Use magic_prompt for V3
     formData.append('style_type', 'REALISTIC'); // Add realistic style type
 
