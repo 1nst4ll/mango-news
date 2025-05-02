@@ -118,7 +118,7 @@ async function generateAISummary(content) {
       ],
       model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
       temperature: 0.5, // Adjust temperature for more focused topic selection
-      max_tokens: 250, // Further increased max tokens for summary to prevent truncation
+      max_tokens: 300, // Further increased max tokens for summary to prevent truncation
     });
 
     const summary = chatCompletion.choices[0]?.message?.content || "Summary generation failed."; // Get the summary string
