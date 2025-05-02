@@ -389,6 +389,23 @@ Content: ${truncatedContent}`;
     formData.append('magic_prompt', 'OFF'); // Use magic_prompt for V3
     formData.append('style_type', 'REALISTIC'); // Add realistic style type
 
+    // Add style reference images if provided
+    // The API expects each image file to be appended with the key 'style_reference_images'
+    if (styleReferenceImagePaths && styleReferenceImagePaths.length > 0) {
+      console.log(`Adding ${styleReferenceImagePaths.length} style reference image(s)...`);
+      for (const imagePath of styleReferenceImagePaths) {
+        try {
+          const fileContent = await fs.readFile(imagePath);
+          // Use a dummy filename, the API likely uses the content
+          formData.append('style_reference_images', fileContent, path.basename(imagePath));
+        } catch (fileErr) {
+          console.error(`Error reading style reference image file ${imagePath}:`, fileErr);
+          // Continue with other images or without this one
+        }
+      }
+    }
+
+
     // Add other Ideogram API parameters as needed, e.g., seed, resolution, negative_prompt, num_images, color_palette, style_codes, style_type, style_reference_images
 
     const response = await fetch(ideogramApiUrl, {
