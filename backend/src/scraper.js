@@ -395,7 +395,7 @@ Content: ${truncatedContent}`;
       method: 'POST',
       headers: {
         'Api-Key': ideogramApiKey,
-        'Content-Type': 'multipart/form-data', // Explicitly set Content-Type for FormData
+        // Let FormData handle Content-Type and boundary automatically
       },
       body: formData // Use FormData for the body
     });
@@ -498,7 +498,7 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
 }
 
 
-async function runScraper(enableGlobalAiSummary = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
+async function runScraper(enableGlobalAiSummary = true, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
   console.log('Starting news scraping process...');
   const activeSources = await getActiveSources();
 
@@ -559,7 +559,7 @@ async function runScraper(enableGlobalAiSummary = undefined, enableGlobalAiTags 
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, 'global', enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage); // Pass scrape type and global toggles
+        const processed = await scrapeArticlePage(source, articleUrl, 'global', true, enableGlobalAiTags, enableGlobalAiImage); // Pass scrape type and explicitly true for global summary toggle
         if (processed) {
           articlesAdded++;
         }
