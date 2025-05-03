@@ -375,9 +375,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
 
   try {
     const prompt = `Create local TCI news thumbnail. Optimize for click: rule of thirds, close-up focus, high contrast, golden hour lighting. Represent residents authentically without identifiable faces. Vibrant colors, clear focal point, avoid lower-right text placement. Maximum 2 keyword text if needed, bold sans-serif. Image must reflect Turks and Caicos context while preventing misrepresentation through non-face-focused composition (silhouettes, backs, angles).
-
-Title: ${title}
-Summary: ${summary}`; // Changed to use summary in the prompt
+${summary}`; // Changed to use summary in the prompt
 
     const formData = new FormData(); // Use the imported FormData
     formData.append('prompt', prompt);
