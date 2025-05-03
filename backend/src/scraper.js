@@ -585,6 +585,24 @@ cron.schedule('0 * * * *', () => {
 
 console.log('News scraper scheduled to run.');
 
+// Schedule processing of missing AI data (summary and tags) for all active sources every 20 minutes
+cron.schedule('*/20 * * * *', async () => {
+  console.log('Running scheduled missing AI data processing job...');
+  const activeSources = await getActiveSources(); // Fetch active sources inside the job
+
+  for (const source of activeSources) {
+    console.log(`Processing missing AI data for source: ${source.name} (ID: ${source.id})`);
+    // Process missing summaries
+    await processMissingAiForSource(source.id, 'summary');
+    // Process missing tags
+    await processMissingAiForSource(source.id, 'tags');
+  }
+  console.log('Finished scheduled missing AI data processing job.');
+});
+
+console.log('Missing AI data processing scheduled to run every 20 minutes.');
+
+
 // Function to run the scraper for a specific source ID
 async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
   console.log(`Starting news scraping process for source ID: ${sourceId}`);
