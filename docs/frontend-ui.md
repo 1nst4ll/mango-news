@@ -37,6 +37,8 @@ Further styling refinements and component integrations will continue as the migr
 
 Articles in the news feed are now grouped by publication date (Day, Month, Year) with a horizontal rule separator between each date group for improved readability and organization.
 
+The Google AdSense script (`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js`) has been added to the `<head>` section of the base layout (`frontend/src/layouts/BaseLayout.astro`) to enable ad display on pages using this layout, including the main news feed page.
+
 An audit of the shadcn/ui components in `frontend/src/components/ui/` has been completed. The audited components include `button`, `card`, `chart`, `checkbox`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `select`, `switch`, and `textarea`. A minor correction was made to `frontend/src/components/ui/chart.tsx` to use a path alias (`@/lib/utils`) for the `cn` utility function instead of a relative import.
 
 The `ModeToggle.tsx` component, which handles the theme switch, has been audited. It uses standard browser APIs and React hooks and is expected to work correctly in modern browsers, including Safari on iOS. However, it is recommended to manually test the theme switch functionality on an iOS device running Safari to confirm full compatibility.
