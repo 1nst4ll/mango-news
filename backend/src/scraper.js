@@ -359,7 +359,7 @@ async function processScrapedData(data) { // Accept a single data object
 
 
 // Function to generate AI image using Ideogram API
-async function generateAIImage(title, contentOrSummary) {
+async function generateAIImage(title, summary) { // Changed signature to accept summary
   console.log('Attempting to generate AI image using Ideogram API...');
 
   const ideogramApiKey = process.env.IDEOGRAM_API_KEY;
@@ -371,19 +371,13 @@ async function generateAIImage(title, contentOrSummary) {
   // Ideogram 3.0 API endpoint
   const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
 
-
-  const maxContentLength = 5000; // Define max content length for prompt generation
-
-  // Truncate contentOrSummary if it's too long
-  const truncatedContent = contentOrSummary.length > maxContentLength
-    ? contentOrSummary.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
-    : contentOrSummary;
+  // No truncation needed, summary should be concise
 
   try {
     const prompt = `Create local TCI news thumbnail. Optimize for click: rule of thirds, close-up focus, high contrast, golden hour lighting. Represent residents authentically without identifiable faces. Vibrant colors, clear focal point, avoid lower-right text placement. Maximum 2 keyword text if needed, bold sans-serif. Image must reflect Turks and Caicos context while preventing misrepresentation through non-face-focused composition (silhouettes, backs, angles).
 
 Title: ${title}
-Content: ${truncatedContent}`;
+Summary: ${summary}`; // Changed to use summary in the prompt
 
     const formData = new FormData(); // Use the imported FormData
     formData.append('prompt', prompt);

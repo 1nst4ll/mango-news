@@ -144,6 +144,10 @@ This structure separates the backend, database, and frontend concerns into disti
     *   Implemented **AI Image Generation** using the Ideogram API when no thumbnail is found.
     *   Implemented logic to parse **Relative Date Formats** (e.g., "x days ago") into absolute timestamps.
     *   Implemented global toggles for AI summary, tag, and image generation in the scraper.
+    *   The scraping process includes optional AI-powered features for generating article summaries, assigning topics, and generating images. AI image generation is performed using the **Ideogram API**. This feature is only attempted if no thumbnail URL is found during the initial scrape. The prompt used for image generation is designed to create relevant visuals with a Caribbean setting and depict people with dark skin. These AI features can be enabled or disabled on a per-source basis through the Admin UI.
+    *   The behavior of these AI features depends on how the scrape is initiated:
+        *   **Global Scrapes (e.g., Scheduled Scrapes or `POST /api/scrape/run`):** AI features (summary, tags, image) for a specific article are enabled *only if* the corresponding global AI toggle (if provided in the API request) *and* the source-specific AI toggle are both enabled. If global toggles are not explicitly provided in the API request, the default values (currently `true` for tags and image, `undefined` for summary) are used in conjunction with the source-specific toggles.
+        *   **Per-Source Scrapes (`POST /api/scrape/run/:id`):** AI features (summary, tags, image) for articles from this source are enabled *only if* the corresponding source-specific AI toggle is enabled. Any global AI toggles provided in the API request body for this endpoint are ignored.
 *   **Frontend UI (`frontend/` - Astro):**
     *   The frontend has been migrated to Astro with React, Tailwind CSS, and Shadcn UI.
     *   Uses Astro's file-based routing (`src/pages/`).
@@ -223,7 +227,7 @@ By following these steps and keeping the documentation updated, you help ensure 
 
 ## Documentation Guidelines
 
-This project includes multiple documentation files to provide comprehensive information. To ensure consistency and avoid repetition, please follow these guidelines:
+This project includes multiple documentation files to provide comprehensive information. To ensure consistency and avoidance repetition, please follow these guidelines:
 
 *   **README.md:** Provides a high-level overview of the project, its purpose, technology stack, and basic setup/running instructions. It should be the starting point for anyone new to the project.
 *   **PROGRESS.md:** Tracks the development progress with a detailed log of completed tasks, pending tasks (checklists), project phases, and detailed steps for the current phase. This file is for tracking development progress over time.
