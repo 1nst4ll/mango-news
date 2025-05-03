@@ -1402,64 +1402,16 @@ const SettingsPage: React.FC = () => {
 
   // New handler function to delete a single article
   const handleDeleteArticle = async (articleId: number) => {
-    if (!confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      alert(`Article ${articleId} deleted successfully.`);
-
-      // Update the state to remove the deleted article from the list
-      setSourceArticles(prevArticles => prevArticles.filter(article => article.id !== articleId));
-
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(`Error deleting article: ${err.message}`);
-      } else {
-        alert('An unknown error occurred while deleting the article.');
-      }
-    }
+    console.log(`Attempting to delete article with ID: ${articleId}`);
+    // Temporarily removed fetch logic to debug FS error
+    alert(`Simulating deletion of article ${articleId}. Check console.`);
   };
 
   // Handler function to block a single article
   const handleBlockArticle = async (articleId: number) => {
-    if (!confirm('Are you sure you want to block this article? It will not appear in the feed.')) {
-      return;
-    }
-
-    try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}/block`, {
-        method: 'PUT',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      alert(`Article ${articleId} blocked successfully.`);
-
-      // Optionally, update the state to reflect the blocked status or remove the article
-      // For now, we'll just alert and keep the article in the list (it won't show in the feed anyway)
-      // If you want to remove it from the dialog list, you could filter it out:
-      // setSourceArticles(prevArticles => prevArticles.filter(article => article.id !== articleId));
-
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(`Error blocking article: ${err.message}`);
-      } else {
-        alert('An unknown error occurred while blocking the article.');
-      }
-    }
+    console.log(`Attempting to block article with ID: ${articleId}`);
+    // Temporarily removed fetch logic to debug FS error
+    alert(`Simulating blocking of article ${articleId}. Check console.`);
   };
 
 };
