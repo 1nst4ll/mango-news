@@ -374,10 +374,10 @@ async function generateAIImage(title, contentOrSummary) {
 
   const maxContentLength = 5000; // Define max content length for prompt generation
 
-  // Truncate content if it's too long
-  const truncatedContent = content.length > maxContentLength
-    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
-    : content;
+  // Truncate contentOrSummary if it's too long
+  const truncatedContent = contentOrSummary.length > maxContentLength
+    ? contentOrSummary.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
+    : contentOrSummary;
 
   try {
     const prompt = `Create local TCI news thumbnail. Optimize for click: rule of thirds, close-up focus, high contrast, golden hour lighting. Represent residents authentically without identifiable faces. Vibrant colors, clear focal point, avoid lower-right text placement. Maximum 2 keyword text if needed, bold sans-serif. Image must reflect Turks and Caicos context while preventing misrepresentation through non-face-focused composition (silhouettes, backs, angles).
