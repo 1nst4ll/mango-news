@@ -283,9 +283,10 @@ async function processScrapedData(data) { // Accept a single data object
 
       // Generate AI image if enabled and no thumbnail exists
       let aiImageUrl = null;
+      // Pass the generated summary to generateAIImage
       if (shouldGenerateImage && (!metadata?.thumbnail_url || metadata.thumbnail_url.trim() === '')) {
         console.log('AI image generation is enabled and no thumbnail exists. Generating image...');
-        aiImageUrl = await generateAIImage(title, raw_content); // Pass title and content for prompt
+        aiImageUrl = await generateAIImage(title, summary || raw_content); // Use summary if available, otherwise raw_content
       } else if (!shouldGenerateImage) {
         console.log('AI image generation is disabled. Skipping image generation.');
       } else {
@@ -358,7 +359,7 @@ async function processScrapedData(data) { // Accept a single data object
 
 
 // Function to generate AI image using Ideogram API
-async function generateAIImage(title, content) {
+async function generateAIImage(title, contentOrSummary) {
   console.log('Attempting to generate AI image using Ideogram API...');
 
   const ideogramApiKey = process.env.IDEOGRAM_API_KEY;
@@ -757,7 +758,24 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
           }
         } else if (featureType === 'image') {
           console.log(`Processing image for article ID: ${article.id}`);
-          const aiImageUrl = await generateAIImage(article.title, article.raw_content);
+          let articleSummary = article.summary;
+
+          // If summary is missing, generate it first
+          if (!articleSummary || articleSummary.trim() === '' || articleSummary === 'Summary generation failed.') {
+             console.log(`Summary missing for article ID ${article.id}. Generating summary before image.`);
+             articleSummary = await generateAISummary(article.raw_content);
+             // Optionally update the database with the newly generated summary here if needed,
+             // but for this task, we only need it for image generation.
+             if (articleSummary && articleSummary !== "Summary generation failed.") {
+                 await pool.query('UPDATE articles SET summary = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [articleSummary, article.id]);
+             } else {
+                 console.warn(`Failed to generate summary for article ID ${article.id}. Cannot generate image based on summary.`);
+                 errorCount++;
+                 continue; // Skip image generation for this article
+             }
+          }
+
+          const aiImageUrl = await generateAIImage(article.title, articleSummary || article.raw_content); // Use generated summary or raw content
           if (aiImageUrl) {
             // Update both ai_image_url and potentially thumbnail_url if it was also null
             await pool.query('UPDATE articles SET ai_image_url = $1, thumbnail_url = COALESCE(thumbnail_url, $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImageUrl, article.id]);
