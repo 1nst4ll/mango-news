@@ -53,6 +53,20 @@ pool.connect((err, client, done) => {
   done(); // This also releases the client
 });
 
+// Temporary query to find the source ID for "suntci.com"
+(async () => {
+  try {
+    const result = await pool.query('SELECT id FROM sources WHERE name = $1', ['suntci.com']);
+    if (result.rows.length > 0) {
+      console.log(`[INFO] ${new Date().toISOString()} - Found source ID for suntci.com: ${result.rows[0].id}`);
+    } else {
+      console.warn(`[WARN] ${new Date().toISOString()} - Source "suntci.com" not found in database.`);
+    }
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - Error finding source ID for suntci.com:`, err);
+  }
+})();
+
 
 // API Endpoints
 

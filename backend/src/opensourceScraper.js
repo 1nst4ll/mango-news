@@ -10,6 +10,17 @@ const puppeteer = require('puppeteer');
  * @param {number} [delay=1000] - The delay in milliseconds between retries.
  * @returns {Promise<object|null>} - A promise that resolves with the scraped article data or null if scraping fails after retries.
  */
+
+// Helper function to build regex from article link template
+function buildTemplateRegex(template) {
+  // Escape regex special characters, but keep { and }
+  let regexString = template.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  // Replace {name} with ([^/]+) and {name:regex} with (regex)
+  regexString = regexString.replace(/\{([^}:]+)\}/g, '([^/]+)'); // Handle {name}
+  regexString = regexString.replace(/\{[^}:]+:([^}]+)\}/g, '($1)'); // Handle {name:regex}
+  return new RegExp('^' + regexString + '$');
+}
+
 async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
   console.log(`Starting article scraping for: ${url} (Attempt ${4 - retries})`);
   let browser;
@@ -262,21 +273,12 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
     const page = await browser.newPage();
     const sourceHostname = new URL(sourceUrl).hostname;
 
-    // Convert template to a regex pattern
+    // Convert template to a regex pattern using the helper function
     let templateRegex = null;
     if (articleLinkTemplate) {
       try {
-        templateRegex = new RegExp('^' + articleLinkTemplate
-          .replace(/\{YYYY\}/g, '\\d{4}')
-          .replace(/\{MM\}/g, '\\d{2}')
-          .replace(/\{DD\}/g, '\\d{2}')
-          .replace(/\{article_slug\}/g, '[^\\/]+')
-          .replace(/\{slug\}/g, '[^\\/]+') // Add replacement for {slug}
-          .replace(/\{id\d*\}/g, '\\d+') // Handle {id}, {id1}, {id2}, etc.
-          .replace(/\./g, '\\.') // Escape dots
-          .replace(/\//g, '\\/') // Escape slashes
-          + '$');
-        console.log(`Generated template regex: ${templateRegex}`);
+        templateRegex = buildTemplateRegex(articleLinkTemplate);
+        console.log(`Generated template regex from "${articleLinkTemplate}": ${templateRegex}`);
       } catch (e) {
         console.error(`Error creating regex from template "${articleLinkTemplate}":`, e);
         templateRegex = null; // Invalidate regex if creation fails
