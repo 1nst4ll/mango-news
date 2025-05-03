@@ -316,6 +316,58 @@ app.get('/api/articles/:id', async (req, res) => {
   }
 });
 
+// Delete a single article by ID
+app.delete('/api/articles/:id', async (req, res) => {
+  const articleId = req.params.id;
+  const endpoint = `/api/articles/${articleId}`;
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - DELETE ${endpoint} - Attempting to delete article with ID: ${articleId}`);
+
+    // First, delete related entries in article_topics
+    await pool.query('DELETE FROM article_topics WHERE article_id = $1', [articleId]);
+    console.log(`[INFO] ${new Date().toISOString()} - DELETE ${endpoint} - Deleted article_topics entries for article ID ${articleId}.`);
+
+    // Then, delete the article itself
+    const result = await pool.query('DELETE FROM articles WHERE id = $1 RETURNING id', [articleId]);
+
+    if (result.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - DELETE ${endpoint} - Article with ID ${articleId} not found`);
+      return res.status(404).json({ error: 'Article not found.' });
+    }
+
+    console.log(`[INFO] ${new Date().toISOString()} - DELETE ${endpoint} - Successfully deleted article with ID ${articleId}.`);
+    res.status(204).send(); // No content on successful deletion
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - DELETE ${endpoint} - Error deleting article with ID ${articleId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Block a single article by ID
+app.put('/api/articles/:id/block', async (req, res) => {
+  const articleId = req.params.id;
+  const endpoint = `/api/articles/${articleId}/block`;
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - PUT ${endpoint} - Attempting to block article with ID: ${articleId}`);
+
+    const result = await pool.query(
+      'UPDATE articles SET is_blocked = TRUE WHERE id = $1 RETURNING id',
+      [articleId]
+    );
+
+    if (result.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - PUT ${endpoint} - Article with ID ${articleId} not found`);
+      return res.status(404).json({ error: 'Article not found.' });
+    }
+
+    console.log(`[INFO] ${new Date().toISOString()} - PUT ${endpoint} - Successfully blocked article with ID ${articleId}.`);
+    res.json({ message: `Article ${articleId} blocked successfully.` });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error blocking article with ID ${articleId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 // Trigger scraper for a specific source
 app.post('/api/scrape/run/:id', async (req, res) => {
