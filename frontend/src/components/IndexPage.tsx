@@ -1,11 +1,11 @@
 "use client";
 
+"use client";
+
 import { useState, useEffect } from 'react';
 import NewsFeed from './NewsFeed';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { DatePickerWithRange } from './ui/DatePickerWithRange';
-import type { DateRange } from 'react-day-picker';
 import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
@@ -16,62 +16,11 @@ interface Source {
   url: string;
 }
 
-interface Topic {
-  id: number;
-  name: string;
-}
-
 export default function IndexPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [sources, setSources] = useState<Source[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-
-  // Log selectedTopics changes for debugging
-  useEffect(() => {
-    console.log('Selected Topics:', selectedTopics);
-  }, [selectedTopics]);
-
-
-  useEffect(() => {
-    const fetchDynamicTopics = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (debouncedSearchTerm) {
-          params.append('searchTerm', debouncedSearchTerm);
-        }
-        if (dateRange?.from) {
-          params.append('startDate', dateRange.from.toISOString());
-        }
-        if (dateRange?.to) {
-          params.append('endDate', dateRange.to.toISOString());
-        }
-        if (selectedSources.length > 0) {
-          params.append('sources', selectedSources.join(','));
-        }
-
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-        const topicsResponse = await fetch(`${apiUrl}/api/topics?${params.toString()}`);
-        if (topicsResponse.ok) {
-          const topicsData: Topic[] = await topicsResponse.json();
-          setTopics(topicsData);
-        } else {
-           console.warn('Error fetching dynamic topics, using empty list.', topicsResponse.status);
-           setTopics([]);
-        }
-      } catch (error) {
-        console.error('Error fetching dynamic topics:', error);
-        setTopics([]);
-      }
-    };
-
-    // Fetch topics dynamically whenever relevant filters change
-    fetchDynamicTopics();
-
-  }, [debouncedSearchTerm, dateRange, selectedSources]); // Depend on relevant filter states
 
   // Fetch sources only once on mount
   useEffect(() => {
@@ -108,9 +57,7 @@ export default function IndexPage() {
 
   const handleResetFilters = () => {
     setSearchTerm('');
-    setDateRange(undefined);
     setSelectedSources([]);
-    setSelectedTopics([]);
     setDebouncedSearchTerm(''); // Reset debounced term
   };
 
@@ -131,13 +78,6 @@ export default function IndexPage() {
                 setDebouncedSearchTerm(searchTerm);
               }
             }}
-          />
-        </div>
-        {/* Date Picker */}
-        <div className="w-full md:w-auto flex-shrink-0"> {/* Added w-full for small screens, flex-shrink-0 */}
-          <DatePickerWithRange
-            selected={dateRange}
-            onSelect={setDateRange}
           />
         </div>
         {/* Source Filter */}
@@ -168,34 +108,6 @@ export default function IndexPage() {
             </PopoverContent>
           </Popover>
         </div>
-         {/* Topic Filter */}
-        <div className="md:w-auto flex-shrink-0"> {/* Removed w-full */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="md:w-auto"> {/* Removed w-full */}
-                Topics ({selectedTopics.length})
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-2">
-              {topics.map(topic => (
-                <div key={topic.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`topic-${topic.id}`}
-                    checked={selectedTopics.includes(topic.name)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedTopics([...selectedTopics, topic.name]);
-                      } else {
-                        setSelectedTopics(selectedTopics.filter(name => name !== topic.name));
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`topic-${topic.id}`}>{topic.name}</Label>
-                </div>
-              ))}
-            </PopoverContent>
-          </Popover>
-        </div>
         {/* Reset Filters Button */}
         <div className="md:w-auto flex-shrink-0"> {/* Removed w-full */}
           <Button variant="outline" onClick={handleResetFilters} className="md:w-auto"> {/* Removed w-full */}
@@ -205,10 +117,7 @@ export default function IndexPage() {
       </div>
       <NewsFeed
         searchTerm={debouncedSearchTerm} // Pass debouncedSearchTerm to NewsFeed
-        startDate={dateRange?.from ? dateRange.from.toISOString() : null} // Pass dateRange directly
-        endDate={dateRange?.to ? dateRange.to.toISOString() : null} // Pass dateRange directly
         selectedSources={selectedSources} // Pass selectedSources directly
-        selectedTopics={selectedTopics} // Pass selectedTopics directly
         activeCategory="all" // Pass a default value for activeCategory
       />
     </div>

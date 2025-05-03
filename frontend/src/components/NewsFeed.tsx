@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card"; // Changed to relative path
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"; // Removed CardFooter
 
 interface Article {
   id: number;
@@ -21,9 +21,6 @@ interface Article {
 }
 
 interface NewsFeedProps {
-  selectedTopics: string[];
-  startDate: string | null;
-  endDate: string | null;
   searchTerm: string;
   selectedSources: string[];
   activeCategory: string;
@@ -42,9 +39,6 @@ const getDomainFromUrl = (url: string): string => {
 
 
 function NewsFeed({
-  selectedTopics = [], // Provide default empty array
-  startDate = null, // Provide default null
-  endDate = null, // Provide default null
   searchTerm = '', // Provide default empty string
   selectedSources = [], // Provide default empty array
   activeCategory = 'all' // Provide default 'all'
@@ -66,27 +60,12 @@ function NewsFeed({
         // Log the filter values being used for the fetch
         console.log('Fetching articles with filters:', {
           searchTerm,
-          startDate,
-          endDate,
           selectedSources,
-          selectedTopics,
         });
-
-        // Add selected topics to params (assuming backend handles comma-separated)
-        if (selectedTopics.length > 0) {
-          params.append('topics', selectedTopics.join(','));
-        }
 
         // Add selected sources to params (assuming backend handles comma-separated)
         if (selectedSources.length > 0) {
             params.append('sources', selectedSources.join(','));
-        }
-
-        if (startDate) {
-          params.append('startDate', startDate);
-        }
-        if (endDate) {
-          params.append('endDate', endDate);
         }
 
         // Add search term to params
@@ -115,9 +94,9 @@ function NewsFeed({
 
     // Depend on all filter props for fetching
     fetchArticles();
-  }, [searchTerm, startDate, endDate, selectedSources, selectedTopics]); // Depend on all filter props for fetching
+  }, [searchTerm, selectedSources]); // Depend on all filter props for fetching
 
-  // Client-side filtering based on activeCategory (kept for now)
+  // Client-client filtering based on activeCategory (kept for now)
   const filteredArticles = articles.filter(article => {
     // Basic category matching - assuming article object has a 'category' property
     // If not, this logic needs to be adjusted based on available article data
