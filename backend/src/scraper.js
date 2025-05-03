@@ -155,7 +155,7 @@ async function assignTopicsWithAI(source, content) {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
+      model: "llama-3.1-8b-instant", // Use the specified Llama 3.3 70B model
       temperature: 0.5, // Adjust temperature for more focused topic selection
       max_tokens: 50, // Adjust max tokens for topic list
     });
