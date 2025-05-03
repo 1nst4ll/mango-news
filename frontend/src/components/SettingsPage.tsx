@@ -68,6 +68,16 @@ interface ModalFormData {
 
 
 const SettingsPage: React.FC = () => {
+  // State for Scheduled Tasks
+  const [mainScraperFrequency, setMainScraperFrequency] = useState<string>('0 * * * *'); // Default to hourly
+  const [missingAiFrequency, setMissingAiFrequency] = useState<string>('*/20 * * * *'); // Default to every 20 minutes
+  const [enableScheduledMissingSummary, setEnableScheduledMissingSummary] = useState<boolean>(true); // New state for scheduled missing summary toggle
+  const [enableScheduledMissingTags, setEnableScheduledMissingTags] = useState<boolean>(true); // New state for scheduled missing tags toggle
+  const [enableScheduledMissingImage, setEnableScheduledMissingImage] = useState<boolean>(true); // New state for scheduled missing image toggle
+  const [savingSchedule, setSavingSchedule] = useState<boolean>(false);
+  const [scheduleStatus, setScheduleStatus] = useState<string | null>(null);
+
+
   // State from admin/page.tsx
   const [scrapingStatus, setScrapingStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -774,6 +784,90 @@ const SettingsPage: React.FC = () => {
             </div>
           )}
         </CardContent>
+      </Card>
+
+      {/* Scheduled Tasks Section */}
+      <Card className="mb-6 pt-4">
+        <CardHeader>
+          <CardTitle className="pb-4">Scheduled Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Main Scraper Schedule */}
+            <div>
+              <h5 className="text-md font-semibold mb-2">Main Scraper Schedule</h5>
+              <div className="grid gap-2">
+                <Label htmlFor="mainScraperFrequency">Cron Schedule:</Label>
+                <Input
+                  id="mainScraperFrequency"
+                  name="mainScraperFrequency"
+                  value={mainScraperFrequency}
+                  onChange={(e) => setMainScraperFrequency(e.target.value)}
+                  placeholder="e.g., 0 * * * *"
+                />
+                <p className="text-sm text-gray-500">Current: Runs every hour.</p> {/* Add current frequency */}
+              </div>
+            </div>
+
+            {/* Missing AI Data Processor Schedule */}
+            <div>
+              <h5 className="text-md font-semibold mb-2">Missing AI Data Processor Schedule</h5>
+              <div className="grid gap-2">
+                <Label htmlFor="missingAiFrequency">Cron Schedule:</Label>
+                <Input
+                  id="missingAiFrequency"
+                  name="missingAiFrequency"
+                  value={missingAiFrequency}
+                  onChange={(e) => setMissingAiFrequency(e.target.value)}
+                  placeholder="e.g., */20 * * * *"
+                />
+                 <p className="text-sm text-gray-500">Current: Runs every 20 minutes.</p> {/* Add current frequency */}
+              </div>
+              <div className="mt-4 space-y-2">
+                 <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableScheduledMissingSummary"
+                    checked={enableScheduledMissingSummary}
+                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingSummary(checked)}
+                  />
+                  <Label htmlFor="enableScheduledMissingSummary">
+                    Process Missing Summaries
+                  </Label>
+                </div>
+                 <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableScheduledMissingTags"
+                    checked={enableScheduledMissingTags}
+                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingTags(checked)}
+                  />
+                  <Label htmlFor="enableScheduledMissingTags">
+                    Process Missing Tags
+                  </Label>
+                </div>
+                 <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableScheduledMissingImage"
+                    checked={enableScheduledMissingImage}
+                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingImage(checked)}
+                  />
+                  <Label htmlFor="enableScheduledMissingImage">
+                    Process Missing Images
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+         <CardFooter>
+           <Button onClick={() => { /* TODO: Implement save schedule logic */ }} disabled={savingSchedule}>
+             {savingSchedule ? 'Saving...' : 'Save Schedule Settings'}
+           </Button>
+            {scheduleStatus && (
+            <div className="text-sm text-green-600 mt-2 ml-4">
+              Status: {scheduleStatus}
+            </div>
+          )}
+         </CardFooter>
       </Card>
 
 

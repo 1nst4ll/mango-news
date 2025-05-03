@@ -55,6 +55,12 @@ CREATE TABLE article_topics (
     PRIMARY KEY (article_id, topic_id)
 );
 
+-- Create a table for application-wide settings
+CREATE TABLE application_settings (
+    setting_name TEXT PRIMARY KEY,
+    setting_value TEXT
+);
+
 -- Indexes for better performance
 CREATE INDEX idx_articles_publication_date ON articles(publication_date);
 CREATE INDEX idx_articles_source_id ON articles(source_id);

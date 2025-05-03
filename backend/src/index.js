@@ -509,6 +509,111 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// API endpoint to get scheduler settings
+app.get('/api/settings/scheduler', async (req, res) => {
+  const endpoint = '/api/settings/scheduler';
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching scheduler settings...`);
+
+    // Fetch settings from the database
+    const settingsResult = await pool.query(
+      `SELECT setting_name, setting_value FROM application_settings
+       WHERE setting_name IN ('main_scraper_frequency', 'missing_ai_frequency', 'enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image')`
+    );
+
+    const settings = settingsResult.rows.reduce((acc, row) => {
+      acc[row.setting_name] = row.setting_value;
+      return acc;
+    }, {});
+
+    // Provide default values if settings are not found
+    const responseSettings = {
+      main_scraper_frequency: settings.main_scraper_frequency || '0 * * * *', // Default to hourly
+      missing_ai_frequency: settings.missing_ai_frequency || '*/20 * * * *', // Default to every 20 minutes
+      enable_scheduled_missing_summary: settings.enable_scheduled_missing_summary !== undefined ? settings.enable_scheduled_missing_summary === 'true' : true, // Default to true, convert string to boolean
+      enable_scheduled_missing_tags: settings.enable_scheduled_missing_tags !== undefined ? settings.enable_scheduled_missing_tags === 'true' : true, // Default to true, convert string to boolean
+      enable_scheduled_missing_image: settings.enable_scheduled_missing_image !== undefined ? settings.enable_scheduled_missing_image === 'true' : true, // Default to true, convert string to boolean
+    };
+
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched scheduler settings: ${JSON.stringify(responseSettings)}`);
+    res.json(responseSettings);
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching scheduler settings:`, err);
+     // If the application_settings table doesn't exist yet, return defaults as a fallback
+    if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
+       console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - application_settings table not found, returning defaults. Ensure database schema is applied.`);
+       res.json({
+         main_scraper_frequency: '0 * * * *',
+         missing_ai_frequency: '*/20 * * * *',
+         enable_scheduled_missing_summary: true,
+         enable_scheduled_missing_tags: true,
+         enable_scheduled_missing_image: true,
+       });
+    } else {
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+});
+
+// API endpoint to save scheduler settings
+app.post('/api/settings/scheduler', async (req, res) => {
+  const endpoint = '/api/settings/scheduler';
+  const { main_scraper_frequency, missing_ai_frequency, enable_scheduled_missing_summary, enable_scheduled_missing_tags, enable_scheduled_missing_image } = req.body;
+
+  if (main_scraper_frequency === undefined || missing_ai_frequency === undefined || enable_scheduled_missing_summary === undefined || enable_scheduled_missing_tags === undefined || enable_scheduled_missing_image === undefined) {
+     console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing required scheduler settings in request body`);
+     return res.status(400).json({ error: 'Missing required scheduler settings.' });
+  }
+
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Saving scheduler settings: ${JSON.stringify(req.body)}`);
+
+    // Use a transaction to ensure atomicity
+    await pool.query('BEGIN');
+
+    // Upsert (Insert or Update) each setting
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value)
+       VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      ['main_scraper_frequency', main_scraper_frequency]
+    );
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value)
+       VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      ['missing_ai_frequency', missing_ai_frequency]
+    );
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value)
+       VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      ['enable_scheduled_missing_summary', String(enable_scheduled_missing_summary)] // Store boolean as string
+    );
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value)
+       VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      ['enable_scheduled_missing_tags', String(enable_scheduled_missing_tags)] // Store boolean as string
+    );
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value)
+       VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      ['enable_scheduled_missing_image', String(enable_scheduled_missing_image)] // Store boolean as string
+    );
+
+    await pool.query('COMMIT');
+
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Scheduler settings saved successfully.`);
+    res.json({ message: 'Scheduler settings saved successfully.' });
+  } catch (err) {
+    await pool.query('ROLLBACK'); // Rollback transaction on error
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error saving scheduler settings:`, err);
+    res.status(500).json({ error: 'Failed to save scheduler settings.' });
+  }
+});
+
 
 // Temporary function to update NewslineTCI source include_selectors
 async function updateNewslineSource() {
