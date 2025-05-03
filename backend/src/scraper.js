@@ -633,9 +633,9 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
 
       try {
         if (source.scraping_method === 'opensource') {
-           // Use open-source discovery (manual scrape limit)
+           // Use open-source discovery
           console.log(`Using open-source discovery for source: ${source.name}`);
-          const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns, 100); // Limit to 100 for manual scrape
+          const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns); // Removed limit
           articleUrls = discovered;
           linksFound = articleUrls.length;
           console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);

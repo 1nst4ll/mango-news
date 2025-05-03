@@ -352,15 +352,6 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
                  if (!articleUrls.has(cleanedLink)) {
                     articleUrls.add(cleanedLink);
                     console.log(`Added potential article URL: ${cleanedLink}. Total found: ${articleUrls.size}`);
-                    // Only add potential article links to urlsToVisit for further exploration if under limit
-                    // We don't add article URLs to urlsToVisit because we only want to scrape them, not discover links from them.
-                    // The discovery process should explore non-article pages to find more article links.
-                    // if (articleUrls.size < limit && depth + 1 <= maxDepth) {
-                    //    urlsToVisit.push({ url: cleanedLink, depth: depth + 1 });
-                    //    console.log(`Added ${cleanedLink} to urlsToVisit. Queue size: ${urlsToVisit.length}`);
-                    // } else if (articleUrls.size >= limit) {
-                    //    console.log(`Reached article URL limit (${limit}). Stopping discovery.`);
-                    // }
                  } else {
                     console.log(`Link "${cleanedLink}" already discovered.`);
                  }
