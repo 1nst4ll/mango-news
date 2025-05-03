@@ -371,14 +371,34 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
   // Ideogram 3.0 API endpoint
   const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
 
-  // No truncation needed, summary should be concise
+  // Fixed prompt instructions for image generation
+  const imagePromptInstructions = `Create local TCI news thumbnail. Optimize for click: rule of thirds, close-up focus, high contrast, golden hour lighting. Represent residents authentically without identifiable faces. Vibrant colors, clear focal point, avoid lower-right text placement. Maximum 2 keyword text if needed, bold sans-serif. Image must reflect Turks and Caicos context while preventing misrepresentation through non-face-focused composition (silhouettes, backs, angles).`;
 
   try {
-    const prompt = `Create local TCI news thumbnail. Optimize for click: rule of thirds, close-up focus, high contrast, golden hour lighting. Represent residents authentically without identifiable faces. Vibrant colors, clear focal point, avoid lower-right text placement. Maximum 2 keyword text if needed, bold sans-serif. Image must reflect Turks and Caicos context while preventing misrepresentation through non-face-focused composition (silhouettes, backs, angles).
-${summary}`; // Changed to use summary in the prompt
+    // Use Groq to optimize the prompt based on instructions and summary
+    console.log('Optimizing image prompt using Groq...');
+    const promptOptimizationCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `Combine the following image generation instructions with the provided article summary to create a single, optimized prompt for an image generation AI. The optimized prompt should be concise, descriptive, and adhere to the instructions while incorporating key elements from the summary. Return only the optimized prompt string, no other text.`
+        },
+        {
+          role: "user",
+          content: `Instructions: ${imagePromptInstructions}\nSummary: ${summary}`
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Use a suitable Groq model for text generation
+      temperature: 0.7, // Allow some creativity for prompt optimization
+      max_tokens: 200, // Limit the length of the optimized prompt
+    });
+
+    const optimizedPrompt = promptOptimizationCompletion.choices[0]?.message?.content || `Local TCI news thumbnail based on: ${summary}`; // Fallback prompt
+
+    console.log('Generated optimized prompt:', optimizedPrompt);
 
     const formData = new FormData(); // Use the imported FormData
-    formData.append('prompt', prompt);
+    formData.append('prompt', optimizedPrompt); // Use the optimized prompt
     formData.append('rendering_speed', 'TURBO'); // Required parameter for V3
     formData.append('aspect_ratio', '16x9'); // Use the string format for aspect ratio
     formData.append('magic_prompt', 'OFF'); // Use magic_prompt for V3
