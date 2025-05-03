@@ -1392,23 +1392,6 @@ const SettingsPage: React.FC = () => {
               )}
             </div>
             <DialogFooter className="flex flex-col md:flex-row md:justify-end gap-2">
-               {/* Keep the "Delete All Posts for Source" and "Block Source" buttons for now,
-                   as they might still be useful, or remove them if the user only wants
-                   per-article control. For now, keeping them as they were part of the
-                   previous implementation. */}
-              <Button
-                onClick={() => handleDeleteArticlesForSource(viewingSourcePosts.id)}
-                disabled={sourceArticleDeletionLoading[viewingSourcePosts.id]}
-                variant="destructive"
-              >
-                {sourceArticleDeletionLoading[viewingSourcePosts.id] ? 'Deleting...' : 'Delete All Posts for Source'}
-              </Button>
-              <Button
-                onClick={() => handleBlockSource(viewingSourcePosts.id)}
-                variant="secondary"
-              >
-                Block Source from Scraping
-              </Button>
               <Button onClick={handleCloseViewSourcePostsDialog} variant="outline">Close</Button>
             </DialogFooter>
           </DialogContent>
