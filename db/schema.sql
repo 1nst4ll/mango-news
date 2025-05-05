@@ -33,7 +33,7 @@ CREATE TABLE articles (
     source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
     source_url TEXT, -- Store source URL directly for easier access
     thumbnail_url TEXT, -- Add column for thumbnail image URL
-    ai_image_url TEXT, -- Add column for AI generated image URL
+    ai_image_path TEXT, -- Add column for AI generated image path
     author TEXT, -- Add column for article author
     publication_date TIMESTAMP WITH TIME ZONE,
     raw_content TEXT,

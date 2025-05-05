@@ -120,7 +120,7 @@
 - Implemented AI image generation using the Ideogram API in `backend/src/scraper.js`.
 - Added logic to generate an image only if no thumbnail URL is found during scraping.
 - Added global and per-source toggles for AI image generation.
-- Added `ai_image_url` column to the `articles` table in `db/schema.sql` to store the generated image URL.
+- Added `ai_image_path` column to the `articles` table in `db/schema.sql` to store the generated image path.
 - Updated the `processScrapedData` function in `backend/src/scraper.js` to handle the generated image URL and save it to the database.
 - Updated the frontend `SettingsPage.tsx` to include a toggle for global AI image generation and a toggle in the add/edit source modal for per-source AI image generation.
 - Updated `README.md` and `docs/scraping-methods.md` to document the AI image generation feature.

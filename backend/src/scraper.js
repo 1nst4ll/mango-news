@@ -282,11 +282,11 @@ async function processScrapedData(data) { // Accept a single data object
       }
 
       // Generate AI image if enabled and no thumbnail exists
-      let aiImageUrl = null;
+      let aiImagePath = null;
       // Pass the generated summary to generateAIImage
       if (shouldGenerateImage && (!metadata?.thumbnail_url || metadata.thumbnail_url.trim() === '')) {
         console.log('AI image generation is enabled and no thumbnail exists. Generating image...');
-        aiImageUrl = await generateAIImage(title, summary || raw_content); // Use summary if available, otherwise raw_content
+        aiImagePath = await generateAIImage(title, summary || raw_content); // Use summary if available, otherwise raw_content
       } else if (!shouldGenerateImage) {
         console.log('AI image generation is disabled. Skipping image generation.');
       } else {
@@ -294,12 +294,12 @@ async function processScrapedData(data) { // Accept a single data object
       }
 
       // Determine the final thumbnail URL: use AI image if generated, otherwise use scraped thumbnail
-      const finalThumbnailUrl = aiImageUrl || metadata?.thumbnail_url || null;
+      const finalThumbnailUrl = aiImagePath || metadata?.thumbnail_url || null;
 
       // Save article to database
       const articleResult = await pool.query(
-        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImageUrl] // Save AI image URL to thumbnail_url
+        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath] // Save AI image path
       );
       const articleId = articleResult.rows[0].id;
 
@@ -739,8 +739,8 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
         WHERE a.source_id = $1 AND at.article_id IS NULL
       `;
     } else if (featureType === 'image' && source.enable_ai_image) {
-      // Find articles missing ai_image_url AND thumbnail_url (don't overwrite scraped thumbnails)
-      query = 'SELECT id, title, raw_content FROM articles WHERE source_id = $1 AND ai_image_url IS NULL AND (thumbnail_url IS NULL OR thumbnail_url = \'\')';
+      // Find articles missing ai_image_path AND thumbnail_url (don't overwrite scraped thumbnails)
+      query = 'SELECT id, title, raw_content FROM articles WHERE source_id = $1 AND ai_image_path IS NULL AND (thumbnail_url IS NULL OR thumbnail_url = \'\')';
     } else {
       console.log(`AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. Skipping.`);
       return { success: true, message: `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. No processing needed.` };
@@ -805,10 +805,10 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
              }
           }
 
-          const aiImageUrl = await generateAIImage(article.title, articleSummary || article.raw_content); // Use generated summary or raw content
-          if (aiImageUrl) {
-            // Update both ai_image_url and potentially thumbnail_url if it was also null
-            await pool.query('UPDATE articles SET ai_image_url = $1, thumbnail_url = COALESCE(thumbnail_url, $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImageUrl, article.id]);
+          const aiImagePath = await generateAIImage(article.title, articleSummary || article.raw_content); // Use generated summary or raw content
+          if (aiImagePath) {
+            // Update both ai_image_path and potentially thumbnail_url if it was also null
+            await pool.query('UPDATE articles SET ai_image_path = $1, thumbnail_url = COALESCE(thumbnail_url, $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImagePath, article.id]);
             processedCount++;
           } else {
             errorCount++;
