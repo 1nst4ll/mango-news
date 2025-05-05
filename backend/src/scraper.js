@@ -117,7 +117,7 @@ async function generateAISummary(content) {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "llama-3.3-70b-versatile", // Use the specified Llama 3.3 70B model
+      model: "llama-3.1-8b-instant", // Use the specified Llama 3.1 8B Instant model
       temperature: 0.5, // Adjust temperature for more focused topic selection
       max_tokens: 300, // Further increased max tokens for summary to prevent truncation
     });
@@ -155,7 +155,7 @@ async function assignTopicsWithAI(source, content) {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "compound-beta-mini", // Use the specified Llama 3.3 70B model
+      model: "llama-3.1-8b-instant", // Use the specified Llama 3.1 8B Instant model
       temperature: 0.5, // Adjust temperature for more focused topic selection
       max_tokens: 50, // Adjust max tokens for topic list
     });
@@ -388,7 +388,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
           content: `Instructions: ${imagePromptInstructions}\nSummary: ${summary}`
         }
       ],
-      model: "llama-3.3-70b-versatile", // Use a suitable Groq model for text generation
+      model: "llama-3.1-8b-instant", // Use a suitable Groq model for text generation
       temperature: 0.7, // Allow some creativity for prompt optimization
       max_tokens: 200, // Limit the length of the optimized prompt
     });
