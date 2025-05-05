@@ -426,14 +426,44 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
     if (responseData && responseData.data && responseData.data.length > 0) {
       const imageUrl = responseData.data[0].url; // Get the URL of the first generated image
       console.log('Generated AI image URL:', imageUrl);
-      return imageUrl;
+
+      // --- Download and save the image locally ---
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
+      }
+
+      // Determine file extension from URL
+      const urlParts = imageUrl.split('.');
+      const fileExtension = urlParts.pop()?.split('?')[0] || 'png'; // Default to png if no extension found
+
+      // Define the directory to save images
+      const uploadDir = path.join(__dirname, '../../frontend/public/ai_images');
+      // Create the directory if it doesn't exist
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      // Generate a unique filename (e.g., timestamp)
+      const filename = `${Date.now()}.${fileExtension}`;
+      const filePath = path.join(uploadDir, filename);
+
+      // Save the image file
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      await fs.writeFile(filePath, buffer);
+
+      console.log(`Downloaded and saved AI image to: ${filePath}`);
+
+      // Return the path relative to the frontend public directory
+      const publicPath = `/ai_images/${filename}`;
+      return publicPath;
+
     } else {
       console.warn('Ideogram API response did not contain expected image data.', responseData);
       return null;
     }
 
   } catch (apiErr) {
-    console.error('Error generating AI image with Ideogram API:', apiErr);
+    console.error('Error generating or downloading AI image with Ideogram API:', apiErr);
     return null; // Return null on error
   }
 }
