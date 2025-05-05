@@ -10,6 +10,8 @@ const fs = require('fs').promises; // Import Node.js file system promises API
 const path = require('path'); // Import Node.js path module
 const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
 const FormData = require('form-data'); // Import the form-data library
+const AWS = require('aws-sdk'); // Import AWS SDK
+const { v4: uuidv4 } = require('uuid'); // Import uuid for unique filenames
 
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
 const topicsList = [
@@ -427,35 +429,49 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
       const imageUrl = responseData.data[0].url; // Get the URL of the first generated image
       console.log('Generated AI image URL:', imageUrl);
 
-      // --- Download and save the image locally ---
+      // --- Download the image ---
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
         throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
       }
 
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // --- Upload image to S3 ---
+      console.log('Uploading image to S3...');
+
+      // Initialize S3 client (can be done outside the function for efficiency if preferred)
+      const s3 = new AWS.S3({
+        region: process.env.AWS_REGION,
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      });
+
       // Determine file extension from URL
       const urlParts = imageUrl.split('.');
       const fileExtension = urlParts.pop()?.split('?')[0] || 'png'; // Default to png if no extension found
 
-      // Define the directory to save images
-      const uploadDir = path.join(__dirname, '../../frontend/public/ai_images');
-      // Create the directory if it doesn't exist
-      await fs.mkdir(uploadDir, { recursive: true });
+      // Generate a unique filename for S3
+      const imageName = `ai_images/${uuidv4()}.${fileExtension}`; // Use uuid for unique names
 
-      // Generate a unique filename (e.g., timestamp)
-      const filename = `${Date.now()}.${fileExtension}`;
-      const filePath = path.join(uploadDir, filename);
+      const uploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME, // Use environment variable for bucket name
+        Key: imageName,
+        Body: buffer,
+        ContentType: `image/${fileExtension}`, // Set content type dynamically
+        ACL: 'public-read', // Make the object publicly readable
+      };
 
-      // Save the image file
-      const arrayBuffer = await imageResponse.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      await fs.writeFile(filePath, buffer);
+      const uploadResult = await s3.upload(uploadParams).promise();
 
-      console.log(`Downloaded and saved AI image to: ${filePath}`);
+      // The 'Location' property of uploadResult contains the public URL
+      const s3ImageUrl = uploadResult.Location;
 
-      // Return the path relative to the frontend public directory
-      const publicPath = `/ai_images/${filename}`;
-      return publicPath;
+      console.log('Uploaded AI image to S3:', s3ImageUrl);
+
+      // Return the S3 URL
+      return s3ImageUrl;
 
     } else {
       console.warn('Ideogram API response did not contain expected image data.', responseData);
@@ -463,7 +479,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
     }
 
   } catch (apiErr) {
-    console.error('Error generating or downloading AI image with Ideogram API:', apiErr);
+    console.error('Error generating or uploading AI image with Ideogram API or S3:', apiErr);
     return null; // Return null on error
   }
 }

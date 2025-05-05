@@ -30,8 +30,9 @@ The backend connects to a PostgreSQL database.
 
 2.  **Install Dependencies:** Install the required Node.js packages:
     ```bash
-    npm install
+    npm install aws-sdk uuid
     ```
+    This installs the core backend dependencies, plus `aws-sdk` for S3 integration and `uuid` for generating unique filenames.
 
 3.  **Environment Variables:** Environment variables are used to configure the backend, especially for sensitive information like database credentials and API keys. An example file, `.env.example`, is provided in the `backend` directory.
     *   Copy the example file:
@@ -50,12 +51,18 @@ The backend connects to a PostgreSQL database.
         GROQ_API_KEY=your_groq_api_key
         IDEOGRAM_API_KEY=your_ideogram_api_key
 
+        # AWS S3 Configuration for AI Images
+        AWS_ACCESS_KEY_ID=your_aws_access_key_id
+        AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+        AWS_REGION=your_aws_region # e.g., us-east-1
+        S3_BUCKET_NAME=your_s3_bucket_name # The name of your S3 bucket
+
         # Firecrawl API Key (if needed directly by backend, otherwise handled by MCP)
         # FIRECRAWL_API_KEY=your_firecrawl_api_key
         ```
-    Replace the placeholder values (`your_database_password`, `your_groq_api_key`, `your_ideogram_api_key`) with your actual credentials and keys.
+    Replace the placeholder values with your actual credentials, keys, and S3 bucket details.
 
-4.  **Database Connection in Code:** The database connection details are configured in `backend/src/index.js` and `backend/src/scraper.js`. These files are configured to read the database password and other sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.DB_HOST`).
+4.  **Database Connection and AWS Configuration in Code:** The database connection details and AWS S3 configuration are handled in `backend/src/index.js` and `backend/src/scraper.js`. These files are configured to read sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.AWS_ACCESS_KEY_ID`).
 
 ## Running the Backend
 
