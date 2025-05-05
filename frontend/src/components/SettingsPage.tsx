@@ -962,7 +962,7 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
         </CardContent>
-         <CardFooter>
+         <CardFooter className="pt-4">
            <Button onClick={() => { /* TODO: Implement save schedule logic */ }} disabled={savingSchedule}>
              {savingSchedule ? 'Saving...' : 'Save Schedule Settings'}
            </Button>
