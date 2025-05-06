@@ -1,5 +1,14 @@
 # Project Progress
 
+## Article Management per Source (Completed on 2025-05-06)
+
+- Implemented the ability to view all articles for a specific source on a dedicated page (`/settings/source/[sourceId]`).
+- Created the `SourceArticles.tsx` React component to display articles in a table format, including title, URL, thumbnail URL, AI summary, AI tags, and AI image URL.
+- Added functionality to rerun AI image, summary, and tag generation for individual articles via buttons in the article table.
+- Implemented the ability to delete individual articles from the database via a button in the article table.
+- Added a confirmation dialog for article deletion to prevent accidental data loss.
+- Updated the `docs/admin-ui.md` documentation to include the "Articles by Source Page" section and describe the implemented features, including the Thumbnail URL column.
+
 ## Documentation Update (Phase 2 - In Progress)
 
 - Updated `README.md` to reflect the current project status, technology stack, project structure, implemented functionality, setup instructions, contribution guidelines, and documentation guidelines.

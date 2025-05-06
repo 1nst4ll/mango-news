@@ -11,6 +11,7 @@ interface Article {
   id: number;
   title: string;
   source_url: string;
+  thumbnail_url: string | null; // Added thumbnail_url
   ai_summary: string | null;
   ai_tags: string[] | null; // Assuming tags are returned as an array of strings
   ai_image_url: string | null;
@@ -171,9 +172,10 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>URL</TableHead>
+                  <TableHead>Thumbnail URL</TableHead> {/* New Header */}
                   <TableHead>AI Summary</TableHead>
                   <TableHead>AI Tags</TableHead>
-                  <TableHead>AI Image</TableHead>
+                  <TableHead>AI Image URL</TableHead> {/* Updated Header */}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -186,53 +188,87 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                         {article.source_url}
                       </a>
                     </TableCell>
-                    <TableCell>
-                      {article.ai_summary ? (
-                        <Badge variant="default">Generated</Badge>
-                      ) : (
-                        <Badge variant="secondary">Missing</Badge>
-                      )}
+                    <TableCell className="max-w-xs truncate"> {/* New Cell */}
+                       {article.thumbnail_url ? (
+                         <a href={article.thumbnail_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                           {article.thumbnail_url}
+                         </a>
+                       ) : (
+                         <span className="text-gray-500">N/A</span>
+                       )}
                     </TableCell>
-                    <TableCell>
-                      {article.ai_tags && article.ai_tags.length > 0 ? (
-                        <Badge variant="default">Generated</Badge>
-                      ) : (
-                        <Badge variant="secondary">Missing</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                       {article.ai_image_url ? (
-                        <Badge variant="default">Generated</Badge>
-                      ) : (
-                        <Badge variant="secondary">Missing</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 justify-end">
+                    <TableCell className="max-w-xs"> {/* Adjusted Cell */}
+                      <div className="flex items-center space-x-2">
+                        <textarea
+                          value={article.ai_summary || ''}
+                          readOnly // Make it read-only for now, editing functionality can be added later
+                          className="flex-grow border rounded-md p-1 text-sm min-h-[50px]"
+                          placeholder="No summary generated"
+                        />
                         <Button
                           onClick={() => handleProcessAi(article.id, 'summary')}
                           disabled={processingLoading[article.id]?.summary}
                           size="sm"
                           variant="secondary"
                         >
-                          {processingLoading[article.id]?.summary ? 'Processing...' : 'Rerun Summary'}
+                          {processingLoading[article.id]?.summary ? '...' : 'Generate'}
                         </Button>
-                        <Button
-                          onClick={() => handleProcessAi(article.id, 'tags')}
-                          disabled={processingLoading[article.id]?.tags}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          {processingLoading[article.id]?.tags ? 'Processing...' : 'Rerun Tags'}
-                        </Button>
-                        <Button
-                          onClick={() => handleProcessAi(article.id, 'image')}
-                          disabled={processingLoading[article.id]?.image}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          {processingLoading[article.id]?.image ? 'Processing...' : 'Rerun Image'}
-                        </Button>
+                      </div>
+                       {processingStatus[article.id]?.summary && (
+                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            Summary: {processingStatus[article.id]?.summary}
+                          </div>
+                        )}
+                    </TableCell>
+                    <TableCell className="max-w-xs"> {/* Adjusted Cell */}
+                       <div className="flex items-center space-x-2">
+                         <textarea
+                           value={article.ai_tags && article.ai_tags.length > 0 ? article.ai_tags.join(', ') : ''}
+                           readOnly // Make it read-only for now
+                           className="flex-grow border rounded-md p-1 text-sm min-h-[50px]"
+                           placeholder="No tags generated"
+                         />
+                         <Button
+                           onClick={() => handleProcessAi(article.id, 'tags')}
+                           disabled={processingLoading[article.id]?.tags}
+                           size="sm"
+                           variant="secondary"
+                         >
+                           {processingLoading[article.id]?.tags ? '...' : 'Generate'}
+                         </Button>
+                       </div>
+                       {processingStatus[article.id]?.tags && (
+                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            Tags: {processingStatus[article.id]?.tags}
+                          </div>
+                        )}
+                    </TableCell>
+                    <TableCell className="max-w-xs"> {/* Adjusted Cell */}
+                       <div className="flex items-center space-x-2">
+                         <input
+                           type="text"
+                           value={article.ai_image_url || ''}
+                           readOnly // Make it read-only for now
+                           className="flex-grow border rounded-md p-1 text-sm"
+                           placeholder="No image URL"
+                         />
+                         <Button
+                           onClick={() => handleProcessAi(article.id, 'image')}
+                           disabled={processingLoading[article.id]?.image}
+                           size="sm"
+                           variant="secondary"
+                         >
+                           {processingLoading[article.id]?.image ? '...' : 'Generate'}
+                         </Button>
+                       </div>
+                       {processingStatus[article.id]?.image && (
+                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            Image: {processingStatus[article.id]?.image}
+                          </div>
+                        )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex flex-col space-y-2 justify-end"> {/* Simplified layout */}
                         <Button
                           onClick={() => handleDeleteArticle(article.id)}
                           disabled={processingLoading[article.id]?.deleting}
@@ -243,21 +279,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                         </Button>
                       </div>
                        {/* Display processing status messages */}
-                       {processingStatus[article.id]?.summary && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Summary: {processingStatus[article.id]?.summary}
-                          </div>
-                        )}
-                        {processingStatus[article.id]?.tags && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Tags: {processingStatus[article.id]?.tags}
-                          </div>
-                        )}
-                         {processingStatus[article.id]?.image && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Image: {processingStatus[article.id]?.image}
-                          </div>
-                        )}
                          {processingStatus[article.id]?.deleting && (
                           <div className={`text-xs mt-1 ${processingStatus[article.id]?.deleting?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
                             Deletion: {processingStatus[article.id]?.deleting}

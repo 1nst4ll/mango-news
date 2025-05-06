@@ -46,7 +46,7 @@ This section allows you to view, add, edit, and delete news sources, presented w
 
 A new page is available at `/settings/source/[sourceId]` to view and manage articles for a specific news source. This page is built using **Astro** and utilizes the **SourceArticles** React component.
 
--   **Article List:** Displays a table of articles for the selected source, including the article title, URL, and status of AI processing (Summary, Tags, Image).
+-   **Article List:** Displays a table of articles for the selected source, including the article title, URL, Thumbnail URL, and status of AI processing (Summary, Tags, Image).
 -   **Actions per Article:** For each article in the list, the following actions are available via **shadcn/ui Buttons**:
     -   **Rerun Summary:** Triggers AI summary generation for this specific article.
     -   **Rerun Tags:** Triggers AI tag assignment for this specific article.
