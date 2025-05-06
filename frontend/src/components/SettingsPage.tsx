@@ -103,12 +103,6 @@ const SettingsPage: React.FC = () => {
   const [sourceProcessingLoading, setSourceProcessingLoading] = useState<{ [key: number]: { summary?: boolean; tags?: boolean; image?: boolean } }>({});
   const [sourceProcessingStatus, setSourceProcessingStatus] = useState<{ [key: number]: { summary?: string | null; tags?: string | null; image?: string | null } }>({});
 
-  // State for viewing source posts dialog
-  const [viewingSourcePosts, setViewingSourcePosts] = useState<Source | null>(null);
-  const [sourceArticles, setSourceArticles] = useState<any[]>([]); // State to hold articles for the viewed source
-  const [sourceArticlesLoading, setSourceArticlesLoading] = useState<boolean>(false);
-  const [sourceArticlesError, setSourceArticlesError] = useState<string | null>(null);
-
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null); // Changed type to string | null
@@ -388,39 +382,6 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  // Handler function to view posts for a source
-  const handleViewSourcePosts = async (source: Source) => {
-    setViewingSourcePosts(source);
-    setSourceArticles([]);
-    setSourceArticlesLoading(true);
-    setSourceArticlesError(null);
-    try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      // Assuming a new backend endpoint exists: /api/sources/:sourceId/articles
-      const response = await fetch(`${apiUrl}/api/sources/${source.id}/articles`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setSourceArticles(data);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setSourceArticlesError(`Error fetching articles: ${err.message}`);
-      } else {
-        setSourceArticlesError('An unknown error occurred while fetching articles.');
-      }
-    } finally {
-      setSourceArticlesLoading(false);
-    }
-  };
-
-  // Handler to close the view source posts dialog
-  const handleCloseViewSourcePostsDialog = () => {
-    setViewingSourcePosts(null);
-    setSourceArticles([]);
-    setSourceArticlesError(null);
-  };
-
   // Handler to block a source from scraping
   const handleBlockSource = async (sourceId: number) => {
     if (!confirm('Are you sure you want to block this source from scraping? This will set its status to inactive.')) {
@@ -476,7 +437,6 @@ const SettingsPage: React.FC = () => {
       fetchSources();
 
       alert(`Source ${sourceId} blocked successfully.`);
-      handleCloseViewSourcePostsDialog(); // Close the dialog after blocking
     } catch (err: unknown) {
       if (err instanceof Error) {
         alert(`Error blocking source: ${err.message}`);
@@ -1058,13 +1018,6 @@ const SettingsPage: React.FC = () => {
                     </div>
                   <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 mt-2 md:mt-0">
                       <Button
-                        onClick={() => handleViewSourcePosts(source)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        View Posts
-                      </Button>
-                      <Button
                         onClick={() => handleTriggerScraperForSource(source.id)}
                         disabled={sourceScrapingLoading[source.id]}
                         size="sm"
@@ -1347,111 +1300,8 @@ const SettingsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* View Source Posts Dialog */}
-      {viewingSourcePosts && (
-        <Dialog open={!!viewingSourcePosts} onOpenChange={handleCloseViewSourcePostsDialog}>
-          <DialogContent className="sm:max-w-[425px] md:max-w-xl lg:max-w-2xl overflow-y-scroll max-h-[80vh] dialog-scrollable-content">
-            <DialogHeader>
-              <DialogTitle>Posts for {viewingSourcePosts.name}</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              {sourceArticlesLoading ? (
-                <div>Loading posts...</div>
-              ) : sourceArticlesError ? (
-                <div className="text-red-500">{sourceArticlesError}</div>
-              ) : sourceArticles.length === 0 ? (
-                <div className="text-gray-600">No posts found for this source.</div>
-              ) : (
-                <ul className="space-y-2">
-                  {sourceArticles.map((article: any) => ( // Assuming article structure
-                    <li key={article.id} className="border-b pb-2 text-sm flex justify-between items-center">
-                      <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex-grow mr-2">
-                        {article.title || 'Untitled Article'}
-                      </a>
-                      <div className="flex space-x-2">
-                         <Button
-                          onClick={() => handleDeleteArticle(article.id)}
-                          size="sm"
-                          variant="destructive"
-                          // Add loading state if needed
-                        >
-                          Delete
-                        </Button>
-                        <Button
-                          onClick={() => handleBlockArticle(article.id)}
-                          size="sm"
-                          variant="secondary"
-                          // Add loading state if needed
-                        >
-                          Block
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <DialogFooter className="flex flex-col md:flex-row md:justify-end gap-2">
-              <Button onClick={handleCloseViewSourcePostsDialog} variant="outline">Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
-
-  // New handler function to delete a single article
-  const handleDeleteArticle = async (articleId: number) => {
-    console.log(`Attempting to delete article with ID: ${articleId}`);
-    try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Remove the deleted article from the state
-      setSourceArticles(sourceArticles.filter(article => article.id !== articleId));
-
-      alert(`Article ${articleId} deleted successfully.`);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(`Error deleting article: ${err.message}`);
-      } else {
-        alert('An unknown error occurred while deleting the article.');
-      }
-    }
-  };
-
-  // Handler function to block a single article
-  const handleBlockArticle = async (articleId: number) => {
-    console.log(`Attempting to block article with ID: ${articleId}`);
-    try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}/block`, {
-        method: 'PUT', // Assuming a PUT or POST endpoint for blocking
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Optionally update the article's status in the state if the backend returns the updated article
-      // For now, just show a success message
-      alert(`Article ${articleId} blocked successfully.`);
-       // Consider refetching articles for the source or updating the state to reflect the blocked status
-       // handleViewSourcePosts(viewingSourcePosts!); // Refetch all articles for the current source
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(`Error blocking article: ${err.message}`);
-      } else {
-        alert('An unknown error occurred while blocking the article.');
-      }
-    }
-  };
 
 };
 
