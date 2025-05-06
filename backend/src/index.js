@@ -89,7 +89,27 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
   const endpoint = `/api/sources/${sourceId}/articles`;
   try {
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching articles for source ID: ${sourceId}`);
-    const result = await pool.query('SELECT id, title, source_url, summary AS ai_summary, ai_tags, ai_image_path AS ai_image_url FROM articles WHERE source_id = $1 ORDER BY publication_date DESC', [sourceId]);
+    const result = await pool.query(`
+      SELECT
+          a.id,
+          a.title,
+          a.source_url,
+          a.summary AS ai_summary,
+          a.ai_image_path AS ai_image_url,
+          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS ai_tags
+      FROM
+          articles a
+      LEFT JOIN
+          article_topics at ON a.id = at.article_id
+      LEFT JOIN
+          topics t ON at.topic_id = t.id
+      WHERE
+          a.source_id = $1
+      GROUP BY
+          a.id
+      ORDER BY
+          a.publication_date DESC
+    `, [sourceId]);
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${result.rows.length} articles for source ID ${sourceId}`);
     res.json(result.rows);
   } catch (err) {
