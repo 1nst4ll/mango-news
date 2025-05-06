@@ -4,6 +4,7 @@
 
 - Updated `README.md` to reflect the current project status, technology stack, project structure, implemented functionality, setup instructions, contribution guidelines, and documentation guidelines.
 - Reviewing and updating other documentation files (`docs/README.md`, `docs/admin-ui.md`, `docs/backend-setup.md`, `docs/css-selectors.md`, `docs/deployment.md`, `docs/frontend-ui.md`, `docs/scraping-methods.md`, `docs/troubleshooting.md`) to ensure consistency and accuracy with the updated `README.md` and the current project state.
+- Checked for usage of deprecated CSS custom state pseudo-classes (`:--state-name`) and confirmed none were found.
 
 ## Documentation Audit and Update (Completed on 2025-05-01)
 

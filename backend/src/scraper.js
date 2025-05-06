@@ -119,9 +119,9 @@ async function generateAISummary(content) {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "llama-3.1-8b-instant", // Use the specified Llama 3.1 8B Instant model
+      model: "meta-llama/llama-4-scout-17b-16e-instruct", // Changed model based on user feedback
       temperature: 0.5, // Adjust temperature for more focused topic selection
-      max_tokens: 150, // Adjusted max tokens for summary to better align with 100-word target
+      max_tokens: 300, // Adjusted max tokens for summary based on user feedback
     });
 
     const summary = chatCompletion.choices[0]?.message?.content || "Summary generation failed."; // Get the summary string
@@ -157,9 +157,9 @@ async function assignTopicsWithAI(source, content) {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "llama-3.1-8b-instant", // Use the specified Llama 3.1 8B Instant model
+      model: "meta-llama/llama-4-scout-17b-16e-instruct", // Changed model based on user feedback
       temperature: 0.5, // Adjust temperature for more focused topic selection
-      max_tokens: 50, // Adjust max tokens for topic list
+      max_tokens: 300, // Adjusted max tokens for topic list based on user feedback
     });
 
     const assignedTopicsString = chatCompletion.choices[0]?.message?.content || "";
