@@ -1018,6 +1018,13 @@ const SettingsPage: React.FC = () => {
                     </div>
                   <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 mt-2 md:mt-0">
                       <Button
+                        onClick={() => window.location.href = `/settings/source/${source.id}`}
+                        size="sm"
+                        variant="outline"
+                      >
+                        View Articles
+                      </Button>
+                      <Button
                         onClick={() => handleTriggerScraperForSource(source.id)}
                         disabled={sourceScrapingLoading[source.id]}
                         size="sm"
