@@ -460,7 +460,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
         Key: imageName,
         Body: buffer,
         ContentType: `image/${fileExtension}`, // Set content type dynamically
-        ACL: 'public-read', // Make the object publicly readable
+        // ACL: 'public-read', // Removed as bucket does not allow ACLs. Public access must be configured via Bucket Policy.
       };
 
       const uploadResult = await s3.upload(uploadParams).promise();
