@@ -112,7 +112,7 @@ async function generateAISummary(content) {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 100 words and ends on a complete sentence."
+          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence." // Changed summary word limit
         },
         {
           role: "user",
