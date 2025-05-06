@@ -1403,15 +1403,54 @@ const SettingsPage: React.FC = () => {
   // New handler function to delete a single article
   const handleDeleteArticle = async (articleId: number) => {
     console.log(`Attempting to delete article with ID: ${articleId}`);
-    // Temporarily removed fetch logic to debug FS error
-    alert(`Simulating deletion of article ${articleId}. Check console.`);
+    try {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/articles/${articleId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Remove the deleted article from the state
+      setSourceArticles(sourceArticles.filter(article => article.id !== articleId));
+
+      alert(`Article ${articleId} deleted successfully.`);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(`Error deleting article: ${err.message}`);
+      } else {
+        alert('An unknown error occurred while deleting the article.');
+      }
+    }
   };
 
   // Handler function to block a single article
   const handleBlockArticle = async (articleId: number) => {
     console.log(`Attempting to block article with ID: ${articleId}`);
-    // Temporarily removed fetch logic to debug FS error
-    alert(`Simulating blocking of article ${articleId}. Check console.`);
+    try {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/articles/${articleId}/block`, {
+        method: 'PUT', // Assuming a PUT or POST endpoint for blocking
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Optionally update the article's status in the state if the backend returns the updated article
+      // For now, just show a success message
+      alert(`Article ${articleId} blocked successfully.`);
+       // Consider refetching articles for the source or updating the state to reflect the blocked status
+       // handleViewSourcePosts(viewingSourcePosts!); // Refetch all articles for the current source
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(`Error blocking article: ${err.message}`);
+      } else {
+        alert('An unknown error occurred while blocking the article.');
+      }
+    }
   };
 
 };
