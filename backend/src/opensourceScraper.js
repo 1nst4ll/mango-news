@@ -13,37 +13,35 @@ const puppeteer = require('puppeteer');
 
 // Helper function to build regex from article link template
 function buildTemplateRegex(template) {
-  // Assuming the template contains exactly one {name} or {name:regex} placeholder
-  const placeholderMatch = template.match(/\{([^}:]+)(?::([^}]+))?\}/);
+  // Find all placeholders {name} or {name:regex}
+  const placeholderRegex = /\{([^}:]+)(?::([^}]+))?\}/g;
+  let lastIndex = 0;
+  let regexString = '^';
+  let match;
 
-  if (!placeholderMatch) {
-    // No placeholder found, just escape the whole template
-    const escapedTemplate = template.replace(/[.+?^$|()[\]\\]/g, '\\$&');
-    return new RegExp('^' + escapedTemplate + '$');
+  while ((match = placeholderRegex.exec(template)) !== null) {
+    const fullPlaceholder = match[0]; // e.g., {article_slug} or {id2:(111|129|135)}
+    const placeholderName = match[1]; // e.g., article_slug or id2
+    const customRegex = match[2]; // e.g., undefined or (111|129|135)
+
+    // Add the literal part before the placeholder, escaped
+    const literalPart = template.substring(lastIndex, match.index);
+    regexString += literalPart.replace(/[.+?^$|()[\]\\]/g, '\\$&');
+
+    // Add the regex for the placeholder
+    regexString += customRegex ? `(${customRegex})` : '([^/]+)';
+
+    lastIndex = placeholderRegex.lastIndex;
   }
 
-  const fullPlaceholder = placeholderMatch[0]; // e.g., {article_slug}
-  const placeholderName = placeholderMatch[1]; // e.g., article_slug
-  const customRegex = placeholderMatch[2]; // e.g., undefined for {article_slug}
+  // Add the remaining literal part after the last placeholder, escaped
+  regexString += template.substring(lastIndex).replace(/[.+?^$|()[\]\\]/g, '\\$&');
 
-  // Split the template by the placeholder
-  const parts = template.split(fullPlaceholder);
-  const beforePlaceholder = parts[0];
-  const afterPlaceholder = parts[1] || ''; // Handle case where placeholder is at the end
+  regexString += '$'; // Anchor to the end of the string
 
-  // Escape the literal parts
-  const escapedBefore = beforePlaceholder.replace(/[.+?^$|()[\]\\]/g, '\\$&');
-  const escapedAfter = afterPlaceholder.replace(/[.+?^$|()[\]\\]/g, '\\$&');
+  console.log(`Constructed regex string from template "${template}": ${regexString}`);
 
-  // Determine the regex for the placeholder
-  const placeholderRegex = customRegex ? `(${customRegex})` : '([^/]+)';
-
-  // Construct the final regex string
-  const finalRegexString = '^' + escapedBefore + placeholderRegex + escapedAfter + '$';
-
-  console.log(`Constructed regex string: ${finalRegexString}`); // Add logging back to see the string
-
-  return new RegExp(finalRegexString);
+  return new RegExp(regexString);
 }
 
 async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
