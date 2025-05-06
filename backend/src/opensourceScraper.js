@@ -13,12 +13,37 @@ const puppeteer = require('puppeteer');
 
 // Helper function to build regex from article link template
 function buildTemplateRegex(template) {
-  // Escape regex special characters, but keep { and }
-  let regexString = template.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-  // Replace {name} with ([^/]+) and {name:regex} with (regex)
-  regexString = regexString.replace(/\{([^}:]+)\}/g, '([^/]+)'); // Handle {name}
-  regexString = regexString.replace(/\{[^}:]+:([^}]+)\}/g, '($1)'); // Handle {name:regex}
-  return new RegExp('^' + regexString + '$');
+  // Assuming the template contains exactly one {name} or {name:regex} placeholder
+  const placeholderMatch = template.match(/\{([^}:]+)(?::([^}]+))?\}/);
+
+  if (!placeholderMatch) {
+    // No placeholder found, just escape the whole template
+    const escapedTemplate = template.replace(/[.+?^$|()[\]\\]/g, '\\$&');
+    return new RegExp('^' + escapedTemplate + '$');
+  }
+
+  const fullPlaceholder = placeholderMatch[0]; // e.g., {article_slug}
+  const placeholderName = placeholderMatch[1]; // e.g., article_slug
+  const customRegex = placeholderMatch[2]; // e.g., undefined for {article_slug}
+
+  // Split the template by the placeholder
+  const parts = template.split(fullPlaceholder);
+  const beforePlaceholder = parts[0];
+  const afterPlaceholder = parts[1] || ''; // Handle case where placeholder is at the end
+
+  // Escape the literal parts
+  const escapedBefore = beforePlaceholder.replace(/[.+?^$|()[\]\\]/g, '\\$&');
+  const escapedAfter = afterPlaceholder.replace(/[.+?^$|()[\]\\]/g, '\\$&');
+
+  // Determine the regex for the placeholder
+  const placeholderRegex = customRegex ? `(${customRegex})` : '([^/]+)';
+
+  // Construct the final regex string
+  const finalRegexString = '^' + escapedBefore + placeholderRegex + escapedAfter + '$';
+
+  console.log(`Constructed regex string: ${finalRegexString}`); // Add logging back to see the string
+
+  return new RegExp(finalRegexString);
 }
 
 async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
