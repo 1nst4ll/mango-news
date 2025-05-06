@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SourceArticles from '../../../components/SourceArticles.tsx';
+
+const { sourceId } = Astro.params;
+---
+
+<BaseLayout title={`Articles for Source ${sourceId}`}>
+  <main class="container mx-auto p-4">
+    <SourceArticles client:load sourceId={sourceId} />
+  </main>
+</BaseLayout>

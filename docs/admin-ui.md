@@ -39,7 +39,20 @@ This section allows you to view, add, edit, and delete news sources, presented w
         -   "Process Missing Tags": Triggers AI tag assignment for articles from this source that are missing tags.
         -   "Process Missing Image": Triggers AI image generation for articles from this source that are missing a thumbnail and an AI image.
         Status messages are displayed below each button indicating the result of the processing. These buttons are disabled if the corresponding AI feature is disabled for the source.
+-   **View Articles by Source:** A link or button will be added for each source to navigate to a dedicated page displaying all articles associated with that source.
 -   **Add/Edit Source Modal:** A **shadcn/ui Dialog** component is used for the modal form to add or edit a news source. The form utilizes **shadcn/ui Input**, **Label**, **Select**, **Textarea**, and **Switch** components for input fields and controls. Fields for "Enable AI Summary", "Enable AI Tags", and "Enable AI Image" are available to configure these settings per source. Additional fields have been added for "Article Link Template" and "Exclude Patterns" to configure open-source scraping behavior.
+
+## Articles by Source Page
+
+A new page is available at `/settings/source/[sourceId]` to view and manage articles for a specific news source. This page is built using **Astro** and utilizes the **SourceArticles** React component.
+
+-   **Article List:** Displays a table of articles for the selected source, including the article title, URL, and status of AI processing (Summary, Tags, Image).
+-   **Actions per Article:** For each article in the list, the following actions are available via **shadcn/ui Buttons**:
+    -   **Rerun Summary:** Triggers AI summary generation for this specific article.
+    -   **Rerun Tags:** Triggers AI tag assignment for this specific article.
+    -   **Rerun Image:** Triggers AI image generation for this specific article.
+    -   **Delete:** Deletes the individual article from the database. A confirmation dialog is displayed before deletion.
+-   **Processing Status:** Status messages are displayed below the action buttons for each article, indicating the result of AI processing or deletion operations.
 
 ---
 

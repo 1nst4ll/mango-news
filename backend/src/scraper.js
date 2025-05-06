@@ -662,7 +662,113 @@ cron.schedule('*/20 * * * *', async () => {
   console.log('Finished scheduled missing AI data processing job.');
 });
 
-console.log('Missing AI data processing scheduled to run every 20 minutes.');
+  console.log('Missing AI data processing scheduled to run every 20 minutes.');
+
+
+// Function to process AI data for a single article
+async function processAiForArticle(articleId, featureType) { // featureType can be 'summary', 'tags', or 'image'
+  console.log(`Starting AI processing for article ID: ${articleId}, feature: ${featureType}`);
+
+  if (!featureType || !['summary', 'tags', 'image'].includes(featureType)) {
+    console.error(`Invalid featureType: ${featureType}`);
+    return { success: false, message: 'Invalid featureType. Must be "summary", "tags", or "image".' };
+  }
+
+  try {
+    // 1. Fetch the article
+    const articleResult = await pool.query('SELECT id, title, raw_content, summary, thumbnail_url, source_id FROM articles WHERE id = $1', [articleId]);
+    const article = articleResult.rows[0];
+
+    if (!article) {
+      console.error(`Article with ID ${articleId} not found.`);
+      return { success: false, message: `Article with ID ${articleId} not found.` };
+    }
+
+    // 2. Fetch source configuration to check if AI is enabled for this source
+    const sourceResult = await pool.query('SELECT enable_ai_summary, enable_ai_tags, enable_ai_image FROM sources WHERE id = $1', [article.source_id]);
+    const source = sourceResult.rows[0];
+
+    if (!source) {
+       console.error(`Source with ID ${article.source_id} not found for article ${articleId}.`);
+       return { success: false, message: `Source with ID ${article.source_id} not found.` };
+    }
+
+    let processed = false;
+    let message = '';
+
+    if (featureType === 'summary' && source.enable_ai_summary) {
+      console.log(`Processing summary for article ID: ${article.id}`);
+      const summary = await generateAISummary(article.raw_content);
+      if (summary && summary !== "Summary generation failed.") {
+        await pool.query('UPDATE articles SET summary = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [summary, article.id]);
+        processed = true;
+        message = 'Summary generated and saved successfully.';
+      } else {
+        message = 'Summary generation failed.';
+      }
+    } else if (featureType === 'tags' && source.enable_ai_tags) {
+      console.log(`Processing tags for article ID: ${article.id}`);
+      const assignedTopics = await assignTopicsWithAI(source, article.raw_content); // Pass the full source object
+      if (assignedTopics && assignedTopics.length > 0) {
+        // First, remove existing topics for this article to avoid duplicates
+        await pool.query('DELETE FROM article_topics WHERE article_id = $1', [article.id]);
+
+        // Save assigned topics and link to article
+        for (const topicName of assignedTopics) {
+          let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
+          let topicId;
+          if (topicResult.rows.length === 0) {
+            topicResult = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
+            topicId = topicResult.rows[0].id;
+          } else {
+            topicId = topicResult.rows[0].id;
+          }
+          await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
+        }
+        // Also update the article's updated_at timestamp
+        await pool.query('UPDATE articles SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [article.id]);
+        processed = true;
+        message = `Tags assigned successfully: ${assignedTopics.join(', ')}.`;
+      } else {
+        message = 'No tags assigned or tag assignment failed.';
+      }
+    } else if (featureType === 'image' && source.enable_ai_image) {
+      console.log(`Processing image for article ID: ${article.id}`);
+      let articleSummary = article.summary;
+
+      // If summary is missing, generate it first for better image prompt
+      if (!articleSummary || articleSummary.trim() === '' || articleSummary === 'Summary generation failed.') {
+         console.log(`Summary missing for article ID ${article.id}. Generating summary before image.`);
+         articleSummary = await generateAISummary(article.raw_content);
+         // Optionally update the database with the newly generated summary here if needed
+         if (articleSummary && articleSummary !== "Summary generation failed.") {
+             await pool.query('UPDATE articles SET summary = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [articleSummary, article.id]);
+         } else {
+             console.warn(`Failed to generate summary for article ID ${article.id}. Cannot generate image based on summary.`);
+             return { success: false, message: 'Failed to generate summary for image prompt.' };
+         }
+      }
+
+      const aiImagePath = await generateAIImage(article.title, articleSummary || article.raw_content); // Use generated summary or raw content
+      if (aiImagePath) {
+        // Update both ai_image_path and potentially thumbnail_url if it was also null
+        await pool.query('UPDATE articles SET ai_image_path = $1, thumbnail_url = COALESCE(thumbnail_url, $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImagePath, article.id]);
+        processed = true;
+        message = `AI image generated and saved successfully: ${aiImagePath}.`;
+      } else {
+        message = 'AI image generation failed.';
+      }
+    } else {
+      message = `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. No processing needed.`;
+    }
+
+    return { success: processed, message: message };
+
+  } catch (err) {
+    console.error(`Error during AI processing for article ID ${articleId}, feature ${featureType}:`, err);
+    return { success: false, message: `Error processing article ${articleId}: ${err.message}` };
+  }
+}
 
 
 // Function to run the scraper for a specific source ID

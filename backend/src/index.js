@@ -89,7 +89,7 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
   const endpoint = `/api/sources/${sourceId}/articles`;
   try {
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching articles for source ID: ${sourceId}`);
-    const result = await pool.query('SELECT id, title, source_url FROM articles WHERE source_id = $1 ORDER BY publication_date DESC', [sourceId]);
+    const result = await pool.query('SELECT id, title, source_url, ai_summary, ai_tags, ai_image_url FROM articles WHERE source_id = $1 ORDER BY publication_date DESC', [sourceId]);
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${result.rows.length} articles for source ID ${sourceId}`);
     res.json(result.rows);
   } catch (err) {
@@ -379,6 +379,37 @@ app.put('/api/articles/:id/block', async (req, res) => {
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error blocking article with ID ${articleId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Endpoint to trigger AI processing for a single article
+app.post('/api/articles/:articleId/process-ai', async (req, res) => {
+  const articleId = req.params.articleId;
+  const endpoint = `/api/articles/${articleId}/process-ai`;
+  const { featureType } = req.body; // Expect featureType ('summary', 'tags', or 'image')
+
+  if (!featureType || !['summary', 'tags', 'image'].includes(featureType)) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Invalid or missing featureType: ${featureType}`);
+    return res.status(400).json({ error: 'Invalid or missing featureType. Must be "summary", "tags", or "image".' });
+  }
+
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering AI processing for article ID: ${articleId}, feature: ${featureType}`);
+
+    // Import the processAiForArticle function from scraper.js
+    const { processAiForArticle } = require('./scraper');
+    const result = await processAiForArticle(articleId, featureType);
+
+    if (result.success) {
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - AI processing completed for article ID ${articleId}, feature ${featureType}.`);
+      res.json({ message: result.message });
+    } else {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - AI processing failed for article ID ${articleId}, feature ${featureType}: ${result.message}`);
+      res.status(500).json({ error: result.message });
+    }
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering AI processing for article ${articleId}, feature ${featureType}:`, error);
+    res.status(500).json({ error: 'Failed to trigger AI processing.' });
   }
 });
 
