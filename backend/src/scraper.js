@@ -10,7 +10,7 @@ const fs = require('fs').promises; // Import Node.js file system promises API
 const path = require('path'); // Import Node.js path module
 const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
 const FormData = require('form-data'); // Import the form-data library
-const AWS = require('aws-sdk'); // Import AWS SDK
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3'); // Import S3Client and PutObjectCommand from v3
 const { v4: uuidv4 } = require('uuid'); // Import uuid for unique filenames
 
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
@@ -442,10 +442,12 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
       console.log('Uploading image to S3...');
 
       // Initialize S3 client (can be done outside the function for efficiency if preferred)
-      const s3 = new AWS.S3({
+      const s3Client = new S3Client({ // Use S3Client from v3
         region: process.env.AWS_REGION,
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        credentials: { // Use credentials object for v3
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        },
       });
 
       // Determine file extension from URL
@@ -463,10 +465,12 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
         // ACL: 'public-read', // Removed as bucket does not allow ACLs. Public access must be configured via Bucket Policy.
       };
 
-      const uploadResult = await s3.upload(uploadParams).promise();
+      // Use PutObjectCommand and client.send() for v3
+      const command = new PutObjectCommand(uploadParams);
+      const uploadResult = await s3Client.send(command);
 
-      // The 'Location' property of uploadResult contains the public URL
-      const s3ImageUrl = uploadResult.Location;
+      // Construct the public URL manually for v3 as Location is not always returned
+      const s3ImageUrl = `https://${uploadParams.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${uploadParams.Key}`;
 
       console.log('Uploaded AI image to S3:', s3ImageUrl);
 
