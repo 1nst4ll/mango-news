@@ -673,7 +673,7 @@ const SettingsPage: React.FC = () => {
       os_topics_selector: source.os_topics_selector,
       article_link_template: source.article_link_template, // Populate from source
       exclude_patterns: source.exclude_patterns, // Populate from source
-      scrape_after_date: source.scrape_after_date, // Populate from source
+      scrape_after_date: source.scrape_after_date ? new Date(source.scrape_after_date).toISOString().split('T')[0] : null, // Populate from source and format
     });
     setIsModalOpen(true);
   };
