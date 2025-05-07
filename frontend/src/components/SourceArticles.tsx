@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"; // Assuming you have a Table component
-import { Badge } from "./ui/badge"; // Assuming you have a Badge component
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"; // For confirmation dialog
 
 
@@ -14,7 +14,7 @@ interface Article {
   thumbnail_url: string | null; // Added thumbnail_url
   ai_summary: string | null;
   ai_tags: string[] | null; // Assuming tags are returned as an array of strings
-  ai_image_url: string | null;
+  ai_image_path: string | null; // Changed from ai_image_url to ai_image_path
 }
 
 interface SourceArticlesProps {
@@ -175,7 +175,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                   <TableHead>Thumbnail URL</TableHead> {/* New Header */}
                   <TableHead>AI Summary</TableHead>
                   <TableHead>AI Tags</TableHead>
-                  <TableHead>AI Image URL</TableHead> {/* Updated Header */}
+                  <TableHead>AI Image Path</TableHead> {/* Updated Header */}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -247,7 +247,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                        <div className="flex items-center space-x-2">
                          <input
                            type="text"
-                           value={article.ai_image_url || ''}
+                           value={article.ai_image_path || ''} // Changed from ai_image_url to ai_image_path
                            readOnly // Make it read-only for now
                            className="flex-grow border rounded-md p-1 text-sm"
                            placeholder="No image URL"

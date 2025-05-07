@@ -94,6 +94,7 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
           a.id,
           a.title,
           a.source_url,
+          a.thumbnail_url, -- Include thumbnail_url from the database
           a.summary AS ai_summary,
           a.ai_image_path AS ai_image_url,
           ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS ai_tags
