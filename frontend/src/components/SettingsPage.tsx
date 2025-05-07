@@ -40,6 +40,7 @@ interface Source {
   os_topics_selector: string | null;
   article_link_template: string | null; // Add article link template
   exclude_patterns: string | null; // Add exclude patterns
+  scrape_after_date: string | null; // Add scrape_after_date field
 }
 
 interface DiscoveredSource {
@@ -64,6 +65,7 @@ interface ModalFormData {
   os_topics_selector: string | null;
   article_link_template: string | null; // Add article link template
   exclude_patterns: string | null; // Add exclude patterns
+  scrape_after_date: string | null; // Add scrape_after_date field
 }
 
 
@@ -122,8 +124,9 @@ const SettingsPage: React.FC = () => {
     os_author_selector: null,
     os_thumbnail_selector: null,
     os_topics_selector: null,
-  article_link_template: null, // Initialize new field
-  exclude_patterns: null, // Initialize new field
+    article_link_template: null, // Initialize new field
+    exclude_patterns: null, // Initialize new field
+    scrape_after_date: null, // Initialize new field
 });
 
   // State for confirmation dialog
@@ -621,6 +624,7 @@ const SettingsPage: React.FC = () => {
       os_topics_selector: null,
       article_link_template: null, // Initialize new field
       exclude_patterns: null, // Initialize new field
+      scrape_after_date: null, // Initialize new field
     });
     setDiscoveredSources([]);
     openAddModal();
@@ -645,6 +649,7 @@ const SettingsPage: React.FC = () => {
       os_topics_selector: null,
       article_link_template: null, // Initialize new field
       exclude_patterns: null, // Initialize new field
+      scrape_after_date: null, // Initialize new field
     });
     setIsModalOpen(true);
   };
@@ -668,6 +673,7 @@ const SettingsPage: React.FC = () => {
       os_topics_selector: source.os_topics_selector,
       article_link_template: source.article_link_template, // Populate from source
       exclude_patterns: source.exclude_patterns, // Populate from source
+      scrape_after_date: source.scrape_after_date, // Populate from source
     });
     setIsModalOpen(true);
   };
@@ -692,6 +698,7 @@ const SettingsPage: React.FC = () => {
       os_topics_selector: null,
       article_link_template: null, // Reset new field
       exclude_patterns: null, // Reset new field
+      scrape_after_date: null, // Reset new field
     });
   };
 
@@ -1260,6 +1267,18 @@ const SettingsPage: React.FC = () => {
               <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
                 <Label htmlFor="exclude_patterns" className="md:text-right">Exclude Patterns (comma-separated query params):</Label>
                 <Input id="exclude_patterns" name="exclude_patterns" value={modalFormData.exclude_patterns || ''} onChange={handleModalInputChange} className="md:col-span-3" />
+              </div>
+              {/* New: Scrape After Date Input */}
+              <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="scrape_after_date" className="md:text-right">Scrape Articles After Date:</Label>
+                <Input
+                  id="scrape_after_date"
+                  name="scrape_after_date"
+                  type="date" // Use type="date" for a date picker
+                  value={modalFormData.scrape_after_date || ''}
+                  onChange={handleModalInputChange}
+                  className="md:col-span-3"
+                />
               </div>
               <DialogFooter>
                 <Button type="submit">{editingSource ? 'Save Changes' : 'Add Source'}</Button>

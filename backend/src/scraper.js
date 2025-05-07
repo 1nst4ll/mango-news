@@ -259,6 +259,17 @@ async function processScrapedData(data) { // Accept a single data object
         return; // Skip saving if article already exists
       }
 
+      // Check if the article's publication date is older than the scrape_after_date setting
+      if (source.scrape_after_date && publication_date) {
+        const scrapeAfterDate = new Date(source.scrape_after_date);
+        const articlePublicationDate = new Date(publication_date);
+
+        if (articlePublicationDate < scrapeAfterDate) {
+          console.log(`Article "${title}" (${source_url}) is older than the scrape_after_date setting for source ${source.name}. Skipping.`);
+          return; // Skip saving if the article is older than the specified date
+        }
+      }
+
       // Determine if AI features should be enabled based on scrape type and toggles
       let shouldGenerateSummary = false;
       let shouldAssignTags = false;
@@ -490,9 +501,9 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
 
 
 // Function to scrape a single article page based on source method
-async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept scrape type and global toggle states
+async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, scrapeAfterDate = null) { // Accept scrape type, global toggle states, and scrapeAfterDate
   console.log(`Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
-  console.log(`scrapeArticlePage received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
+  console.log(`scrapeArticlePage received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, scrapeAfterDate: ${scrapeAfterDate}`); // Log received values
   let scrapedResult = null;
   let metadata = null;
   let content = null;
@@ -509,7 +520,7 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
         topics: source.os_topics_selector, // Pass the new topics selector
         include: source.include_selectors, // Pass generic include selectors
         exclude: source.exclude_selectors, // Pass generic exclude selectors
-      });
+      }, scrapeAfterDate); // Pass scrapeAfterDate to opensourceScrapeArticle
 
       if (opensourceData) {
         content = opensourceData.content;
@@ -842,7 +853,8 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, 'per-source', source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image); // Pass scrape type and source toggles
+        // Pass the scrape_after_date from the source object to scrapeArticlePage
+        const processed = await scrapeArticlePage(source, articleUrl, 'per-source', source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image, source.scrape_after_date); // Pass scrape type, source toggles, and scrape_after_date
         if (processed) {
           articlesAdded++;
         }

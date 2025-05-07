@@ -8,7 +8,8 @@ const puppeteer = require('puppeteer');
  * @param {object} selectors - An object containing CSS selectors for title, content, date, author, thumbnail, and topics.
  * @param {number} [retries=3] - The number of times to retry scraping on failure.
  * @param {number} [delay=1000] - The delay in milliseconds between retries.
- * @returns {Promise<object|null>} - A promise that resolves with the scraped article data or null if scraping fails after retries.
+ * @param {string|null} scrapeAfterDate - Optional date string to filter articles published before this date.
+ * @returns {Promise<object|null>} - A promise that resolves with the scraped article data or null if scraping fails after retries or if the article is older than scrapeAfterDate.
  */
 
 // Helper function to build regex from article link template
@@ -44,7 +45,7 @@ function buildTemplateRegex(template) {
   return new RegExp(regexString);
 }
 
-async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
+async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3, delay = 1000) {
   console.log(`Starting article scraping for: ${url} (Attempt ${4 - retries})`);
   let browser;
   try {
@@ -232,6 +233,26 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
             return null; // Return null if essential data is missing after retries
         }
 
+        // --- Date Filtering Logic ---
+        if (scrapeAfterDate && articleData.publication_date) {
+          const articleDate = new Date(articleData.publication_date);
+          const filterDate = new Date(scrapeAfterDate);
+
+          // Set time to midnight for comparison to compare only dates
+          articleDate.setHours(0, 0, 0, 0);
+          filterDate.setHours(0, 0, 0, 0);
+
+          if (articleDate < filterDate) {
+            console.log(`Article "${articleData.title}" (${url}) is older than the scrape after date (${scrapeAfterDate}). Skipping.`);
+            return null; // Return null if the article is older than the filter date
+          }
+           console.log(`Article "${articleData.title}" (${url}) is on or after the scrape after date (${scrapeAfterDate}). Including.`);
+        } else if (scrapeAfterDate && !articleData.publication_date) {
+           console.warn(`Scrape after date is set (${scrapeAfterDate}), but no publication date found for article "${articleData.title}" (${url}). Including as date cannot be verified.`);
+        }
+        // --- End Date Filtering Logic ---
+
+
         console.log(`Successfully scraped article from ${url}`);
         return articleData;
     } catch (evalError) {
@@ -239,7 +260,7 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
          if (retries > 0) {
             console.log(`Retrying scraping for ${url} in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            return scrapeArticle(url, selectors, retries - 1, delay * 2); // Exponential backoff
+            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
         }
         return null;
     }
@@ -250,7 +271,7 @@ async function scrapeArticle(url, selectors, retries = 3, delay = 1000) {
          if (retries > 0) {
             console.log(`Retrying scraping for ${url} in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            return scrapeArticle(url, selectors, retries - 1, delay * 2); // Exponential backoff
+            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
         }
         return null;
       } finally {

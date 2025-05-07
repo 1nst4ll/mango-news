@@ -21,6 +21,9 @@ The backend connects to a PostgreSQL database.
 
 2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your PostgreSQL database.
 
+3.  **`sources` Table:** The `sources` table stores information about each news source. A new column, `scrape_after_date`, has been added to this table.
+    *   **`scrape_after_date` (TIMESTAMP WITH TIME ZONE):** This optional field allows you to specify a date. When set for a source, the scraper will only add articles published on or after this date. Articles published before this date will be ignored. This is useful for preventing the scraping of very old articles.
+
 ## Backend Configuration
 
 1.  **Navigate to Backend Directory:** Open your terminal and change to the backend directory:

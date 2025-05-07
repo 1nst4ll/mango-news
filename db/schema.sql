@@ -23,6 +23,7 @@ CREATE TABLE sources (
     article_link_template VARCHAR(255), -- Add column for article link template
     exclude_patterns TEXT, -- Add column for patterns to exclude from links
     scraping_method VARCHAR(50) DEFAULT 'opensource', -- Add column for scraping method
+    scrape_after_date TIMESTAMP WITH TIME ZONE, -- Add column for the date to scrape articles after
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
