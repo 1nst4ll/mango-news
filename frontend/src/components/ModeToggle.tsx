@@ -29,7 +29,7 @@ export function ModeToggle() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild role="button" tabIndex={0}>
         <Button
           variant="outline"
           size="icon"
