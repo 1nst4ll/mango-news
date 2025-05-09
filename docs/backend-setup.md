@@ -67,6 +67,22 @@ The backend connects to a PostgreSQL database.
 
 4.  **Database Connection and AWS Configuration in Code:** The database connection details and AWS S3 configuration are handled in `backend/src/index.js` and `backend/src/scraper.js`. These files are configured to read sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.AWS_ACCESS_KEY_ID`).
 
+### URL Blacklist
+
+The backend scraper includes a URL blacklist feature to prevent scraping specific articles or pages.
+
+*   **Configuration File:** The blacklisted URLs are stored in a JSON file located at `backend/config/blacklist.json`.
+*   **Format:** The file should contain a JSON array of strings, where each string is a full URL to be blacklisted.
+
+    ```json
+    [
+      "https://example.com/article-to-exclude-1",
+      "https://anothersite.com/page/to/skip"
+    ]
+    ```
+*   **Adding URLs:** To add a URL to the blacklist, simply edit the `backend/config/blacklist.json` file and add the URL as a new string element in the JSON array. Ensure the JSON format remains valid.
+*   **Implementation:** The scraper (`backend/src/scraper.js` and `backend/src/opensourceScraper.js`) reads this file on startup and checks each potential article URL against the blacklist before attempting to scrape it. Blacklisted URLs are skipped.
+
 ## Running the Backend
 
 You can run the backend server in different modes:

@@ -508,6 +508,12 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
   let metadata = null;
   let content = null;
 
+  // Check if the URL is in the blacklist
+  if (urlBlacklist.includes(articleUrl)) {
+    console.log(`URL ${articleUrl} is in the blacklist. Skipping scraping.`);
+    return null; // Skip scraping if blacklisted
+  }
+
   try {
     if (source.scraping_method === 'opensource') {
       // Use the open-source scraper
