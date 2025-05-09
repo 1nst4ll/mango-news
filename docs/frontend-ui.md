@@ -43,7 +43,7 @@ The Google AdSense script (`https://pagead2.googic.com/pagead/js/adsbygoogle.js`
 
 An audit of the shadcn/ui components in `frontend/src/components/ui/` has been completed. The audited components include `button`, `card`, `chart`, `checkbox`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `select`, `switch`, and `textarea`. A minor correction was made to `frontend/src/components/ui/chart.tsx` to use a path alias (`@/lib/utils`) for the `cn` utility function instead of a relative import.
 
-The `ModeToggle.tsx` component, which handles the theme switch, has been audited. It uses standard browser APIs and React hooks and is expected to work correctly in modern browsers, including Safari on iOS. However, it is recommended to manually test the theme switch functionality on an iOS device running Safari to confirm full compatibility.
+The `ModeToggle.tsx` component handles the theme switch. It is implemented as a simple button that toggles between light and dark mode on click. The icon displayed on the button indicates the theme that will be applied when clicked: a Moon icon is shown in light mode (to switch to dark mode), and a Sun icon is shown in dark mode (to switch to light mode). This implementation was chosen to address compatibility issues with the previous dropdown menu approach on iOS Safari.
 
 **Responsiveness:**
 
