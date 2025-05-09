@@ -796,6 +796,7 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
   let articlesAdded = 0;
 
   try {
+    await loadUrlBlacklist(); // Ensure blacklist is loaded before scraping
     // Select all columns including the new selector settings and scraping_method
     const result = await pool.query('SELECT * FROM sources WHERE id = $1 AND is_active = TRUE', [sourceId]);
     const source = result.rows[0];
