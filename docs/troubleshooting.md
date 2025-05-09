@@ -31,10 +31,9 @@ This document provides guidance on troubleshooting common issues you might encou
 -   **Browser Cache:** Clear your browser's cache and cookies to ensure you are loading the latest version of the frontend code.
 -   **Console Errors:** Check the browser's developer console for any JavaScript errors.
 
-### Theme Switcher Not Working on iOS Safari
+### Theme Switcher
 
--   **Issue:** The theme switcher dropdown does not open when tapped on iOS Safari.
--   **Potential Fix:** This can be caused by how iOS Safari handles touch events on non-native interactive elements. Adding `role="button"` and `tabIndex="0"` to the `DropdownMenuTrigger` component in `frontend/src/components/ModeToggle.tsx` may resolve this issue. This has been implemented. Please test on your iOS device to confirm.
+-   **Implementation:** The theme switcher is currently implemented as a simple toggle button that switches between light and dark mode on click. This was changed from a dropdown menu to address compatibility issues on iOS Safari.
 
 ## General Issues
 
