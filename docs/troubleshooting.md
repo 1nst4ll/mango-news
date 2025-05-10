@@ -21,6 +21,12 @@ This document provides guidance on troubleshooting common issues you might encou
 -   **Network Issues:** Temporary network problems can cause scraping to fail. Try running the scraper again.
 -   **Backend Logs:** Check the backend logs for detailed error messages related to scraping attempts.
 
+### `ReferenceError: urlBlacklist is not defined`
+
+This error occurs when the scraper attempts to access the `urlBlacklist` variable before it has been properly loaded from the `blacklist.json` file.
+
+*   **Resolution:** This issue was resolved in a recent update by ensuring the `urlBlacklist` is loaded before it is accessed in both the main scraper and the opensource scraper functions. If you encounter this error, ensure your backend code is up-to-date with the latest changes from the repository.
+
 ## Frontend Issues
 
 ### Frontend Not Displaying Correctly
