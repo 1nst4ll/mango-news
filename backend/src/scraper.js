@@ -13,6 +13,27 @@ const FormData = require('form-data'); // Import the form-data library
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3'); // Import S3Client and PutObjectCommand from v3
 const { v4: uuidv4 } = require('uuid'); // Import uuid for unique filenames
 
+// Array to store URLs from the blacklist
+let urlBlacklist = [];
+
+// Function to load the URL blacklist from a JSON file
+async function loadUrlBlacklist() {
+  const blacklistPath = path.join(__dirname, '../config/blacklist.json');
+  try {
+    const data = await fs.readFile(blacklistPath, 'utf8');
+    urlBlacklist = JSON.parse(data);
+    console.log(`Loaded ${urlBlacklist.length} URLs from blacklist.`);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.warn('Blacklist file not found. Starting with an empty blacklist.');
+      urlBlacklist = []; // Start with an empty blacklist if the file doesn't exist
+    } else {
+      console.error('Error loading URL blacklist:', error);
+      urlBlacklist = []; // Ensure blacklist is empty on other errors
+    }
+  }
+}
+
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
 const topicsList = [
   "Politics", "Economy", "Business", "Technology", "Health", "Science",
