@@ -621,10 +621,10 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
 
             // Remove hash fragment
             url.hash = '';
-            const cleanedLink = url.toString();
+        const cleanedLink = url.toString();
 
-            // Check if the link is on the same domain
-            if (url.hostname === sourceHostname) {
+            // Check if the link is on the same domain and not in the blacklist
+            if (url.hostname === sourceHostname && !(urlBlacklist && urlBlacklist.includes(cleanedLink))) {
               let isPotentialArticle = false;
 
               // Prioritize matching against the articleLinkTemplate if provided
