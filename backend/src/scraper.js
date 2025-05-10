@@ -861,7 +861,7 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
         // Pass the scrape_after_date from the source object to scrapeArticlePage
-        const processed = await scrapeArticlePage(source, articleUrl, urlBlacklist, 'per-source', source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image, source.scrape_after_date); // Pass scrape type, source toggles, and scrape_after_date
+        const processed = await scrapeArticlePage(source, articleUrl, 'per-source', source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image, source.scrape_after_date); // Pass scrape type, source toggles, and scrape_after_date
         if (processed) {
           articlesAdded++;
         }
