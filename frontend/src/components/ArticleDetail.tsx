@@ -126,6 +126,17 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => { // Destructure id direct
           >
             Share on WhatsApp
           </button>
+          {/* Facebook Share Button */}
+          <button
+            className="text-sm text-blue-600 hover:underline"
+            onClick={() => {
+              const articleUrl = window.location.href;
+              const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
+              window.open(facebookUrl, '_blank');
+            }}
+          >
+            Share on Facebook
+          </button>
         </div>
       </article>
     </div>

@@ -233,6 +233,18 @@ function NewsFeed({
                         >
                           Share on WhatsApp
                         </button>
+                        {/* Facebook Share Button */}
+                         <button
+                          className="text-sm text-blue-600 hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            const articleUrl = `${window.location.origin}/article/${article.id}`;
+                            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
+                            window.open(facebookUrl, '_blank');
+                          }}
+                        >
+                          Share on Facebook
+                        </button>
                       </div>
                       {/* Removed CardFooter */}
                     </Card>
