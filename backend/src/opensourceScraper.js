@@ -630,9 +630,10 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
 
             // Check if the link is on the same domain and not in the blacklist by checking if it starts with any blacklisted entry
             const blacklist = getBlacklist();
-            const isBlacklisted = blacklist.some(blacklistedUrl => cleanedLink.startsWith(blacklistedUrl));
-            console.log(`Checking link against blacklist: ${cleanedLink}. Blacklist contains: ${blacklist.join(', ')}. Is blacklisted: ${isBlacklisted}`); // Add this log
-            if (url.hostname === sourceHostname && !isBlacklisted) {
+            const isBlacklistedStartsWith = blacklist.some(blacklistedUrl => cleanedLink.startsWith(blacklistedUrl));
+            const isBlacklistedIncludes = blacklist.some(blacklistedUrl => cleanedLink.includes(blacklistedUrl));
+            console.log(`Checking link against blacklist: ${cleanedLink} (Length: ${cleanedLink.length}). Blacklist contains: ${blacklist.map(b => `${b} (Length: ${b.length})`).join(', ')}. Is blacklisted (startsWith): ${isBlacklistedStartsWith}. Is blacklisted (includes): ${isBlacklistedIncludes}`); // Add this log
+            if (url.hostname === sourceHostname && !isBlacklistedStartsWith) {
               let isPotentialArticle = false;
 
               // Prioritize matching against the articleLinkTemplate if provided
