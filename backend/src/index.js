@@ -407,7 +407,7 @@ app.get('/api/rss', async (req, res) => {
 
     articles.forEach(article => {
       const descriptionHtml = article.summary ? marked.parse(article.summary) : '<p>No summary available.</p>';
-      const frontendArticleUrl = `https://mango-news.onrender.com/article/${article.id}`; // Construct frontend URL
+      const frontendArticleUrl = `https://mangonews.onrender.com/article/${article.id}`; // Construct frontend URL
       feed.item({
         title: article.title,
         description: descriptionHtml, // Use HTML content
