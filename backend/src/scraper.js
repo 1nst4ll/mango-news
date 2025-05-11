@@ -113,7 +113,7 @@ async function generateAISummary(content) {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence." // Changed summary word limit
+          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence. Return only the summary text, without any introductory phrases or conversational filler." // Changed summary word limit and added instruction to avoid filler
         },
         {
           role: "user",
@@ -386,7 +386,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
   const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
 
   // Fixed prompt instructions for image generation
-  const imagePromptInstructions = `Create local TCI news thumbnail. Optimize for click: rule of thirds, close-up focus, high contrast, golden hour lighting. Represent residents authentically without identifiable faces. Vibrant colors, clear focal point, avoid lower-right text placement. Maximum 2 keyword text if needed, bold sans-serif. Image must reflect Turks and Caicos context while preventing misrepresentation through non-face-focused composition (silhouettes, backs, angles).`;
+  const imagePromptInstructions = `Create a compelling news thumbnail image relevant to the Turks and Caicos Islands (TCI). The image should be visually striking and optimized for clicks. Focus on imagery that reflects the article's summary and the TCI context, such as local landmarks, relevant objects, or scenes, but avoid identifiable faces of residents to ensure authenticity and prevent misrepresentation. Use vibrant colors and high contrast. If text is necessary, keep it to a maximum of 2 relevant keywords in a bold, sans-serif font, avoiding the lower-right corner.`;
 
   try {
     // Use Groq to optimize the prompt based on instructions and summary

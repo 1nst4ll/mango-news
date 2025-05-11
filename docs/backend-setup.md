@@ -7,6 +7,8 @@ This document guides you through setting up and configuring the backend for the 
 *   Node.js and npm installed.
 *   Access to a PostgreSQL database.
 *   A Groq API key for AI features (summaries and topic assignment).
+*   An Ideogram API key for AI image generation.
+*   AWS S3 credentials and a bucket for storing AI-generated images.
 
 ## Database Setup
 
@@ -140,3 +142,11 @@ curl -X POST http://localhost:3000/api/process-missing-ai/123 \
 ```
 
 (Replace `123` with the actual source ID and `http://localhost:3000` with your backend URL if not running locally.)
+
+## AI Summary Prompt
+
+The system prompt used for AI summary generation is located in the `backend/src/scraper.js` file within the `generateAISummary` function. The prompt has been updated to explicitly request only the summary text without any introductory phrases or conversational filler.
+
+## AI Image Prompt
+
+The system prompt used for AI image generation is located in the `backend/src/scraper.js` file within the `generateAIImage` function. The prompt has been updated to be more specific about the desired image content, focusing on imagery relevant to the Turks and Caicos Islands and reinforcing the instruction to avoid identifiable faces of residents while still reflecting the local context.
