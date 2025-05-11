@@ -13,7 +13,7 @@ const articleResponse = await fetch(`${backendApiUrl}/articles/${id}`);
 const article = await articleResponse.json();
 
 // Construct the page title
-const pageTitle = `mangonews - ${article.title}`;
+const pageTitle = `${article.title}`;
 ---
 
 <BaseLayout title={pageTitle}>
