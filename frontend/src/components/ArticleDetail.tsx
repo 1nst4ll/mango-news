@@ -112,6 +112,20 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => { // Destructure id direct
             return null;
           })}
         </div>
+        {/* Add WhatsApp Share Button */}
+        <div className="mt-6"> {/* Added margin top for spacing */}
+          <button
+            className="text-sm text-blue-600 hover:underline"
+            onClick={() => {
+              const articleUrl = window.location.href;
+              const shareText = `Check out this article: ${article.title} - ${articleUrl}`;
+              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+              window.open(whatsappUrl, '_blank');
+            }}
+          >
+            Share on WhatsApp
+          </button>
+        </div>
       </article>
     </div>
   );

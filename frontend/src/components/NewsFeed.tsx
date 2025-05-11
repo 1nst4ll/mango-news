@@ -218,6 +218,21 @@ function NewsFeed({
                           {/* Format AI summary bold text with accent color */}
                           <p className="text-foreground" dangerouslySetInnerHTML={{ __html: article.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                       </CardContent>
+                      {/* Add WhatsApp Share Button */}
+                      <div className="px-6 pb-4">
+                        <button
+                          className="text-sm text-blue-600 hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            const articleUrl = `${window.location.origin}/article/${article.id}`;
+                            const shareText = `Check out this article: ${article.title} - ${articleUrl}`;
+                            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                            window.open(whatsappUrl, '_blank');
+                          }}
+                        >
+                          Share on WhatsApp
+                        </button>
+                      </div>
                       {/* Removed CardFooter */}
                     </Card>
                   </a>

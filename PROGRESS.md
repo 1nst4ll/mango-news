@@ -146,6 +146,15 @@
 - Remove the old `frontend` directory once the Astro migration is complete and verified.
 - Suggest a git commit and push to mark the completion of the frontend migration milestone.
 
+## Completed Tasks
+
+### WhatsApp Share Feature (Completed on 2025-05-10)
+
+- Added a "Share on WhatsApp" button to each news feed article card in `frontend/src/components/NewsFeed.tsx`.
+- Added a "Share on WhatsApp" button at the bottom of the article detail page in `frontend/src/components/ArticleDetail.tsx`.
+- Implemented logic to construct the correct WhatsApp share URL with article title and URL.
+- Updated `docs/frontend-ui.md` to mention the new share feature.
+
 ## Detailed Steps for Pending Tasks
 
 (This section will be updated with detailed steps for the "Next Steps: Astro Frontend Migration" as they are worked on.)
