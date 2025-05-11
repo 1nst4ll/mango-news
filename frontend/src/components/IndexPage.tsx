@@ -88,21 +88,37 @@ export default function IndexPage() {
                 Sources ({selectedSources.length})
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-2">
+            {/* Adjusted width for mobile friendliness */}
+            <PopoverContent className="w-full md:w-[200px] p-2">
               {sources.map(source => (
-                <div key={source.id} className="flex items-center space-x-2">
+                // Wrap Checkbox and Label in a div for larger touch target
+                <div
+                  key={source.id}
+                  className="flex items-center space-x-2 py-1 cursor-pointer" // Added vertical padding and cursor-pointer
+                  onClick={() => {
+                    // Toggle the checkbox state when the div is clicked
+                    const isSelected = selectedSources.includes(source.name);
+                    if (isSelected) {
+                      setSelectedSources(selectedSources.filter(name => name !== source.name));
+                    } else {
+                      setSelectedSources([...selectedSources, source.name]);
+                    }
+                  }}
+                >
                   <Checkbox
                     id={`source-${source.id}`}
                     checked={selectedSources.includes(source.name)}
+                    // onCheckedChange is still needed for direct checkbox clicks
                     onCheckedChange={(checked) => {
-                      if (checked) {
+                       if (checked) {
                         setSelectedSources([...selectedSources, source.name]);
                       } else {
                         setSelectedSources(selectedSources.filter(name => name !== source.name));
                       }
                     }}
+                    className="mr-2" // Add some margin to the right of the checkbox
                   />
-                  <Label htmlFor={`source-${source.id}`}>{source.name}</Label>
+                  <Label htmlFor={`source-${source.id}`} className="cursor-pointer">{source.name}</Label> {/* Added cursor-pointer to label */}
                 </div>
               ))}
             </PopoverContent>
