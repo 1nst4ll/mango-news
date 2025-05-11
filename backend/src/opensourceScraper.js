@@ -16,8 +16,10 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
   console.log(`Starting article scraping for: ${url} (Attempt ${4 - retries})`);
   await loadUrlBlacklist(); // Ensure blacklist is loaded before checking
 
-  // Check if the URL is in the blacklist
-  if (getBlacklist().includes(url)) {
+  // Check if the URL is in the blacklist by checking if it starts with any blacklisted entry
+  const blacklist = getBlacklist();
+  const isBlacklisted = blacklist.some(blacklistedUrl => url.startsWith(blacklistedUrl));
+  if (isBlacklisted) {
     console.log(`URL ${url} is in the opensource blacklist. Skipping scraping.`);
     return null; // Skip scraping if blacklisted
   }
@@ -626,9 +628,11 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
             url.hash = '';
         const cleanedLink = url.toString();
 
-            // Check if the link is on the same domain and not in the blacklist
-            console.log(`Checking link against blacklist: ${cleanedLink}. Blacklist contains: ${getBlacklist().join(', ')}`); // Add this log
-            if (url.hostname === sourceHostname && !(getBlacklist().includes(cleanedLink))) {
+            // Check if the link is on the same domain and not in the blacklist by checking if it starts with any blacklisted entry
+            const blacklist = getBlacklist();
+            const isBlacklisted = blacklist.some(blacklistedUrl => cleanedLink.startsWith(blacklistedUrl));
+            console.log(`Checking link against blacklist: ${cleanedLink}. Blacklist contains: ${blacklist.join(', ')}. Is blacklisted: ${isBlacklisted}`); // Add this log
+            if (url.hostname === sourceHostname && !isBlacklisted) {
               let isPotentialArticle = false;
 
               // Prioritize matching against the articleLinkTemplate if provided

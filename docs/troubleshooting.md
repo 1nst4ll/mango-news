@@ -23,9 +23,9 @@ This document provides guidance on troubleshooting common issues you might encou
 
 ### Blacklist Logic Not Working
 
-If the scraper is not respecting the URLs listed in `backend/config/blacklist.json`, it might be due to how the blacklist is accessed across different parts of the application.
+If the scraper is not respecting the URLs listed in `backend/config/blacklist.json`, it might be due to how the blacklist is accessed or matched against scraped URLs.
 
-*   **Resolution:** The blacklist is now loaded via a dedicated function (`loadUrlBlacklist` in `backend/src/configLoader.js`) and accessed using a getter function (`getBlacklist`). This ensures that the most up-to-date blacklist is always used when checking URLs. If you encounter issues with the blacklist, ensure that `loadUrlBlacklist` is called before any scraping or discovery process begins and that `getBlacklist()` is used to retrieve the blacklist array. This fix was implemented by modifying `backend/src/configLoader.js`, `backend/src/scraper.js`, and `backend/src/opensourceScraper.js`. Ensure your backend code is up-to-date with these changes.
+*   **Resolution:** The blacklist is now loaded via a dedicated function (`loadUrlBlacklist` in `backend/src/configLoader.js`) and accessed using a getter function (`getBlacklist`). To address issues with partial URL matches, the blacklist check now verifies if a scraped URL *starts with* any entry in the blacklist, rather than requiring an exact match. This ensures that URLs with additional parameters or paths are correctly excluded if their base matches a blacklisted entry. If you encounter issues with the blacklist, ensure that `loadUrlBlacklist` is called before any scraping or discovery process begins and that `getBlacklist()` is used to retrieve the blacklist array. This fix was implemented by modifying `backend/src/configLoader.js`, `backend/src/scraper.js`, and `backend/src/opensourceScraper.js`. Ensure your backend code is up-to-date with these changes.
 
 ### `ReferenceError: urlBlacklist is not defined`
 

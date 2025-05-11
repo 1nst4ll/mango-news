@@ -509,8 +509,10 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
   let metadata = null;
   let content = null;
 
-  // Check if the URL is in the blacklist
-  if (getBlacklist().includes(articleUrl)) {
+  // Check if the URL is in the blacklist by checking if it starts with any blacklisted entry
+  const blacklist = getBlacklist();
+  const isBlacklisted = blacklist.some(blacklistedUrl => articleUrl.startsWith(blacklistedUrl));
+  if (isBlacklisted) {
     console.log(`URL ${articleUrl} is in the blacklist. Skipping scraping.`);
     return null; // Skip scraping if blacklisted
   }
