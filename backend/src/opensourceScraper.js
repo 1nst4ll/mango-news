@@ -1,6 +1,6 @@
 // Contains the logic for the open-source scraping method using Puppeteer.
 const puppeteer = require('puppeteer');
-const { urlBlacklist, loadUrlBlacklist } = require('./configLoader'); // Import from configLoader
+const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import from configLoader
 
 /**
  * Scrapes a single article from a given URL using Puppeteer with retry logic.
@@ -14,9 +14,10 @@ const { urlBlacklist, loadUrlBlacklist } = require('./configLoader'); // Import 
  */
 async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3, delay = 1000) {
   console.log(`Starting article scraping for: ${url} (Attempt ${4 - retries})`);
+  await loadUrlBlacklist(); // Ensure blacklist is loaded before checking
 
   // Check if the URL is in the blacklist
-  if (urlBlacklist.includes(url)) {
+  if (getBlacklist().includes(url)) {
     console.log(`URL ${url} is in the opensource blacklist. Skipping scraping.`);
     return null; // Skip scraping if blacklisted
   }
@@ -536,6 +537,7 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
  * @returns {Promise<Array<string>>} - A promise that resolves with an array of discovered article URLs.
  */
 async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatterns, limit = 100) {
+  await loadUrlBlacklist(); // Ensure blacklist is loaded before discovery
   let browser;
   const articleUrls = new Set();
   const excludeParams = excludePatterns ? excludePatterns.split(',').map(p => p.trim()) : [];
@@ -625,8 +627,8 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
         const cleanedLink = url.toString();
 
             // Check if the link is on the same domain and not in the blacklist
-            console.log(`Checking link against blacklist: ${cleanedLink}. Blacklist contains: ${urlBlacklist.join(', ')}`); // Add this log
-            if (url.hostname === sourceHostname && !(urlBlacklist && urlBlacklist.includes(cleanedLink))) {
+            console.log(`Checking link against blacklist: ${cleanedLink}. Blacklist contains: ${getBlacklist().join(', ')}`); // Add this log
+            if (url.hostname === sourceHostname && !(getBlacklist().includes(cleanedLink))) {
               let isPotentialArticle = false;
 
               // Prioritize matching against the articleLinkTemplate if provided

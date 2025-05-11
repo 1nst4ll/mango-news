@@ -21,11 +21,17 @@ This document provides guidance on troubleshooting common issues you might encou
 -   **Network Issues:** Temporary network problems can cause scraping to fail. Try running the scraper again.
 -   **Backend Logs:** Check the backend logs for detailed error messages related to scraping attempts.
 
+### Blacklist Logic Not Working
+
+If the scraper is not respecting the URLs listed in `backend/config/blacklist.json`, it might be due to how the blacklist is accessed across different parts of the application.
+
+*   **Resolution:** The blacklist is now loaded via a dedicated function (`loadUrlBlacklist` in `backend/src/configLoader.js`) and accessed using a getter function (`getBlacklist`). This ensures that the most up-to-date blacklist is always used when checking URLs. If you encounter issues with the blacklist, ensure that `loadUrlBlacklist` is called before any scraping or discovery process begins and that `getBlacklist()` is used to retrieve the blacklist array. This fix was implemented by modifying `backend/src/configLoader.js`, `backend/src/scraper.js`, and `backend/src/opensourceScraper.js`. Ensure your backend code is up-to-date with these changes.
+
 ### `ReferenceError: urlBlacklist is not defined`
 
-This error occurs when the scraper attempts to access the `urlBlacklist` variable before it has been properly loaded from the `blacklist.json` file.
+This error occurs when the scraper attempts to access the `urlBlacklist` variable before it has been properly loaded from the `blacklist.json` file. This specific error should now be resolved by the changes made to use the `getBlacklist()` function instead of directly referencing the `urlBlacklist` variable.
 
-*   **Resolution:** This issue was resolved in a recent update by ensuring the `urlBlacklist` is loaded before it is accessed in both the main scraper and the opensource scraper functions. If you encounter this error, ensure your backend code is up-to-date with the latest changes from the repository.
+*   **Resolution:** This error is addressed by using the `getBlacklist()` function from `backend/src/configLoader.js` to access the blacklist, ensuring it is always retrieved after being loaded. Ensure your backend code is updated to use `getBlacklist()` where the blacklist is needed.
 
 ## Frontend Issues
 

@@ -12,7 +12,7 @@ const fetch = require('node-fetch'); // Import node-fetch for making HTTP reques
 const FormData = require('form-data'); // Import the form-data library
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3'); // Import S3Client and PutObjectCommand from v3
 const { v4: uuidv4 } = require('uuid'); // Import uuid for unique filenames
-const { urlBlacklist, loadUrlBlacklist } = require('./configLoader'); // Import from configLoader
+const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import from configLoader
 
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
 const topicsList = [
@@ -510,7 +510,7 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
   let content = null;
 
   // Check if the URL is in the blacklist
-  if (urlBlacklist.includes(articleUrl)) {
+  if (getBlacklist().includes(articleUrl)) {
     console.log(`URL ${articleUrl} is in the blacklist. Skipping scraping.`);
     return null; // Skip scraping if blacklisted
   }
@@ -583,6 +583,7 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
 
 async function runScraper(enableGlobalAiSummary = true, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
   console.log('Starting news scraping process...');
+  await loadUrlBlacklist(); // Ensure blacklist is loaded before scraping
   const activeSources = await getActiveSources();
 
   for (const source of activeSources) {
