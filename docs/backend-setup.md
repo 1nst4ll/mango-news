@@ -124,7 +124,7 @@ This endpoint returns an RSS feed in XML format.
     *   `title`: Article title.
     *   `link`: URL to the article on the Mango News frontend (e.g., `https://mangonews.onrender.com/article/:id`).
     *   `pubDate`: Publication date of the article.
-    *   `description`: AI-generated summary of the article, converted from Markdown to HTML (or "<p>No summary available.</p>" if none). This allows for rich text formatting (e.g., bold, italics) in compatible RSS readers.
+    *   `description`: AI-generated summary of the article, converted from Markdown to HTML. If an `ai_image_path` or `thumbnail_url` is available for the article, an `<img>` tag pointing to this image will be prepended to the HTML description. This allows for rich text formatting and an image in compatible RSS readers. (Defaults to "<p>No summary available.</p>" if no summary).
     *   `guid`: The original URL of the article from the source website (used as a unique identifier).
     *   `author`: The name of the news source.
 *   **Feed Details:**

@@ -394,6 +394,8 @@ app.get('/api/rss', async (req, res) => {
           a.source_url,
           a.publication_date,
           a.summary,
+          a.thumbnail_url, -- Fetch thumbnail_url
+          a.ai_image_path, -- Fetch ai_image_path (treated as ai_image_url)
           s.name as source_name
       FROM
           articles a
@@ -406,11 +408,21 @@ app.get('/api/rss', async (req, res) => {
     const articles = articlesResult.rows;
 
     articles.forEach(article => {
-      const descriptionHtml = article.summary ? marked.parse(article.summary) : '<p>No summary available.</p>';
+      let descriptionHtml = article.summary ? marked.parse(article.summary) : '<p>No summary available.</p>';
+      const imageUrl = article.ai_image_path || article.thumbnail_url; // Prioritize AI image, fallback to thumbnail
+
+      if (imageUrl) {
+        // Prepend image to the description
+        // Ensure the image URL is absolute. If it's a relative S3 path, you might need to prepend your S3 bucket URL.
+        // For now, assuming it's an absolute URL or will be correctly resolved by the client.
+        const imageTag = `<p><img src="${imageUrl}" alt="${article.title}" style="max-width:100%; height:auto;" /></p>`;
+        descriptionHtml = imageTag + descriptionHtml;
+      }
+
       const frontendArticleUrl = `https://mangonews.onrender.com/article/${article.id}`; // Construct frontend URL
       feed.item({
         title: article.title,
-        description: descriptionHtml, // Use HTML content
+        description: descriptionHtml, // Use HTML content with image
         url: frontendArticleUrl, // Use frontend URL for the item link
         guid: article.source_url, // Keep original source_url as GUID for uniqueness
         date: article.publication_date,
