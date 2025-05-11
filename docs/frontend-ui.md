@@ -1,4 +1,4 @@
-# Frontend UI Styling and Stack
+Frontend UI Styling and Stack
 
 The frontend of the Mango News application is being migrated to a new stack for improved performance and developer experience.
 
