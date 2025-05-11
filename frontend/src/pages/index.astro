@@ -3,9 +3,19 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import IndexPage from '../components/IndexPage'; // Import the React component
 
-const pageTitle = "mango.tc News - Latest Headlines";
+const pageTitle = "Latest Headlines"; // BaseLayout prepends "mango.tc news - "
+const pageDescription = "Stay updated with the latest news and headlines from Turks and Caicos on mango.tc news.";
+const ogImageUrl = "/logo.png"; // Assuming logo.png is in public directory
+const ogUrl = Astro.url.href;
+const ogType = "website";
 ---
 
-<BaseLayout title={pageTitle}>
+<BaseLayout 
+  title={pageTitle}
+  description={pageDescription}
+  ogImageUrl={ogImageUrl}
+  ogUrl={ogUrl}
+  ogType={ogType}
+>
   <IndexPage client:load />
 </BaseLayout>

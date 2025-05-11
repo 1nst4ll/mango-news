@@ -69,5 +69,41 @@ A persistent header component (`frontend/src/components/Header.tsx`) has been ad
 
 The Admin Dashboard and Source Management features have been combined into a single Settings page (`frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.
 
+---
+
+### Social Sharing (Open Graph Meta Tags)
+
+To enhance how links to the application appear when shared on social media platforms like Facebook, dynamic Open Graph (OG) meta tags have been implemented. These tags provide structured information about the page content, such as the title, description, image, and URL.
+
+**Implementation Details:**
+
+*   The `frontend/src/layouts/BaseLayout.astro` component has been updated to accept and render dynamic OG tags. It now accepts `title`, `description`, `ogImageUrl`, `ogUrl`, and `ogType` props.
+*   **Article Pages (`frontend/src/pages/article/[id].astro`):**
+    *   `og:title`: Set to the article's title.
+    *   `og:description`: Set to the article's summary or the first 160 characters of its content.
+    *   `og:image`: Set to the article's `image_url` if available.
+    *   `og:url`: Set to the canonical URL of the article page.
+    *   `og:type`: Set to `"article"`.
+*   **Index Page (`frontend/src/pages/index.astro`):**
+    *   `og:title`: Set to "mango.tc news - Latest Headlines".
+    *   `og:description`: Set to a general site description.
+    *   `og:image`: Set to `/logo.png`.
+    *   `og:url`: Set to the homepage URL.
+    *   `og:type`: Set to `"website"`.
+*   **Settings Page (`frontend/src/pages/settings.astro`):**
+    *   `og:title`: Set to "mango.tc news - Settings".
+    *   `og:description`: Set to a brief description of the settings page.
+    *   `og:image`: Set to `/logo.png`.
+    *   `og:url`: Set to the settings page URL.
+    *   `og:type`: Set to `"website"`.
+*   **Source Articles Page (`frontend/src/pages/settings/source/[sourceId].astro`):**
+    *   `og:title`: Set to "mango.tc news - Articles for Source [sourceId]".
+    *   `og:description`: Set to a generic description for the source articles page.
+    *   `og:image`: Set to `/logo.png`.
+    *   `og:url`: Set to the source articles page URL.
+    *   `og:type`: Set to `"website"`.
+
+This setup ensures that when links are shared, they are presented with relevant information, improving user engagement and click-through rates from social platforms. Facebook's in-app browser will typically be used by default when these links are opened from within the Facebook mobile app.
+
 Further Documentation:
 * [Server Deployment Instructions](../deployment.md)

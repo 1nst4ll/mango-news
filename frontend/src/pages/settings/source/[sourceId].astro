@@ -3,9 +3,24 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import SourceArticles from '../../../components/SourceArticles.tsx';
 
 const { sourceId } = Astro.params;
+
+// It might be good to fetch the source name here if possible, 
+// for a more descriptive title and description.
+// For now, we'll use a generic one.
+const pageTitle = `Articles for Source ${sourceId}`;
+const pageDescription = `Browse articles from source ID ${sourceId} on mango.tc news.`;
+const ogImageUrl = "/logo.png"; // Assuming logo.png is in public directory
+const ogUrl = Astro.url.href;
+const ogType = "website"; // Or "object" if we consider a source a specific type of object
 ---
 
-<BaseLayout title={`Articles for Source ${sourceId}`}>
+<BaseLayout 
+  title={pageTitle}
+  description={pageDescription}
+  ogImageUrl={ogImageUrl}
+  ogUrl={ogUrl}
+  ogType={ogType}
+>
   <main class="container mx-auto p-4">
     <SourceArticles client:load sourceId={sourceId} />
   </main>

@@ -3,9 +3,19 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SettingsPage from '../components/SettingsPage'; // Import as a React component
 
-const pageTitle = "mango.tc News - Settings";
+const pageTitle = "Settings"; // BaseLayout prepends "mango.tc news - "
+const pageDescription = "Manage your mango.tc news settings and preferences.";
+const ogImageUrl = "/logo.png"; // Assuming logo.png is in public directory
+const ogUrl = Astro.url.href;
+const ogType = "website";
 ---
 
-<BaseLayout title={pageTitle}>
+<BaseLayout 
+  title={pageTitle}
+  description={pageDescription}
+  ogImageUrl={ogImageUrl}
+  ogUrl={ogUrl}
+  ogType={ogType}
+>
   <SettingsPage client:load />
 </BaseLayout>

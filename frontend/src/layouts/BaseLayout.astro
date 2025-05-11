@@ -6,9 +6,19 @@ import Footer from '../components/footer.tsx'; // Assuming Footer will be in src
 
 interface Props {
   title: string;
+  description?: string;
+  ogImageUrl?: string;
+  ogUrl?: string;
+  ogType?: string;
 }
 
-const { title } = Astro.props;
+const { 
+  title, 
+  description = "mango.tc news - Your source for news from Turks and Caicos.", 
+  ogImageUrl,
+  ogUrl = Astro.url.href, // Default to current page URL
+  ogType = "website" // Default to website type
+} = Astro.props;
 ---
 
 <script is:inline>
@@ -34,7 +44,7 @@ const { title } = Astro.props;
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="mango.tc news" />
+    <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -47,8 +57,11 @@ const { title } = Astro.props;
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7180813918214554"
      crossorigin="anonymous"></script>
     <!-- Open Graph Meta Tags for Social Sharing -->
-    <meta property="og:title" content="mango.tc news" />
-    <meta property="og:description" content="Your source for news from Turks and Caicos." />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={ogUrl} />
+    {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
     <meta property="og:site_name" content="mango.tc news" />
   </head>
   <body>
