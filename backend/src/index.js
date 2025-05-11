@@ -389,6 +389,7 @@ app.get('/api/rss', async (req, res) => {
     // Fetch the latest articles (e.g., last 20)
     const articlesResult = await pool.query(`
       SELECT
+          a.id, -- Fetch article ID
           a.title,
           a.source_url,
           a.publication_date,
@@ -406,11 +407,12 @@ app.get('/api/rss', async (req, res) => {
 
     articles.forEach(article => {
       const descriptionHtml = article.summary ? marked.parse(article.summary) : '<p>No summary available.</p>';
+      const frontendArticleUrl = `https://mango-news.onrender.com/article/${article.id}`; // Construct frontend URL
       feed.item({
         title: article.title,
         description: descriptionHtml, // Use HTML content
-        url: article.source_url,
-        guid: article.source_url, // Use source_url as GUID, assuming it's unique
+        url: frontendArticleUrl, // Use frontend URL for the item link
+        guid: article.source_url, // Keep original source_url as GUID for uniqueness
         date: article.publication_date,
         author: article.source_name, // Add source name as author
       });

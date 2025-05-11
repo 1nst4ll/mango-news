@@ -122,10 +122,10 @@ This endpoint returns an RSS feed in XML format.
 *   **Content:** The feed includes the latest 20 articles, ordered by publication date.
 *   **Fields per item:**
     *   `title`: Article title.
-    *   `link`: Original URL of the article.
+    *   `link`: URL to the article on the Mango News frontend (e.g., `https://mango-news.onrender.com/article/:id`).
     *   `pubDate`: Publication date of the article.
     *   `description`: AI-generated summary of the article, converted from Markdown to HTML (or "<p>No summary available.</p>" if none). This allows for rich text formatting (e.g., bold, italics) in compatible RSS readers.
-    *   `guid`: The original URL of the article (used as a unique identifier).
+    *   `guid`: The original URL of the article from the source website (used as a unique identifier).
     *   `author`: The name of the news source.
 *   **Feed Details:**
     *   `title`: "Mango News Feed"
