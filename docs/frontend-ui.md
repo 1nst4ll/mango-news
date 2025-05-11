@@ -1,6 +1,6 @@
 Frontend UI Styling and Stack
 
-The frontend of the Mango News application is being migrated to a new stack for improved performance and developer experience.
+The frontend of the mango.tc news application is being migrated to a new stack for improved performance and developer experience.
 
 **New Frontend Stack:**
 

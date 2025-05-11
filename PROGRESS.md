@@ -154,8 +154,6 @@
 - Added a "Share on WhatsApp" button at the bottom of the article detail page in `frontend/src/components/ArticleDetail.tsx`.
 - Implemented logic to construct the correct WhatsApp share URL with article title and URL.
 - Updated `docs/frontend-ui.md` to mention the new share feature.
-- Added a "Share on Facebook" button to each news feed article card and at the bottom of the article detail page.
-- Improved the source filter dropdown on the news feed page (`frontend/src/components/IndexPage.tsx`) for better mobile and touch usability.
 
 ## Detailed Steps for Pending Tasks
 
