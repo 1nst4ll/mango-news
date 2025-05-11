@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const { Pool } = require('pg'); // Import Pool from pg
 const RSS = require('rss'); // Import RSS
+const { marked } = require('marked'); // Import marked
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
@@ -404,9 +405,10 @@ app.get('/api/rss', async (req, res) => {
     const articles = articlesResult.rows;
 
     articles.forEach(article => {
+      const descriptionHtml = article.summary ? marked.parse(article.summary) : '<p>No summary available.</p>';
       feed.item({
         title: article.title,
-        description: article.summary || 'No summary available.',
+        description: descriptionHtml, // Use HTML content
         url: article.source_url,
         guid: article.source_url, // Use source_url as GUID, assuming it's unique
         date: article.publication_date,

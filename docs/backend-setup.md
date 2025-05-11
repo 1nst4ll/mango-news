@@ -16,7 +16,7 @@ The backend connects to a PostgreSQL database.
 
 1.  **Database Details:**
     *   **Type:** PostgreSQL
-    *   **Host:** For local development, use `localhost`. For production, this will be your database server address (e.g., `news.hoffmanntci.com`).
+    *   **Host:** For local development, use `localhost`. For production, this will be your database server address (e.g., `mangonews.onrender.com`).
     *   **Database Name:** `mangonews`
     *   **Username:** `mangoadmin`
     *   **Password:** This should be stored securely in your backend's `.env` file.
@@ -35,9 +35,9 @@ The backend connects to a PostgreSQL database.
 
 2.  **Install Dependencies:** Install the required Node.js packages:
     ```bash
-    npm install aws-sdk uuid rss
+    npm install aws-sdk uuid rss marked
     ```
-    This installs the core backend dependencies, plus `aws-sdk` for S3 integration, `uuid` for generating unique filenames, and `rss` for generating RSS feeds.
+    This installs the core backend dependencies, plus `aws-sdk` for S3 integration, `uuid` for generating unique filenames, `rss` for generating RSS feeds, and `marked` for converting Markdown to HTML.
 
 3.  **Environment Variables:** Environment variables are used to configure the backend, especially for sensitive information like database credentials and API keys. An example file, `.env.example`, is provided in the `backend` directory.
     *   Copy the example file:
@@ -124,7 +124,7 @@ This endpoint returns an RSS feed in XML format.
     *   `title`: Article title.
     *   `link`: Original URL of the article.
     *   `pubDate`: Publication date of the article.
-    *   `description`: AI-generated summary of the article (or "No summary available." if none).
+    *   `description`: AI-generated summary of the article, converted from Markdown to HTML (or "<p>No summary available.</p>" if none). This allows for rich text formatting (e.g., bold, italics) in compatible RSS readers.
     *   `guid`: The original URL of the article (used as a unique identifier).
     *   `author`: The name of the news source.
 *   **Feed Details:**
