@@ -1,61 +1,52 @@
-# CSS Selectors for Scraping
+# CSS Selectors Documentation
 
-This document lists CSS selectors identified for scraping various websites for the Mango News project.
+This document provides a guide to identifying and using CSS selectors for scraping various websites.
 
-## tcweeklynews.com
+## General Principles
 
-**Article URL Pattern:** `https://tcweeklynews.com/*-p\d+-\d+.htm`
+-   Use browser developer tools (usually F12) to inspect the HTML structure of the page you want to scrape.
+-   Identify unique classes, IDs, or tag structures that reliably contain the data you need (e.g., article title, content, date, author).
+-   More specific selectors are generally better, but avoid overly complex or deeply nested selectors that might break if the site structure changes slightly.
+-   Use online CSS selector testers to verify your selectors.
 
-**Selectors:**
+## Common Selectors for News Articles (WordPress Examples)
 
-*   **Title:** `h1.pageheading.layout_pageheading`
-*   **Author:** `div.pagebyline.layout_pagebyline`
-*   **Date:** `div.pageissuedate.layout_pageissuedate`
-*   **Content:** `.pagebody.layout_pagebody`
+Many news websites are built on platforms like WordPress, which often use standard class names.
 
-**Notes:**
-- The content selector targets the main container div holding the article text. Openscraper should be able to extract the text content from this block.
-- The date and author are in separate divs within the same table cell, consider this when extracting.
+-   **Article Title:**
+    -   `h1.entry-title`
+    -   `.single-title`
+    -   `article header h1`
+-   **Article Content:**
+    -   `.entry-content`
+    -   `div.article-content`
+    -   `main article .content`
+-   **Publication Date:**
+    -   `.entry-date`
+    -   `time.published`
+    -   `span.date`
+-   **Author:**
+    -   `.author`
+    -   `.vcard fn`
+    -   `span.author-name`
+-   **Thumbnail/Featured Image:**
+    -   `.post-thumbnail img` (use `::src` to get the image URL)
+    -   `.featured-image img` (use `::src` to get the image URL)
+    -   `meta[property='og:image']` (use `::content` to get the image URL from meta tags)
 
----
+## Selectors for turksandcaicoshta.com
 
+Based on the structure observed from scraping:
 
-## gov.tc
+-   **Article Title:** `h1.entry-title`
+-   **Article Content:** `.fl-post-content` (This seems to be the main content wrapper based on the markdown structure)
+-   **Publication Date:** `.fl-post-meta .fl-post-date`
+-   **Author:** `.fl-post-meta .vcard fn`
+-   **Thumbnail:** `meta[property='og:image']::content` (Using the meta tag is often more reliable for the main thumbnail)
+-   **Topics/Categories:** `.fl-post-cats a` (This targets the links within the category list)
 
-**Article URL Pattern:** `https://gov.tc/pressoffice/latest/*`
+Remember to verify these selectors using browser developer tools on the actual website.
 
-**Selectors:**
+## Updating Documentation
 
-*   **Title:** `h1[itemprop="headline"]`
-*   **Author:** `Not found`
-*   **Date:** `time[itemprop="datePublished"]`
-*   **Content:** `div[itemprop="articleBody"]`
-*   **Image:** `div[itemprop="articleBody"] img`
-
-**Notes:**
-- The author information was not explicitly found in the standard HTML tags for this article.
-- The date selector targets the time tag with the itemprop attribute.
-- The content selector targets the div containing the main article body.
-- The image selector targets any image tag within the article body div.
-
----
-
-## turksandcaicoshta.com
-
-**Article URL Pattern:** `https://turksandcaicoshta.com/(?!tchta-blog|wp-admin|page/)[^/]+/$`
-
-**Selectors:**
-
-*   **Title:** `h1.fl-post-title`
-*   **Author:** `span.fl-post-author`
-*   **Date:** `span.fl-post-date`
-*   **Content:** `div.fl-post-content.clearfix`
-*   **Image:** `div.fl-post-content.clearfix img`
-
-**Notes:**
-- The author and date are within the same div with different span classes.
-
----
-
-Further Documentation:
-* [Server Deployment Instructions](../deployment.md)
+After successfully identifying and using selectors for a new source, update this document with the specific selectors used for that source to maintain a record.

@@ -628,6 +628,12 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
             url.hash = '';
         const cleanedLink = url.toString();
 
+            // Exclude URLs with ?page_id=
+            if (cleanedLink.includes('?page_id=')) {
+                console.log(`Excluding link with page_id: ${cleanedLink}`);
+                continue;
+            }
+
             // Check if the link is on the same domain and not in the blacklist by checking if it starts with any blacklisted entry
             const blacklist = getBlacklist();
             const isBlacklistedStartsWith = blacklist.some(blacklistedUrl => cleanedLink.startsWith(blacklistedUrl));
