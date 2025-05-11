@@ -7,4 +7,5 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { href: "/", title: "Home" },
   { href: "/settings", title: "Settings" },
+  { href: "/api/rss", title: "RSS Feed" }, // Link to the backend RSS feed endpoint
 ];

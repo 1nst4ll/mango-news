@@ -105,5 +105,18 @@ To enhance how links to the application appear when shared on social media platf
 
 This setup ensures that when links are shared, they are presented with relevant information, improving user engagement and click-through rates from social platforms. Facebook's in-app browser will typically be used by default when these links are opened from within the Facebook mobile app.
 
+---
+
+### RSS Feed
+
+An RSS feed is available for users who wish to subscribe to news updates using an RSS reader.
+
+**Implementation Details:**
+
+*   **Feed URL:** The RSS feed is accessible at `/api/rss` (relative to the backend API URL, e.g., `http://your-backend-domain.com/api/rss`).
+*   **Generation:** The feed is generated directly by the backend application (`backend/src/index.js`). It fetches the latest articles from the database and formats them into RSS XML.
+*   **Content:** The feed includes the article title, publication date, a summary (with an image if available), and a direct link to the article page on the frontend website.
+*   **Navigation:** A link to the RSS feed ("RSS Feed") has been added to the main navigation bar in the header (`frontend/src/components/Header.tsx` via `frontend/src/lib/nav-items.ts`). The link points to `/api/rss`, which will be resolved relative to the backend API URL configured for the frontend.
+
 Further Documentation:
 * [Server Deployment Instructions](../deployment.md)
