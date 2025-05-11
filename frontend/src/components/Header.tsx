@@ -1,6 +1,7 @@
 import React from 'react';
 import { navItems } from '../lib/nav-items'; // Changed to relative path
 import { ModeToggle } from './ModeToggle'; // Import the ModeToggle component
+import { Rss } from 'lucide-react'; // Import the Rss icon
 
 const Header: React.FC = () => {
   return (
@@ -12,10 +13,13 @@ const Header: React.FC = () => {
           </a>
         </div>
         <nav>
-          <ul className="flex space-x-4">
+          <ul className="flex space-x-4 items-center"> {/* Added items-center for vertical alignment */}
             {navItems.map(item => (
               <li key={item.href}>
-                <a href={item.href} className="hover:underline">{item.title}</a>
+                <a href={item.href} className="hover:underline flex items-center space-x-1"> {/* Flex for icon and text */}
+                  {item.title === "RSS Feed" && <Rss className="h-4 w-4" />} {/* Add RSS icon */}
+                  <span>{item.title}</span>
+                </a>
               </li>
             ))}
           </ul>
