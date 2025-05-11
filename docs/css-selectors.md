@@ -40,5 +40,22 @@ This document lists CSS selectors identified for scraping various websites for t
 
 ---
 
+## turksandcaicoshta.com
+
+**Article URL Pattern:** `https://turksandcaicoshta.com/*`
+
+**Selectors:**
+
+*   **Title:** `h1.fl-post-title`
+*   **Author:** `span.fl-post-author`
+*   **Date:** `span.fl-post-date`
+*   **Content:** `div.fl-post-content.clearfix`
+*   **Image:** `div.fl-post-content.clearfix img`
+
+**Notes:**
+- The author and date are within the same div with different span classes.
+
+---
+
 Further Documentation:
 * [Server Deployment Instructions](../deployment.md)
