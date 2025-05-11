@@ -112,8 +112,9 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => { // Destructure id direct
             return null;
           })}
         </div>
-        {/* Add WhatsApp Share Button */}
-        <div className="mt-6"> {/* Added margin top for spacing */}
+        {/* Add Share Buttons */}
+        <div className="mt-6 flex gap-4"> {/* Added margin top and flex with gap for spacing */}
+          {/* WhatsApp Share Button */}
           <button
             className="text-sm text-blue-600 hover:underline"
             onClick={() => {
@@ -124,6 +125,17 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => { // Destructure id direct
             }}
           >
             Share on WhatsApp
+          </button>
+          {/* Facebook Share Button */}
+          <button
+            className="text-sm text-blue-600 hover:underline"
+            onClick={() => {
+              const articleUrl = window.location.href;
+              const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
+              window.open(facebookUrl, '_blank');
+            }}
+          >
+            Share on Facebook
           </button>
         </div>
       </article>

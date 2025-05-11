@@ -35,7 +35,7 @@ A new "View Posts" button has been added to each source entry on the Settings pa
 
 New toggles have been added to the Settings page (`frontend/src/components/SettingsPage.tsx`) to globally enable or disable AI summary, tag, and image generation during the scraping process. These settings are saved to and loaded from `localStorage`.
 
-Further styling refinements and component integrations will continue as the migration progresses. Conditional top padding has been implemented on the newsfeed cards in `NewsFeed.tsx` to ensure no gap above the image when present, while providing padding when no image exists. The top padding was previously removed from the `Card` component to allow images to be positioned at the very top. A "Share on WhatsApp" button has been added to each news feed card and at the bottom of the article detail page (`ArticleDetail.tsx`) to allow users to easily share articles.
+Further styling refinements and component integrations will continue as the migration progresses. Conditional top padding has been implemented on the newsfeed cards in `NewsFeed.tsx` to ensure no gap above the image when present, while providing padding when no image exists. The top padding was previously removed from the `Card` component to allow images to be positioned at the very top. "Share on WhatsApp" and "Share on Facebook" buttons have been added to each news feed card and at the bottom of the article detail page (`ArticleDetail.tsx`) to allow users to easily share articles.
 
 Articles in the news feed are now grouped by publication date (Day, Month, Year) with a horizontal rule separator between each date group for improved readability and organization.
 

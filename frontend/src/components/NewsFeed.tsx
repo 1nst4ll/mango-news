@@ -218,8 +218,9 @@ function NewsFeed({
                           {/* Format AI summary bold text with accent color */}
                           <p className="text-foreground" dangerouslySetInnerHTML={{ __html: article.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                       </CardContent>
-                      {/* Add WhatsApp Share Button */}
-                      <div className="px-6 pb-4">
+                      {/* Add Share Buttons */}
+                      <div className="px-6 pb-4 flex gap-4"> {/* Added flex and gap for spacing */}
+                        {/* WhatsApp Share Button */}
                         <button
                           className="text-sm text-blue-600 hover:underline"
                           onClick={(e) => {
@@ -231,6 +232,18 @@ function NewsFeed({
                           }}
                         >
                           Share on WhatsApp
+                        </button>
+                        {/* Facebook Share Button */}
+                         <button
+                          className="text-sm text-blue-600 hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            const articleUrl = `${window.location.origin}/article/${article.id}`;
+                            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
+                            window.open(facebookUrl, '_blank');
+                          }}
+                        >
+                          Share on Facebook
                         </button>
                       </div>
                       {/* Removed CardFooter */}
