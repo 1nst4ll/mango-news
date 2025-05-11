@@ -6,7 +6,14 @@ import ArticleDetail from '../../components/ArticleDetail'; // Import as a React
 export const prerender = false; // Mark this page for dynamic rendering
 
 const { id } = Astro.params;
-const pageTitle = `Article ${id}`; // Basic title for now
+
+// Fetch article data server-side
+const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL;
+const articleResponse = await fetch(`${backendApiUrl}/articles/${id}`);
+const article = await articleResponse.json();
+
+// Construct the page title
+const pageTitle = `mangonews - ${article.title}`;
 ---
 
 <BaseLayout title={pageTitle}>

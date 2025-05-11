@@ -56,5 +56,17 @@ The application is designed to be responsive across various screen sizes using T
 
 ---
 
+### Article Detail Page
+
+The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article. The page title is dynamically set to "mangonews - [Article Title]" by fetching the article data server-side.
+
+### Navigation
+
+A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/`, `/settings`, and `/article/[id]`) to provide consistent navigation. The navigation links are defined in `frontend/src/lib/nav-items.ts`.
+
+### Settings Page
+
+The Admin Dashboard and Source Management features have been combined into a single Settings page (`frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.
+
 Further Documentation:
 * [Server Deployment Instructions](../deployment.md)
