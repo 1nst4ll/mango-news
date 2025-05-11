@@ -1,5 +1,6 @@
 // Contains the logic for the open-source scraping method using Puppeteer.
 const puppeteer = require('puppeteer');
+const { urlBlacklist, loadUrlBlacklist } = require('./configLoader'); // Import from configLoader
 
 /**
  * Scrapes a single article from a given URL using Puppeteer with retry logic.
