@@ -25,6 +25,7 @@
     "openai": "^4.95.1",
     "pg": "^8.14.1",
     "puppeteer": "^24.6.1",
+    "rss": "^1.2.2",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const { Pool } = require('pg'); // Import Pool from pg
+const RSS = require('rss'); // Import RSS
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
@@ -364,6 +365,61 @@ app.get('/api/articles/:id', async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching article by ID ${articleId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// RSS Feed Endpoint
+app.get('/api/rss', async (req, res) => {
+  const endpoint = '/api/rss';
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Generating RSS feed`);
+
+    const feed = new RSS({
+      title: 'Mango News Feed',
+      description: 'Latest news from Turks and Caicos Islands',
+      feed_url: 'https://mango.tc/api/rss', // Replace with your actual site URL
+      site_url: 'https://mango.tc', // Replace with your actual site URL
+      language: 'en-us',
+      pubDate: new Date().toUTCString(),
+      ttl: 60, // Time to live in minutes
+    });
+
+    // Fetch the latest articles (e.g., last 20)
+    const articlesResult = await pool.query(`
+      SELECT
+          a.title,
+          a.source_url,
+          a.publication_date,
+          a.summary,
+          s.name as source_name
+      FROM
+          articles a
+      JOIN
+          sources s ON a.source_id = s.id
+      ORDER BY
+          a.publication_date DESC
+      LIMIT 20
+    `);
+    const articles = articlesResult.rows;
+
+    articles.forEach(article => {
+      feed.item({
+        title: article.title,
+        description: article.summary || 'No summary available.',
+        url: article.source_url,
+        guid: article.source_url, // Use source_url as GUID, assuming it's unique
+        date: article.publication_date,
+        author: article.source_name, // Add source name as author
+      });
+    });
+
+    res.set('Content-Type', 'application/rss+xml');
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully generated and sent RSS feed`);
+    res.send(feed.xml({ indent: true }));
+
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error generating RSS feed:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

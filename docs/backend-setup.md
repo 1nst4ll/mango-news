@@ -35,9 +35,9 @@ The backend connects to a PostgreSQL database.
 
 2.  **Install Dependencies:** Install the required Node.js packages:
     ```bash
-    npm install aws-sdk uuid
+    npm install aws-sdk uuid rss
     ```
-    This installs the core backend dependencies, plus `aws-sdk` for S3 integration and `uuid` for generating unique filenames.
+    This installs the core backend dependencies, plus `aws-sdk` for S3 integration, `uuid` for generating unique filenames, and `rss` for generating RSS feeds.
 
 3.  **Environment Variables:** Environment variables are used to configure the backend, especially for sensitive information like database credentials and API keys. An example file, `.env.example`, is provided in the `backend` directory.
     *   Copy the example file:
@@ -110,6 +110,30 @@ The backend API will be accessible at the address and port it is configured to l
 *   [Using CSS Selectors for Scraping](css-selectors.md)
 *   [Settings Page (Admin Controls and Source Management)](admin-ui.md)
 *   [Troubleshooting Common Issues](troubleshooting.md)
+
+## RSS Feed
+
+The backend provides an RSS feed of the latest articles.
+
+### `GET /api/rss`
+
+This endpoint returns an RSS feed in XML format.
+
+*   **Content:** The feed includes the latest 20 articles, ordered by publication date.
+*   **Fields per item:**
+    *   `title`: Article title.
+    *   `link`: Original URL of the article.
+    *   `pubDate`: Publication date of the article.
+    *   `description`: AI-generated summary of the article (or "No summary available." if none).
+    *   `guid`: The original URL of the article (used as a unique identifier).
+    *   `author`: The name of the news source.
+*   **Feed Details:**
+    *   `title`: "Mango News Feed"
+    *   `description`: "Latest news from Turks and Caicos Islands"
+    *   `feed_url`: The URL of the RSS feed itself (e.g., `https://mango.tc/api/rss`).
+    *   `site_url`: The main site URL (e.g., `https://mango.tc`).
+    *   `language`: "en-us"
+    *   `ttl`: 60 (minutes)
 
 ## Processing Missing AI Data
 
