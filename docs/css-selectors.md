@@ -42,7 +42,7 @@ This document lists CSS selectors identified for scraping various websites for t
 
 ## turksandcaicoshta.com
 
-**Article URL Pattern:** `https://turksandcaicoshta.com/*`
+**Article URL Pattern:** `https://turksandcaicoshta.com/(?!tchta-blog|wp-admin|page/)[^/]+/$`
 
 **Selectors:**
 
