@@ -625,6 +625,7 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
         const cleanedLink = url.toString();
 
             // Check if the link is on the same domain and not in the blacklist
+            console.log(`Checking link against blacklist: ${cleanedLink}. Blacklist contains: ${urlBlacklist.join(', ')}`); // Add this log
             if (url.hostname === sourceHostname && !(urlBlacklist && urlBlacklist.includes(cleanedLink))) {
               let isPotentialArticle = false;
 
