@@ -1,6 +1,6 @@
 # Settings Page (Admin Controls and Source Management)
 
-The Mango News Settings page provides a centralized place to manage your news sources and control administrative functions. This document outlines the key features available on the Settings page, which is built using **React** within the **Astro** frontend and styled with **Tailwind CSS** and **shadcn/ui** components.
+The mango.tc news Settings page provides a centralized place to manage your news sources and control administrative functions. This document outlines the key features available on the Settings page, which is built using **React** within the **Astro** frontend and styled with **Tailwind CSS** and **shadcn/ui** components.
 
 ## Accessing the Settings Page
 

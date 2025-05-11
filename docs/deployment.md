@@ -1,6 +1,6 @@
 # Deployment Instructions
 
-This document provides guidance on deploying the Mango News application to various server environments.
+This document provides guidance on deploying the mango.tc news application to various server environments.
 
 ## Prerequisites
 

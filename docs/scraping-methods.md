@@ -1,6 +1,6 @@
 # Scraping Methods (Open Source and Firecrawl)
 
-Mango News supports two primary methods for scraping news articles: an open-source method utilizing Puppeteer/Playwright and integration with the Firecrawl API.
+mango.tc news supports two primary methods for scraping news articles: an open-source method utilizing Puppeteer/Playwright and integration with the Firecrawl API.
 
 ## Open Source Scraping (Puppeteer/Playwright)
 

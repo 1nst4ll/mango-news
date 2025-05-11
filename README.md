@@ -1,5 +1,5 @@
 # Provides a comprehensive overview of the project, setup instructions, and links to other documentation.
-# Turks and Caicos News Aggregator
+# mango.tc news
 
 ## Project Overview
 

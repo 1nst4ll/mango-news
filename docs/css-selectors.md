@@ -1,6 +1,6 @@
 # CSS Selectors Documentation
 
-This document provides a guide to identifying and using CSS selectors for scraping various websites.
+This document provides a guide to identifying and using CSS selectors for scraping various websites for the mango.tc news application.
 
 ## General Principles
 

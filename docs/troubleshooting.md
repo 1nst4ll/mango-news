@@ -1,6 +1,6 @@
 # Troubleshooting Common Issues
 
-This document provides guidance on troubleshooting common issues you might encounter while setting up or using Mango News.
+This document provides guidance on troubleshooting common issues you might encounter while setting up or using mango.tc news.
 
 ## Backend Issues
 

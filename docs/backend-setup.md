@@ -1,6 +1,6 @@
 # Backend Setup and Configuration
 
-This document guides you through setting up and configuring the backend for the Mango News application.
+This document guides you through setting up and configuring the backend for the mango.tc news application.
 
 ## Prerequisites
 

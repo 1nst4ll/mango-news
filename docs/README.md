@@ -1,6 +1,6 @@
-# Mango News Documentation
+# mango.tc news Documentation
 
-Welcome to the Mango News documentation. This guide provides comprehensive information on setting up, configuring, and using the Mango News application, including details on its backend, the new Astro-based frontend, and scraping functionalities.
+Welcome to the mango.tc news documentation. This guide provides comprehensive information on setting up, configuring, and using the mango.tc news application, including details on its backend, the new Astro-based frontend, and scraping functionalities.
 
 ## Table of Contents
 
