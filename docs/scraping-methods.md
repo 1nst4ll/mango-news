@@ -29,6 +29,8 @@ This method uses a headless browser (Puppeteer or Playwright) to navigate to a n
     The open-source discovery process has been enhanced to explore links up to a depth of 3 from the source's homepage and no longer has a hard limit on the number of potential article URLs it will discover during this phase. This ensures a more comprehensive search for links that match the article link template and are on the same domain.
     The discovery logic also includes specific handling for the `/year/month/slug/` URL format on magneticmediatv.com and excludes URLs containing social media share query parameters (e.g., `?share=`).
 
+**Note on Article Link Templates:** The accuracy of article discovery heavily relies on the `article_link_template` defined for each source. A template that is too broad may result in non-article pages being incorrectly identified as articles. For example, during analysis of source 8 (turksandcaicoshta.com), a broad template led to many navigation links being included in the potential article list. Ensuring the template is specific enough to match only actual article URL patterns is crucial for correct scraping.
+
 ## Firecrawl Scraping
 
 This method leverages the Firecrawl API to scrape web pages. Firecrawl provides a managed service for extracting clean content from URLs.
