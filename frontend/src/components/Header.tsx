@@ -39,7 +39,7 @@ const Header: React.FC = () => {
           </ul>
         </nav>
         <div className="flex items-center space-x-4"> {/* Container for Login and ModeToggle */}
-          <LoginButton /> {/* Add the LoginButton component here */}
+          <LoginButton isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} /> {/* Pass isLoggedIn state and setter */}
           <ModeToggle /> {/* Add the ModeToggle component here */}
         </div>
       </div>
