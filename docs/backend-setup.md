@@ -79,7 +79,7 @@ The backend now includes secure user registration and login using JWT (JSON Web 
 
 *   **Registration:** Users can register via the `POST /api/register` endpoint. This requires a unique username and a password. Passwords are securely hashed using bcrypt before being stored in the database.
 *   **Login:** Registered users can log in via the `POST /api/login` endpoint. Upon successful login, a JWT is issued. This token should be included in the `Authorization` header of subsequent requests to protected endpoints in the format `Bearer YOUR_TOKEN`.
-*   **Protected Endpoints:** Several backend endpoints now require a valid JWT for access. These include endpoints for adding, updating, and deleting sources, triggering scraper runs, processing missing AI data, and accessing database statistics and scheduler settings.
+*   **Protected Endpoints:** Several backend endpoints now require a valid JWT for access. These include endpoints for adding, updating, and deleting sources, triggering scraper runs, processing missing AI data, accessing database statistics and scheduler settings, and managing articles (delete, block, process AI).
 
 ## URL Blacklist
 
