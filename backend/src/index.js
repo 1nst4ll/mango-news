@@ -11,6 +11,8 @@ const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
 const { runScraper, runScraperForSource, processMissingAiForSource } = require('./scraper'); // Import scraper functions including processMissingAiForSource
+const { registerUser, loginUser } = require('./user'); // Import user management functions
+const authenticateToken = require('./middleware/auth'); // Import authentication middleware
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -72,6 +74,53 @@ pool.connect((err, client, done) => {
 
 // API Endpoints
 
+// User Registration
+app.post('/api/register', async (req, res) => {
+  const endpoint = '/api/register';
+  const { username, password } = req.body;
+  if (!username || !password) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing username or password`);
+    return res.status(400).json({ error: 'Username and password are required.' });
+  }
+  try {
+    const result = await registerUser(username, password);
+    if (result.success) {
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - User registered successfully: ${result.user.username}`);
+      res.status(201).json({ message: 'User registered successfully.', user: { id: result.user.id, username: result.user.username } });
+    } else {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - User registration failed: ${result.message}`);
+      res.status(400).json({ error: result.message });
+    }
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error during registration:`, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// User Login
+app.post('/api/login', async (req, res) => {
+  const endpoint = '/api/login';
+  const { username, password } = req.body;
+  if (!username || !password) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing username or password`);
+    return res.status(400).json({ error: 'Username and password are required.' });
+  }
+  try {
+    const result = await loginUser(username, password);
+    if (result.success) {
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - User logged in successfully: ${username}`);
+      res.json({ message: 'Login successful.', token: result.token });
+    } else {
+      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Login failed: ${result.message}`);
+      res.status(401).json({ error: result.message });
+    }
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error during login:`, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 // Get all sources
 app.get('/api/sources', async (req, res) => {
   const endpoint = '/api/sources';
@@ -122,7 +171,7 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
 });
 
 // Add a new source
-app.post('/api/sources', async (req, res) => {
+app.post('/api/sources', authenticateToken, async (req, res) => {
   const endpoint = '/api/sources';
   const { name, url, is_active, enable_ai_summary, enable_ai_tags, include_selectors, exclude_selectors, scraping_method, scrape_after_date } = req.body;
   if (!name || !url) {
@@ -143,7 +192,7 @@ app.post('/api/sources', async (req, res) => {
 });
 
 // Update a source
-app.put('/api/sources/:id', async (req, res) => {
+app.put('/api/sources/:id', authenticateToken, async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/sources/${sourceId}`;
   const { name, url, is_active, enable_ai_summary, enable_ai_tags, enable_ai_image, os_title_selector, os_content_selector, os_date_selector, os_author_selector, os_thumbnail_selector, os_topics_selector, include_selectors, exclude_selectors, article_link_template, exclude_patterns, scraping_method, scrape_after_date } = req.body;
@@ -195,7 +244,7 @@ app.put('/api/sources/:id', async (req, res) => {
 });
 
 // Delete a source
-app.delete('/api/sources/:id', async (req, res) => {
+app.delete('/api/sources/:id', authenticateToken, async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/sources/${sourceId}`;
   try {
@@ -441,7 +490,7 @@ app.get('/api/rss', async (req, res) => {
 });
 
 // Delete a single article by ID
-app.delete('/api/articles/:id', async (req, res) => {
+app.delete('/api/articles/:id', authenticateToken, async (req, res) => {
   const articleId = req.params.id;
   const endpoint = `/api/articles/${articleId}`;
   try {
@@ -468,7 +517,7 @@ app.delete('/api/articles/:id', async (req, res) => {
 });
 
 // Block a single article by ID
-app.put('/api/articles/:id/block', async (req, res) => {
+app.put('/api/articles/:id/block', authenticateToken, async (req, res) => {
   const articleId = req.params.id;
   const endpoint = `/api/articles/${articleId}/block`;
   try {
@@ -493,7 +542,7 @@ app.put('/api/articles/:id/block', async (req, res) => {
 });
 
 // Endpoint to trigger AI processing for a single article
-app.post('/api/articles/:articleId/process-ai', async (req, res) => {
+app.post('/api/articles/:articleId/process-ai', authenticateToken, async (req, res) => {
   const articleId = req.params.articleId;
   const endpoint = `/api/articles/${articleId}/process-ai`;
   const { featureType } = req.body; // Expect featureType ('summary', 'tags', or 'image')
@@ -525,7 +574,7 @@ app.post('/api/articles/:articleId/process-ai', async (req, res) => {
 
 
 // Trigger scraper for a specific source
-app.post('/api/scrape/run/:id', async (req, res) => {
+app.post('/api/scrape/run/:id', authenticateToken, async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/scrape/run/${sourceId}`;
   const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
@@ -562,7 +611,7 @@ app.post('/api/scrape/run/:id', async (req, res) => {
 });
 
 // Endpoint to trigger a full scraper run
-app.post('/api/scrape/run', async (req, res) => {
+app.post('/api/scrape/run', authenticateToken, async (req, res) => {
   const endpoint = '/api/scrape/run';
   const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
   try {
@@ -580,7 +629,7 @@ app.post('/api/scrape/run', async (req, res) => {
 });
 
 // Endpoint to process missing AI data for a specific source
-app.post('/api/process-missing-ai/:sourceId', async (req, res) => {
+app.post('/api/process-missing-ai/:sourceId', authenticateToken, async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/process-missing-ai/${sourceId}`;
   const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image') in the request body
@@ -610,7 +659,7 @@ app.post('/api/process-missing-ai/:sourceId', async (req, res) => {
 
 
 // Basic endpoint for source discovery (currently calls opensourceDiscoverSources)
-app.get('/api/discover-sources', async (req, res) => {
+app.get('/api/discover-sources', authenticateToken, async (req, res) => {
   const endpoint = '/api/discover-sources';
   try {
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Triggering source discovery`);
@@ -624,7 +673,7 @@ app.get('/api/discover-sources', async (req, res) => {
 });
 
 // Endpoint to delete all articles, topics, and article links
-app.post('/api/articles/purge', async (req, res) => {
+app.post('/api/articles/purge', authenticateToken, async (req, res) => {
   const endpoint = '/api/articles/purge';
   try {
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Purging all articles, topics, and article links...`);
@@ -649,7 +698,7 @@ app.post('/api/articles/purge', async (req, res) => {
 });
 
 // Endpoint to delete all articles for a specific source
-app.post('/api/articles/purge/:sourceId', async (req, res) => {
+app.post('/api/articles/purge/:sourceId', authenticateToken, async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/articles/purge/${sourceId}`;
   try {
@@ -677,7 +726,7 @@ app.post('/api/articles/purge/:sourceId', async (req, res) => {
 
 
 // API endpoint to get database statistics
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', authenticateToken, async (req, res) => {
   const endpoint = '/api/stats';
   try {
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching database statistics...`);
@@ -732,7 +781,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // API endpoint to get scheduler settings
-app.get('/api/settings/scheduler', async (req, res) => {
+app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
   const endpoint = '/api/settings/scheduler';
   try {
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching scheduler settings...`);
@@ -778,7 +827,7 @@ app.get('/api/settings/scheduler', async (req, res) => {
 });
 
 // API endpoint to save scheduler settings
-app.post('/api/settings/scheduler', async (req, res) => {
+app.post('/api/settings/scheduler', authenticateToken, async (req, res) => {
   const endpoint = '/api/settings/scheduler';
   const { main_scraper_frequency, missing_ai_frequency, enable_scheduled_missing_summary, enable_scheduled_missing_tags, enable_scheduled_missing_image } = req.body;
 
@@ -871,3 +920,5 @@ app.listen(port, () => {
 // The scheduled scraper in scraper.js will handle periodic scraping.
 // updateNewslineSource();
 // runScraperForSource(5);
+
+module.exports = { pool };

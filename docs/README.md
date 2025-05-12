@@ -16,6 +16,42 @@ Welcome to the mango.tc news documentation. This guide provides comprehensive in
 
 This section details the available API endpoints provided by the backend server.
 
+### Authentication Endpoints
+
+The backend now supports user registration and login using JWT authentication.
+
+### POST /api/register
+
+Registers a new user. Requires `username` and `password` in the request body.
+
+### POST /api/login
+
+Logs in an existing user. Requires `username` and `password` in the request body. Returns a JWT upon successful login.
+
+### Protected Endpoints
+
+The following endpoints now require a valid JWT in the `Authorization: Bearer YOUR_TOKEN` header:
+
+*   `POST /api/sources`
+*   `PUT /api/sources/:id`
+*   `DELETE /api/sources/:id`
+*   `POST /api/scrape/run/:id`
+*   `POST /api/scrape/run`
+*   `POST /api/process-missing-ai/:sourceId`
+*   `GET /api/discover-sources`
+*   `POST /api/articles/purge`
+*   `POST /api/articles/purge/:sourceId`
+*   `GET /api/stats`
+*   `GET /api/settings/scheduler`
+*   `POST /api/settings/scheduler`
+*   `DELETE /api/articles/:id`
+*   `PUT /api/articles/:id/block`
+*   `POST /api/articles/:articleId/process-ai`
+
+### General API Endpoints
+
+These endpoints do not currently require authentication.
+
 ### GET /api/sources
 
 Retrieves a list of all news sources.

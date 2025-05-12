@@ -9,6 +9,7 @@ This document guides you through setting up and configuring the backend for the 
 *   A Groq API key for AI features (summaries and topic assignment).
 *   An Ideogram API key for AI image generation.
 *   AWS S3 credentials and a bucket for storing AI-generated images.
+*   A strong secret key for JWT authentication.
 
 ## Database Setup
 
@@ -64,12 +65,23 @@ The backend connects to a PostgreSQL database.
 
         # Firecrawl API Key (if needed directly by backend, otherwise handled by MCP)
         # FIRECRAWL_API_KEY=your_firecrawl_api_key
+
+        # Authentication
+        JWT_SECRET=your_jwt_secret_key
         ```
-    Replace the placeholder values with your actual credentials, keys, and S3 bucket details.
+    Replace the placeholder values with your actual credentials, keys, S3 bucket details, and a strong, unique secret key for `JWT_SECRET`.
 
-4.  **Database Connection and AWS Configuration in Code:** The database connection details and AWS S3 configuration are handled in `backend/src/index.js` and `backend/src/scraper.js`. These files are configured to read sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.AWS_ACCESS_KEY_ID`).
+4.  **Database Connection, AWS, and Authentication Configuration in Code:** The database connection details, AWS S3 configuration, and JWT secret are handled in `backend/src/index.js`, `backend/src/scraper.js`, and `backend/src/middleware/auth.js`. These files are configured to read sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.AWS_ACCESS_KEY_ID`, `process.env.JWT_SECRET`).
 
-### URL Blacklist
+## Authentication
+
+The backend now includes secure user registration and login using JWT (JSON Web Tokens) for authentication.
+
+*   **Registration:** Users can register via the `POST /api/register` endpoint. This requires a unique username and a password. Passwords are securely hashed using bcrypt before being stored in the database.
+*   **Login:** Registered users can log in via the `POST /api/login` endpoint. Upon successful login, a JWT is issued. This token should be included in the `Authorization` header of subsequent requests to protected endpoints in the format `Bearer YOUR_TOKEN`.
+*   **Protected Endpoints:** Several backend endpoints now require a valid JWT for access. These include endpoints for adding, updating, and deleting sources, triggering scraper runs, processing missing AI data, and accessing database statistics and scheduler settings.
+
+## URL Blacklist
 
 The backend scraper includes a URL blacklist feature to prevent scraping specific articles or pages.
 

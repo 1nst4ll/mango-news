@@ -1,6 +1,15 @@
 -- Defines the database schema for the Turks and Caicos News Aggregator project.
 -- Database Schema for Turks and Caicos News Aggregator
 
+-- Create the 'users' table for authentication and authorization
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'admin', -- Role for access control (e.g., 'admin', 'editor', 'viewer')
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create the 'sources' table
 CREATE TABLE sources (
     id SERIAL PRIMARY KEY,
