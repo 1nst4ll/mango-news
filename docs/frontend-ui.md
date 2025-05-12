@@ -37,6 +37,8 @@ New toggles have been added to the Settings page (`frontend/src/components/Setti
 
 Further styling refinements and component integrations will continue as the migration progresses. Conditional top padding has been implemented on the newsfeed cards in `NewsFeed.tsx` to ensure no gap above the image when present, while providing padding when no image exists. The top padding was previously removed from the `Card` component to allow images to be positioned at the very top. "Share on WhatsApp" and "Share on Facebook" buttons have been added to each news feed card and at the bottom of the article detail page (`ArticleDetail.tsx`) to allow users to easily share articles.
 
+Additionally, to prevent potential conflicts with component-level focus management, especially on mobile browsers like iOS Safari, the global `outline-ring/50` style previously applied to all elements (`*`) in `global.css` has been removed.
+
 Articles in the news feed are now grouped by publication date (Day, Month, Year) with a horizontal rule separator between each date group for improved readability and organization.
 
 The Google AdSense script (`https://pagead2.googic.com/pagead/js/adsbygoogle.js`) has been added to the `<head>` section of the base layout (`frontend/src/layouts/BaseLayout.astro`) to enable ad display on pages using this layout, including the main news feed page.
@@ -48,6 +50,8 @@ The `ModeToggle.tsx` component handles the theme switch. It is implemented as a 
 **Responsiveness:**
 
 The application is designed to be responsive across various screen sizes using Tailwind CSS utility classes and the responsive features of shadcn/ui components.
+
+*   **Viewport Configuration:** The viewport meta tag in `BaseLayout.astro` has been updated to `width=device-width, initial-scale=1` to enhance consistent rendering and scaling behavior on mobile devices, particularly iOS.
 
 *   **General Layout:** The main layout and card components utilize responsive grid and flexbox classes (`grid-cols-1 md:grid-cols-2`, `flex-col md:flex-row`, etc.) to adapt to different breakpoints.
 *   **Settings Pages:** The `SettingsPage.tsx` component, including the main dashboard, scheduled tasks, and sources sections, employs responsive design principles. The add/edit source modal form layout has been specifically adjusted to stack form elements vertically on small screens (`grid grid-cols-1`) and transition to a multi-column grid on medium screens and above (`md:grid-cols-4`) for improved usability on mobile devices.
@@ -63,7 +67,7 @@ The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the f
 
 ### Navigation
 
-A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/` and `/article/[id]`) to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts`. The "Settings" link is now accessible via the user menu when a user is logged in. This menu was originally implemented with `DropdownMenu` but has been updated to use `Popover` from shadcn/ui to ensure better compatibility and functionality on iOS Safari.
+A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/` and `/article/[id]`) to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts`. The "Settings" link is now accessible via the user menu when a user is logged in. This menu was originally implemented with `DropdownMenu` but has been updated to use `Popover` from shadcn/ui to ensure better compatibility and functionality on iOS Safari. This change, along with adding an `onTouchStart` handler to the popover trigger in `LoginButton.tsx` and ensuring standard component styling (e.g., correcting `outline-hidden` to `outline-none` in `popover.tsx`), aims to resolve interaction issues on iOS Safari.
 
 ### Secure Login Authorization
 

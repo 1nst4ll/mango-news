@@ -31,7 +31,7 @@
       <>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onTouchStart={() => {}}>
               <User className="h-[1.2rem] w-[1.2rem]" /> {/* User icon */}
               <span className="sr-only">Toggle user menu</span>
             </Button>
@@ -42,14 +42,14 @@
                 <div className="px-2 py-1.5 text-sm font-semibold">My Account</div> {/* Label style */}
                 <div className="bg-border -mx-1 my-1 h-px" /> {/* Separator style */}
                 <button
-                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
+                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
                   onClick={() => window.location.href = '/settings'}
                 >
                   <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
                   <span>Settings</span>
                 </button>
                 <button
-                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
+                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
                   onClick={handleLogout}
                 >
                   <LogOut className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -58,7 +58,7 @@
               </div>
             ) : (
               <button
-                className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
+                className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
                 onClick={() => setIsLoginDialogOpen(true)}
               >
                 <User className="mr-2 h-4 w-4 text-muted-foreground" />
