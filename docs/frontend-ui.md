@@ -68,7 +68,14 @@ The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the f
 
 ### Navigation
 
-A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/` and `/article/[id]`) to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts`. The "Settings" link is now accessible via the user menu when a user is logged in. This menu was originally implemented with `DropdownMenu` but has been updated to use `Popover` from shadcn/ui to ensure better compatibility and functionality on iOS Safari. This change, along with adding an `onTouchStart` handler to the popover trigger in `LoginButton.tsx` and ensuring standard component styling (e.g., correcting `outline-hidden` to `outline-none` in `popover.tsx`), aims to resolve interaction issues on iOS Safari.
+A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts` and currently include:
+
+*   Home: `https://mango.tc/`
+*   Automoto: `https://mango.tc/listings/?category=automoto-en&pagination=1&sort-by=most-relevant&view=card`
+*   Real Estate: `https://mango.tc/listings/?category=real-estate`
+*   Jobs: `https://mango.tc/listings/?category=jobs`
+
+The "Settings" link is accessible via the user menu when a user is logged in. This menu was originally implemented with `DropdownMenu` but has been updated to use `Popover` from shadcn/ui to ensure better compatibility and functionality on iOS Safari. This change, along with adding an `onTouchStart` handler to the popover trigger in `LoginButton.tsx` and ensuring standard component styling (e.g., correcting `outline-hidden` to `outline-none` in `popover.tsx`), aims to resolve interaction issues on iOS Safari.
 
 ### Secure Login Authorization
 
