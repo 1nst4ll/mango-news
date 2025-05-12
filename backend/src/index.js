@@ -83,7 +83,7 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ error: 'Username and password are required.' });
   }
   try {
-    const result = await registerUser(username, password);
+    const result = await registerUser(pool, username, password); // Pass pool
     if (result.success) {
       console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - User registered successfully: ${result.user.username}`);
       res.status(201).json({ message: 'User registered successfully.', user: { id: result.user.id, username: result.user.username } });
@@ -106,7 +106,7 @@ app.post('/api/login', async (req, res) => {
     return res.status(400).json({ error: 'Username and password are required.' });
   }
   try {
-    const result = await loginUser(username, password);
+    const result = await loginUser(pool, username, password); // Pass pool
     if (result.success) {
       console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - User logged in successfully: ${username}`);
       res.json({ message: 'Login successful.', token: result.token });
