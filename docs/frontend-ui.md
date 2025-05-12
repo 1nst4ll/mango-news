@@ -68,14 +68,29 @@ The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the f
 
 ### Navigation
 
-A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts` and currently include:
+A persistent header component (`frontend/src/components/Header.tsx`) provides consistent navigation across all main pages. The header is sticky, remaining at the top of the viewport during scrolling (`sticky top-0 z-50`).
+
+**Desktop Navigation:**
+
+On medium screens and larger (`md:` breakpoint and above), navigation links are displayed horizontally. The main navigation links are defined in `frontend/src/lib/nav-items.ts` and currently include:
 
 *   Home: `https://mango.tc/`
 *   Automoto: `https://mango.tc/listings/?category=automoto-en&pagination=1&sort-by=most-relevant&view=card`
 *   Real Estate: `https://mango.tc/listings/?category=real-estate`
 *   Jobs: `https://mango.tc/listings/?category=jobs`
 
-The "Settings" link is accessible via the user menu when a user is logged in. This menu was originally implemented with `DropdownMenu` but has been updated to use `Popover` from shadcn/ui to ensure better compatibility and functionality on iOS Safari. This change, along with adding an `onTouchStart` handler to the popover trigger in `LoginButton.tsx` and ensuring standard component styling (e.g., correcting `outline-hidden` to `outline-none` in `popover.tsx`), aims to resolve interaction issues on iOS Safari.
+The "Settings" link, Login button, and Mode Toggle are also displayed horizontally in the desktop view.
+
+**Mobile Navigation (Hamburger Menu):**
+
+On smaller screens (below the `md:` breakpoint), a hamburger menu icon (`lucide-react` Menu icon) is displayed. Tapping this icon toggles a full-width dropdown menu:
+
+*   The menu slides down from the header (`absolute top-full left-0 right-0`).
+*   Navigation links are listed vertically.
+*   The Login button and Mode Toggle are also included at the bottom of this mobile menu, stacked vertically.
+*   Tapping a navigation link or the close icon (`lucide-react` X icon) closes the mobile menu.
+
+The "Settings" link (if applicable based on login status) is part of both desktop and mobile navigation. The user login/logout functionality and theme toggling are handled by the `LoginButton.tsx` and `ModeToggle.tsx` components respectively, which are integrated into both navigation views. The `LoginButton` uses a `Popover` for its dropdown menu to ensure better compatibility on iOS Safari, including an `onTouchStart` handler and corrected styling (`outline-none`) to resolve interaction issues.
 
 ### Secure Login Authorization
 
