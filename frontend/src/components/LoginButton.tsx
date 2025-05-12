@@ -19,8 +19,9 @@ export function LoginButton() {
 
   const handleLogin = async () => {
     setError(''); // Clear previous errors
+    const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api'; // Use environment variable or fallback
     try {
-      const response = await fetch('http://localhost:3000/api/login', { // TODO: Replace with dynamic backend URL
+      const response = await fetch(`${backendApiUrl}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
