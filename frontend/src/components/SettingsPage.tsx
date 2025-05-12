@@ -148,7 +148,12 @@ const SettingsPage: React.FC = () => {
       setStatsError(null);
       try {
         const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-        const response = await fetch(`${apiUrl}/api/stats`);
+        const token = localStorage.getItem('jwtToken'); // Get the JWT token from localStorage
+        const response = await fetch(`${apiUrl}/api/stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`, // Include the token in the Authorization header
+          },
+        });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
