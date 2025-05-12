@@ -24,13 +24,35 @@ const Header: React.FC = () => {
   return (
     <header className="bg-sidebar text-sidebar-foreground p-4 sticky top-0 z-50">
       <div className="container mx-auto flex justify-between items-center">
-        <div>
+        {/* Mobile Header Layout */}
+        <div className="md:hidden flex w-full justify-between items-center">
+          {/* Left: Hamburger Icon */}
+          <div className="flex-none">
+            <button onClick={toggleMobileMenu} className="text-sidebar-foreground focus:outline-none">
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+          {/* Center: Logo */}
+          <div className="flex-grow flex justify-center">
+            <a href="/">
+              <img src="/logo.png" alt="Mango News Logo" className="h-8" />
+            </a>
+          </div>
+          {/* Right: Login and Mode Toggle */}
+          <div className="flex-none flex items-center space-x-2">
+            <LoginButton isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+            <ModeToggle />
+          </div>
+        </div>
+
+        {/* Desktop Header Layout */}
+        {/* Desktop Logo (Left) */}
+        <div className="hidden md:flex">
           <a href="/">
             <img src="/logo.png" alt="Mango News Logo" className="h-8" />
           </a>
         </div>
-
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation (Center) */}
         <nav className="hidden md:block">
           <ul className="flex space-x-4 items-center">
             {filteredNavItems.map(item => (
@@ -43,22 +65,14 @@ const Header: React.FC = () => {
             ))}
           </ul>
         </nav>
-
-        {/* Login and Mode Toggle - Desktop */}
+        {/* Desktop Login and Mode Toggle (Right) */}
         <div className="hidden md:flex items-center space-x-4">
           <LoginButton isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
           <ModeToggle />
         </div>
-
-        {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center">
-          <button onClick={toggleMobileMenu} className="text-sidebar-foreground focus:outline-none">
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
+      {/* Mobile Navigation Menu (Dropdown - only nav items) */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-sidebar shadow-lg z-40">
           <nav className="container mx-auto py-2">
@@ -76,12 +90,7 @@ const Header: React.FC = () => {
                 </li>
               ))}
             </ul>
-            <div className="px-4 py-2 mt-2 border-t border-border">
-              <div className="flex flex-col space-y-4">
-                <LoginButton isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
-                <ModeToggle />
-              </div>
-            </div>
+            {/* LoginButton and ModeToggle removed from here as they are now in the main mobile header bar */}
           </nav>
         </div>
       )}

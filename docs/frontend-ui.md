@@ -82,16 +82,19 @@ On medium screens and larger (`md:` breakpoint and above), navigation links are 
 
 The "Settings" link, Login button, and Mode Toggle are also displayed horizontally in the desktop view.
 
-**Mobile Navigation (Hamburger Menu):**
+**Mobile Navigation:**
 
-On smaller screens (below the `md:` breakpoint), a hamburger menu icon (`lucide-react` Menu icon) is displayed. Tapping this icon toggles a full-width dropdown menu:
+On smaller screens (below the `md:` breakpoint), the header layout changes:
+*   A hamburger menu icon (`lucide-react` Menu icon) is displayed on the far left. Tapping this icon toggles a full-width dropdown menu containing only the navigation links.
+*   The site logo is centered in the header.
+*   The `LoginButton` and `ModeToggle` components are displayed on the far right of the header bar.
 
-*   The menu slides down from the header (`absolute top-full left-0 right-0`).
-*   Navigation links are listed vertically.
-*   The Login button and Mode Toggle are also included at the bottom of this mobile menu, stacked vertically.
+The dropdown menu (toggled by the hamburger icon):
+*   Slides down from the header (`absolute top-full left-0 right-0`).
+*   Lists navigation links vertically.
 *   Tapping a navigation link or the close icon (`lucide-react` X icon) closes the mobile menu.
 
-The "Settings" link (if applicable based on login status) is part of both desktop and mobile navigation. The user login/logout functionality and theme toggling are handled by the `LoginButton.tsx` and `ModeToggle.tsx` components respectively, which are integrated into both navigation views. The `LoginButton` uses a `Popover` for its dropdown menu to ensure better compatibility on iOS Safari, including an `onTouchStart` handler and corrected styling (`outline-none`) to resolve interaction issues.
+The "Settings" link (if applicable based on login status) is part of both desktop and mobile navigation (within the dropdown for mobile). The user login/logout functionality and theme toggling are handled by the `LoginButton.tsx` and `ModeToggle.tsx` components respectively. The `LoginButton` uses a `Popover` for its dropdown menu to ensure better compatibility on iOS Safari, including an `onTouchStart` handler and corrected styling (`outline-none`) to resolve interaction issues.
 
 ### Secure Login Authorization
 
