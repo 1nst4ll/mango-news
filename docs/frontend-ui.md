@@ -52,6 +52,7 @@ The `ModeToggle.tsx` component handles the theme switch. It is implemented as a 
 The application is designed to be responsive across various screen sizes using Tailwind CSS utility classes and the responsive features of shadcn/ui components.
 
 *   **Viewport Configuration:** The viewport meta tag in `BaseLayout.astro` has been updated to `width=device-width, initial-scale=1` to enhance consistent rendering and scaling behavior on mobile devices, particularly iOS.
+*   **Mobile Browser UI Theming:** To ensure the browser's UI (like the top status bar on mobile) adapts to the application's theme, `theme-color` meta tags have been added to `frontend/src/layouts/BaseLayout.astro`. These tags specify `#ffffff` for light mode and `#000000` for dark mode, providing a more integrated visual experience on mobile devices.
 
 *   **General Layout:** The main layout and card components utilize responsive grid and flexbox classes (`grid-cols-1 md:grid-cols-2`, `flex-col md:flex-row`, etc.) to adapt to different breakpoints.
 *   **Settings Pages:** The `SettingsPage.tsx` component, including the main dashboard, scheduled tasks, and sources sections, employs responsive design principles. The add/edit source modal form layout has been specifically adjusted to stack form elements vertically on small screens (`grid grid-cols-1`) and transition to a multi-column grid on medium screens and above (`md:grid-cols-4`) for improved usability on mobile devices.
