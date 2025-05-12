@@ -63,7 +63,7 @@ The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the f
 
 ### Navigation
 
-A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/`, `/settings`, and `/article/[id]`) to provide consistent navigation. The navigation links are defined in `frontend/src/lib/nav-items.ts`.
+A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/` and `/article/[id]`) to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts`. The "Settings" link is now accessible via the login dropdown menu when a user is logged in.
 
 ### Secure Login Authorization
 
