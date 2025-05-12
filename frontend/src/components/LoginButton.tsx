@@ -36,7 +36,7 @@ export function LoginButton({ isLoggedIn, setIsLoggedIn }: LoginButtonProps) {
             <span className="sr-only">Toggle user menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" forceMount> {/* Added forceMount */}
           {isLoggedIn ? (
             <>
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
