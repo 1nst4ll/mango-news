@@ -43,7 +43,7 @@ The Google AdSense script (`https://pagead2.googic.com/pagead/js/adsbygoogle.js`
 
 An audit of the shadcn/ui components in `frontend/src/components/ui/` has been completed. The audited components include `button`, `card`, `chart`, `checkbox`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `select`, `switch`, and `textarea`. A minor correction was made to `frontend/src/components/ui/chart.tsx` to use a path alias (`@/lib/utils`) for the `cn` utility function instead of a relative import.
 
-The `ModeToggle.tsx` component handles the theme switch. It is implemented as a simple button that toggles between light and dark mode on click. The icon displayed on the button indicates the theme that will be applied when clicked: a Moon icon is shown in light mode (to switch to dark mode), and a Sun icon is shown in dark mode (to switch to light mode). This implementation was chosen to address compatibility issues with the previous dropdown menu approach on iOS Safari.
+The `ModeToggle.tsx` component handles the theme switch. It is implemented as a simple button that toggles between light and dark mode on click. The icon displayed on the button indicates the theme that will be applied when clicked: a Moon icon is shown in light mode (to switch to dark mode), and a Sun icon is shown in dark mode (to switch to light mode). This implementation was chosen to address compatibility issues with the previous dropdown menu approach on iOS Safari. Similarly, the user login button (`LoginButton.tsx`) was updated from `DropdownMenu` to `Popover` to resolve similar iOS Safari compatibility issues, ensuring consistent functionality across devices.
 
 **Responsiveness:**
 
@@ -63,7 +63,7 @@ The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the f
 
 ### Navigation
 
-A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/` and `/article/[id]`) to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts`. The "Settings" link is now accessible via the login dropdown menu when a user is logged in.
+A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/` and `/article/[id]`) to provide consistent navigation. The main navigation links are defined in `frontend/src/lib/nav-items.ts`. The "Settings" link is now accessible via the user menu when a user is logged in. This menu was originally implemented with `DropdownMenu` but has been updated to use `Popover` from shadcn/ui to ensure better compatibility and functionality on iOS Safari.
 
 ### Secure Login Authorization
 

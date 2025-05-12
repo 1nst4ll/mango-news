@@ -25,53 +25,43 @@
       window.location.href = '/';
     };
 
-    // Basic styling for popover items (can be improved later)
-    const itemStyle: React.CSSProperties = {
-      padding: '8px 16px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-    };
-
-    const separatorStyle: React.CSSProperties = {
-      height: '1px',
-      backgroundColor: '#e5e7eb', // A light gray, adjust as needed
-      margin: '4px 0',
-    };
-
-    const labelStyle: React.CSSProperties = {
-      padding: '8px 16px',
-      fontWeight: 'bold',
-      fontSize: '0.875rem', // text-sm
-      color: '#6b7280', // text-gray-500, adjust as needed
-    };
+    // Styling will be handled by Tailwind classes now
 
     return (
       <>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon"> {/* Removed potentially problematic empty onClick */}
+            <Button variant="ghost" size="icon">
               <User className="h-[1.2rem] w-[1.2rem]" /> {/* User icon */}
               <span className="sr-only">Toggle user menu</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-auto p-0"> {/* Adjusted PopoverContent styling */}
+          <PopoverContent align="end" className="w-56 p-1 bg-popover text-popover-foreground rounded-md border shadow-md"> {/* Added base PopoverContent styling */}
             {isLoggedIn ? (
               <div className="flex flex-col">
-                <div style={labelStyle}>My Account</div>
-                <div style={separatorStyle} />
-                <button style={itemStyle} onClick={() => window.location.href = '/settings'}>
-                  <Settings className="mr-2 h-4 w-4" />
+                <div className="px-2 py-1.5 text-sm font-semibold">My Account</div> {/* Label style */}
+                <div className="bg-border -mx-1 my-1 h-px" /> {/* Separator style */}
+                <button
+                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
+                  onClick={() => window.location.href = '/settings'}
+                >
+                  <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
                   <span>Settings</span>
                 </button>
-                <button style={itemStyle} onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
+                <button
+                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4 text-muted-foreground" />
                   <span>Sign out</span>
                 </button>
               </div>
             ) : (
-              <button style={itemStyle} onClick={() => setIsLoginDialogOpen(true)}>
-                <User className="mr-2 h-4 w-4" />
+              <button
+                className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
+                onClick={() => setIsLoginDialogOpen(true)}
+              >
+                <User className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>Login</span>
               </button>
             )}
