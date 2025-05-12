@@ -399,6 +399,42 @@ app.get('/api/articles', async (req, res) => {
   }
 });
 
+// Get a single article by ID
+app.get('/api/articles/:id', async (req, res) => {
+  const articleId = req.params.id;
+  const endpoint = `/api/articles/${articleId}`;
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching article with ID: ${articleId}`);
+    const result = await pool.query(`
+      SELECT
+          a.*,
+          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics
+      FROM
+          articles a
+      LEFT JOIN
+          article_topics at ON a.id = at.article_id
+      LEFT JOIN
+          topics t ON at.topic_id = t.id
+      WHERE
+          a.id = $1
+      GROUP BY
+          a.id
+    `, [articleId]);
+
+    if (result.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Article with ID ${articleId} not found`);
+      return res.status(404).json({ error: 'Article not found.' });
+    }
+
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched article with ID ${articleId}`);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching article with ID ${articleId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 // Delete a single article by ID
 app.delete('/api/articles/:id', authenticateToken, async (req, res) => {
   const articleId = req.params.id;
