@@ -78,6 +78,7 @@ On medium screens and larger (`md:` breakpoint and above), navigation links are 
 *   Automoto: `https://mango.tc/listings/?category=automoto-en&pagination=1&sort-by=most-relevant&view=card`
 *   Real Estate: `https://mango.tc/listings/?category=real-estate`
 *   Jobs: `https://mango.tc/listings/?category=jobs`
+*   News: `https://mangonews.onrender.com/`
 
 The "Settings" link, Login button, and Mode Toggle are also displayed horizontally in the desktop view.
 
