@@ -65,6 +65,16 @@ The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the f
 
 A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/`, `/settings`, and `/article/[id]`) to provide consistent navigation. The navigation links are defined in `frontend/src/lib/nav-items.ts`.
 
+### Secure Login Authorization
+
+Secure login authorization has been implemented on the frontend to protect administrative sections like the Settings page.
+
+**Implementation Details:**
+
+*   **Login Button Component (`frontend/src/components/LoginButton.tsx`):** A new React component has been created using shadcn/ui components (`Button`, `Dialog`, `Input`, `Label`). It provides a "Login" button that, when clicked, opens a modal dialog containing a form for entering a username and password. Upon successful login via the backend API (`/api/login`), a JWT token is stored in `localStorage`. When a token is present, the component displays a "Logout" button instead.
+*   **Header Integration (`frontend/src/components/Header.tsx`):** The `LoginButton` component is integrated into the header. The "Settings" navigation link is now conditionally rendered based on the presence of the JWT token in `localStorage`. This check is performed using a `useEffect` hook on component mount.
+*   **Settings Page Protection (`frontend/src/pages/settings.astro`):** A client-side script has been added to the `settings.astro` page. This script checks for the presence of the JWT token in `localStorage` when the page loads. If no token is found, the user is redirected to the homepage (`/`), preventing unauthorized access to the settings.
+
 ### Settings Page
 
 The Admin Dashboard and Source Management features have been combined into a single Settings page (`frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.

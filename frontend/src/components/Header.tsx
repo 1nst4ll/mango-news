@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { navItems } from '../lib/nav-items'; // Changed to relative path
 import { ModeToggle } from './ModeToggle'; // Import the ModeToggle component
+import { LoginButton } from './LoginButton'; // Import the LoginButton component
 import { Rss } from 'lucide-react'; // Import the Rss icon
 
 const Header: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check for JWT token in localStorage on component mount
+    const token = localStorage.getItem('jwtToken');
+    setIsLoggedIn(!!token); // Set isLoggedIn to true if token exists
+  }, []);
+
+  // Filter navItems to hide 'Settings' if not logged in
+  const filteredNavItems = navItems.filter(item =>
+    item.title !== 'Settings' || isLoggedIn
+  );
+
   return (
     <header className="bg-sidebar text-sidebar-foreground p-4">
       <div className="container mx-auto flex justify-between items-center">
@@ -14,7 +28,7 @@ const Header: React.FC = () => {
         </div>
         <nav>
           <ul className="flex space-x-4 items-center"> {/* Added items-center for vertical alignment */}
-            {navItems.map(item => (
+            {filteredNavItems.map(item => (
               <li key={item.href}>
                 <a href={item.href} className="hover:underline flex items-center space-x-1"> {/* Flex for icon and text */}
                   {item.title === "RSS Feed" && <Rss className="h-4 w-4" />} {/* Add RSS icon */}
@@ -24,8 +38,8 @@ const Header: React.FC = () => {
             ))}
           </ul>
         </nav>
-        {/* Placeholder for potential future elements */}
-        <div>
+        <div className="flex items-center space-x-4"> {/* Container for Login and ModeToggle */}
+          <LoginButton /> {/* Add the LoginButton component here */}
           <ModeToggle /> {/* Add the ModeToggle component here */}
         </div>
       </div>

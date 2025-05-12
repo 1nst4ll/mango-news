@@ -10,7 +10,7 @@ const ogUrl = Astro.url.href;
 const ogType = "website";
 ---
 
-<BaseLayout 
+<BaseLayout
   title={pageTitle}
   description={pageDescription}
   ogImageUrl={ogImageUrl}
@@ -19,3 +19,14 @@ const ogType = "website";
 >
   <SettingsPage client:load />
 </BaseLayout>
+
+<script is:inline>
+  // Client-side script to check for authentication token
+  document.addEventListener('astro:page-load', () => {
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      // Redirect to homepage if not logged in
+      window.location.href = '/';
+    }
+  });
+</script>
