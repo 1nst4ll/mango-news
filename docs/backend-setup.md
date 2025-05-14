@@ -125,7 +125,7 @@ The backend API will be accessible at the address and port it is configured to l
 
 ## RSS Feed
 
-The backend provides an RSS feed of the latest articles.
+The backend provides an RSS feed of the latest articles. This endpoint has been implemented in `backend/src/index.js`.
 
 ### `GET /api/rss`
 
