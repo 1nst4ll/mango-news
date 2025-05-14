@@ -48,6 +48,7 @@ CREATE TABLE articles (
     publication_date TIMESTAMP WITH TIME ZONE,
     raw_content TEXT,
     summary TEXT, -- AI-generated summary
+    is_blocked BOOLEAN DEFAULT FALSE, -- Add column to indicate if the article is blocked
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
