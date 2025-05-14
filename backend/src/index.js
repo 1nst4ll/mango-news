@@ -726,6 +726,88 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
   }
 });
 
+// RSS Feed Endpoint
+app.get('/api/rss', async (req, res) => {
+  const endpoint = '/api/rss';
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Generating RSS feed...`);
+
+    // Fetch the latest 20 articles
+    const articlesResult = await pool.query(`
+      SELECT
+          a.id,
+          a.title,
+          a.source_url,
+          a.publication_date,
+          a.summary AS ai_summary,
+          a.ai_image_path AS ai_image_url,
+          a.thumbnail_url,
+          s.name AS source_name
+      FROM
+          articles a
+      JOIN
+          sources s ON a.source_id = s.id
+      WHERE
+          a.is_blocked = FALSE -- Exclude blocked articles
+      ORDER BY
+          a.publication_date DESC
+      LIMIT 20
+    `);
+
+    const feed = new RSS({
+      title: 'Mango News Feed',
+      description: 'Latest news from Turks and Caicos Islands',
+      feed_url: 'https://mango.tc/api/rss', // Replace with actual domain if needed
+      site_url: 'https://mango.tc', // Replace with actual domain if needed
+      language: 'en-us',
+      ttl: 60, // 60 minutes
+    });
+
+    for (const article of articlesResult.rows) {
+      let descriptionHtml = article.ai_summary ? marked.parse(article.ai_summary) : '<p>No summary available.</p>';
+
+      // Prepend image tag if AI image or thumbnail is available
+      const imageUrl = article.ai_image_url || article.thumbnail_url;
+      if (imageUrl) {
+        descriptionHtml = `<img src="${imageUrl}" alt="${article.title}" style="max-width: 100%; height: auto;"><br/>` + descriptionHtml;
+      }
+
+      feed.item({
+        title: article.title,
+        url: `https://mango.tc/article/${article.id}`, // Link to frontend article page
+        date: article.publication_date,
+        description: descriptionHtml,
+        guid: article.source_url, // Use original source URL as GUID
+        author: article.source_name,
+      });
+    }
+
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - RSS feed generated successfully with ${articlesResult.rows.length} items.`);
+    res.set('Content-Type', 'application/rss+xml');
+    res.send(feed.xml());
+
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error generating RSS feed:`, err);
+    // If the articles or sources table doesn't exist yet, return an empty feed as a fallback
+    if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
+       console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Articles or sources table not found, returning empty RSS feed. Ensure database schema is applied.`);
+       const emptyFeed = new RSS({
+         title: 'Mango News Feed',
+         description: 'Latest news from Turks and Caicos Islands',
+         feed_url: 'https://mango.tc/api/rss', // Replace with actual domain if needed
+         site_url: 'https://mango.tc', // Replace with actual domain if needed
+         language: 'en-us',
+         ttl: 60, // 60 minutes
+       });
+       res.set('Content-Type', 'application/rss+xml');
+       res.send(emptyFeed.xml());
+    } else {
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+});
+
+
 // API endpoint to get scheduler settings
 app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
   const endpoint = '/api/settings/scheduler';
