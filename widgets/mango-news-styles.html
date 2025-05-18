@@ -1,0 +1,320 @@
+<!-- MANGO NEWS STYLES WIDGET - PASTE THIS IN FIRST HTML WIDGET -->
+<style>
+/* Mango News Feed Styles */
+
+/* Filter Controls Styles */
+#mango-news-filters-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+#mango-news-search-input {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    flex-grow: 1; /* Allows search input to take available space */
+    min-width: 200px; /* Minimum width before wrapping */
+}
+
+#mango-news-source-picker {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+    min-width: 180px; /* Minimum width */
+}
+
+/* Styles for the new source checkbox container */
+#mango-news-source-checkbox-container {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 75px !important; /* Changed from 150px and added !important */
+    overflow-y: auto;
+    min-width: 200px; /* Or your preferred width */
+    background-color: white;
+    font-size: 14px;
+}
+
+.mango-news-source-item {
+    display: block; /* Each item on a new line */
+    margin-bottom: 5px; /* Spacing between items */
+}
+
+.mango-news-source-item input[type="checkbox"] {
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.mango-news-source-item label {
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+
+.mango-news-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.mango-news-date-heading {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: var(--e-global-color-primary, #333);
+}
+
+.mango-news-date-divider {
+    margin: 30px 0;
+    border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.mango-news-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .mango-news-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .mango-news-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.mango-news-card-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-color: #fff;
+}
+
+.mango-news-card-wrapper:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+}
+
+.mango-news-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.mango-news-card-image-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+}
+
+.mango-news-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mango-news-card-topics {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.mango-news-topic-tag {
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background-color: #4169E1;
+    border-radius: 50px;
+}
+
+.mango-news-card-header {
+    padding: 16px;
+}
+
+.mango-news-card-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.mango-news-card-meta {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.mango-news-card-content {
+    padding: 0 16px 16px;
+    flex-grow: 1;
+}
+
+.mango-news-card-summary {
+    color: #333;
+    line-height: 1.6;
+}
+
+.mango-news-card-summary strong {
+    color: #000;
+}
+
+.mango-news-share-buttons {
+    display: flex;
+    gap: 16px;
+    padding: 0 16px 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mango-news-share-button {
+    font-size: 14px;
+    color: #4169E1 !important;
+    text-decoration: none !important;
+    cursor: pointer;
+}
+
+.mango-news-share-button:hover {
+    text-decoration: underline !important;
+}
+
+.mango-news-loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+}
+
+.mango-news-error {
+    text-align: center;
+    padding: 40px;
+    color: #dc3545;
+}
+
+.mango-news-empty {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Pagination styles */
+/* .mango-news-pagination-container {} was empty, removed */
+
+.mango-news-pagination-container.mango-news-pagination-top {
+    margin-bottom: 20px; /* Add margin below top pagination */
+    border-bottom: 1px solid #eaeaea; /* Add border below top pagination */
+    padding-bottom: 20px; /* Add padding below content in top pagination */
+}
+
+.mango-news-pagination-container.mango-news-pagination-bottom {
+    margin-top: 40px; /* Restore margin above bottom pagination */
+    border-top: 1px solid #eaeaea; /* Restore border above bottom pagination */
+    padding-top: 20px; /* Restore padding above content in bottom pagination */
+}
+
+.mango-news-pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.mango-news-pagination-results {
+    text-align: left;
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+.mango-news-pagination-start,
+.mango-news-pagination-end,
+.mango-news-pagination-total {
+    color: #000;
+    font-weight: bold;
+}
+
+.mango-news-pagination {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+}
+
+.mango-news-pagination a {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e6e6e6;
+    border-radius: 4px; /* Added rounded corners */
+    text-decoration: none;
+    color: #666;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    background-color: white;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.mango-news-pagination a:hover:not(.disabled) {
+    background-color: #f7f7f7;
+    border-color: #e6e6e6;
+}
+
+.mango-news-pagination a.active {
+    background-color: #ff7d4d; /* Listivo accent color - coral orange */
+    color: white;
+    border-color: #ff7d4d;
+}
+
+.mango-news-pagination a:focus {
+    outline: none;
+    border-color: #ff7d4d;
+}
+
+.mango-news-pagination a.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.mango-news-pagination-pages,
+.mango-news-pagination-pages-top { /* Added selector for top pagination pages */
+    display: flex;
+    gap: 5px; /* Added small gap between buttons */
+    flex-wrap: nowrap;
+}
+
+.mango-news-pagination-prev,
+.mango-news-pagination-next {
+    color: #ff7d4d; /* Arrows in accent color */
+}
+</style>

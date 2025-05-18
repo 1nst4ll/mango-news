@@ -1,0 +1,718 @@
+<!-- MANGO NEWS CONTENT WIDGET - PASTE THIS IN SECOND HTML WIDGET -->
+<div id="mango-news-feed-container" class="mango-news-container">
+    <div id="mango-news-filters-container" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="mango-news-search-input" placeholder="Search articles..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1; min-width: 200px;">
+        <div id="mango-news-source-checkbox-container" style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; max-height: 150px; overflow-y: auto; min-width: 200px; background-color: white;">
+            <!-- Checkboxes will be populated here by JS -->
+            <div class="mango-news-source-item" style="display: block; margin-bottom: 5px;">
+                <input type="checkbox" id="mango-news-source-all" value="" checked style="margin-right: 5px;">
+                <label for="mango-news-source-all" style="cursor:pointer;">All Sources</label>
+            </div>
+        </div>
+    </div>
+    <div class="mango-news-pagination-container mango-news-pagination-top" style="display: none;">
+        <div class="mango-news-pagination-wrapper">
+            <div class="mango-news-pagination-results">
+                Showing <span class="mango-news-pagination-start-top">1</span> to <span class="mango-news-pagination-end-top">20</span> of <span class="mango-news-pagination-total-top">0</span> results
+            </div>
+            <div class="mango-news-pagination">
+                <a href="#" class="mango-news-pagination-prev-top" aria-label="Previous page">←</a>
+                <div class="mango-news-pagination-pages-top"></div>
+                <a href="#" class="mango-news-pagination-next-top" aria-label="Next page">→</a>
+            </div>
+        </div>
+    </div>
+    <div class="mango-news-loading">Loading news feed...</div>
+    <div class="mango-news-empty" style="display: none;">No news articles found.</div>
+    <div class="mango-news-error" style="display: none;">Error loading news feed.</div>
+    <div class="mango-news-feed-content" style="display: none;"></div>
+    <div class="mango-news-pagination-container mango-news-pagination-bottom" style="display: none;">
+        <div class="mango-news-pagination-wrapper">
+            <div class="mango-news-pagination-results">
+                Showing <span class="mango-news-pagination-start">1</span> to <span class="mango-news-pagination-end">20</span> of <span class="mango-news-pagination-total">0</span> results
+            </div>
+            <div class="mango-news-pagination">
+                <a href="#" class="mango-news-pagination-prev" aria-label="Previous page">←</a>
+                <div class="mango-news-pagination-pages"></div>
+                <a href="#" class="mango-news-pagination-next" aria-label="Next page">→</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Configuration (change these values as needed)
+    const config = {
+        apiUrl: 'https://mango-news.onrender.com/api', // Original working API URL
+        articlesPerPage: 12,
+        showTopics: true,
+        showSharing: true,
+        searchTerm: '',
+        selectedSources: [], // Changed from selectedSource to handle multiple selections
+        refreshInterval: 5 * 60 * 1000, // 5 minutes
+        // Use target="_blank" to open in new tab, or change URL format if needed
+        articleLinkFormat: '/news-article/?id=${id}', // Link to the WordPress page with ID as query parameter
+        openInNewTab: false, // Set to true to open articles in new tabs
+        debug: true // Enable for console debugging
+    };
+    
+    // Pagination state
+    let paginationState = {
+        currentPage: 1,
+        totalPages: 1,
+        totalArticles: 0, // This will be the count of ALL articles initially
+        allArticles: [], // Holds all articles fetched from API
+        filteredArticles: [] // Holds articles after search/source filtering
+    };
+    
+    // Elements
+    const container = document.getElementById('mango-news-feed-container');
+    const searchInput = document.getElementById('mango-news-search-input'); 
+    const sourceCheckboxContainer = document.getElementById('mango-news-source-checkbox-container'); // Changed from sourcePicker
+    const loadingEl = container.querySelector('.mango-news-loading');
+    const emptyEl = container.querySelector('.mango-news-empty');
+    const errorEl = container.querySelector('.mango-news-error');
+    const contentEl = container.querySelector('.mango-news-feed-content');
+    
+    // Bottom pagination elements
+    const paginationContainerBottom = container.querySelector('.mango-news-pagination-bottom');
+    const paginationElBottom = paginationContainerBottom.querySelector('.mango-news-pagination');
+    const paginationPagesBottom = paginationContainerBottom.querySelector('.mango-news-pagination-pages');
+    const prevBtnBottom = paginationContainerBottom.querySelector('.mango-news-pagination-prev');
+    const nextBtnBottom = paginationContainerBottom.querySelector('.mango-news-pagination-next');
+    const paginationStartBottom = paginationContainerBottom.querySelector('.mango-news-pagination-start');
+    const paginationEndBottom = paginationContainerBottom.querySelector('.mango-news-pagination-end');
+    const paginationTotalBottom = paginationContainerBottom.querySelector('.mango-news-pagination-total');
+    
+    // Top pagination elements
+    const paginationContainerTop = container.querySelector('.mango-news-pagination-top');
+    const paginationElTop = paginationContainerTop.querySelector('.mango-news-pagination');
+    const paginationPagesTop = paginationContainerTop.querySelector('.mango-news-pagination-pages-top');
+    const prevBtnTop = paginationContainerTop.querySelector('.mango-news-pagination-prev-top');
+    const nextBtnTop = paginationContainerTop.querySelector('.mango-news-pagination-next-top');
+    const paginationStartTop = paginationContainerTop.querySelector('.mango-news-pagination-start-top');
+    const paginationEndTop = paginationContainerTop.querySelector('.mango-news-pagination-end-top');
+    const paginationTotalTop = paginationContainerTop.querySelector('.mango-news-pagination-total-top');
+    
+    // Function to fetch articles from the API
+    function fetchArticles() {
+        // Show loading state
+        loadingEl.style.display = 'block';
+        emptyEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        contentEl.style.display = 'none';
+        paginationContainerTop.style.display = 'none';
+        paginationContainerBottom.style.display = 'none';
+        
+        // Build the API URL
+        let articlesEndpoint = `${config.apiUrl}/articles`;
+        if (config.searchTerm) {
+            articlesEndpoint += `?searchTerm=${encodeURIComponent(config.searchTerm)}`;
+        }
+        
+        if (config.debug) {
+            console.log('Fetching articles from:', articlesEndpoint);
+        }
+        
+        // Fetch articles from the API
+        fetch(articlesEndpoint)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(articles => {
+                // Hide loading state
+                loadingEl.style.display = 'none';
+                
+                // Check if there are any articles
+                if (!articles || articles.length === 0) {
+                    emptyEl.style.display = 'block';
+                return;
+            }
+            
+            // Store all articles for pagination and single article navigation
+            paginationState.allArticles = articles; // Keep the original full list
+            
+            // Populate source picker
+            populateSourcePicker(articles);
+
+            // Store the full article list in localStorage for single article navigation
+            try {
+                localStorage.setItem('mangoNewsArticles', JSON.stringify(articles));
+            } catch (e) {
+                console.error('Error storing articles in localStorage:', e);
+            }
+            
+            // Apply initial filters (if any, e.g. from URL params if we add that later) and display
+            applyFiltersAndRender(); // This will call displayPage(1) and updatePaginationControls()
+            
+            // Show filter controls now that they might be populated
+            const filtersContainer = document.getElementById('mango-news-filters-container');
+            if (filtersContainer) filtersContainer.style.display = 'flex';
+            
+            // Ensure content and pagination are shown if there are articles after filtering
+            if (paginationState.filteredArticles.length > 0) {
+                contentEl.style.display = 'block';
+                paginationContainerTop.style.display = 'block';
+                paginationContainerBottom.style.display = 'block';
+            } else {
+                emptyEl.style.display = 'block'; // Show empty message if no articles after filtering
+                contentEl.style.display = 'none';
+                paginationContainerTop.style.display = 'none';
+                paginationContainerBottom.style.display = 'none';
+            }
+            })
+            .catch(error => {
+                console.error('Error fetching articles:', error);
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = `Error loading news feed: ${error.message}`;
+                
+                if (config.debug) {
+                    // More detailed error message for debugging
+                    const debugInfo = document.createElement('div');
+                    debugInfo.style.fontSize = '12px';
+                    debugInfo.style.marginTop = '10px';
+                    debugInfo.style.color = '#777';
+                    debugInfo.innerHTML = `
+                        <p>Debug Information:</p>
+                        <p>API URL: ${articlesEndpoint}</p>
+                        <p>Error: ${error.toString()}</p>
+                        <p>Check your browser console for more details.</p>
+                    `;
+                    errorEl.appendChild(debugInfo);
+                }
+            });
+    }
+    
+    // Function to populate the source checkboxes
+    function populateSourcePicker(articles) { // Renaming to populateSourceCheckboxes would be good practice later
+        const sources = {}; 
+        articles.forEach(article => {
+            if (article.source_url) {
+                try {
+                    const hostname = new URL(article.source_url).hostname;
+                    const sourceName = article.source_name || hostname.replace(/^www\./, '');
+                    if (hostname && !sources[hostname]) {
+                         sources[hostname] = sourceName;
+                    }
+                } catch (e) { /* console.warn('Invalid source_url:', article.source_url); */ }
+            }
+        });
+
+        // Clear previous source checkboxes, keeping "All Sources"
+        const allSourcesCheckboxItem = sourceCheckboxContainer.querySelector('.mango-news-source-item:first-child');
+        sourceCheckboxContainer.innerHTML = ''; // Clear all
+        if(allSourcesCheckboxItem) sourceCheckboxContainer.appendChild(allSourcesCheckboxItem); // Add "All Sources" back
+
+
+        const sortedHostnames = Object.keys(sources).sort((a,b) => sources[a].localeCompare(sources[b]));
+
+        for (const hostname of sortedHostnames) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'mango-news-source-item';
+            itemDiv.style.display = 'block'; // Basic styling, can be moved to CSS
+            itemDiv.style.marginBottom = '5px';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `mango-source-${hostname.replace(/\./g, '-')}`; // Create unique ID
+            checkbox.value = hostname;
+            checkbox.style.marginRight = '5px';
+            checkbox.addEventListener('change', handleSourceCheckboxChange);
+
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = sources[hostname];
+            label.style.cursor = 'pointer';
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            sourceCheckboxContainer.appendChild(itemDiv);
+        }
+        
+        // Add event listener for "All Sources" checkbox
+        const allSourcesCheckbox = document.getElementById('mango-news-source-all');
+        if (allSourcesCheckbox) {
+            allSourcesCheckbox.addEventListener('change', handleSourceCheckboxChange);
+        }
+    }
+
+    function handleSourceCheckboxChange(event) {
+        const allSourcesCheckbox = document.getElementById('mango-news-source-all');
+        const specificSourceCheckboxes = Array.from(sourceCheckboxContainer.querySelectorAll('input[type="checkbox"]:not(#mango-news-source-all)'));
+
+        if (event.target.id === 'mango-news-source-all') {
+            if (event.target.checked) {
+                config.selectedSources = [];
+                specificSourceCheckboxes.forEach(cb => cb.checked = false);
+            } else {
+                // If "All Sources" is unchecked, and no other boxes are checked, it should remain checked (or re-check it)
+                // Or, if user unchecks "All" when others are checked, it means they want to select specific ones.
+                // This logic might need refinement based on desired UX. For now, if "All" is unchecked, we assume specific selection will follow.
+            }
+        } else { // A specific source checkbox changed
+            if (event.target.checked) {
+                allSourcesCheckbox.checked = false;
+                config.selectedSources = specificSourceCheckboxes
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+            } else {
+                config.selectedSources = specificSourceCheckboxes
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+                if (config.selectedSources.length === 0) {
+                    allSourcesCheckbox.checked = true; // Revert to "All Sources" if no specific ones are selected
+                }
+            }
+        }
+        applyFiltersAndRender();
+    }
+
+    // Function to apply current filters and re-render the feed
+    function applyFiltersAndRender() {
+        let articlesToFilter = [...paginationState.allArticles];
+
+        // Filter by search term
+        if (config.searchTerm) {
+            const searchTermLower = config.searchTerm.toLowerCase();
+            articlesToFilter = articlesToFilter.filter(article => 
+                (article.title && article.title.toLowerCase().includes(searchTermLower)) ||
+                (article.summary && article.summary.toLowerCase().includes(searchTermLower)) ||
+                (article.content && article.content.toLowerCase().includes(searchTermLower)) // If full content is available
+            );
+        }
+
+        // Filter by selected source(s)
+        if (config.selectedSources.length > 0) {
+            articlesToFilter = articlesToFilter.filter(article => {
+                if (article.source_url) {
+                    try {
+                        const hostname = new URL(article.source_url).hostname;
+                        return config.selectedSources.includes(hostname);
+                    } catch (e) { return false; }
+                }
+                return false;
+            });
+        }
+        
+        paginationState.filteredArticles = articlesToFilter;
+        paginationState.totalArticles = articlesToFilter.length; // Update total based on filtered results
+        paginationState.totalPages = Math.ceil(articlesToFilter.length / config.articlesPerPage) || 1;
+        
+        displayPage(1); // Display the first page of the filtered results
+        updatePaginationControls(); // Ensure pagination reflects filtered results
+    }
+    
+    // Function to display a specific page of articles
+    function displayPage(pageNumber) {
+        const articlesForDisplay = paginationState.filteredArticles; 
+
+        // Validate page number
+        if (pageNumber < 1) pageNumber = 1;
+        // Ensure totalPages is at least 1 if there are articles, to prevent pageNumber > totalPages if totalPages is 0
+        const currentTotalPages = paginationState.totalPages > 0 ? paginationState.totalPages : 1;
+        if (pageNumber > currentTotalPages) pageNumber = currentTotalPages;
+        
+        paginationState.currentPage = pageNumber;
+        
+        const startIndex = (pageNumber - 1) * config.articlesPerPage;
+        const endIndex = Math.min(startIndex + config.articlesPerPage, articlesForDisplay.length); 
+        
+        const pageArticles = articlesForDisplay.slice(startIndex, endIndex);
+        
+        // Process and group articles by date
+        const groupedArticles = groupArticlesByDate(pageArticles);
+        
+        // Render articles
+        let html = '';
+        
+        // For each date group
+        let dateIndex = 0;
+        for (const [date, articlesForDate] of Object.entries(groupedArticles)) {
+            // Add date divider if not the first date
+            if (dateIndex > 0) {
+                html += '<div class="mango-news-date-divider"></div>';
+            }
+            
+            // Add date heading
+            html += `<h2 class="mango-news-date-heading">${date}</h2>`;
+            
+            // Add grid for this date's articles
+            html += '<div class="mango-news-grid">';
+            
+            // Add articles for this date
+            for (const article of articlesForDate) {
+                html += renderArticleCard(article);
+            }
+            
+            html += '</div>'; // End .mango-news-grid
+            
+            dateIndex++;
+        }
+        
+        // Update the content
+        if (pageArticles.length === 0 && articlesForDisplay.length > 0) {
+            // This case might happen if pageNumber is out of bounds after filtering, though validation should prevent it.
+            // Or if all articles are filtered out.
+            emptyEl.textContent = "No articles match your current filters.";
+            emptyEl.style.display = 'block';
+            contentEl.style.display = 'none';
+        } else if (pageArticles.length === 0 && articlesForDisplay.length === 0 && (config.searchTerm || config.selectedSources.length > 0)) {
+            emptyEl.textContent = "No articles match your current filters.";
+            emptyEl.style.display = 'block';
+            contentEl.style.display = 'none';
+        }
+         else if (pageArticles.length === 0 && articlesForDisplay.length === 0) {
+            emptyEl.textContent = "No news articles found."; // Default empty message
+            emptyEl.style.display = 'block';
+            contentEl.style.display = 'none';
+        }    
+        else {
+            emptyEl.style.display = 'none';
+            contentEl.innerHTML = html;
+            contentEl.style.display = 'block';
+        }
+        
+        // Setup click handlers for share buttons
+        setupShareButtons(contentEl);
+        
+        // Update pagination controls (which also handles visibility of pagination containers)
+        updatePaginationControls(); 
+    }
+    
+    // Function to update pagination controls for both top and bottom
+    function updatePaginationControls() {
+        const currentTotalFiltered = paginationState.filteredArticles.length;
+        const displayStyle = currentTotalFiltered > 0 ? 'block' : 'none';
+
+        // Update visibility of pagination containers first
+        paginationContainerTop.style.display = displayStyle;
+        paginationContainerBottom.style.display = displayStyle;
+
+        if (currentTotalFiltered > 0) {
+            if (paginationElTop) paginationElTop.style.display = 'flex';
+            if (paginationElBottom) paginationElBottom.style.display = 'flex';
+            
+            try {
+                updatePaginationControlsSection(
+                    paginationElTop, 
+                    paginationPagesTop, 
+                    prevBtnTop, 
+                    nextBtnTop
+                );
+                
+                updatePaginationControlsSection(
+                    paginationElBottom, 
+                    paginationPagesBottom, 
+                    prevBtnBottom, 
+                    nextBtnBottom
+                );
+            } catch (error) {
+                console.error('Error updating pagination sections:', error);
+            }
+        } else {
+            // If no filtered articles, ensure pagination controls themselves are hidden
+            if (paginationElTop) paginationElTop.style.display = 'none';
+            if (paginationElBottom) paginationElBottom.style.display = 'none';
+        }
+        
+        // Update pagination result text (start, end, total)
+        // This should always reflect the current page and filtered total
+        const startItem = currentTotalFiltered > 0 ? (paginationState.currentPage - 1) * config.articlesPerPage + 1 : 0;
+        const endItem = Math.min(paginationState.currentPage * config.articlesPerPage, currentTotalFiltered);
+
+        paginationStartTop.textContent = startItem;
+        paginationEndTop.textContent = endItem;
+        paginationTotalTop.textContent = currentTotalFiltered;
+        
+        paginationStartBottom.textContent = startItem;
+        paginationEndBottom.textContent = endItem;
+        paginationTotalBottom.textContent = currentTotalFiltered;
+    }
+    
+    // Helper function to update a single pagination section
+    function updatePaginationControlsSection(paginationEl, paginationPages, prevBtn, nextBtn) {
+        if (!paginationState.filteredArticles || paginationState.filteredArticles.length === 0) {
+            paginationEl.style.display = 'none'; // Hide pagination if no filtered results
+            return;
+        }
+        paginationEl.style.display = 'flex'; // Ensure it's visible if there are results
+        
+        // Clear existing page buttons
+        paginationPages.innerHTML = '';
+        
+        // Create page links
+        const totalPages = paginationState.totalPages;
+        const currentPage = paginationState.currentPage;
+        
+        // Decide which page numbers to show (show max 5 page numbers)
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        // Adjust start page if end page is maxed out
+        if (endPage === totalPages) {
+            startPage = Math.max(1, endPage - 4);
+        }
+        
+        // Always show at least 3 pages when available
+        if (totalPages <= 5) {
+            startPage = 1;
+            endPage = totalPages;
+        }
+        
+        // Add page links
+        for (let i = startPage; i <= endPage; i++) {
+            const pageLink = document.createElement('a');
+            pageLink.href = '#';
+            pageLink.textContent = i;
+            pageLink.classList.add('mango-news-pagination-page');
+            
+            if (i === currentPage) {
+                pageLink.classList.add('active');
+            }
+            
+            pageLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                displayPage(i);
+                // Scroll to top of feed
+                container.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            paginationPages.appendChild(pageLink);
+        }
+        
+        // Update button states
+        prevBtn.classList.toggle('disabled', currentPage <= 1);
+        nextBtn.classList.toggle('disabled', currentPage >= totalPages);
+    }
+    
+    // Function to group articles by date
+    function groupArticlesByDate(articles) {
+        const grouped = {};
+        
+        for (const article of articles) {
+            const date = new Date(article.publication_date);
+            const dateStr = date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            if (!grouped[dateStr]) {
+                grouped[dateStr] = [];
+            }
+            
+            grouped[dateStr].push(article);
+        }
+        
+        // Sort dates in descending order (newest first)
+        return Object.fromEntries(
+            Object.entries(grouped).sort((a, b) => {
+                const dateA = new Date(a[0]);
+                const dateB = new Date(b[0]);
+                return dateB - dateA;
+            })
+        );
+    }
+    
+    // Function to render a single article card
+    function renderArticleCard(article) {
+        // Format the article link
+        const articleLink = config.articleLinkFormat.replace('${id}', article.id);
+        const targetAttr = config.openInNewTab ? ' target="_blank" rel="noopener noreferrer"' : '';
+        
+        // Create a wrapper div for the card instead of using the a tag as container
+        let html = `<div class="mango-news-card-wrapper">`;
+        // Add a click handler to store current state before navigating
+        html += `<a href="${articleLink}" class="mango-news-card" data-article-id="${article.id}"${targetAttr}>`; // Added data-article-id
+        
+        // Add image if available
+        if (article.thumbnail_url) {
+            html += `
+                <div class="mango-news-card-image-container">
+                    <img class="mango-news-card-image" src="${article.thumbnail_url}" alt="${article.title || 'News article'}">
+            `;
+            
+            // Add topics if available and enabled
+            if (config.showTopics && article.topics && article.topics.length > 0) {
+                html += '<div class="mango-news-card-topics">';
+                for (const topic of article.topics) {
+                    html += `<span class="mango-news-topic-tag">${topic}</span>`;
+                }
+                html += '</div>';
+            }
+            
+            html += '</div>'; // End .mango-news-card-image-container
+        }
+        
+        // Add header with title and metadata
+        html += `
+            <div class="mango-news-card-header">
+                <h3 class="mango-news-card-title">${article.title || 'Untitled'}</h3>
+                <div class="mango-news-card-meta">
+        `;
+        
+        // Add source domain
+        const domain = getDomainFromUrl(article.source_url || '');
+        html += `<span class="mango-news-source">${domain}</span>`;
+        
+        // Add author if available
+        if (article.author) {
+            html += ` | <span class="mango-news-author">By ${article.author}</span>`;
+        }
+        
+        // Add publication date
+        if (article.publication_date) {
+            const pubDate = new Date(article.publication_date);
+            html += ` | <span class="mango-news-date">Published: ${pubDate.toLocaleDateString()}</span>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+        
+        // Add content with summary
+        let summary = article.summary || '';
+        // Format bold text with strong tags
+        summary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        html += `
+            <div class="mango-news-card-content">
+                <div class="mango-news-card-summary">${summary}</div>
+            </div>
+        `;
+        
+        html += '</a>'; // End .mango-news-card
+        
+        // Add sharing buttons if enabled (outside the card link but inside the card wrapper)
+        if (config.showSharing) {
+            html += `
+                <div class="mango-news-share-buttons" data-article-id="${article.id}" data-article-title="${encodeURIComponent(article.title || 'News article')}">
+                    <a href="#" class="mango-news-share-button mango-news-share-whatsapp">Share on WhatsApp</a>
+                    <a href="#" class="mango-news-share-button mango-news-share-facebook">Share on Facebook</a>
+                </div>
+            `;
+        }
+        
+        html += '</div>'; // End .mango-news-card-wrapper
+        
+        return html;
+    }
+    
+    // Function to extract domain from URL
+    function getDomainFromUrl(url) {
+        try {
+            const parsedUrl = new URL(url);
+            return parsedUrl.hostname;
+        } catch (e) {
+            console.error("Invalid URL:", url, e);
+            return url;
+        }
+    }
+    
+    // Function to setup share button click handlers
+    function setupShareButtons(container) {
+        if (!config.showSharing) return;
+        
+        // WhatsApp share buttons
+        const whatsappButtons = container.querySelectorAll('.mango-news-share-whatsapp');
+        whatsappButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const shareDiv = this.closest('.mango-news-share-buttons');
+                const articleId = shareDiv.dataset.articleId;
+                const articleTitle = decodeURIComponent(shareDiv.dataset.articleTitle);
+                
+                // Format article URL using the same pattern as articles
+                // Use window.location.origin to ensure correct base URL
+                const articleUrl = window.location.origin + config.articleLinkFormat.replace('${id}', articleId);
+                
+                const shareText = `Check out this article: ${articleTitle} - ${articleUrl}`;
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                
+                window.open(whatsappUrl, '_blank');
+            });
+        });
+        
+        // Facebook share buttons
+        const facebookButtons = container.querySelectorAll('.mango-news-share-facebook');
+        facebookButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const shareDiv = this.closest('.mango-news-share-buttons');
+                const articleId = shareDiv.dataset.articleId;
+                
+                // Format article URL using the same pattern as articles
+                // Use window.location.origin to ensure correct base URL
+                const articleUrl = window.location.origin + config.articleLinkFormat.replace('${id}', articleId);
+                
+                const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
+                
+                window.open(facebookUrl, '_blank');
+            });
+        });
+    }
+    
+    // Event Listeners for filters
+    let searchDebounceTimer;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            config.searchTerm = this.value;
+            applyFiltersAndRender();
+        }, 300); 
+    });
+
+    // Event listeners for checkboxes are added dynamically in populateSourcePicker
+    // and for "All Sources" checkbox.
+
+    // Add pagination event listeners for bottom pagination
+    prevBtnBottom.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (paginationState.currentPage > 1) {
+            displayPage(paginationState.currentPage - 1);
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+    
+    nextBtnBottom.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (paginationState.currentPage < paginationState.totalPages) {
+            displayPage(paginationState.currentPage + 1);
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+    
+    // Add pagination event listeners for top pagination
+    prevBtnTop.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (paginationState.currentPage > 1) {
+            displayPage(paginationState.currentPage - 1);
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+    
+    nextBtnTop.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (paginationState.currentPage < paginationState.totalPages) {
+            displayPage(paginationState.currentPage + 1);
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+    
+    // Initialize the widget
+    fetchArticles(); // This will now also populate sources and call applyFiltersAndRender
+    
+    // Refresh the feed periodically
+    setInterval(fetchArticles, config.refreshInterval);
+})();
+</script>

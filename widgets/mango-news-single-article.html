@@ -1,0 +1,475 @@
+<div id="mango-news-single-article-container">
+    <div class="mango-news-loading">Loading article...</div>
+    <div class="mango-news-error" style="display: none;">Error loading article.</div>
+    <div class="mango-news-empty" style="display: none;">Article not found.</div>
+    <div class="mango-news-article-content" style="display: none;"></div>
+</div>
+
+<style>
+/* Basic Styling for Single Article - Customize as needed */
+#mango-news-single-article-container { /* Increased specificity */
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    border-top: 1px solid rgba(0,0,0,0.1) !important; /* Added top border to main container */
+}
+
+#mango-news-single-article-container .mango-news-single-article-title { /* Increased specificity */
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+#mango-news-single-article-container .mango-news-single-article-image-container { /* Increased specificity */
+    position: relative; /* Added for positioning the overlay */
+    margin-bottom: 20px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+#mango-news-single-article-container .mango-news-single-article-image { /* Increased specificity */
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+#mango-news-single-article-container .mango-news-single-article-meta { /* Increased specificity */
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+/* Styling for topics overlay */
+#mango-news-single-article-container .mango-news-single-article-topics-overlay { /* Increased specificity */
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 10px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    z-index: 1; /* Ensure topics are above the image */
+}
+
+#mango-news-single-article-container .mango-news-single-article-topic-tag-overlay { /* Increased specificity */
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background-color: #4169E1; /* Example topic tag color */
+    border-radius: 50px;
+}
+
+/* Original topics styling (if needed elsewhere, otherwise can be removed) */
+#mango-news-single-article-container .mango-news-single-article-topics { /* Increased specificity */
+    margin-bottom: 15px;
+}
+
+#mango-news-single-article-container .mango-news-single-article-topic-tag { /* Increased specificity */
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background-color: #4169E1; /* Example topic tag color */
+    border-radius: 50px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+/* Styling for the original article link to match metadata */
+#mango-news-single-article-container .mango-news-single-article-original-link { /* Increased specificity */
+    font-size: 14px; /* Match metadata font size */
+    color: #666; /* Match metadata color */
+    margin-bottom: 15px; /* Add some space below the link */
+}
+
+#mango-news-single-article-container .mango-news-single-article-original-link a { /* Increased specificity */
+    color: inherit; /* Inherit color from parent div */
+    text-decoration: underline; /* Add underline for links */
+}
+
+
+#mango-news-single-article-container .mango-news-single-article-content { /* Increased specificity */
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+}
+
+#mango-news-single-article-container .mango-news-single-article-content p { /* Increased specificity */
+    margin-bottom: 1em;
+}
+
+#mango-news-single-article-container .mango-news-single-article-content strong { /* Increased specificity */
+    color: #000;
+}
+
+#mango-news-single-article-container .mango-news-loading, /* Increased specificity */
+#mango-news-single-article-container .mango-news-error, /* Increased specificity */
+#mango-news-single-article-container .mango-news-empty { /* Increased specificity */
+    text-align: center;
+    padding: 40px;
+}
+
+#mango-news-single-article-container .mango-news-error { /* Increased specificity */
+    color: #dc3545; /* Error color */
+}
+
+#mango-news-single-article-container .mango-news-empty { /* Increased specificity */
+     color: #666; /* Empty state color */
+}
+
+/* Styling for navigation/pagination */
+#mango-news-single-article-container .mango-news-article-nav, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top { /* Increased specificity */
+    display: flex !important; 
+    justify-content: flex-end !important; 
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important; 
+    box-sizing: border-box !important; 
+}
+
+#mango-news-single-article-container .mango-news-article-nav { /* Bottom nav specific - Increased specificity */
+    margin-top: 20px !important;
+    padding-top: 20px !important;
+    border-top: 1px solid rgba(0,0,0,0.1) !important; 
+}
+
+#mango-news-single-article-container .mango-news-article-nav-top { /* Top nav specific - Increased specificity */
+    margin-bottom: 20px !important;
+    padding-bottom: 20px !important;
+    border-bottom: 1px solid rgba(0,0,0,0.1) !important;
+    border-top: none !important; /* Explicitly remove top border for the nav bar itself */
+}
+
+/* Style for Back to Feed link (now a button) */
+#mango-news-single-article-container .mango-news-article-nav .back-to-feed, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .back-to-feed { /* Increased specificity */
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: auto !important; 
+    height: 40px !important; 
+    border: 1px solid #e6e6e6 !important; 
+    border-radius: 4px !important; 
+    text-decoration: none !important;
+    color: #666 !important; /* Changed from #ff7d4d */
+    font-size: 16px !important;
+    transition: all 0.2s ease !important;
+    background-color: white !important;
+    margin: 0 !important; 
+    padding: 0 15px !important; 
+    box-sizing: border-box !important;
+}
+
+#mango-news-single-article-container .mango-news-article-nav .back-to-feed:hover:not(.disabled), /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .back-to-feed:hover:not(.disabled) { /* Increased specificity */
+    background-color: #f7f7f7 !important; 
+    border-color: #e6e6e6 !important; 
+}
+
+
+/* Style for Prev/Next buttons (square buttons with arrows) */
+#mango-news-single-article-container .mango-news-article-nav .prev-article, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav .next-article, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .prev-article, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .next-article { /* Increased specificity */
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 40px !important; 
+    height: 40px !important; 
+    border: 1px solid #e6e6e6 !important; 
+    border-radius: 4px !important; 
+    text-decoration: none !important;
+    color: #666 !important; 
+    font-size: 16px !important;
+    transition: all 0.2s ease !important;
+    background-color: white !important;
+    margin: 0 !important; 
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#mango-news-single-article-container .mango-news-article-nav .prev-article:hover:not(.disabled), /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav .next-article:hover:not(.disabled), /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .prev-article:hover:not(.disabled), /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .next-article:hover:not(.disabled) { /* Increased specificity */
+    background-color: #f7f7f7 !important; 
+    border-color: #e6e6e6 !important; 
+}
+
+#mango-news-single-article-container .mango-news-article-nav .prev-article.disabled, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav .next-article.disabled, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .prev-article.disabled, /* Increased specificity */
+#mango-news-single-article-container .mango-news-article-nav-top .next-article.disabled { /* Increased specificity */
+    color: #ccc !important; 
+    cursor: not-allowed !important;
+}
+</style>
+
+<script>
+console.log('Mango News Single Article Script Loaded');
+(function() {
+    console.log('--- Single Article Script Start ---');
+    console.log('Current URL:', window.location.href);
+    console.log('URL Search String:', window.location.search);
+
+    const container = document.getElementById('mango-news-single-article-container');
+    const loadingEl = container.querySelector('.mango-news-loading');
+    const errorEl = container.querySelector('.mango-news-error');
+    const emptyEl = container.querySelector('.mango-news-empty');
+    const contentEl = container.querySelector('.mango-news-article-content');
+
+    // References to navigation buttons will be obtained after content is rendered
+
+    // Define configuration needed for this script
+    const config = {
+        articleLinkFormat: '/news-article/?id=${id}', // This should match the format used in the feed widget
+        // Add other config properties if needed by this script in the future
+    };
+
+    const apiUrl = 'https://mango-news.onrender.com/api'; // Make sure this is correct
+    const feedPageUrl = '/news/'; // This should be the URL of your main news feed page
+
+
+    // Function to get query parameter by name
+    function getQueryParameter(name) {
+        console.log('Attempting to get query parameter:', name);
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramValue = urlParams.get(name);
+        console.log(`Query parameter "${name}" value:`, paramValue);
+        return paramValue;
+    }
+
+    // Get the article ID from the URL parameter 'id'
+    const articleId = getQueryParameter('id');
+    console.log('Retrieved articleId:', articleId);
+
+
+    if (!articleId) {
+        console.error('No article ID found in URL parameters.');
+        loadingEl.style.display = 'none';
+        emptyEl.style.display = 'block';
+        emptyEl.textContent = 'No article ID provided in the URL.';
+        console.log('--- Single Article Script End (No ID) ---');
+        return;
+    }
+    console.log('Article ID found:', articleId);
+
+    // Show loading state
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    contentEl.style.display = 'none';
+
+    // Fetch the full list of articles
+    fetch(`${apiUrl}/articles`) // Fetch all articles
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok when fetching article list.');
+            }
+            return response.json();
+        })
+        .then(allArticles => {
+            loadingEl.style.display = 'none';
+
+            if (!allArticles || allArticles.length === 0) {
+                emptyEl.style.display = 'block';
+                emptyEl.textContent = 'No articles found in the feed.';
+                console.warn('No articles found when fetching list.');
+                return;
+            }
+
+            console.log('Article ID from URL (type and value):', typeof articleId, articleId);
+            console.log('First few article IDs from fetched list (type and value):', allArticles.slice(0, 5).map(item => ({ type: typeof item.id, value: item.id })));
+
+
+            // Find the index of the current article in the fetched list
+            // Use loose equality (==) to handle potential type differences (string vs number)
+            const currentIndex = allArticles.findIndex(item => item.id == articleId);
+            console.log('Current article index in fetched list:', currentIndex);
+
+            if (currentIndex === -1) {
+                 emptyEl.style.display = 'block';
+                 emptyEl.textContent = 'Current article not found in the feed list. Check console for details.';
+                 console.warn('Current article not found in fetched list.');
+                 return;
+            }
+
+            const article = allArticles[currentIndex]; // Get the current article data
+
+            if (!article) {
+                emptyEl.style.display = 'block';
+                emptyEl.textContent = 'Article data is empty after finding index.';
+                return;
+            }
+
+            // Render article content
+            let html = '';
+             // Add TOP navigation buttons HTML
+            html += `
+                <div class="mango-news-article-nav-top">
+                    <a href="#" class="prev-article disabled" aria-label="Previous article">←</a>
+                    <a href="/news/" class="back-to-feed">BACK</a>
+                    <a href="#" class="next-article" aria-label="Next article">→</a>
+                </div>
+            `;
+
+            html += `<h1 class="mango-news-single-article-title">${article.title || 'Untitled'}</h1>`;
+
+            if (article.thumbnail_url) {
+                html += `
+                    <div class="mango-news-single-article-image-container">
+                        <img src="${article.thumbnail_url}" alt="${article.title || 'News article'}" class="mango-news-single-article-image">
+                `;
+
+                // Topics overlay inside image container
+                if (article.topics && article.topics.length > 0) {
+                    html += '<div class="mango-news-single-article-topics-overlay">';
+                    for (const topic of article.topics) {
+                        html += `<span class="mango-news-single-article-topic-tag-overlay">${topic}</span>`;
+                    }
+                    html += '</div>';
+                }
+
+                html += '</div>'; // End .mango-news-single-article-image-container
+            }
+
+            html += `<div class="mango-news-single-article-meta">`;
+            if (article.source_url) {
+                try {
+                    const parsedUrl = new URL(article.source_url);
+                    html += `<span class="mango-news-single-article-source">${parsedUrl.hostname}</span>`;
+                } catch (e) {
+                    console.error("Invalid source URL:", article.source_url, e);
+                    html += `<span class="mango-news-single-article-source">${article.source_url}</span>`;
+                }
+            }
+            if (article.author) {
+                html += ` | <span class="mango-news-single-article-author">By ${article.author}</span>`;
+            }
+            if (article.publication_date) {
+                const pubDate = new Date(article.publication_date);
+                html += ` | <span class="mango-news-single-article-date">Published: ${pubDate.toLocaleDateString()}</span>`;
+            }
+            html += `</div>`;
+
+            // Link to original source (moved above content and styled)
+             if (article.source_url) {
+                 html += `<div class="mango-news-single-article-original-link"><a href="${article.source_url}" target="_blank" rel="noopener noreferrer">Read the full article on the original site</a></div>`;
+             }
+
+            // Original topics section (can be removed if only using overlay)
+            // if (article.topics && article.topics.length > 0) {
+            //     html += `<div class="mango-news-single-article-topics">`;
+            //     for (const topic of article.topics) {
+            //         html += `<span class="mango-news-single-article-topic-tag">${topic}</span>`;
+            //     }
+            //     html += `</div>`;
+            // }
+
+
+            html += `<div class="mango-news-single-article-content">`; // This is the div that contentEl points to
+            let articleBodyHtml = '';
+            // Prefer article.content if available, otherwise use raw_content
+            const articleContentToDisplay = article.content || article.raw_content || '';
+
+            if (articleContentToDisplay) {
+                // Assume article.content might contain HTML, raw_content might be plain text
+                if (article.content) {
+                    // If content is likely HTML, use it directly (consider sanitization if needed)
+                    articleBodyHtml = articleContentToDisplay;
+                } else {
+                    // If using raw_content (plain text), split by newline and wrap in paragraphs
+                    articleBodyHtml = articleContentToDisplay.split('\n').map(paragraph => {
+                        const trimmedParagraph = paragraph.trim();
+                        return trimmedParagraph ? `<p>${trimmedParagraph}</p>` : '';
+                    }).join('');
+                }
+            }
+
+            let fullContent = articleBodyHtml; // Removed summary
+
+            // Removed separator logic
+
+            html += fullContent;
+            html += `</div>`; // Close .mango-news-single-article-content (the one contentEl points to)
+
+             // Add BOTTOM navigation buttons HTML
+            html += `
+                <div class="mango-news-article-nav">
+                    <a href="#" class="prev-article disabled" aria-label="Previous article">←</a>
+                    <a href="/news/" class="back-to-feed">BACK</a> <!-- Updated text and removed icon -->
+                    <a href="#" class="next-article" aria-label="Next article">→</a>
+                </div>
+            `;
+
+            contentEl.innerHTML = html; // contentEl is .mango-news-article-content
+            contentEl.style.display = 'block';
+
+            // --- Navigation Button Logic ---
+            // Get references to ALL navigation buttons AFTER content is rendered
+            // These buttons are now part of the contentEl.innerHTML
+            const prevArticleBtns = contentEl.querySelectorAll('.prev-article');
+            const nextArticleBtns = contentEl.querySelectorAll('.next-article');
+            const backToFeedLinks = contentEl.querySelectorAll('.back-to-feed');
+
+
+            // Ensure back to feed links are correct
+            backToFeedLinks.forEach(link => {
+                if (link) link.href = feedPageUrl;
+            });
+
+            // Update Previous buttons
+            prevArticleBtns.forEach(btn => {
+                if (btn) {
+                    if (currentIndex > 0) {
+                        const prevArticleId = allArticles[currentIndex - 1].id;
+                        btn.href = config.articleLinkFormat.replace('${id}', prevArticleId);
+                        btn.classList.remove('disabled');
+                        console.log('Previous button enabled, linking to:', btn.href);
+                    } else {
+                        btn.href = '#';
+                        btn.classList.add('disabled');
+                        console.log('Previous button disabled.');
+                    }
+                } else {
+                    console.warn('A previous article button not found.');
+                }
+            });
+
+            // Update Next buttons
+            nextArticleBtns.forEach(btn => {
+                if (btn) {
+                    if (currentIndex !== -1 && currentIndex < allArticles.length - 1) {
+                        const nextArticleId = allArticles[currentIndex + 1].id;
+                        btn.href = config.articleLinkFormat.replace('${id}', nextArticleId);
+                        btn.classList.remove('disabled');
+                        console.log('Next button enabled, linking to:', btn.href);
+                    } else {
+                        btn.href = '#';
+                        btn.classList.add('disabled');
+                        console.log('Next button disabled.');
+                    }
+                } else {
+                    console.warn('A next article button not found.');
+                }
+            });
+            // --- End Navigation Button Logic ---
+
+        })
+        .catch(error => {
+            console.error('Error fetching article list or processing:', error);
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+            errorEl.textContent = `Error loading article or list: ${error.message}`;
+        });
+})();
+</script>

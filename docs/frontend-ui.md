@@ -66,6 +66,9 @@ The application is designed to be responsive across various screen sizes using T
 
 The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article. The page title is dynamically set to "mangonews - [Article Title]" by fetching the article data server-side.
 
+**Article Navigation:**
+The single article page now includes "Previous" and "Next" navigation buttons, styled identically to the pagination buttons on the main news feed. These buttons allow users to easily navigate between articles in the list they viewed on the feed page. The functionality relies on the list of articles stored in `localStorage` by the feed widget.
+
 ### Navigation
 
 A persistent header component (`frontend/src/components/Header.tsx`) provides consistent navigation across all main pages. The header is sticky, remaining at the top of the viewport during scrolling (`sticky top-0 z-50`).
