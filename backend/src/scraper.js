@@ -371,8 +371,15 @@ async function processScrapedData(data) { // Accept a single data object
       for (const topicName of assignedTopics) {
         let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
         let topicId;
-        const preTranslatedEs = topicTranslations[topicName]?.es || null;
-        const preTranslatedHt = topicTranslations[topicName]?.ht || null;
+        let preTranslatedEs = null;
+        let preTranslatedHt = null;
+
+        if (topicTranslations[topicName]) {
+          preTranslatedEs = topicTranslations[topicName].es;
+          preTranslatedHt = topicTranslations[topicName].ht;
+        } else {
+          console.warn(`No pre-translation found for topic: "${topicName}". This topic will not be translated.`);
+        }
 
         if (topicResult.rows.length === 0) {
           // Topic doesn't exist, create it with pre-translated names
@@ -381,8 +388,10 @@ async function processScrapedData(data) { // Accept a single data object
         } else {
           topicId = topicResult.rows[0].id;
           // If topic exists but translations are missing or different, update them
-          if (topicResult.rows[0].name_es !== preTranslatedEs || topicResult.rows[0].name_ht !== preTranslatedHt) {
-            await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
+          // Only update if preTranslatedEs/Ht are not null, to avoid overwriting with null if translation is genuinely missing
+          if ((preTranslatedEs !== null && topicResult.rows[0].name_es !== preTranslatedEs) ||
+              (preTranslatedHt !== null && topicResult.rows[0].name_ht !== preTranslatedHt)) {
+            await pool.query('UPDATE topics SET name_es = COALESCE($1, name_es), name_ht = COALESCE($2, name_ht) WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
           }
         }
 
@@ -859,26 +868,33 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
         await pool.query('DELETE FROM article_topics WHERE article_id = $1', [article.id]);
 
         // Save assigned topics and link to article
-        for (const topicName of assignedTopics) {
-          let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
-          let topicId;
-          if (topicResult.rows.length === 0) {
-            // Topic doesn't exist, create it and translate its name
-            const topicName_es = await generateAITranslation(topicName, 'es');
-            const topicName_ht = await generateAITranslation(topicName, 'ht');
-            topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, topicName_es, topicName_ht]);
-            topicId = topicResult.rows[0].id;
-          } else {
-            topicId = topicResult.rows[0].id;
-            // If topic exists but translations are missing, generate and update
-            if (!topicResult.rows[0].name_es || !topicResult.rows[0].name_ht) {
-              const topicName_es = topicResult.rows[0].name_es || await generateAITranslation(topicName, 'es');
-              const topicName_ht = topicResult.rows[0].name_ht || await generateAITranslation(topicName, 'ht');
-              await pool.query('UPDATE topics SET name_es = COALESCE(name_es, $1), name_ht = COALESCE(name_ht, $2) WHERE id = $3', [topicName_es, topicName_ht, topicId]);
+            for (const topicName of assignedTopics) {
+              let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
+              let topicId;
+              let preTranslatedEs = null;
+              let preTranslatedHt = null;
+
+              if (topicTranslations[topicName]) {
+                preTranslatedEs = topicTranslations[topicName].es;
+                preTranslatedHt = topicTranslations[topicName].ht;
+              } else {
+                console.warn(`No pre-translation found for topic: "${topicName}". This topic will not be translated.`);
+              }
+
+              if (topicResult.rows.length === 0) {
+                // Topic doesn't exist, create it with pre-translated names
+                topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
+                topicId = topicResult.rows[0].id;
+              } else {
+                topicId = topicResult.rows[0].id;
+                // If topic exists but translations are missing or different, update them
+                if ((preTranslatedEs !== null && topicResult.rows[0].name_es !== preTranslatedEs) ||
+                    (preTranslatedHt !== null && topicResult.rows[0].name_ht !== preTranslatedHt)) {
+                  await pool.query('UPDATE topics SET name_es = COALESCE($1, name_es), name_ht = COALESCE($2, name_ht) WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
+                }
+              }
+              await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
             }
-          }
-          await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
-        }
         // Also update the article's updated_at timestamp
         await pool.query('UPDATE articles SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [article.id]);
         processed = true;
