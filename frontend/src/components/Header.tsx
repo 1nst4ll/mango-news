@@ -84,14 +84,19 @@ const Header: React.FC = () => {
         {/* Desktop Navigation (Center) */}
           <nav className="hidden md:block">
             <ul className="flex space-x-4 items-center">
-              {filteredNavItems.map(item => (
-                <li key={item.href}>
-                  <a href={`/${currentLocale}${item.href}`} className="hover:underline flex items-center space-x-1">
-                    {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
-                    <span>{t[item.titleKey as keyof typeof t]}</span>
-                  </a>
-                </li>
-              ))}
+              {filteredNavItems.map(item => {
+                const linkHref = item.href.startsWith('http') || item.href.startsWith('/') && item.href.length === 1 // Check for absolute URL or root path
+                  ? item.href // Use as is if absolute or root
+                  : `/${currentLocale}${item.href}`; // Prepend locale for relative paths
+                return (
+                  <li key={item.href}>
+                    <a href={linkHref} className="hover:underline flex items-center space-x-1">
+                      {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
+                      <span>{t[item.titleKey as keyof typeof t]}</span>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
         {/* Desktop Login, Mode Toggle, and Language Switcher (Right) */}
@@ -107,18 +112,23 @@ const Header: React.FC = () => {
         <div className="md:hidden absolute top-full left-0 right-0 bg-sidebar shadow-lg z-40">
           <nav className="container mx-auto py-2">
             <ul className="flex flex-col space-y-2">
-              {filteredNavItems.map(item => (
-                <li key={item.href}>
-                  <a 
-                    href={`/${currentLocale}${item.href}`} 
-                    className="block px-4 py-2 hover:bg-sidebar-muted hover:underline flex items-center space-x-1"
-                    onClick={() => setIsMobileMenuOpen(false)} // Close menu on click
-                  >
-                    {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
-                    <span>{t[item.titleKey as keyof typeof t]}</span>
-                  </a>
-                </li>
-              ))}
+              {filteredNavItems.map(item => {
+                const linkHref = item.href.startsWith('http') || item.href.startsWith('/') && item.href.length === 1
+                  ? item.href
+                  : `/${currentLocale}${item.href}`;
+                return (
+                  <li key={item.href}>
+                    <a 
+                      href={linkHref} 
+                      className="block px-4 py-2 hover:bg-sidebar-muted hover:underline flex items-center space-x-1"
+                      onClick={() => setIsMobileMenuOpen(false)} // Close menu on click
+                    >
+                      {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
+                      <span>{t[item.titleKey as keyof typeof t]}</span>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
             {/* LoginButton and ModeToggle removed from here as they are now in the main mobile header bar */}
           </nav>
