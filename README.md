@@ -1,195 +1,169 @@
-# Mango News Feed for WordPress
+# mango.tc news Documentation
 
-This package contains files that allow you to integrate the Mango News API feed into your WordPress website, specifically for the Listivo theme.
+Welcome to the mango.tc news documentation. This guide provides comprehensive information on setting up, configuring, and using the mango.tc news application, including details on its backend, the new Astro-based frontend, and scraping functionalities.
 
-## Options for Integration
+## Table of Contents
 
-There are three main ways to add the Mango News feed to your WordPress site with Elementor:
+- [Server Deployment Instructions](../deployment.md) - **New**
+- [Backend Setup and Configuration](backend-setup.md)
+- [Scraping Methods (Open Source and Firecrawl)](scraping-methods.md)
+- [Using CSS Selectors for Scraping](css-selectors.md)
+- [Settings Page (Admin Controls and Source Management)](admin-ui.md) - **Updated to reflect combined page and new UI**
+- [Troubleshooting Common Issues](troubleshooting.md)
+- [Frontend UI Styling and Stack](frontend-ui.md) - **Updated to reflect Astro migration**
+- [Multilingual Support (Spanish & Haitian Creole)](multilingual-support.md) - **New**
 
-### Option 1: Split HTML Widget Method (Recommended for Non-Developers)
+## Backend API Endpoints
 
-1. Edit your page with Elementor
-2. Add **two** HTML widgets to the page where you want the feed to appear
-3. For the first HTML widget:
-   - Open the file `mango-news-styles.html`
-   - Copy the entire content
-   - Paste it into the first HTML widget
-4. For the second HTML widget:
-   - Open the file `mango-news-content.html`
-   - Copy the entire content
-   - Paste it into the second HTML widget
-5. Place the second widget right after the first one
-6. Save the page
+This section details the available API endpoints provided by the backend server.
 
-This split approach helps avoid formatting issues that can occur when all the code is in a single widget.
+### Authentication Endpoints
 
-### Option 1A: Single HTML Widget Method (Alternative)
+The backend now supports user registration and login using JWT authentication.
 
-If you prefer using a single widget:
-1. Edit your page with Elementor
-2. Add an HTML widget to the page
-3. Open the file `mango-news-direct-code.php`
-4. Copy everything between the "START COPY FOR ELEMENTOR HTML WIDGET" and "END COPY FOR ELEMENTOR HTML WIDGET" comments
-5. Paste it into the HTML widget
-6. Save the page
+### POST /api/register
 
-This is the quickest way to add the feed to a specific page without installing a plugin.
+Registers a new user. Requires `username` and `password` in the request body.
 
-### Option 2: PHP Function in Theme (For Developers)
+### POST /api/login
 
-1. Open your theme's `functions.php` file
-2. Copy the `mango_news_feed()` function from `mango-news-direct-code.php` into your theme's functions.php
-3. In your theme template where you want to display the feed, add:
-   ```php
-   <?php mango_news_feed(); ?>
-   ```
-4. You can also pass options to customize the feed:
-   ```php
-   <?php 
-   mango_news_feed([
-       'api_url' => 'https://mango-news.onrender.com/api',
-       'article_limit' => 10,
-       'show_topics' => true,
-       'show_sharing' => true,
-       'search_term' => 'your search term'
-   ]); 
-   ?>
-   ```
+Logs in an existing user. Requires `username` and `password` in the request body. Returns a JWT upon successful login.
 
-### Option 3: Shortcode Method (Requires both steps below)
+### Protected Endpoints
 
-1. Add the shortcode function to your theme:
-   - Open your theme's `functions.php` file
-   - Copy both the `mango_news_feed()` function and the `mango_news_feed_shortcode_function()` from `mango-news-direct-code.php`
-   - Paste them into your theme's functions.php
+The following endpoints now require a valid JWT in the `Authorization: Bearer YOUR_TOKEN` header:
 
-2. Use the shortcode in your content:
-   - Edit any page or post
-   - Add the shortcode `[mango_news_feed]` where you want the feed to appear
-   - You can also customize with parameters:
-     ```
-     [mango_news_feed limit="10" show_topics="yes" search_term="tourism"]
-     ```
+*   `POST /api/sources`
+*   `PUT /api/sources/:id`
+*   `DELETE /api/sources/:id`
+*   `POST /api/scrape/run/:id`
+*   `POST /api/scrape/run`
+*   `POST /api/process-missing-ai/:sourceId`
+*   `GET /api/discover-sources`
+*   `POST /api/articles/purge`
+*   `POST /api/articles/purge/:sourceId`
+*   `GET /api/stats`
+*   `GET /api/settings/scheduler`
+*   `POST /api/settings/scheduler`
+*   `DELETE /api/articles/:id`
+*   `PUT /api/articles/:id/block`
+*   `POST /api/articles/:articleId/process-ai`
 
-### Option 4: Full Elementor Widget Plugin (Advanced)
+### General API Endpoints
 
-If you're familiar with WordPress plugin development:
+These endpoints do not currently require authentication.
 
-1. Create a new directory in your WordPress plugins folder
-2. Copy `mango-news-feed-widget.php` to this directory
-3. Create a subdirectory called `widgets` and copy `mango-news-feed-elementor-widget.php` into it
-4. Activate the plugin from your WordPress admin dashboard
-5. Use the "Mango News Feed" widget in Elementor
+### GET /api/sources
 
-## Customization
+Retrieves a list of all news sources.
 
-### Link Handling
+### POST /api/sources
 
-The article links generated by the feed (`mango-news-content.html`) and used for navigation within the single article page (`mango-news-single-article.html`) are configured via the `articleLinkFormat` variable in their respective JavaScript sections.
+Adds a new news source.
 
-Currently, it's set to:
-   ```javascript
-   articleLinkFormat: '/news-article/?id=${id}' 
-   ```
-This means articles will link to a URL like `yourdomain.com/news-article/?id=123`. You need to ensure you have a WordPress page at the slug `/news-article/` that is set up to display the single article content (e.g., using the `mango-news-single-article-styles.html` and `mango-news-single-article.html` widgets).
+### PUT /api/sources/:id
 
-If you need to change this (e.g., to use a different slug or link directly to the original source), modify the `articleLinkFormat` in both `mango-news-content.html` and `mango-news-single-article.html`.
-For example, to link to the original source URL directly from the feed:
-In `mango-news-content.html`, change `articleLinkFormat` to `article.source_url` and potentially set `openInNewTab: true`. The `renderArticleCard` function would also need adjustment to use this directly instead of the formatted link.
+Updates an existing news source by ID.
 
-### Styling
+### DELETE /api/sources/:id
 
-The feed includes basic responsive styling that should work well with most WordPress themes. If you need to customize the appearance:
+Deletes a news source by ID.
 
-1. Find the CSS section in the code you're using
-2. Modify the styles to match your theme's design
+### GET /api/topics
 
-## Troubleshooting
+Retrieves a list of all topics.
 
-- **CORS Issues**: If you encounter CORS errors, ensure your Mango News API has the correct CORS headers enabled.
-- **API Endpoint**: Make sure the API URL is correct. The default is `https://mango-news.onrender.com/api`.
-- **Article Links**: If clicking on articles gives 404 errors, ensure your WordPress page slug matches the `articleLinkFormat` (currently `/news-article/`) and that the page is correctly set up to display single articles.
-- **Filter Issues**: If search or source filters don't seem to work, check the browser's developer console for JavaScript errors. Ensure the API is responding correctly.
+### GET /api/articles
 
-## Feed Features
+Retrieves a list of all articles. Supports filtering by `topic`, `startDate`, and `endDate` query parameters.
 
-- **Search**: A search bar allows users to filter articles by keywords.
-- **Source Filtering**: A multi-select checkbox list allows users to filter articles by one or more news sources.
-- **Dynamic Loading**: Articles are fetched from the API and displayed.
-- **Grouping by Date**: Articles in the feed are grouped by their publication date.
-- **Metadata Display**: Shows source domain, author (if available), and publication date.
-- **Thumbnails & Topics**: Displays article thumbnails with topic tags overlaid if available.
-- **Sharing**: WhatsApp and Facebook sharing buttons are provided for each article.
+### GET /api/articles/:id
 
-## Single Article Page (`mango-news-single-article.html` & `mango-news-single-article-styles.html`)
+Retrieves a single article by ID.
 
-To display a single article, you'll typically create a WordPress page (e.g., at slug `/news-article/`) and use two HTML widgets:
-1.  **First HTML Widget**: Paste the content of `mango-news-single-article-styles.html`.
-2.  **Second HTML Widget**: Paste the content of `mango-news-single-article.html`.
+### POST /api/scrape/run/:id
 
-This page will:
-- Fetch and display the specific article based on the `id` query parameter in the URL.
-- Show title, image, metadata, full content.
-- Provide "Previous," "BACK" (to feed), and "Next" article navigation buttons at both the top and bottom of the article.
+Triggers the scraper for a specific source by ID.
 
-## Recent Updates
+### POST /api/scrape/run
 
-### May 18, 2025 Update
-- Changed default article page slug to `/news-article/`.
-- Added client-side search bar and multi-select checkbox source filter to the main news feed.
-- Separated CSS for the single article display into `mango-news-single-article-styles.html`.
-- Various styling adjustments for single article navigation buttons.
+Triggers a full scraper run for all active sources.
 
-### May 17, 2025 Update
+### GET /api/discover-sources
 
-We've added enhanced pagination functionality that perfectly matches the Listivo theme style:
+Initiates a basic source discovery process (currently uses opensourceScraper).
 
-1. **Full Article Access**: All articles from the API are now accessible through pagination
-2. **Configurable Page Size**: Control how many articles appear per page (default: 12)
-3. **Exact Listivo-Style**: Pagination design matches Listivo's square buttons with coral accent color
-4. **Results Counter**: Shows "Showing X to Y of Z results" with bold black numbers
-5. **Smooth Scrolling**: Automatically scrolls to top of feed when changing pages
+### POST /api/articles/purge
 
-### Previous Updates
+Deletes all articles, topics, and article links from the database.
 
-We've also fixed various formatting issues:
+### GET /api/stats
 
-1. **Fixed Layout Issues**: Articles now display properly in the grid, with equal sizes and consistent spacing
-2. **Fixed Share Button Placement**: Share buttons are correctly contained within each article card
-3. **Improved Card Structure**: Each card now uses a wrapper element that contains both the article link and share buttons
-4. **Enhanced Responsiveness**: Added width specifications to ensure proper grid alignment
+Retrieves database statistics, including total article count, total source count, article count per source, and article count per year.
 
-## Configuration Options
+**Response Example:**
 
-You can customize the feed by editing the `config` object in the JavaScript:
-
-```javascript
-const config = {
-    apiUrl: 'https://mango-news.onrender.com/api',
-    articlesPerPage: 12,              // Number of articles per page (adjust to show more/less per page)
-    showTopics: true,                 // Show or hide topic tags
-    showSharing: true,                // Show or hide sharing buttons
-    searchTerm: '',                   // Filter articles by search term
-    refreshInterval: 5 * 60 * 1000,   // Refresh interval in milliseconds (5 minutes)
-    articleLinkFormat: '/news-article/?id=${id}', // URL format for article links (ensure this matches your WP page slug)
-    selectedSources: [],              // Array to hold selected source hostnames for filtering
-    openInNewTab: false               // Whether to open articles in new tabs
-};
+```json
+{
+  "totalArticles": 1500,
+  "totalSources": 10,
+  "articlesPerSource": [
+    {
+      "source_name": "Source A",
+      "article_count": 500
+    },
+    {
+      "source_name": "Source B",
+      "article_count": 300
+    },
+    // ... more sources
+  ],
+  "articlesPerYear": [
+    {
+      "year": 2023,
+      "article_count": 800
+    },
+    {
+      "year": 2024,
+      "article_count": 700
+    }
+    // ... more years
+  ]
+}
 ```
 
-## Filtering and Pagination Features
+## Scraping Enhancements
 
-The pagination system has been designed to exactly match the Listivo theme style as shown in the screenshot:
+- **AI Topic Assignment:** Integrated AI using the Groq SDK in `backend/src/scraper.js` to analyze article content and assign exactly 3 relevant topics from a predefined list of 31 general topics (including Sport). This ensures consistent tagging across articles.
+- **AI Summary Generation:** Enhanced the AI summary generation in `backend/src/scraper.js` using Groq's Llama 3.3 70B model to create concise, SEO-optimized text summaries focusing on key information and relevant keywords.
+- **Relative Date Parsing:** Implemented logic in `backend/src/scraper.js` to parse relative date formats (e.g., "x days ago", "x hours ago") and convert them to absolute timestamps for accurate storage and display.
 
-1. **Top and Bottom Pagination**: Added identical pagination controls at both the top and bottom of the feed
-2. **Side-by-Side Layout**: Results counter and pagination buttons appear on the same line (counter left, buttons right)
-3. **Square Buttons**: Clean, square-shaped pagination buttons with no rounded corners
-4. **Coral Accent Color**: Active page and navigation arrows use Listivo's coral orange accent color (#ff7d4d)
-5. **Zero-Gap Design**: Pagination buttons are aligned side by side without gaps between them
-6. **Bold Black Numbers**: The results counter displays numbers in bold black text for better readability
-7. **Simple Arrow Navigation**: Uses simple arrow symbols (← →) that match Listivo's navigation style
+## Frontend Features
 
-If you still experience any formatting issues, please try the following:
-- Make sure you've copied all the code from both HTML widgets correctly
-- Try refreshing your page cache
-- Experiment with the CSS variables to better match your theme's styling
+This section outlines key features and components of the Mango News frontend application, which is being migrated to **Astro**.
+
+### News Feed
+
+The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggregated news articles.
+
+- **Dynamic Topic Filtering:** Articles can be filtered by topic. The available topics are fetched dynamically from the backend API (`/api/topics`).
+
+### Article Detail Page
+
+The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article.
+
+### Navigation
+
+A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/`, `/settings`, and `/article/[id]`) to provide consistent navigation. The navigation links are defined in `frontend/src/lib/nav-items.ts`.
+
+### Settings Page
+
+The Admin Dashboard and Source Management features have been combined into a single Settings page (`frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.
+
+### Styling and Branding
+
+The frontend is styled using **Tailwind CSS** and leverages **shadcn/ui** components for a modern and consistent look and feel. Details on the frontend stack and styling can be found in [Frontend UI Styling and Stack](frontend-ui.md).
+
+---
+
+This documentation is a work in progress. If you find any issues or have suggestions for improvement, please contribute!
