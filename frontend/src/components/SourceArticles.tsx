@@ -33,6 +33,13 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [confirmDialogArticleId, setConfirmDialogArticleId] = useState<number | null>(null);
 
   const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev
+  const [jwtToken, setJwtToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Retrieve the token from localStorage when the component mounts
+    const token = localStorage.getItem('jwtToken');
+    setJwtToken(token);
+  }, []);
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -125,6 +132,10 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     try {
       const response = await fetch(`${apiUrl}/api/articles/${articleId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }), // Add Authorization header if token exists
+        },
       });
 
       if (!response.ok) {

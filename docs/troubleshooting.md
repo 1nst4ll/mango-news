@@ -47,6 +47,12 @@ This error occurs when the scraper attempts to access the `urlBlacklist` variabl
 
 -   **Implementation:** The theme switcher is currently implemented as a simple toggle button that switches between light and dark mode on click. This was changed from a dropdown menu to address compatibility issues on iOS Safari.
 
+### Authentication Errors (No Token Provided)
+
+If you encounter "Authentication failed: No token provided" errors when performing actions like deleting articles, it indicates that the API request is missing the necessary JWT (JSON Web Token) in the `Authorization` header.
+
+-   **Resolution:** Ensure you are logged in. The frontend automatically retrieves the JWT token from `localStorage` after a successful login and includes it in authenticated API requests (e.g., for deleting articles). If you are logged in and still face this issue, clear your browser's local storage and cookies, then log in again. Verify that the `jwtToken` is present in your browser's local storage after logging in.
+
 ## General Issues
 
 ### Database Problems

@@ -70,6 +70,8 @@ interface ModalFormData {
 
 
 const SettingsPage: React.FC = () => {
+  const [jwtToken, setJwtToken] = useState<string | null>(null); // State to store JWT token
+
   // State for Scheduled Tasks
   const [mainScraperFrequency, setMainScraperFrequency] = useState<string>('0 * * * *'); // Default to hourly
   const [missingAiFrequency, setMissingAiFrequency] = useState<string>('*/20 * * * *'); // Default to every 20 minutes
@@ -137,9 +139,12 @@ const SettingsPage: React.FC = () => {
   // Effects from admin/page.tsx
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('enableGlobalAiSummary');
-      if (saved !== null) {
-        setEnableGlobalAiSummary(JSON.parse(saved));
+      const token = localStorage.getItem('jwtToken');
+      setJwtToken(token); // Set the JWT token in state
+
+      const savedSummaryToggle = localStorage.getItem('enableGlobalAiSummary');
+      if (savedSummaryToggle !== null) {
+        setEnableGlobalAiSummary(JSON.parse(savedSummaryToggle));
       }
     }
 
@@ -147,12 +152,17 @@ const SettingsPage: React.FC = () => {
       setStatsLoading(true);
       setStatsError(null);
       try {
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         const token = localStorage.getItem('jwtToken'); // Get the JWT token from localStorage
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(`${apiUrl}/api/stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`, // Include the token in the Authorization header
-          },
+          headers: headers,
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -171,7 +181,7 @@ const SettingsPage: React.FC = () => {
     };
 
     fetchStats();
-  }, []);
+  }, [jwtToken]); // Re-fetch stats if token changes
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -252,12 +262,17 @@ const SettingsPage: React.FC = () => {
     setScrapingStatus(null);
     try {
       const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/scrape/run`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }), // Include enableGlobalAiTags and enableGlobalAiImage
+        headers: headers,
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -285,9 +300,17 @@ const SettingsPage: React.FC = () => {
     setPurgeLoading(true);
     setPurgeStatus(null);
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/articles/purge`, {
         method: 'POST',
+        headers: headers,
       });
       const data = await response.json();
       if (!response.ok) {
@@ -309,19 +332,23 @@ const SettingsPage: React.FC = () => {
     setSourceScrapingLoading(prev => ({ ...prev, [sourceId]: true }));
     setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: null }));
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/scrape/run/${sourceId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }), // Include enableGlobalAiTags and enableGlobalAiImage
+        headers: headers,
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }),
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || `Failed to trigger scraper for source ${sourceId}`);
       }
-      // Update status message with counts from the backend response
       setSourceScrapingStatus(prev => ({
         ...prev,
         [sourceId]: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles. Check backend logs for details.`,
@@ -355,12 +382,17 @@ const SettingsPage: React.FC = () => {
     }));
 
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({ featureType }),
       });
       const data = await response.json();
@@ -398,11 +430,16 @@ const SettingsPage: React.FC = () => {
 
     try {
       const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/sources/${sourceId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({ is_active: false }),
       });
 
@@ -464,10 +501,17 @@ const SettingsPage: React.FC = () => {
     setSourceArticleDeletionLoading(prev => ({ ...prev, [sourceId]: true }));
     setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: null }));
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-      // TODO: Implement backend endpoint for deleting articles by source ID
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/articles/purge/${sourceId}`, {
         method: 'POST',
+        headers: headers,
       });
       const data = await response.json();
       if (!response.ok) {
@@ -504,12 +548,17 @@ const SettingsPage: React.FC = () => {
       return;
     }
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/sources`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify(modalFormData),
       });
       if (!response.ok) {
@@ -536,12 +585,17 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
       const response = await fetch(`${apiUrl}/api/sources/${editingSource.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify(modalFormData),
       });
       if (!response.ok) {
