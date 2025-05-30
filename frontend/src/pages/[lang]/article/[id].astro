@@ -1,0 +1,32 @@
+---
+// Dynamic route for displaying individual articles.
+import BaseLayout from '../../../layouts/BaseLayout.astro'; // Corrected path
+import ArticleDetail from '../../../components/ArticleDetail'; // Corrected path
+
+export const prerender = false; // Mark this page for dynamic rendering
+
+const { id } = Astro.params;
+
+// Fetch article data server-side
+const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL;
+const articleResponse = await fetch(`${backendApiUrl}/articles/${id}`);
+const article = await articleResponse.json();
+
+// Construct the page title
+const pageTitle = `${article.title}`;
+const pageDescription = article.summary || (article.content ? article.content.substring(0, 160) + '...' : 'Read this article on mango.tc news');
+const ogImageUrl = article.image_url;
+const ogUrl = Astro.url.href;
+const ogType = "article";
+---
+
+<BaseLayout 
+  title={pageTitle}
+  description={pageDescription}
+  ogImageUrl={ogImageUrl}
+  ogUrl={ogUrl}
+  ogType={ogType}
+>
+  {/* The ArticleDetail component will fetch data client-side */}
+  <ArticleDetail id={id} client:load />
+</BaseLayout>
