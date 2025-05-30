@@ -12,5 +12,5 @@ export const navItems: NavItem[] = [
   { href: "https://mangonews.onrender.com/", titleKey: "news" },
   // Add settings and RSS feed, assuming they are always available or handled by isLoggedIn logic in Header
   { href: "/settings", titleKey: "settings" },
-  { href: "https://mangonews.onrender.com/api/rss", titleKey: "rss_feed" }
+  { href: "https://mango-news.onrender.com/api/rss", titleKey: "rss_feed" }
 ];
