@@ -87,7 +87,7 @@ const Header: React.FC = () => {
               {filteredNavItems.map(item => (
                 <li key={item.href}>
                   <a 
-                    href={item.titleKey === "rss_feed" ? item.href : `/${currentLocale}${item.href}`} 
+                    href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`} 
                     className="hover:underline flex items-center space-x-1"
                   >
                     {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
@@ -113,7 +113,7 @@ const Header: React.FC = () => {
               {filteredNavItems.map(item => (
                 <li key={item.href}>
                   <a 
-                    href={item.titleKey === "rss_feed" ? item.href : `/${currentLocale}${item.href}`} 
+                    href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`} 
                     className="block px-4 py-2 hover:bg-sidebar-muted hover:underline flex items-center space-x-1"
                     onClick={() => setIsMobileMenuOpen(false)} // Close menu on click
                   >
