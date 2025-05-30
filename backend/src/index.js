@@ -481,11 +481,11 @@ app.put('/api/articles/:id/block', authenticateToken, async (req, res) => {
 app.post('/api/articles/:articleId/process-ai', authenticateToken, async (req, res) => {
   const articleId = req.params.articleId;
   const endpoint = `/api/articles/${articleId}/process-ai`;
-  const { featureType } = req.body; // Expect featureType ('summary', 'tags', or 'image')
+  const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image', or 'translations')
 
-  if (!featureType || !['summary', 'tags', 'image'].includes(featureType)) {
+  if (!featureType || !['summary', 'tags', 'image', 'translations'].includes(featureType)) {
     console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Invalid or missing featureType: ${featureType}`);
-    return res.status(400).json({ error: 'Invalid or missing featureType. Must be "summary", "tags", or "image".' });
+    return res.status(400).json({ error: 'Invalid or missing featureType. Must be "summary", "tags", "image", or "translations".' });
   }
 
   try {
@@ -568,11 +568,11 @@ app.post('/api/scrape/run', authenticateToken, async (req, res) => {
 app.post('/api/process-missing-ai/:sourceId', authenticateToken, async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/process-missing-ai/${sourceId}`;
-  const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image') in the request body
+  const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image', or 'translations') in the request body
 
-  if (!featureType || !['summary', 'tags', 'image'].includes(featureType)) {
+  if (!featureType || !['summary', 'tags', 'image', 'translations'].includes(featureType)) {
     console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Invalid or missing featureType: ${featureType}`);
-    return res.status(400).json({ error: 'Invalid or missing featureType. Must be "summary", "tags", or "image".' });
+    return res.status(400).json({ error: 'Invalid or missing featureType. Must be "summary", "tags", "image", or "translations".' });
   }
 
   try {
