@@ -1,8 +1,15 @@
 ---
 // Base layout component for Astro pages, including global styles, header, and footer.
 import '../styles/global.css';
-import Header from '../components/Header'; // Assuming Header will be in src/components
-import Footer from '../components/footer.tsx'; // Assuming Footer will be in src/components
+import Header from '../components/Header';
+import Footer from '../components/footer.tsx';
+
+// Import locale files
+import en from '../locales/en.json';
+import es from '../locales/es.json';
+import ht from '../locales/ht.json';
+
+const locales = { en, es, ht };
 
 interface Props {
   title: string;
@@ -16,9 +23,18 @@ const {
   title, 
   description = "mango.tc news - Your source for news from Turks and Caicos.", 
   ogImageUrl,
-  ogUrl = Astro.url.href, // Default to current page URL
-  ogType = "website" // Default to website type
+  ogUrl = Astro.url.href,
+  ogType = "website"
 } = Astro.props;
+
+// Get current locale from Astro
+const currentLocale = Astro.currentLocale || 'en';
+const t = locales[currentLocale as keyof typeof locales]; // Type assertion for safety
+
+// Determine dynamic title and description for meta tags
+const dynamicTitle = title.startsWith('mango.tc news - ') ? title : `mango.tc news - ${title}`;
+const dynamicDescription = description === "mango.tc news - Your source for news from Turks and Caicos." ? t.news : description;
+
 ---
 
 <script is:inline>
@@ -41,10 +57,10 @@ const {
 </script>
 
 <!doctype html>
-<html lang="en">
+<html lang={currentLocale}>
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content={description} />
+    <meta name="description" content={dynamicDescription} />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -59,8 +75,8 @@ const {
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7180813918214554"
      crossorigin="anonymous"></script>
     <!-- Open Graph Meta Tags for Social Sharing -->
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:title" content={dynamicTitle} />
+    <meta property="og:description" content={dynamicDescription} />
     <meta property="og:type" content={ogType} />
     <meta property="og:url" content={ogUrl} />
     {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}

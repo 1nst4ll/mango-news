@@ -1,14 +1,16 @@
 // Defines the navigation items for the frontend.
 export interface NavItem {
   href: string;
-  title: string;
+  titleKey: string; // Use a key for translation
 }
 
 export const navItems: NavItem[] = [
-  { href: "https://mango.tc/", title: "Home" },
-  { href: "https://mango.tc/listings/?category=automoto-en&pagination=1&sort-by=most-relevant&view=card", title: "Automoto" },
-  { href: "https://mango.tc/listings/?category=real-estate", title: "Real Estate" },
-  { href: "https://mango.tc/listings/?category=jobs", title: "Jobs" },
-  { href: "https://mangonews.onrender.com/", title: "News" },
-
+  { href: "https://mango.tc/", titleKey: "home" },
+  { href: "https://mango.tc/listings/?category=automoto-en&pagination=1&sort-by=most-relevant&view=card", titleKey: "automoto" },
+  { href: "https://mango.tc/listings/?category=real-estate", titleKey: "real_estate" },
+  { href: "https://mango.tc/listings/?category=jobs", titleKey: "jobs" },
+  { href: "https://mangonews.onrender.com/", titleKey: "news" },
+  // Add settings and RSS feed, assuming they are always available or handled by isLoggedIn logic in Header
+  { href: "/settings", titleKey: "settings" },
+  { href: "https://mangonews.onrender.com/api/rss", titleKey: "rss_feed" }
 ];

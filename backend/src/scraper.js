@@ -310,10 +310,16 @@ async function processScrapedData(data) { // Accept a single data object
       // Determine the final thumbnail URL: use AI image if generated, otherwise use scraped thumbnail
       const finalThumbnailUrl = aiImagePath || metadata?.thumbnail_url || null;
 
+      // Generate translations for title and summary
+      const title_es = await generateAITranslation(title, 'es');
+      const summary_es = await generateAITranslation(summary, 'es');
+      const title_ht = await generateAITranslation(title, 'ht');
+      const summary_ht = await generateAITranslation(summary, 'ht');
+
       // Save article to database
       const articleResult = await pool.query(
-        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath] // Save AI image path
+        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, title_ht, summary_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id',
+        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, title_ht, summary_ht]
       );
       const articleId = articleResult.rows[0].id;
 
@@ -321,7 +327,6 @@ async function processScrapedData(data) { // Accept a single data object
       let assignedTopics = [];
       if (shouldAssignTags) {
         console.log('AI tag assignment is enabled. Assigning topics using Groq...');
-        // Pass the source object and raw content. The global toggle check is now done here.
         assignedTopics = await assignTopicsWithAI(source, raw_content);
       } else {
          console.log('AI tag assignment is disabled. Skipping topic assignment.');
@@ -329,32 +334,25 @@ async function processScrapedData(data) { // Accept a single data object
 
       // Save assigned topics and link to article
       for (const topicName of assignedTopics) {
-        let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
+        let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
         let topicId;
+        let topicName_es = null;
+        let topicName_ht = null;
+
         if (topicResult.rows.length === 0) {
-          // Topic doesn't exist, create it
-          topicResult = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
+          // Topic doesn't exist, create it and translate its name
+          topicName_es = await generateAITranslation(topicName, 'es');
+          topicName_ht = await generateAITranslation(topicName, 'ht');
+          topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, topicName_es, topicName_ht]);
           topicId = topicResult.rows[0].id;
         } else {
           topicId = topicResult.rows[0].id;
-        }
-
-        // Link article and topic
-        await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
-      }
-
-      console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}.`);
-
-      // Save assigned topics and link to article
-      for (const topicName of assignedTopics) {
-        let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
-        let topicId;
-        if (topicResult.rows.length === 0) {
-          // Topic doesn't exist, create it
-          topicResult = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
-          topicId = topicResult.rows[0].id;
-        } else {
-          topicId = topicResult.rows[0].id;
+          // If topic exists but translations are missing, generate and update
+          if (!topicResult.rows[0].name_es || !topicResult.rows[0].name_ht) {
+            topicName_es = topicResult.rows[0].name_es || await generateAITranslation(topicName, 'es');
+            topicName_ht = topicResult.rows[0].name_ht || await generateAITranslation(topicName, 'ht');
+            await pool.query('UPDATE topics SET name_es = COALESCE(name_es, $1), name_ht = COALESCE(name_ht, $2) WHERE id = $3', [topicName_es, topicName_ht, topicId]);
+          }
         }
 
         // Link article and topic
@@ -497,6 +495,41 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
   } catch (apiErr) {
     console.error('Error generating or uploading AI image with Ideogram API or S3:', apiErr);
     return null; // Return null on error
+  }
+}
+
+// This function generates AI translations using the Groq API
+async function generateAITranslation(text, targetLanguageCode) {
+  if (!text) {
+    return null;
+  }
+  console(`Generating AI translation for "${text}" to ${targetLanguageCode} using Groq...`);
+  const systemPrompt = `Translate the following text into ${targetLanguageCode === 'es' ? 'Spanish' : 'Haitian Creole'}. Return only the translated text, without any introductory phrases or conversational filler.`;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: text,
+        }
+      ],
+      model: "llama-3.1-8b-instant", // Using a suitable Groq model for text generation
+      temperature: 0.3, // Keep temperature low for accurate translation
+      max_tokens: 500, // Sufficient tokens for translation
+    });
+
+    const translation = chatCompletion.choices[0]?.message?.content || null;
+    console(`Generated translation for "${text}" to ${targetLanguageCode}: "${translation}"`);
+    return translation;
+
+  } catch (llmErr) {
+    console.error(`Error generating translation for "${text}" to ${targetLanguageCode} with Groq:`, llmErr);
+    return null;
   }
 }
 
@@ -690,14 +723,14 @@ cron.schedule('*/20 * * * *', async () => {
 async function processAiForArticle(articleId, featureType) { // featureType can be 'summary', 'tags', or 'image'
   console.log(`Starting AI processing for article ID: ${articleId}, feature: ${featureType}`);
 
-  if (!featureType || !['summary', 'tags', 'image'].includes(featureType)) {
+  if (!featureType || !['summary', 'tags', 'image', 'translations'].includes(featureType)) {
     console.error(`Invalid featureType: ${featureType}`);
-    return { success: false, message: 'Invalid featureType. Must be "summary", "tags", or "image".' };
+    return { success: false, message: 'Invalid featureType. Must be "summary", "tags", "image", or "translations".' };
   }
 
   try {
     // 1. Fetch the article
-    const articleResult = await pool.query('SELECT id, title, raw_content, summary, thumbnail_url, source_id FROM articles WHERE id = $1', [articleId]);
+    const articleResult = await pool.query('SELECT id, title, raw_content, summary, thumbnail_url, source_id, title_es, summary_es, title_ht, summary_ht FROM articles WHERE id = $1', [articleId]);
     const article = articleResult.rows[0];
 
     if (!article) {
@@ -706,6 +739,8 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
     }
 
     // 2. Fetch source configuration to check if AI is enabled for this source
+    // For translations, we don't have a specific source toggle, so we'll assume it's always enabled if requested.
+    // However, if you want to add a toggle for translations, you'd fetch it here.
     const sourceResult = await pool.query('SELECT enable_ai_summary, enable_ai_tags, enable_ai_image FROM sources WHERE id = $1', [article.source_id]);
     const source = sourceResult.rows[0];
 
@@ -739,10 +774,19 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
           let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
           let topicId;
           if (topicResult.rows.length === 0) {
-            topicResult = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
+            // Topic doesn't exist, create it and translate its name
+            const topicName_es = await generateAITranslation(topicName, 'es');
+            const topicName_ht = await generateAITranslation(topicName, 'ht');
+            topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, topicName_es, topicName_ht]);
             topicId = topicResult.rows[0].id;
           } else {
             topicId = topicResult.rows[0].id;
+            // If topic exists but translations are missing, generate and update
+            if (!topicResult.rows[0].name_es || !topicResult.rows[0].name_ht) {
+              const topicName_es = topicResult.rows[0].name_es || await generateAITranslation(topicName, 'es');
+              const topicName_ht = topicResult.rows[0].name_ht || await generateAITranslation(topicName, 'ht');
+              await pool.query('UPDATE topics SET name_es = COALESCE(name_es, $1), name_ht = COALESCE(name_ht, $2) WHERE id = $3', [topicName_es, topicName_ht, topicId]);
+            }
           }
           await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
         }
@@ -778,6 +822,52 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
         message = `AI image generated and saved successfully: ${aiImagePath}.`;
       } else {
         message = 'AI image generation failed.';
+      }
+    } else if (featureType === 'translations') {
+      console.log(`Processing translations for article ID: ${article.id}`);
+      let updatedFields = [];
+      let queryParams = [];
+      let paramIndex = 1;
+
+      // Translate title if missing
+      if (!article.title_es) {
+        const translatedTitle = await generateAITranslation(article.title, 'es');
+        if (translatedTitle) {
+          updatedFields.push(`title_es = $${paramIndex++}`);
+          queryParams.push(translatedTitle);
+        }
+      }
+      if (!article.title_ht) {
+        const translatedTitle = await generateAITranslation(article.title, 'ht');
+        if (translatedTitle) {
+          updatedFields.push(`title_ht = $${paramIndex++}`);
+          queryParams.push(translatedTitle);
+        }
+      }
+
+      // Translate summary if missing
+      if (!article.summary_es) {
+        const translatedSummary = await generateAITranslation(article.summary, 'es');
+        if (translatedSummary) {
+          updatedFields.push(`summary_es = $${paramIndex++}`);
+          queryParams.push(translatedSummary);
+        }
+      }
+      if (!article.summary_ht) {
+        const translatedSummary = await generateAITranslation(article.summary, 'ht');
+        if (translatedSummary) {
+          updatedFields.push(`summary_ht = $${paramIndex++}`);
+          queryParams.push(translatedSummary);
+        }
+      }
+
+      if (updatedFields.length > 0) {
+        queryParams.push(article.id); // Add article ID as the last parameter
+        await pool.query(`UPDATE articles SET ${updatedFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`, queryParams);
+        processed = true;
+        message = `Translations generated and saved successfully for article ID ${article.id}.`;
+      } else {
+        message = `No missing translations found for article ID ${article.id}.`;
       }
     } else {
       message = `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. No processing needed.`;
@@ -920,6 +1010,9 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
     } else if (featureType === 'image' && source.enable_ai_image) {
       // Find articles missing ai_image_path AND thumbnail_url (don't overwrite scraped thumbnails)
       query = 'SELECT id, title, raw_content FROM articles WHERE source_id = $1 AND ai_image_path IS NULL AND (thumbnail_url IS NULL OR thumbnail_url = \'\')';
+    } else if (featureType === 'translations') {
+      // Find articles missing any of the translation fields
+      query = 'SELECT id, title, raw_content, summary, title_es, summary_es, title_ht, summary_ht FROM articles WHERE source_id = $1 AND (title_es IS NULL OR summary_es IS NULL OR title_ht IS NULL OR summary_ht IS NULL)';
     } else {
       console.log(`AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. Skipping.`);
       return { success: true, message: `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. No processing needed.` };
@@ -951,10 +1044,19 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
               let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
               let topicId;
               if (topicResult.rows.length === 0) {
-                topicResult = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
+                // Topic doesn't exist, create it and translate its name
+                const topicName_es = await generateAITranslation(topicName, 'es');
+                const topicName_ht = await generateAITranslation(topicName, 'ht');
+                topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, topicName_es, topicName_ht]);
                 topicId = topicResult.rows[0].id;
               } else {
                 topicId = topicResult.rows[0].id;
+                // If topic exists but translations are missing, generate and update
+                if (!topicResult.rows[0].name_es || !topicResult.rows[0].name_ht) {
+                  const topicName_es = topicResult.rows[0].name_es || await generateAITranslation(topicName, 'es');
+                  const topicName_ht = topicResult.rows[0].name_ht || await generateAITranslation(topicName, 'ht');
+                  await pool.query('UPDATE topics SET name_es = COALESCE(name_es, $1), name_ht = COALESCE(name_ht, $2) WHERE id = $3', [topicName_es, topicName_ht, topicId]);
+                }
               }
               await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
             }
@@ -991,6 +1093,51 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
             processedCount++;
           } else {
             errorCount++;
+          }
+        } else if (featureType === 'translations') {
+          console.log(`Processing translations for article ID: ${article.id}`);
+          let updatedFields = [];
+          let queryParams = [];
+          let paramIndex = 1;
+
+          // Translate title if missing
+          if (!article.title_es) {
+            const translatedTitle = await generateAITranslation(article.title, 'es');
+            if (translatedTitle) {
+              updatedFields.push(`title_es = $${paramIndex++}`);
+              queryParams.push(translatedTitle);
+            }
+          }
+          if (!article.title_ht) {
+            const translatedTitle = await generateAITranslation(article.title, 'ht');
+            if (translatedTitle) {
+              updatedFields.push(`title_ht = $${paramIndex++}`);
+              queryParams.push(translatedTitle);
+            }
+          }
+
+          // Translate summary if missing
+          if (!article.summary_es) {
+            const translatedSummary = await generateAITranslation(article.summary, 'es');
+            if (translatedSummary) {
+              updatedFields.push(`summary_es = $${paramIndex++}`);
+              queryParams.push(translatedSummary);
+            }
+          }
+          if (!article.summary_ht) {
+            const translatedSummary = await generateAITranslation(article.summary, 'ht');
+            if (translatedSummary) {
+              updatedFields.push(`summary_ht = $${paramIndex++}`);
+              queryParams.push(translatedSummary);
+            }
+          }
+
+          if (updatedFields.length > 0) {
+            queryParams.push(article.id); // Add article ID as the last parameter
+            await pool.query(`UPDATE articles SET ${updatedFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`, queryParams);
+            processedCount++;
+          } else {
+            console.log(`No missing translations found for article ID ${article.id}.`);
           }
         }
       } catch (processErr) {

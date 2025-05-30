@@ -1,0 +1,22 @@
+{
+  "home": "Akèy",
+  "automoto": "Otomobil",
+  "real_estate": "Imobilye",
+  "jobs": "Travay",
+  "news": "Nouvèl",
+  "settings": "Anviwònman",
+  "rss_feed": "RSS Feed",
+  "loading": "Ap chaje...",
+  "loading_latest_news": "Ap chaje dènye nouvèl yo...",
+  "error_loading_articles": "Erè pandan chajman atik yo:",
+  "no_articles_found": "Pa gen okenn atik nouvèl ki koresponn ak kritè ou yo.",
+  "share_on_whatsapp": "Pataje sou WhatsApp",
+  "share_on_facebook": "Pataje sou Facebook",
+  "source": "Sous",
+  "author": "Otè",
+  "published": "Pibliye",
+  "added": "Ajoute",
+  "loading_article": "Ap chaje atik la...",
+  "article_not_found": "Atik pa jwenn.",
+  "translation_not_available": "Tradiksyon an {language} poko disponib."
+}

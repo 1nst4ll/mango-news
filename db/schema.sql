@@ -48,6 +48,10 @@ CREATE TABLE articles (
     publication_date TIMESTAMP WITH TIME ZONE,
     raw_content TEXT,
     summary TEXT, -- AI-generated summary
+    title_es TEXT DEFAULT NULL,
+    summary_es TEXT DEFAULT NULL,
+    title_ht TEXT DEFAULT NULL,
+    summary_ht TEXT DEFAULT NULL,
     is_blocked BOOLEAN DEFAULT FALSE, -- Add column to indicate if the article is blocked
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -56,7 +60,9 @@ CREATE TABLE articles (
 -- Create a table for topics/tags (Many-to-Many relationship with articles)
 CREATE TABLE topics (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL
+    name VARCHAR(100) UNIQUE NOT NULL,
+    name_es VARCHAR(100) DEFAULT NULL,
+    name_ht VARCHAR(100) DEFAULT NULL
 );
 
 -- Create a linking table for articles and topics

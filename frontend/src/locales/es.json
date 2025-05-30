@@ -1,0 +1,22 @@
+{
+  "home": "Inicio",
+  "automoto": "Automotor",
+  "real_estate": "Bienes Raíces",
+  "jobs": "Empleos",
+  "news": "Noticias",
+  "settings": "Configuración",
+  "rss_feed": "Fuente RSS",
+  "loading": "Cargando...",
+  "loading_latest_news": "Cargando últimas noticias...",
+  "error_loading_articles": "Error al cargar artículos:",
+  "no_articles_found": "No se encontraron artículos de noticias que coincidan con sus criterios.",
+  "share_on_whatsapp": "Compartir en WhatsApp",
+  "share_on_facebook": "Compartir en Facebook",
+  "source": "Fuente",
+  "author": "Autor",
+  "published": "Publicado",
+  "added": "Añadido",
+  "loading_article": "Cargando artículo...",
+  "article_not_found": "Artículo no encontrado.",
+  "translation_not_available": "Traducción a {language} no disponible aún."
+}

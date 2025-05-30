@@ -253,7 +253,7 @@ app.get('/api/topics', async (req, res) => {
   const endpoint = '/api/topics';
   const { searchTerm, startDate, endDate, sources } = req.query;
   let query = `
-    SELECT DISTINCT t.id, t.name
+    SELECT DISTINCT t.id, t.name, t.name_es, t.name_ht
     FROM topics t
     JOIN article_topics at ON t.id = at.topic_id
     JOIN articles a ON at.article_id = a.id
@@ -314,7 +314,9 @@ app.get('/api/articles', async (req, res) => {
   let query = `
     SELECT
         a.*,
-        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics -- Use ARRAY_REMOVE to handle articles without topics
+        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics, -- Use ARRAY_REMOVE to handle articles without topics
+        ARRAY_REMOVE(ARRAY_AGG(t.name_es), NULL) AS topics_es,
+        ARRAY_REMOVE(ARRAY_AGG(t.name_ht), NULL) AS topics_ht
     FROM
         articles a
     LEFT JOIN
@@ -394,7 +396,9 @@ app.get('/api/articles/:id', async (req, res) => {
     const result = await pool.query(`
       SELECT
           a.*,
-          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics
+          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics,
+          ARRAY_REMOVE(ARRAY_AGG(t.name_es), NULL) AS topics_es,
+          ARRAY_REMOVE(ARRAY_AGG(t.name_ht), NULL) AS topics_ht
       FROM
           articles a
       LEFT JOIN

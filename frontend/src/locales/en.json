@@ -1,0 +1,22 @@
+{
+  "home": "Home",
+  "automoto": "Automoto",
+  "real_estate": "Real Estate",
+  "jobs": "Jobs",
+  "news": "News",
+  "settings": "Settings",
+  "rss_feed": "RSS Feed",
+  "loading": "Loading...",
+  "loading_latest_news": "Loading latest news...",
+  "error_loading_articles": "Error loading articles:",
+  "no_articles_found": "No news articles found matching your criteria.",
+  "share_on_whatsapp": "Share on WhatsApp",
+  "share_on_facebook": "Share on Facebook",
+  "source": "Source",
+  "author": "Author",
+  "published": "Published",
+  "added": "Added",
+  "loading_article": "Loading article...",
+  "article_not_found": "Article not found.",
+  "translation_not_available": "Translation to {language} not available yet."
+}

@@ -1,5 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"; // Removed CardFooter
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+
+// Import locale files
+import en from '../locales/en.json';
+import es from '../locales/es.json';
+import ht from '../locales/ht.json';
+
+const locales = { en, es, ht };
+
+// Helper hook for translations
+const useTranslations = () => {
+  const [currentLocale, setCurrentLocale] = useState('en');
+
+  useEffect(() => {
+    const pathSegments = window.location.pathname.split('/');
+    const localeFromPath = pathSegments[1];
+    if (locales[localeFromPath as keyof typeof locales]) {
+      setCurrentLocale(localeFromPath);
+    } else {
+      setCurrentLocale('en'); // Fallback
+    }
+  }, []);
+
+  const t = locales[currentLocale as keyof typeof locales];
+  return { t, currentLocale };
+};
 
 interface Article {
   id: number;
@@ -18,6 +43,13 @@ interface Article {
   isOfficial?: boolean;
   isVerified?: boolean;
   isFacebook?: boolean;
+  // New translated fields
+  title_es?: string;
+  summary_es?: string;
+  title_ht?: string;
+  summary_ht?: string;
+  topics_es?: string[];
+  topics_ht?: string[];
 }
 
 interface NewsFeedProps {
@@ -39,40 +71,36 @@ const getDomainFromUrl = (url: string): string => {
 
 
 function NewsFeed({
-  searchTerm = '', // Provide default empty string
-  selectedSources = [], // Provide default empty array
-  activeCategory = 'all' // Provide default 'all'
+  searchTerm = '',
+  selectedSources = [],
+  activeCategory = 'all'
 }: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null);
+  const { t, currentLocale } = useTranslations(); // Use the translation hook
 
   useEffect(() => {
     const fetchArticles = async () => {
       setLoading(true);
       setError(null);
       try {
-        // TODO: Replace with your actual backend API URL
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         let url = `${apiUrl}/api/articles`;
         const params = new URLSearchParams();
 
-        // Log the filter values being used for the fetch
         console.log('Fetching articles with filters:', {
           searchTerm,
           selectedSources,
         });
 
-        // Add selected sources to params (assuming backend handles comma-separated)
         if (selectedSources.length > 0) {
             params.append('sources', selectedSources.join(','));
         }
 
-        // Add search term to params
         if (searchTerm) {
             params.append('searchTerm', searchTerm);
         }
-
 
         if (params.toString()) {
           url += `?${params.toString()}`;
@@ -83,7 +111,7 @@ function NewsFeed({
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data: Article[] = await response.json();
-        console.log('Fetched articles data:', data); // Log the fetched data
+        console.log('Fetched articles data:', data);
         setArticles(data);
       } catch (err: unknown) {
         setError(err);
@@ -92,27 +120,21 @@ function NewsFeed({
       }
     };
 
-    // Depend on all filter props for fetching
     fetchArticles();
-  }, [searchTerm, selectedSources]); // Depend on all filter props for fetching
+  }, [searchTerm, selectedSources]);
 
-  // Client-client filtering based on activeCategory (kept for now)
   const filteredArticles = articles.filter(article => {
-    // Basic category matching - assuming article object has a 'category' property
-    // If not, this logic needs to be adjusted based on available article data
     const matchesCategory = activeCategory === 'all' ||
                             article.category?.toLowerCase() === activeCategory.toLowerCase();
-
-    // Note: Topic, Source, Date Range, and Search filtering are now handled by the API call
-
     return matchesCategory;
   });
 
   // Group articles by date (Day, Month, Year)
   const groupedArticles = filteredArticles.reduce((acc, article) => {
     const date = new Date(article.publication_date);
+    // Use currentLocale for date formatting
     const year = date.getFullYear();
-    const month = date.toLocaleString('en-US', { month: 'long' });
+    const month = date.toLocaleString(currentLocale, { month: 'long' });
     const day = date.getDate();
     const dateKey = `${month} ${day}, ${year}`;
 
@@ -132,8 +154,8 @@ function NewsFeed({
   if (loading) {
     return (
       <div className="container mx-auto p-4">
-        <div className="text-center text-xl font-semibold">Loading...</div>
-        <p className="text-center text-gray-600">Loading latest news...</p>
+        <div className="text-center text-xl font-semibold">{t.loading}</div>
+        <p className="text-center text-gray-600">{t.loading_latest_news}</p>
       </div>
     );
   }
@@ -141,7 +163,7 @@ function NewsFeed({
   if (error) {
     return (
       <div className="container mx-auto p-4 text-red-500">
-        Error loading articles: {error instanceof Error ? error.message : 'An unknown error occurred'}
+        {t.error_loading_articles} {error instanceof Error ? error.message : 'An unknown error occurred'}
       </div>
     );
   }
@@ -149,10 +171,37 @@ function NewsFeed({
   if (filteredArticles.length === 0) {
      return (
       <div className="container mx-auto p-4 text-center text-gray-600">
-        No news articles found matching your criteria.
+        {t.no_articles_found}
       </div>
     );
   }
+
+  // Helper to get translated text with fallback
+  const getTranslatedText = (article: Article, field: 'title' | 'summary', locale: string) => {
+    if (locale === 'es' && article[`${field}_es`]) {
+      return article[`${field}_es`];
+    }
+    if (locale === 'ht' && article[`${field}_ht`]) {
+      return article[`${field}_ht`];
+    }
+    return article[field]; // Fallback to English
+  };
+
+  // Helper to get translated topics with fallback
+  const getTranslatedTopics = (article: Article, locale: string) => {
+    if (locale === 'es' && article.topics_es && article.topics_es.length > 0) {
+      return article.topics_es;
+    }
+    if (locale === 'ht' && article.topics_ht && article.topics_ht.length > 0) {
+      return article.topics_ht;
+    }
+    return article.topics; // Fallback to English
+  };
+
+  const getFallbackMessage = (locale: string) => {
+    const langName = locale === 'es' ? 'Spanish' : 'Haitian Creole';
+    return t.translation_not_available.replace('{language}', langName);
+  };
 
 
   return (
@@ -168,16 +217,20 @@ function NewsFeed({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {groupedArticles[dateKey].map(article => {
               try {
+                const displayTitle = getTranslatedText(article, 'title', currentLocale);
+                const displaySummary = getTranslatedText(article, 'summary', currentLocale);
+                const displayTopics = getTranslatedTopics(article, currentLocale);
+
                 return (
-                  <a href={`/article/${article.id}`} key={article.id} className="block"> {/* Wrap card with anchor tag */}
-                    <Card className="flex flex-col h-full"> {/* Removed pb-6 from here */}
+                  <a href={`/${currentLocale}/article/${article.id}`} key={article.id} className="block">
+                    <Card className="flex flex-col h-full">
                       {article.thumbnail_url && (
-                        <div className="relative w-full h-48 overflow-hidden rounded-t-xl"> {/* Added rounded top corners */}
-                          <img src={article.thumbnail_url} alt={article.title} className="w-full h-full object-cover" />
-                          {article.topics && article.topics.length > 0 && (
+                        <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
+                          <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-full object-cover" />
+                          {displayTopics && displayTopics.length > 0 && (
                             <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
                               <div className="flex flex-wrap gap-1">
-                                {article.topics.map(topic => (
+                                {displayTopics.map(topic => (
                                   <span key={topic} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">
                                     {topic}
                                   </span>
@@ -187,72 +240,69 @@ function NewsFeed({
                           )}
                         </div>
                       )}
-                      <CardHeader className={article.thumbnail_url ? "px-6 pt-4" : "px-6 pt-4"}> {/* Always add top padding to header */}
-                        <CardTitle>{article.title}</CardTitle>
+                      <CardHeader className={article.thumbnail_url ? "px-6 pt-4" : "px-6 pt-4"}>
+                        <CardTitle>
+                          {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
+                        </CardTitle>
                         <p className="text-sm text-muted-foreground">
                           <span
-                            className="hover:underline cursor-pointer" // Add cursor-pointer for visual indication
+                            className="hover:underline cursor-pointer"
                             onClick={(e) => {
-                              e.stopPropagation(); // Prevent card click
-                              window.open(article.source_url, '_blank', 'noopener,noreferrer'); // Open in new tab
+                              e.stopPropagation();
+                              window.open(article.source_url, '_blank', 'noopener,noreferrer');
                             }}
                           >
                             {getDomainFromUrl(article.source_url)}
                           </span>
                           {article.author && (
-                            <span> | By {article.author}</span>
+                            <span> | {t.author}: {article.author}</span>
                           )}
-                           <span> | Published: {
+                           <span> | {t.published}: {
                             new Date(article.publication_date).getFullYear() === 2001
-                              ? new Date(article.publication_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-                              : new Date(article.publication_date).toLocaleDateString()
+                              ? new Date(article.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
+                              : new Date(article.publication_date).toLocaleDateString(currentLocale)
                           }</span>
-                          <span> | Added: {
+                          <span> | {t.added}: {
                             new Date(article.created_at).getFullYear() === 2001
-                              ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-                              : new Date(article.created_at).toLocaleDateString()
+                              ? new Date(article.created_at).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
+                              : new Date(article.created_at).toLocaleDateString(currentLocale)
                           }</span>
                         </p>
                       </CardHeader>
-                      <CardContent className="flex-grow px-6 pb-4"> {/* Always add horizontal and bottom padding */}
-                          {/* Format AI summary bold text with accent color */}
-                          <p className="text-foreground" dangerouslySetInnerHTML={{ __html: article.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
+                      <CardContent className="flex-grow px-6 pb-4">
+                          <p className="text-foreground" dangerouslySetInnerHTML={{ __html: (displaySummary || (currentLocale !== 'en' ? `${article.summary} (${getFallbackMessage(currentLocale)})` : article.summary))?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                       </CardContent>
-                      {/* Add Share Buttons */}
-                      <div className="px-6 pb-4 flex gap-4"> {/* Added flex and gap for spacing */}
-                        {/* WhatsApp Share Button */}
+                      <div className="px-6 pb-4 flex gap-4">
                         <button
                           className="text-sm text-blue-600 hover:underline"
                           onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
-                            const articleUrl = `${window.location.origin}/article/${article.id}`;
-                            const shareText = `Check out this article: ${article.title} - ${articleUrl}`;
+                            e.stopPropagation();
+                            const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
+                            const shareText = `Check out this article: ${displayTitle || article.title} - ${articleUrl}`;
                             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
                             window.open(whatsappUrl, '_blank');
                           }}
                         >
-                          Share on WhatsApp
+                          {t.share_on_whatsapp}
                         </button>
-                        {/* Facebook Share Button */}
                          <button
                           className="text-sm text-blue-600 hover:underline"
                           onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
-                            const articleUrl = `${window.location.origin}/article/${article.id}`;
+                            e.stopPropagation();
+                            const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
                             const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
                             window.open(facebookUrl, '_blank');
                           }}
                         >
-                          Share on Facebook
+                          {t.share_on_facebook}
                         </button>
                       </div>
-                      {/* Removed CardFooter */}
                     </Card>
                   </a>
                 );
               } catch (error) {
                 console.error(`Error rendering article ${article.id}:`, error, article);
-                return null; // Don't render the problematic article
+                return null;
               }
             })}
           </div>
