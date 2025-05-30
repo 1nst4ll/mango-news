@@ -10,7 +10,7 @@ interface Language {
 }
 
 const languages: Language[] = [
-  { code: 'en', name: 'English', flag: '/uk-sm.png' }, // UK flag for English
+  { code: 'en', name: 'English', flag: '/gb-sm.png' }, // Great Britain flag for English
   { code: 'es', name: 'Español', flag: '/es-sm.png' }, // Spain flag for Spanish
   { code: 'ht', name: 'Kreyòl Ayisyen', flag: '/ht-sm.png' }, // Haiti flag for Haitian Creole
 ];
