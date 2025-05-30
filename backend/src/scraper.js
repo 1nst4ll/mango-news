@@ -524,7 +524,7 @@ async function generateAITranslation(text, targetLanguageCode) {
     });
 
     const translation = chatCompletion.choices[0]?.message?.content || null;
-    console(`Generated translation for "${text}" to ${targetLanguageCode}: "${translation}"`);
+    console.log(`Generated translation for "${text}" to ${targetLanguageCode}: "${translation}"`);
     return translation;
 
   } catch (llmErr) {
