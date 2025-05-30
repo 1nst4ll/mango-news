@@ -6,13 +6,13 @@ import { Globe } from 'lucide-react'; // Using Globe icon as a fallback if flags
 interface Language {
   code: string;
   name: string;
-  flag: string; // Path to flag SVG or emoji
+  flag: string; // Path to flag image
 }
 
 const languages: Language[] = [
-  { code: 'en', name: 'English', flag: '🇺🇸' }, // US flag for English
-  { code: 'es', name: 'Español', flag: '🇪🇸' }, // Spain flag for Spanish
-  { code: 'ht', name: 'Kreyòl Ayisyen', flag: '🇭🇹' }, // Haiti flag for Haitian Creole
+  { code: 'en', name: 'English', flag: '/uk-sm.png' }, // UK flag for English
+  { code: 'es', name: 'Español', flag: '/es-sm.png' }, // Spain flag for Spanish
+  { code: 'ht', name: 'Kreyòl Ayisyen', flag: '/ht-sm.png' }, // Haiti flag for Haitian Creole
 ];
 
 const LanguageSwitcher: React.FC = () => {
@@ -67,7 +67,7 @@ const LanguageSwitcher: React.FC = () => {
     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <span className="text-xl">{currentLanguage.flag}</span>
+          <img src={currentLanguage.flag} alt={currentLanguage.name} className="h-5 w-5" />
           <span className="sr-only">Change language</span>
         </Button>
       </PopoverTrigger>
@@ -80,7 +80,7 @@ const LanguageSwitcher: React.FC = () => {
               className="justify-start"
               onClick={() => handleLanguageChange(lang.code)}
             >
-              <span className="mr-2 text-xl">{lang.flag}</span>
+              <img src={lang.flag} alt={lang.name} className="h-5 w-5 mr-2" />
               {lang.name}
             </Button>
           ))}
