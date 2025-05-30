@@ -503,7 +503,7 @@ async function generateAITranslation(text, targetLanguageCode) {
   if (!text) {
     return null;
   }
-  console(`Generating AI translation for "${text}" to ${targetLanguageCode} using Groq...`);
+  console.log(`Generating AI translation for "${text}" to ${targetLanguageCode} using Groq...`);
   const systemPrompt = `Translate the following text into ${targetLanguageCode === 'es' ? 'Spanish' : 'Haitian Creole'}. Return only the translated text, without any introductory phrases or conversational filler.`;
 
   try {
