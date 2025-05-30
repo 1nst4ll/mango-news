@@ -29,6 +29,7 @@ interface Source {
   enable_ai_summary: boolean;
   enable_ai_tags: boolean; // Add enable_ai_tags field
   enable_ai_image: boolean; // Add enable_ai_image field
+  enable_ai_translations: boolean; // Add enable_ai_translations field
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method?: string;
@@ -54,6 +55,7 @@ interface ModalFormData {
   enable_ai_summary: boolean;
   enable_ai_tags: boolean; // Add enable_ai_tags field
   enable_ai_image: boolean; // Add enable_ai_image field
+  enable_ai_translations: boolean; // Add enable_ai_translations field
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method: string;
@@ -78,6 +80,7 @@ const SettingsPage: React.FC = () => {
   const [enableScheduledMissingSummary, setEnableScheduledMissingSummary] = useState<boolean>(true); // New state for scheduled missing summary toggle
   const [enableScheduledMissingTags, setEnableScheduledMissingTags] = useState<boolean>(true); // New state for scheduled missing tags toggle
   const [enableScheduledMissingImage, setEnableScheduledMissingImage] = useState<boolean>(true); // New state for scheduled missing image toggle
+  const [enableScheduledMissingTranslations, setEnableScheduledMissingTranslations] = useState<boolean>(true); // New state for scheduled missing translations toggle
   const [savingSchedule, setSavingSchedule] = useState<boolean>(false);
   const [scheduleStatus, setScheduleStatus] = useState<string | null>(null);
 
@@ -104,8 +107,8 @@ const SettingsPage: React.FC = () => {
   const [sourceArticleDeletionStatus, setSourceArticleDeletionStatus] = useState<{ [key: number]: string | null }>({});
   const [sourceArticleDeletionLoading, setSourceArticleDeletionLoading] = useState<{ [key: number]: boolean }>({});
   // New state for processing missing AI data
-  const [sourceProcessingLoading, setSourceProcessingLoading] = useState<{ [key: number]: { summary?: boolean; tags?: boolean; image?: boolean } }>({});
-  const [sourceProcessingStatus, setSourceProcessingStatus] = useState<{ [key: number]: { summary?: string | null; tags?: string | null; image?: string | null } }>({});
+  const [sourceProcessingLoading, setSourceProcessingLoading] = useState<{ [key: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean } }>({});
+  const [sourceProcessingStatus, setSourceProcessingStatus] = useState<{ [key: number]: { summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null } }>({});
 
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
@@ -117,6 +120,7 @@ const SettingsPage: React.FC = () => {
     enable_ai_summary: true,
     enable_ai_tags: true, // Initialize enable_ai_tags field
     enable_ai_image: true, // Initialize enable_ai_image field
+    enable_ai_translations: true, // Initialize enable_ai_translations field
     include_selectors: null,
     exclude_selectors: null,
     scraping_method: 'opensource',
@@ -233,6 +237,7 @@ const SettingsPage: React.FC = () => {
           ...source,
           enable_ai_summary: source.enable_ai_summary !== undefined ? source.enable_ai_summary : true,
           enable_ai_tags: source.enable_ai_tags !== undefined ? source.enable_ai_tags : true, // Include enable_ai_tags field
+          enable_ai_translations: source.enable_ai_translations !== undefined ? source.enable_ai_translations : true, // Include enable_ai_translations field
           is_active: source.is_active !== undefined ? source.is_active : true,
           include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
           exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
@@ -371,7 +376,7 @@ const SettingsPage: React.FC = () => {
   };
 
   // New handler function to process missing AI data for a source
-  const handleProcessMissingAi = async (sourceId: number, featureType: 'summary' | 'tags' | 'image') => {
+  const handleProcessMissingAi = async (sourceId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
     setSourceProcessingLoading(prev => ({
       ...prev,
       [sourceId]: { ...prev[sourceId], [featureType]: true }
@@ -672,6 +677,7 @@ const SettingsPage: React.FC = () => {
       enable_ai_summary: true,
       enable_ai_tags: true, // Initialize enable_ai_tags field
       enable_ai_image: true, // Initialize enable_ai_image field
+      enable_ai_translations: true, // Initialize enable_ai_translations field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -697,6 +703,7 @@ const SettingsPage: React.FC = () => {
       enable_ai_summary: true,
       enable_ai_tags: true, // Initialize enable_ai_tags field
       enable_ai_image: true, // Initialize enable_ai_image field
+      enable_ai_translations: true, // Initialize enable_ai_translations field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -721,6 +728,7 @@ const SettingsPage: React.FC = () => {
       enable_ai_summary: source.enable_ai_summary,
       enable_ai_tags: source.enable_ai_tags, // Populate from source
       enable_ai_image: source.enable_ai_image, // Populate from source
+      enable_ai_translations: source.enable_ai_translations, // Populate from source
       include_selectors: source.include_selectors,
       exclude_selectors: source.exclude_selectors,
       scraping_method: source.scraping_method || 'opensource',
@@ -746,6 +754,7 @@ const SettingsPage: React.FC = () => {
       enable_ai_summary: true,
       enable_ai_tags: true, // Reset new field
       enable_ai_image: true, // Reset new field
+      enable_ai_translations: true, // Reset new field
       include_selectors: null,
       exclude_selectors: null,
       scraping_method: 'opensource',
@@ -984,6 +993,16 @@ const SettingsPage: React.FC = () => {
                     Process Missing Images
                   </Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableScheduledMissingTranslations"
+                    checked={enableScheduledMissingTranslations}
+                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingTranslations(checked)}
+                  />
+                  <Label htmlFor="enableScheduledMissingTranslations">
+                    Process Missing Translations
+                  </Label>
+                </div>
               </div>
             </div>
           </div>
@@ -1198,6 +1217,26 @@ const SettingsPage: React.FC = () => {
                         )}
                          {!source.enable_ai_image && (
                            <div className="text-xs mt-1 text-gray-500">AI Image disabled for this source.</div>
+                         )}
+                      </div>
+                      {/* Process Missing Translations */}
+                      <div>
+                        <Button
+                          onClick={() => handleProcessMissingAi(source.id, 'translations')}
+                          disabled={sourceProcessingLoading[source.id]?.translations || !source.enable_ai_translations}
+                          size="sm"
+                          variant="secondary"
+                          className="w-full"
+                        >
+                          {sourceProcessingLoading[source.id]?.translations ? 'Processing...' : 'Process Missing Translations'}
+                        </Button>
+                         {sourceProcessingStatus[source.id]?.translations && (
+                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            {sourceProcessingStatus[source.id]?.translations}
+                          </div>
+                        )}
+                         {!source.enable_ai_translations && (
+                           <div className="text-xs mt-1 text-gray-500">AI Translations disabled for this source.</div>
                          )}
                       </div>
                     </div>
