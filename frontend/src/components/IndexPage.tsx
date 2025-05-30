@@ -10,6 +10,31 @@ import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 
+// Import locale files
+import en from '../locales/en.json';
+import es from '../locales/es.json';
+import ht from '../locales/ht.json';
+
+const locales = { en, es, ht };
+
+// Helper hook for translations (duplicate from NewsFeed for now, could be refactored)
+const useTranslations = () => {
+  const [currentLocale, setCurrentLocale] = useState('en');
+
+  useEffect(() => {
+    const pathSegments = window.location.pathname.split('/');
+    const localeFromPath = pathSegments[1];
+    if (locales[localeFromPath as keyof typeof locales]) {
+      setCurrentLocale(localeFromPath);
+    } else {
+      setCurrentLocale('en'); // Fallback
+    }
+  }, []);
+
+  const t = locales[currentLocale as keyof typeof locales];
+  return { t, currentLocale };
+};
+
 interface Source {
   id: number;
   name: string;
@@ -21,6 +46,7 @@ export default function IndexPage() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sources, setSources] = useState<Source[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const { t, currentLocale } = useTranslations(); // Use the translation hook
 
   // Fetch sources only once on mount
   useEffect(() => {
@@ -69,34 +95,30 @@ export default function IndexPage() {
         <div className="w-full md:w-auto flex-grow"> {/* Added w-full for small screens, flex-grow for larger */}
           <Input
             type="text"
-            placeholder="Search articles..."
+            placeholder={t.search_articles_placeholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                // Trigger search immediately on Enter
                 setDebouncedSearchTerm(searchTerm);
               }
             }}
           />
         </div>
         {/* Source Filter */}
-        <div className="md:w-auto flex-shrink-0"> {/* Removed w-full */}
+        <div className="md:w-auto flex-shrink-0">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="md:w-auto"> {/* Removed w-full */}
-                Sources ({selectedSources.length})
+              <Button variant="outline" className="md:w-auto">
+                {t.sources} ({selectedSources.length})
               </Button>
             </PopoverTrigger>
-            {/* Adjusted width for mobile friendliness */}
             <PopoverContent className="w-full md:w-[200px] p-2">
               {sources.map(source => (
-                // Wrap Checkbox and Label in a div for larger touch target
                 <div
                   key={source.id}
-                  className="flex items-center space-x-2 py-1 cursor-pointer" // Added vertical padding and cursor-pointer
+                  className="flex items-center space-x-2 py-1 cursor-pointer"
                   onClick={() => {
-                    // Toggle the checkbox state when the div is clicked
                     const isSelected = selectedSources.includes(source.name);
                     if (isSelected) {
                       setSelectedSources(selectedSources.filter(name => name !== source.name));
@@ -108,7 +130,6 @@ export default function IndexPage() {
                   <Checkbox
                     id={`source-${source.id}`}
                     checked={selectedSources.includes(source.name)}
-                    // onCheckedChange is still needed for direct checkbox clicks
                     onCheckedChange={(checked) => {
                        if (checked) {
                         setSelectedSources([...selectedSources, source.name]);
@@ -116,25 +137,25 @@ export default function IndexPage() {
                         setSelectedSources(selectedSources.filter(name => name !== source.name));
                       }
                     }}
-                    className="mr-2" // Add some margin to the right of the checkbox
+                    className="mr-2"
                   />
-                  <Label htmlFor={`source-${source.id}`} className="cursor-pointer">{source.name}</Label> {/* Added cursor-pointer to label */}
+                  <Label htmlFor={`source-${source.id}`} className="cursor-pointer">{source.name}</Label>
                 </div>
               ))}
             </PopoverContent>
           </Popover>
         </div>
         {/* Reset Filters Button */}
-        <div className="md:w-auto flex-shrink-0"> {/* Removed w-full */}
-          <Button variant="outline" onClick={handleResetFilters} className="md:w-auto"> {/* Removed w-full */}
-            Reset Filters
+        <div className="md:w-auto flex-shrink-0">
+          <Button variant="outline" onClick={handleResetFilters} className="md:w-auto">
+            {t.reset_filters}
           </Button>
         </div>
       </div>
       <NewsFeed
-        searchTerm={debouncedSearchTerm} // Pass debouncedSearchTerm to NewsFeed
-        selectedSources={selectedSources} // Pass selectedSources directly
-        activeCategory="all" // Pass a default value for activeCategory
+        searchTerm={debouncedSearchTerm}
+        selectedSources={selectedSources}
+        activeCategory="all"
       />
     </div>
   );

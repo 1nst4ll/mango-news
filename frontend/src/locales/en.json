@@ -18,5 +18,17 @@
   "added": "Added",
   "loading_article": "Loading article...",
   "article_not_found": "Article not found.",
-  "translation_not_available": "Translation to {language} not available yet."
+  "translation_not_available": "Translation to {language} not available yet.",
+  "search_articles_placeholder": "Search articles...",
+  "sources": "Sources",
+  "reset_filters": "Reset Filters",
+  "footer_tagline": "Aggregating news from across the Turks and Caicos Islands",
+  "news_sources": "News Sources",
+  "loading_sources": "Loading sources...",
+  "error_loading_sources": "Error loading sources.",
+  "no_sources_found": "No sources found.",
+  "developed_by": "Developed by",
+  "verified_source": "Verified Source",
+  "official_source": "Official Source",
+  "facebook_page": "Facebook Page"
 }

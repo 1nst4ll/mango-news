@@ -1,5 +1,30 @@
 import React, { useEffect, useState } from 'react';
 
+// Import locale files
+import en from '../locales/en.json';
+import es from '../locales/es.json';
+import ht from '../locales/ht.json';
+
+const locales = { en, es, ht };
+
+// Helper hook for translations (duplicate from NewsFeed for now, could be refactored)
+const useTranslations = () => {
+  const [currentLocale, setCurrentLocale] = useState('en');
+
+  useEffect(() => {
+    const pathSegments = window.location.pathname.split('/');
+    const localeFromPath = pathSegments[1];
+    if (locales[localeFromPath as keyof typeof locales]) {
+      setCurrentLocale(localeFromPath);
+    } else {
+      setCurrentLocale('en'); // Fallback
+    }
+  }, []);
+
+  const t = locales[currentLocale as keyof typeof locales];
+  return { t, currentLocale };
+};
+
 interface Source {
   id: number;
   name: string;
@@ -10,23 +35,22 @@ interface Source {
 const Footer: React.FC = () => {
   const [newsSources, setNewsSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<unknown>(null); // Use unknown for better type safety
+  const [error, setError] = useState<unknown>(null);
+  const { t, currentLocale } = useTranslations(); // Use the translation hook
 
   useEffect(() => {
     const fetchSources = async () => {
       setLoading(true);
       setError(null);
       try {
-        // TODO: Replace with your actual backend API URL
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         const response = await fetch(`${apiUrl}/api/sources`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data: Source[] = await response.json();
-        // Filter for active sources if needed, or add a property to the Source interface
         setNewsSources(data);
-      } catch (err: unknown) { // Use unknown for better type safety
+      } catch (err: unknown) {
         setError(err);
       } finally {
         setLoading(false);
@@ -34,7 +58,7 @@ const Footer: React.FC = () => {
     };
 
     fetchSources();
-  }, []); // Fetch sources on component mount
+  }, []);
 
 
   return (
@@ -46,16 +70,16 @@ const Footer: React.FC = () => {
               mango.tc news
             </a>
           </h2>
-          <p className="text-gray-400">Aggregating news from across the Turks and Caicos Islands</p>
+          <p className="text-gray-400">{t.footer_tagline}</p>
         </div>
         <div>
-          <h3 className="text-lg font-semibold mb-2">News Sources</h3>
+          <h3 className="text-lg font-semibold mb-2">{t.news_sources}</h3>
           {loading ? (
-            <div className="text-gray-400">Loading sources...</div>
+            <div className="text-gray-400">{t.loading_sources}</div>
           ) : error ? (
-            <div className="text-red-400">Error loading sources.</div>
+            <div className="text-red-400">{t.error_loading_sources}</div>
           ) : newsSources.length === 0 ? (
-             <div className="text-gray-400">No sources found.</div>
+             <div className="text-gray-400">{t.no_sources_found}</div>
           ) : (
             <ul className="space-y-1">
               {newsSources.map((source) => (
@@ -68,16 +92,16 @@ const Footer: React.FC = () => {
         </div>
       </div>
       <div className="container mx-auto mt-8 pt-4 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-        <p>&copy; {new Date().getFullYear()} <a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="hover:underline">mango.tc</a> news | Developed by <a href="https://hoffmanntci.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Hoffmann Ltd</a></p>
+        <p>&copy; {new Date().getFullYear()} <a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="hover:underline">mango.tc</a> news | {t.developed_by} <a href="https://hoffmanntci.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Hoffmann Ltd</a></p>
         <div className="flex space-x-4 mt-4 md:mt-0">
           <div>
-            <span>Verified Source</span>
+            <span>{t.verified_source}</span>
           </div>
           <div>
-            <span>Official Source</span>
+            <span>{t.official_source}</span>
           </div>
           <div>
-            <span>Facebook Page</span>
+            <span>{t.facebook_page}</span>
           </div>
         </div>
       </div>

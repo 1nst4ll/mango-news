@@ -18,5 +18,17 @@
   "added": "Ajoute",
   "loading_article": "Ap chaje atik la...",
   "article_not_found": "Atik pa jwenn.",
-  "translation_not_available": "Tradiksyon an {language} poko disponib."
+  "translation_not_available": "Tradiksyon an {language} poko disponib.",
+  "search_articles_placeholder": "Chèche atik...",
+  "sources": "Sous",
+  "reset_filters": "Reyajiste filtè",
+  "footer_tagline": "Agregasyon nouvèl soti nan tout Zile Turks ak Caicos",
+  "news_sources": "Sous Nouvèl",
+  "loading_sources": "Ap chaje sous...",
+  "error_loading_sources": "Erè pandan chajman sous.",
+  "no_sources_found": "Pa gen okenn sous jwenn.",
+  "developed_by": "Devlope pa",
+  "verified_source": "Sous Verifye",
+  "official_source": "Sous Ofisyèl",
+  "facebook_page": "Paj Facebook"
 }

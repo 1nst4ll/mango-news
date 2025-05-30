@@ -18,5 +18,17 @@
   "added": "Añadido",
   "loading_article": "Cargando artículo...",
   "article_not_found": "Artículo no encontrado.",
-  "translation_not_available": "Traducción a {language} no disponible aún."
+  "translation_not_available": "Traducción a {language} no disponible aún.",
+  "search_articles_placeholder": "Buscar artículos...",
+  "sources": "Fuentes",
+  "reset_filters": "Restablecer filtros",
+  "footer_tagline": "Agregando noticias de todas las Islas Turcas y Caicos",
+  "news_sources": "Fuentes de Noticias",
+  "loading_sources": "Cargando fuentes...",
+  "error_loading_sources": "Error al cargar fuentes.",
+  "no_sources_found": "No se encontraron fuentes.",
+  "developed_by": "Desarrollado por",
+  "verified_source": "Fuente Verificada",
+  "official_source": "Fuente Oficial",
+  "facebook_page": "Página de Facebook"
 }
