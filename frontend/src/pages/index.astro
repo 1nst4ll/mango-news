@@ -1,0 +1,14 @@
+---
+// This page redirects to the default locale's index page.
+import { Astro } from 'astro';
+
+// Get the default locale from Astro's i18n configuration
+const defaultLocale = Astro.i18n.defaultLocale;
+
+// Redirect to the default locale's index page
+// This ensures that visiting the root URL (e.g., /) redirects to /en/
+export const prerender = true; // Prerender this page for static redirect
+---
+
+<meta http-equiv="refresh" content={`0;url=/${defaultLocale}/`} />
+<a href={`/${defaultLocale}/`}>Redirecting to /{defaultLocale}/</a>
