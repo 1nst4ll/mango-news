@@ -31,7 +31,7 @@ export default defineConfig({
     defaultLocale: 'en',
     locales: ['en', 'es', 'ht'],
     routing: {
-      prefixDefaultLocale: true, // This ensures /en/page, /es/page, /ht/page
+      prefixDefaultLocale: false, // Default locale (en) will not have a prefix (e.g., / instead of /en/)
     },
   },
 });
