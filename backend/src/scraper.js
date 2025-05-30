@@ -701,17 +701,57 @@ cron.schedule('0 * * * *', () => {
 
 console.log('News scraper scheduled to run.');
 
-// Schedule processing of missing AI data (summary and tags) for all active sources every 20 minutes
+// Schedule processing of missing AI data (summary, tags, image, and translations) for all active sources every 20 minutes
 cron.schedule('*/20 * * * *', async () => {
   console.log('Running scheduled missing AI data processing job...');
   const activeSources = await getActiveSources(); // Fetch active sources inside the job
 
+  // Fetch scheduler settings from the database
+  const settingsResult = await pool.query(
+    `SELECT setting_name, setting_value FROM application_settings
+     WHERE setting_name IN ('enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations')`
+  );
+
+  const settings = settingsResult.rows.reduce((acc, row) => {
+    acc[row.setting_name] = row.setting_value;
+    return acc;
+  }, {});
+
+  const enableScheduledMissingSummary = settings.enable_scheduled_missing_summary !== undefined ? settings.enable_scheduled_missing_summary === 'true' : true;
+  const enableScheduledMissingTags = settings.enable_scheduled_missing_tags !== undefined ? settings.enable_scheduled_missing_tags === 'true' : true;
+  const enableScheduledMissingImage = settings.enable_scheduled_missing_image !== undefined ? settings.enable_scheduled_missing_image === 'true' : true;
+  const enableScheduledMissingTranslations = settings.enable_scheduled_missing_translations !== undefined ? settings.enable_scheduled_missing_translations === 'true' : true;
+
+
   for (const source of activeSources) {
     console.log(`Processing missing AI data for source: ${source.name} (ID: ${source.id})`);
     // Process missing summaries
-    await processMissingAiForSource(source.id, 'summary');
+    if (enableScheduledMissingSummary) {
+      await processMissingAiForSource(source.id, 'summary');
+    } else {
+      console.log(`Scheduled missing summary processing disabled for source ${source.name}.`);
+    }
+
     // Process missing tags
-    await processMissingAiForSource(source.id, 'tags');
+    if (enableScheduledMissingTags) {
+      await processMissingAiForSource(source.id, 'tags');
+    } else {
+      console.log(`Scheduled missing tags processing disabled for source ${source.name}.`);
+    }
+
+    // Process missing images
+    if (enableScheduledMissingImage) {
+      await processMissingAiForSource(source.id, 'image');
+    } else {
+      console.log(`Scheduled missing image processing disabled for source ${source.name}.`);
+    }
+
+    // Process missing translations
+    if (enableScheduledMissingTranslations) {
+      await processMissingAiForSource(source.id, 'translations');
+    } else {
+      console.log(`Scheduled missing translations processing disabled for source ${source.name}.`);
+    }
   }
   console.log('Finished scheduled missing AI data processing job.');
 });

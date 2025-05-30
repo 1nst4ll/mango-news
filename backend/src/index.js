@@ -807,7 +807,7 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
     // Fetch settings from the database
     const settingsResult = await pool.query(
       `SELECT setting_name, setting_value FROM application_settings
-       WHERE setting_name IN ('main_scraper_frequency', 'missing_ai_frequency', 'enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image')`
+       WHERE setting_name IN ('main_scraper_frequency', 'missing_ai_frequency', 'enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations')`
     );
 
     const settings = settingsResult.rows.reduce((acc, row) => {
@@ -847,9 +847,9 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
 // API endpoint to save scheduler settings
 app.post('/api/settings/scheduler', authenticateToken, async (req, res) => {
   const endpoint = '/api/settings/scheduler';
-  const { main_scraper_frequency, missing_ai_frequency, enable_scheduled_missing_summary, enable_scheduled_missing_tags, enable_scheduled_missing_image } = req.body;
+  const { main_scraper_frequency, missing_ai_frequency, enable_scheduled_missing_summary, enable_scheduled_missing_tags, enable_scheduled_missing_image, enable_scheduled_missing_translations } = req.body;
 
-  if (main_scraper_frequency === undefined || missing_ai_frequency === undefined || enable_scheduled_missing_summary === undefined || enable_scheduled_missing_tags === undefined || enable_scheduled_missing_image === undefined) {
+  if (main_scraper_frequency === undefined || missing_ai_frequency === undefined || enable_scheduled_missing_summary === undefined || enable_scheduled_missing_tags === undefined || enable_scheduled_missing_image === undefined || enable_scheduled_missing_translations === undefined) {
      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing required scheduler settings in request body`);
      return res.status(400).json({ error: 'Missing required scheduler settings.' });
   }
@@ -890,6 +890,12 @@ app.post('/api/settings/scheduler', authenticateToken, async (req, res) => {
        VALUES ($1, $2)
        ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
       ['enable_scheduled_missing_image', String(enable_scheduled_missing_image)] // Store boolean as string
+    );
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value)
+       VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      ['enable_scheduled_missing_translations', String(enable_scheduled_missing_translations)] // Store boolean as string
     );
 
     await pool.query('COMMIT');
