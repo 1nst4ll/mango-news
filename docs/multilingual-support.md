@@ -30,7 +30,7 @@ A new function `generateAITranslation(text, targetLanguageCode)` has been added 
 The `processScrapedData` function has been updated to:
 1.  Call `generateAITranslation` for the English `title` and `summary` to generate their Spanish and Haitian Creole counterparts.
 2.  Save these translated titles and summaries into the new `title_es`, `summary_es`, `title_ht`, and `summary_ht` columns in the `articles` table.
-3.  When a new topic is created, its name is also translated into Spanish and Haitian Creole and saved to `name_es` and `name_ht` columns in the `topics` table. If an existing topic is encountered without translations, they are generated and updated.
+3.  When a new topic is created, its name is saved along with its pre-translated Spanish and Haitian Creole equivalents from a static mapping (`topicTranslations`) into the `name_es` and `name_ht` columns in the `topics` table. If an existing topic is encountered, its translations are updated from this static mapping if they are missing or differ.
 
 The `processAiForArticle` and `processMissingAiForSource` functions have been extended to support a new `featureType: 'translations'`. This allows for on-demand or scheduled processing to generate missing translations for existing articles.
 

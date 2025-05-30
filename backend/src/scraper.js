@@ -24,6 +24,41 @@ const topicsList = [
   "Sport" // Added Sport based on previous analysis
 ];
 
+// Pre-translated topics mapping
+const topicTranslations = {
+  "Politics": { "es": "Política", "ht": "Politik" },
+  "Economy": { "es": "Economía", "ht": "Ekonomi" },
+  "Business": { "es": "Negocios", "ht": "Biznis" },
+  "Technology": { "es": "Tecnología", "ht": "Teknoloji" },
+  "Health": { "es": "Salud", "ht": "Sante" },
+  "Science": { "es": "Ciencia", "ht": "Syans" },
+  "Environment": { "es": "Medio Ambiente", "ht": "Anviwònman" },
+  "Education": { "es": "Educación", "ht": "Edikasyon" },
+  "Sports": { "es": "Deportes", "ht": "Espò" },
+  "Entertainment": { "es": "Entretenimiento", "ht": "Divètisman" },
+  "Culture": { "es": "Cultura", "ht": "Kilti" },
+  "Travel": { "es": "Viajes", "ht": "Vwayaj" },
+  "Crime": { "es": "Crimen", "ht": "Krim" },
+  "Justice": { "es": "Justicia", "ht": "Jistis" },
+  "Weather": { "es": "Clima", "ht": "Tan" },
+  "Community": { "es": "Comunidad", "ht": "Kominote" },
+  "Infrastructure": { "es": "Infraestructura", "ht": "Enfrastrikti" },
+  "Tourism": { "es": "Turismo", "ht": "Touris" },
+  "Real Estate": { "es": "Bienes Raíces", "ht": "Imobilye" },
+  "Finance": { "es": "Finanzas", "ht": "Finans" },
+  "Agriculture": { "es": "Agricultura", "ht": "Agrikilti" },
+  "Fishing": { "es": "Pesca", "ht": "Lapèch" },
+  "History": { "es": "Historia", "ht": "Istwa" },
+  "Arts": { "es": "Artes", "ht": "Atizay" },
+  "Religion": { "es": "Religión", "ht": "Relijyon" },
+  "Opinion": { "es": "Opinión", "ht": "Opinyon" },
+  "Editorial": { "es": "Editorial", "ht": "Editoryal" },
+  "Local News": { "es": "Noticias Locales", "ht": "Nouvèl Lokal" },
+  "Regional News": { "es": "Noticias Regionales", "ht": "Nouvèl Rejyonal" },
+  "International News": { "es": "Noticias Internacionales", "ht": "Nouvèl Entènasyonal" },
+  "Sport": { "es": "Deporte", "ht": "Espò" }
+};
+
 
 // Database connection pool (using the same pool as the API)
 const pool = new Pool({
@@ -311,10 +346,10 @@ async function processScrapedData(data) { // Accept a single data object
       const finalThumbnailUrl = aiImagePath || metadata?.thumbnail_url || null;
 
       // Generate translations for title and summary
-      const title_es = await generateAITranslation(title, 'es');
-      const summary_es = await generateAITranslation(summary, 'es');
-      const title_ht = await generateAITranslation(title, 'ht');
-      const summary_ht = await generateAITranslation(summary, 'ht');
+      const title_es = await generateAITranslation(title, 'es', 'title');
+      const summary_es = await generateAITranslation(summary, 'es', 'summary');
+      const title_ht = await generateAITranslation(title, 'ht', 'title');
+      const summary_ht = await generateAITranslation(summary, 'ht', 'summary');
 
       // Save article to database
       const articleResult = await pool.query(
@@ -336,22 +371,18 @@ async function processScrapedData(data) { // Accept a single data object
       for (const topicName of assignedTopics) {
         let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
         let topicId;
-        let topicName_es = null;
-        let topicName_ht = null;
+        const preTranslatedEs = topicTranslations[topicName]?.es || null;
+        const preTranslatedHt = topicTranslations[topicName]?.ht || null;
 
         if (topicResult.rows.length === 0) {
-          // Topic doesn't exist, create it and translate its name
-          topicName_es = await generateAITranslation(topicName, 'es');
-          topicName_ht = await generateAITranslation(topicName, 'ht');
-          topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, topicName_es, topicName_ht]);
+          // Topic doesn't exist, create it with pre-translated names
+          topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
           topicId = topicResult.rows[0].id;
         } else {
           topicId = topicResult.rows[0].id;
-          // If topic exists but translations are missing, generate and update
-          if (!topicResult.rows[0].name_es || !topicResult.rows[0].name_ht) {
-            topicName_es = topicResult.rows[0].name_es || await generateAITranslation(topicName, 'es');
-            topicName_ht = topicResult.rows[0].name_ht || await generateAITranslation(topicName, 'ht');
-            await pool.query('UPDATE topics SET name_es = COALESCE(name_es, $1), name_ht = COALESCE(name_ht, $2) WHERE id = $3', [topicName_es, topicName_ht, topicId]);
+          // If topic exists but translations are missing or different, update them
+          if (topicResult.rows[0].name_es !== preTranslatedEs || topicResult.rows[0].name_ht !== preTranslatedHt) {
+            await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
           }
         }
 
@@ -499,12 +530,30 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
 }
 
 // This function generates AI translations using the Groq API
-async function generateAITranslation(text, targetLanguageCode) {
+async function generateAITranslation(text, targetLanguageCode, type = 'general') { // Added 'type' parameter
   if (!text) {
     return null;
   }
-  console.log(`Generating AI translation for "${text}" to ${targetLanguageCode} using Groq...`);
-  const systemPrompt = `Translate the following text into ${targetLanguageCode === 'es' ? 'Spanish' : 'Haitian Creole'}. Return only the translated text, without any introductory phrases or conversational filler.`;
+  console.log(`Generating AI translation for "${text}" to ${targetLanguageCode} (type: ${type}) using Groq...`);
+
+  let systemPrompt = '';
+  const languageName = targetLanguageCode === 'es' ? 'Spanish' : 'Haitian Creole';
+
+  if (type === 'title') {
+    systemPrompt = `Translate the following news article title into ${languageName}. The translation must be concise, direct, and suitable as a headline. Return only the translated title, without any introductory phrases, conversational filler, or additional explanations.`;
+  } else if (type === 'summary') {
+    systemPrompt = `Translate the following news article summary into ${languageName}. The translation must be a concise summary, not an expanded list of points or a full article. Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
+  } else { // 'general' or other types
+    systemPrompt = `Translate the following text into ${languageName}. Return only the translated text, without any introductory phrases or conversational filler.`;
+  }
+
+  let currentMaxTokens = 500; // Default max tokens
+
+  if (type === 'title') {
+    currentMaxTokens = 100; // Shorter for titles
+  } else if (type === 'summary') {
+    currentMaxTokens = 200; // Shorter for summaries
+  }
 
   try {
     const chatCompletion = await groq.chat.completions.create({
@@ -520,15 +569,15 @@ async function generateAITranslation(text, targetLanguageCode) {
       ],
       model: "llama-3.1-8b-instant", // Using a suitable Groq model for text generation
       temperature: 0.3, // Keep temperature low for accurate translation
-      max_tokens: 500, // Sufficient tokens for translation
+      max_tokens: currentMaxTokens, // Dynamically set max tokens
     });
 
     const translation = chatCompletion.choices[0]?.message?.content || null;
-    console.log(`Generated translation for "${text}" to ${targetLanguageCode}: "${translation}"`);
+    console.log(`Generated translation for "${text}" to ${targetLanguageCode} (type: ${type}): "${translation}"`);
     return translation;
 
   } catch (llmErr) {
-    console.error(`Error generating translation for "${text}" to ${targetLanguageCode} with Groq:`, llmErr);
+    console.error(`Error generating translation for "${text}" to ${targetLanguageCode} (type: ${type}) with Groq:`, llmErr);
     return null;
   }
 }
@@ -871,14 +920,14 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
 
       // Translate title if missing
       if (!article.title_es) {
-        const translatedTitle = await generateAITranslation(article.title, 'es');
+        const translatedTitle = await generateAITranslation(article.title, 'es', 'title');
         if (translatedTitle) {
           updatedFields.push(`title_es = $${paramIndex++}`);
           queryParams.push(translatedTitle);
         }
       }
       if (!article.title_ht) {
-        const translatedTitle = await generateAITranslation(article.title, 'ht');
+        const translatedTitle = await generateAITranslation(article.title, 'ht', 'title');
         if (translatedTitle) {
           updatedFields.push(`title_ht = $${paramIndex++}`);
           queryParams.push(translatedTitle);
@@ -887,14 +936,14 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
 
       // Translate summary if missing
       if (!article.summary_es) {
-        const translatedSummary = await generateAITranslation(article.summary, 'es');
+        const translatedSummary = await generateAITranslation(article.summary, 'es', 'summary');
         if (translatedSummary) {
           updatedFields.push(`summary_es = $${paramIndex++}`);
           queryParams.push(translatedSummary);
         }
       }
       if (!article.summary_ht) {
-        const translatedSummary = await generateAITranslation(article.summary, 'ht');
+        const translatedSummary = await generateAITranslation(article.summary, 'ht', 'summary');
         if (translatedSummary) {
           updatedFields.push(`summary_ht = $${paramIndex++}`);
           queryParams.push(translatedSummary);
@@ -1081,21 +1130,20 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
           if (assignedTopics && assignedTopics.length > 0) {
             // Save assigned topics and link to article
             for (const topicName of assignedTopics) {
-              let topicResult = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
+              let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
               let topicId;
+              const preTranslatedEs = topicTranslations[topicName]?.es || null;
+              const preTranslatedHt = topicTranslations[topicName]?.ht || null;
+
               if (topicResult.rows.length === 0) {
-                // Topic doesn't exist, create it and translate its name
-                const topicName_es = await generateAITranslation(topicName, 'es');
-                const topicName_ht = await generateAITranslation(topicName, 'ht');
-                topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, topicName_es, topicName_ht]);
+                // Topic doesn't exist, create it with pre-translated names
+                topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
                 topicId = topicResult.rows[0].id;
               } else {
                 topicId = topicResult.rows[0].id;
-                // If topic exists but translations are missing, generate and update
-                if (!topicResult.rows[0].name_es || !topicResult.rows[0].name_ht) {
-                  const topicName_es = topicResult.rows[0].name_es || await generateAITranslation(topicName, 'es');
-                  const topicName_ht = topicResult.rows[0].name_ht || await generateAITranslation(topicName, 'ht');
-                  await pool.query('UPDATE topics SET name_es = COALESCE(name_es, $1), name_ht = COALESCE(name_ht, $2) WHERE id = $3', [topicName_es, topicName_ht, topicId]);
+                // If topic exists but translations are missing or different, update them
+                if (topicResult.rows[0].name_es !== preTranslatedEs || topicResult.rows[0].name_ht !== preTranslatedHt) {
+                  await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
                 }
               }
               await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
@@ -1142,14 +1190,14 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
 
           // Translate title if missing
           if (!article.title_es) {
-            const translatedTitle = await generateAITranslation(article.title, 'es');
+            const translatedTitle = await generateAITranslation(article.title, 'es', 'title');
             if (translatedTitle) {
               updatedFields.push(`title_es = $${paramIndex++}`);
               queryParams.push(translatedTitle);
             }
           }
           if (!article.title_ht) {
-            const translatedTitle = await generateAITranslation(article.title, 'ht');
+            const translatedTitle = await generateAITranslation(article.title, 'ht', 'title');
             if (translatedTitle) {
               updatedFields.push(`title_ht = $${paramIndex++}`);
               queryParams.push(translatedTitle);
@@ -1158,14 +1206,14 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
 
           // Translate summary if missing
           if (!article.summary_es) {
-            const translatedSummary = await generateAITranslation(article.summary, 'es');
+            const translatedSummary = await generateAITranslation(article.summary, 'es', 'summary');
             if (translatedSummary) {
               updatedFields.push(`summary_es = $${paramIndex++}`);
               queryParams.push(translatedSummary);
             }
           }
           if (!article.summary_ht) {
-            const translatedSummary = await generateAITranslation(article.summary, 'ht');
+            const translatedSummary = await generateAITranslation(article.summary, 'ht', 'summary');
             if (translatedSummary) {
               updatedFields.push(`summary_ht = $${paramIndex++}`);
               queryParams.push(translatedSummary);
