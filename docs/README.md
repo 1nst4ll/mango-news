@@ -11,6 +11,7 @@ Welcome to the mango.tc news documentation. This guide provides comprehensive in
 - [Settings Page (Admin Controls and Source Management)](admin-ui.md) - **Updated to reflect combined page and new UI**
 - [Troubleshooting Common Issues](troubleshooting.md)
 - [Frontend UI Styling and Stack](frontend-ui.md) - **Updated to reflect Astro migration**
+- [Multilingual Support (Spanish & Haitian Creole)](multilingual-support.md) - **New**
 
 ## Backend API Endpoints
 

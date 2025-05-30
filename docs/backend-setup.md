@@ -22,9 +22,14 @@ The backend connects to a PostgreSQL database.
     *   **Username:** `mangoadmin`
     *   **Password:** This should be stored securely in your backend's `.env` file.
 
-2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your PostgreSQL database.
+2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your PostgreSQL database. This will create the initial tables.
+    **Important:** If you are upgrading an existing database, you will also need to run the migration script located at [`../db/migrations/add_translation_columns.sql`](../db/migrations/add_translation_columns.sql) to add the new translation columns to your `articles` and `topics` tables.
 
-3.  **`sources` Table:** The `sources` table stores information about each news source. A new column, `scrape_after_date`, has been added to this table.
+3.  **New Database Columns for Translations:**
+    *   **`articles` table:** Now includes `title_es`, `summary_es`, `title_ht`, and `summary_ht` for Spanish and Haitian Creole translations of article titles and summaries.
+    *   **`topics` table:** Now includes `name_es` and `name_ht` for Spanish and Haitian Creole translations of topic names.
+
+4.  **`sources` Table:** The `sources` table stores information about each news source. A new column, `scrape_after_date`, has been added to this table.
     *   **`scrape_after_date` (TIMESTAMP WITH TIME ZONE):** This optional field allows you to specify a date. When set for a source, the scraper will only add articles published on or after this date. Articles published before this date will be ignored. This is useful for preventing the scraping of very old articles.
 
 ## Backend Configuration
@@ -164,6 +169,7 @@ This endpoint triggers the `processMissingAiForSource` function for the specifie
         *   `"summary"`: Process articles missing an AI summary.
         *   `"tags"`: Process articles missing AI-assigned tags.
         *   `"image"`: Process articles missing an AI-generated image (thumbnail).
+        *   `"translations"`: Process articles missing AI-generated Spanish or Haitian Creole titles/summaries.
 
 A fix has been implemented in the `processMissingAiForSource` function to address cases where AI summary generation previously failed. The function now correctly identifies and attempts to re-process articles where the `summary` field contains the specific text "Summary generation failed.", in addition to articles where the `summary` is `NULL`.
 *   **Response:**

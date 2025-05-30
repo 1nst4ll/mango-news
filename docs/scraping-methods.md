@@ -59,7 +59,7 @@ The choice between open-source and Firecrawl scraping depends on your specific n
 
 ## AI Features and Toggle Logic
 
-The scraping process includes optional AI-powered features for generating article summaries, assigning topics, and generating images. AI image generation is performed using the **Ideogram API**. This feature is only attempted if no thumbnail URL is found during the initial scrape. The prompt used for image generation is designed to create relevant visuals with a Caribbean setting and depict people with dark skin. These AI features can be enabled or disabled on a per-source basis through the Admin UI.
+The scraping process includes optional AI-powered features for generating article summaries, assigning topics, generating images, and **translating content**. AI image generation is performed using the **Ideogram API**. This feature is only attempted if no thumbnail URL is found during the initial scrape. The prompt used for image generation is designed to create relevant visuals with a Caribbean setting and depict people with dark skin. These AI features can be enabled or disabled on a per-source basis through the Admin UI.
 
 The behavior of these AI features depends on how the scrape is initiated:
 

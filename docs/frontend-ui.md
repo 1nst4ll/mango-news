@@ -21,7 +21,8 @@ The frontend of the mango.tc news application is being migrated to a new stack f
         PUBLIC_BACKEND_API_URL=http://localhost:3000/api
         ```
     Replace `http://localhost:3000/api` with the actual URL of your backend API.
-*   **Routing:** Astro's file-based routing.
+*   **Routing:** Astro's file-based routing, now configured for internationalization (i18n).
+*   **Internationalization (i18n):** Multilingual support is implemented using Astro's i18n features. Static UI text is managed via JSON locale files located in `frontend/src/locales/`. Dynamic content from the backend (article titles, summaries, topics) is translated via AI and displayed based on the active locale.
 
 **Current Styling State:**
 
