@@ -551,7 +551,7 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
   if (type === 'title') {
     systemPrompt = `Translate the following news article title into ${languageName}. The translation must be concise, direct, and suitable as a headline. Return only the translated title, without any introductory phrases, conversational filler, or additional explanations.`;
   } else if (type === 'summary') {
-    systemPrompt = `Translate the following news article summary into ${languageName}. The translation must be a concise summary, not an expanded list of points or a full article. Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
+    systemPrompt = `Translate the following news article summary into ${languageName}. The translation must be a concise summary, not an expanded list of points or a full article. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence.Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
   } else { // 'general' or other types
     systemPrompt = `Translate the following text into ${languageName}. Return only the translated text, without any introductory phrases or conversational filler.`;
   }
@@ -576,7 +576,7 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
           content: text,
         }
       ],
-      model: "llama-3.1-8b-instant", // Using a suitable Groq model for text generation
+      model: "meta-llama/llama-4-scout-17b-16e-instruc", // Using a suitable Groq model for text generation
       temperature: 0.3, // Keep temperature low for accurate translation
       max_tokens: currentMaxTokens, // Dynamically set max tokens
     });
