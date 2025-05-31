@@ -119,6 +119,7 @@ The Admin Dashboard and Source Management features have been combined into a sin
 *   **Toast Notifications:** User feedback for various actions (e.g., triggering scrapes, purging data, adding/editing/deleting sources, saving settings) is now provided via non-intrusive toast notifications (`shadcn/ui toast`).
 *   **Full shadcn/ui Utilization:** All UI elements within the Settings page are consistently built using shadcn/ui components for a cohesive and accessible design.
 *   **Improved Mobile Responsiveness for Tabs:** The tab navigation on the Settings page now adapts better to smaller screens, stacking vertically on small viewports and transitioning to a multi-column grid on larger screens, ensuring usability across devices.
+*   **Scheduled Translations Setting Fix:** The "Process Missing Translations" toggle in the Scheduled Tasks section can now be correctly saved and loaded from the database, ensuring its state persists across sessions.
 
 ---
 

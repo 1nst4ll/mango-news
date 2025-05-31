@@ -822,6 +822,7 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
       enable_scheduled_missing_summary: settings.enable_scheduled_missing_summary !== undefined ? settings.enable_scheduled_missing_summary === 'true' : true, // Default to true, convert string to boolean
       enable_scheduled_missing_tags: settings.enable_scheduled_missing_tags !== undefined ? settings.enable_scheduled_missing_tags === 'true' : true, // Default to true, convert string to boolean
       enable_scheduled_missing_image: settings.enable_scheduled_missing_image !== undefined ? settings.enable_scheduled_missing_image === 'true' : true, // Default to true, convert string to boolean
+      enable_scheduled_missing_translations: settings.enable_scheduled_missing_translations !== undefined ? settings.enable_scheduled_missing_translations === 'true' : true, // Default to true, convert string to boolean
     };
 
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched scheduler settings: ${JSON.stringify(responseSettings)}`);

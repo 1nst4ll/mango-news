@@ -895,11 +895,11 @@ const SettingsPage: React.FC = () => {
 
   return (
     <Tabs defaultValue="overview" className="container mx-auto p-4">
-      <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <TabsTrigger value="overview">Overview & Stats</TabsTrigger>
-        <TabsTrigger value="global">Global Settings & Actions</TabsTrigger>
-        <TabsTrigger value="scheduled">Scheduled Tasks</TabsTrigger>
-        <TabsTrigger value="sources">Source Management</TabsTrigger>
+      <TabsList className="w-full flex flex-nowrap overflow-x-auto"> {/* Removed grid classes, added flex and overflow-x-auto */}
+        <TabsTrigger value="overview" className="flex-shrink-0">Overview & Stats</TabsTrigger>
+        <TabsTrigger value="global" className="flex-shrink-0">Global Settings & Actions</TabsTrigger>
+        <TabsTrigger value="scheduled" className="flex-shrink-0">Scheduled Tasks</TabsTrigger>
+        <TabsTrigger value="sources" className="flex-shrink-0">Source Management</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview">
