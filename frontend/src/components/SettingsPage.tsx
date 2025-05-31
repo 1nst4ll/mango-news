@@ -895,7 +895,7 @@ const SettingsPage: React.FC = () => {
 
   return (
     <Tabs defaultValue="overview" className="container mx-auto p-4">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
         <TabsTrigger value="overview">Overview & Stats</TabsTrigger>
         <TabsTrigger value="global">Global Settings & Actions</TabsTrigger>
         <TabsTrigger value="scheduled">Scheduled Tasks</TabsTrigger>
