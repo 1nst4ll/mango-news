@@ -1288,9 +1288,80 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
 // Optional: Run the scraper immediately when the script starts
 // runScraper();
 
+// Function to reprocess and update translated topics for all articles of a specific source
+async function reprocessTranslatedTopicsForSource(sourceId) {
+  console.log(`Starting re-processing of translated topics for source ID: ${sourceId}`);
+  let processedCount = 0;
+  let errorCount = 0;
+
+  try {
+    // Fetch all articles for the given source
+    const articlesResult = await pool.query(`
+      SELECT
+          a.id,
+          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS english_topics
+      FROM
+          articles a
+      LEFT JOIN
+          article_topics at ON a.id = at.article_id
+      LEFT JOIN
+          topics t ON at.topic_id = t.id
+      WHERE
+          a.source_id = $1
+      GROUP BY
+          a.id
+    `, [sourceId]);
+
+    const articlesToProcess = articlesResult.rows;
+
+    console.log(`Found ${articlesToProcess.length} articles for source ID ${sourceId} to reprocess translated topics.`);
+
+    for (const article of articlesToProcess) {
+      try {
+        if (article.english_topics && article.english_topics.length > 0) {
+          let translatedTopicsEs = [];
+          let translatedTopicsHt = [];
+
+          for (const topicName of article.english_topics) {
+            // Fetch translations from the topics table (more reliable than topicTranslations object)
+            const topicResult = await pool.query('SELECT name_es, name_ht FROM topics WHERE name = $1', [topicName]);
+            if (topicResult.rows.length > 0) {
+              const { name_es, name_ht } = topicResult.rows[0];
+              if (name_es) translatedTopicsEs.push(name_es);
+              if (name_ht) translatedTopicsHt.push(name_ht);
+            } else {
+              console.warn(`Topic "${topicName}" not found in topics table during re-processing for article ${article.id}.`);
+            }
+          }
+
+          const topics_es = translatedTopicsEs.join(', ');
+          const topics_ht = translatedTopicsHt.join(', ');
+
+          await pool.query('UPDATE articles SET topics_es = $1, topics_ht = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3', [topics_es, topics_ht, article.id]);
+          processedCount++;
+        } else {
+          console.log(`Article ${article.id} has no English topics assigned. Skipping re-processing translated topics.`);
+        }
+      } catch (articleErr) {
+        console.error(`Error re-processing translated topics for article ID ${article.id}:`, articleErr);
+        errorCount++;
+      }
+    }
+
+    const message = `Finished re-processing translated topics for source ID ${sourceId}. Processed: ${processedCount}, Errors: ${errorCount}.`;
+    console.log(message);
+    return { success: true, message: message, processedCount, errorCount };
+
+  } catch (err) {
+    console.error(`Error during re-processing translated topics for source ID ${sourceId}:`, err);
+    return { success: false, message: `Error re-processing source ${sourceId}: ${err.message}` };
+  }
+}
+
 // Export the runScraper function if you want to trigger it manually or from another script
 module.exports = {
   runScraper,
   runScraperForSource, // Export the new function
   processMissingAiForSource, // Export the new function for processing missing AI data
+  reprocessTranslatedTopicsForSource, // Export the new function for re-processing translated topics
 };

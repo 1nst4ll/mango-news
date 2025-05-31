@@ -10,7 +10,7 @@ const { marked } = require('marked'); // Import marked
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
-const { runScraper, runScraperForSource, processMissingAiForSource } = require('./scraper'); // Import scraper functions including processMissingAiForSource
+const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTranslatedTopicsForSource } = require('./scraper'); // Import scraper functions including processMissingAiForSource and the new function
 const { registerUser, loginUser } = require('./user'); // Import user management functions
 const authenticateToken = require('./middleware/auth'); // Import authentication middleware
 
@@ -134,7 +134,9 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
           a.thumbnail_url, -- Include thumbnail_url from the database
           a.summary AS ai_summary,
           a.ai_image_path AS ai_image_url,
-          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS ai_tags
+          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS ai_tags, -- English topics
+          a.topics_es, -- Spanish translated topics
+          a.topics_ht -- Haitian Creole translated topics
       FROM
           articles a
       LEFT JOIN
@@ -144,7 +146,7 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
       WHERE
           a.source_id = $1
       GROUP BY
-          a.id
+          a.id, a.title, a.source_url, a.thumbnail_url, a.summary, a.ai_image_path, a.topics_es, a.topics_ht -- Include new columns in GROUP BY
       ORDER BY
           a.publication_date DESC
     `, [sourceId]);
@@ -226,6 +228,28 @@ app.put('/api/sources/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error updating source with ID ${sourceId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Reprocess translated topics for a source
+app.post('/api/sources/:sourceId/reprocess-topics', authenticateToken, async (req, res) => {
+  const sourceId = req.params.sourceId;
+  const endpoint = `/api/sources/${sourceId}/reprocess-topics`;
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering re-processing of translated topics for source ID: ${sourceId}`);
+
+    const result = await reprocessTranslatedTopicsForSource(sourceId);
+
+    if (result.success) {
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Reprocessing completed for source ID ${sourceId}. Processed: ${result.processedCount}, Errors: ${result.errorCount}`);
+      res.json({ message: result.message, processedCount: result.processedCount, errorCount: result.errorCount });
+    } else {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Reprocessing failed for source ID ${sourceId}: ${result.message}`);
+      res.status(500).json({ error: result.message });
+    }
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering re-processing for source ${sourceId}:`, error);
+    res.status(500).json({ error: 'Failed to trigger re-processing of translated topics.' });
   }
 });
 

@@ -11,10 +11,12 @@ interface Article {
   id: number;
   title: string;
   source_url: string;
-  thumbnail_url: string | null; // Added thumbnail_url
+  thumbnail_url: string | null;
   ai_summary: string | null;
-  ai_tags: string[] | null; // Assuming tags are returned as an array of strings
-  ai_image_path: string | null; // Changed from ai_image_url to ai_image_path
+  ai_tags: string[] | null; // English topics
+  ai_image_path: string | null;
+  topics_es: string | null; // Spanish translated topics (comma-separated string)
+  topics_ht: string | null; // Haitian Creole translated topics (comma-separated string)
 }
 
 interface SourceArticlesProps {
@@ -27,6 +29,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [error, setError] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState<{ [articleId: number]: { summary?: string | null; tags?: string | null; image?: string | null; deleting?: string | null } }>({});
   const [processingLoading, setProcessingLoading] = useState<{ [articleId: number]: { summary?: boolean; tags?: boolean; image?: boolean; deleting?: boolean } }>({});
+  const [reprocessLoading, setReprocessLoading] = useState<boolean>(false); // New state for reprocess button
+  const [reprocessStatus, setReprocessStatus] = useState<string | null>(null); // New state for reprocess status
 
   // State for confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -164,12 +168,56 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   };
 
 
+  const handleReprocessTopics = async () => {
+    setReprocessLoading(true);
+    setReprocessStatus(null);
+    try {
+      const response = await fetch(`${apiUrl}/api/sources/${sourceId}/reprocess-topics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }), // Add Authorization header if token exists
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to reprocess topics for source ${sourceId}`);
+      }
+      setReprocessStatus(data.message || `Reprocessed topics for source ${sourceId}.`);
+      // Optionally refetch articles after processing to show updated status/data
+      fetchArticles();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setReprocessStatus(`Error: ${err.message}`);
+      } else {
+        setReprocessStatus('An unknown error occurred during topic re-processing.');
+      }
+    } finally {
+      setReprocessLoading(false);
+    }
+  };
+
   return (
     <Card className="mb-6 pt-4">
-      <CardHeader>
-        <CardTitle className="pb-4">Articles for Source ID: {sourceId}</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"> {/* Adjusted for button */}
+        <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
+        <div className="flex items-center space-x-2">
+          <Button
+            onClick={handleReprocessTopics}
+            disabled={reprocessLoading}
+            size="sm"
+            variant="outline"
+          >
+            {reprocessLoading ? 'Reprocessing...' : 'Reprocess Topics'}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
+        {reprocessStatus && (
+          <div className={`text-sm mb-4 ${reprocessStatus.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+            {reprocessStatus}
+          </div>
+        )}
         {loading ? (
           <div>Loading articles...</div>
         ) : error ? (
