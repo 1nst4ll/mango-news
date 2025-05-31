@@ -348,8 +348,10 @@ async function processScrapedData(data) { // Accept a single data object
       // Generate translations for title and summary
       const title_es = await generateAITranslation(title, 'es', 'title');
       const summary_es = await generateAITranslation(summary, 'es', 'summary');
+      const raw_content_es = await generateAITranslation(raw_content, 'es', 'raw_content');
       const title_ht = await generateAITranslation(title, 'ht', 'title');
       const summary_ht = await generateAITranslation(summary, 'ht', 'summary');
+      const raw_content_ht = await generateAITranslation(raw_content, 'ht', 'raw_content');
 
       // Assign topics using AI if enabled
       let assignedTopics = [];
@@ -417,8 +419,8 @@ async function processScrapedData(data) { // Accept a single data object
 
       // Save article to database
       const articleResult = await pool.query(
-        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, title_ht, summary_ht, topics_es, topics_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id',
-        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, title_ht, summary_ht, topics_es, topics_ht]
+        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id',
+        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht]
       );
       const articleId = articleResult.rows[0].id;
 
@@ -575,6 +577,8 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
     systemPrompt = `Translate the following news article title into ${languageName}. The translation must be concise, direct, and suitable as a headline. Return only the translated title, without any introductory phrases, conversational filler, or additional explanations.`;
   } else if (type === 'summary') {
     systemPrompt = `Translate the following news article summary into ${languageName}. The translation must be a concise summary, not an expanded list of points or a full article. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence.Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
+  } else if (type === 'raw_content') {
+    systemPrompt = `Translate the following news article content into ${languageName}. Maintain the original formatting, including paragraphs and markdown. Ensure the translation is accurate and complete. Return only the translated content, without any introductory phrases, conversational filler, or additional explanations.`;
   } else { // 'general' or other types
     systemPrompt = `Translate the following text into ${languageName}. Return only the translated text, without any introductory phrases or conversational filler.`;
   }
@@ -585,6 +589,8 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
     currentMaxTokens = 100; // Shorter for titles
   } else if (type === 'summary') {
     currentMaxTokens = 200; // Shorter for summaries
+  } else if (type === 'raw_content') {
+    currentMaxTokens = 10000; // Significantly higher for full article content
   }
 
   try {
@@ -851,7 +857,7 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
 
   try {
     // 1. Fetch the article
-    const articleResult = await pool.query('SELECT id, title, raw_content, summary, thumbnail_url, source_id, title_es, summary_es, title_ht, summary_ht FROM articles WHERE id = $1', [articleId]);
+    const articleResult = await pool.query('SELECT id, title, raw_content, summary, thumbnail_url, source_id, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht FROM articles WHERE id = $1', [articleId]);
     const article = articleResult.rows[0];
 
     if (!article) {
@@ -1010,6 +1016,22 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
         }
       }
 
+      // Translate raw_content if missing
+      if (!article.raw_content_es) {
+        const translatedContent = await generateAITranslation(article.raw_content, 'es', 'raw_content');
+        if (translatedContent) {
+          updatedFields.push(`raw_content_es = $${paramIndex++}`);
+          queryParams.push(translatedContent);
+        }
+      }
+      if (!article.raw_content_ht) {
+        const translatedContent = await generateAITranslation(article.raw_content, 'ht', 'raw_content');
+        if (translatedContent) {
+          updatedFields.push(`raw_content_ht = $${paramIndex++}`);
+          queryParams.push(translatedContent);
+        }
+      }
+
       if (updatedFields.length > 0) {
         queryParams.push(article.id); // Add article ID as the last parameter
         await pool.query(`UPDATE articles SET ${updatedFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`, queryParams);
@@ -1161,7 +1183,7 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
       query = 'SELECT id, title, raw_content FROM articles WHERE source_id = $1 AND ai_image_path IS NULL AND (thumbnail_url IS NULL OR thumbnail_url = \'\')';
     } else if (featureType === 'translations') {
       // Find articles missing any of the translation fields
-      query = 'SELECT id, title, raw_content, summary, title_es, summary_es, title_ht, summary_ht FROM articles WHERE source_id = $1 AND (title_es IS NULL OR summary_es IS NULL OR title_ht IS NULL OR summary_ht IS NULL)';
+      query = 'SELECT id, title, raw_content, summary, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht FROM articles WHERE source_id = $1 AND (title_es IS NULL OR summary_es IS NULL OR raw_content_es IS NULL OR title_ht IS NULL OR summary_ht IS NULL OR raw_content_ht IS NULL)';
     } else {
       console.log(`AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. Skipping.`);
       return { success: true, message: `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. No processing needed.` };
@@ -1277,6 +1299,22 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
             if (translatedSummary) {
               updatedFields.push(`summary_ht = $${paramIndex++}`);
               queryParams.push(translatedSummary);
+            }
+          }
+
+          // Translate raw_content if missing
+          if (!article.raw_content_es) {
+            const translatedContent = await generateAITranslation(article.raw_content, 'es', 'raw_content');
+            if (translatedContent) {
+              updatedFields.push(`raw_content_es = $${paramIndex++}`);
+              queryParams.push(translatedContent);
+            }
+          }
+          if (!article.raw_content_ht) {
+            const translatedContent = await generateAITranslation(article.raw_content, 'ht', 'raw_content');
+            if (translatedContent) {
+              updatedFields.push(`raw_content_ht = $${paramIndex++}`);
+              queryParams.push(translatedContent);
             }
           }
 

@@ -1,10 +1,10 @@
 # Multilingual Support (Spanish & Haitian Creole)
 
-This document outlines the implementation of multilingual support for the Mango News application, including AI-powered translations for news article titles, summaries, and topic tags, as well as UI internationalization.
+This document outlines the implementation of multilingual support for the Mango News application, including AI-powered translations for news article titles, summaries, topic tags, and **main article content**, as well as UI internationalization.
 
 ## Overview
 
-The application now supports English (default), Spanish, and Haitian Creole. Users can switch languages via a new language switcher in the header. Dynamic content (article titles, summaries, topics) is translated using the Groq API during the scraping process, and static UI text is managed via locale files.
+The application now supports English (default), Spanish, and Haitian Creole. Users can switch languages via a new language switcher in the header. Dynamic content (article titles, summaries, topics, and main article content) is translated using the Groq API during the scraping process, and static UI text is managed via locale files.
 
 ## Backend Implementation
 
@@ -15,8 +15,10 @@ The following columns have been added to the database to store translated conten
 *   **`articles` table:**
     *   `title_es` (TEXT): Spanish translation of the article title.
     *   `summary_es` (TEXT): Spanish translation of the article summary.
+    *   `raw_content_es` (TEXT): Spanish translation of the main article content.
     *   `title_ht` (TEXT): Haitian Creole translation of the article title.
     *   `summary_ht` (TEXT): Haitian Creole translation of the article summary.
+    *   `raw_content_ht` (TEXT): Haitian Creole translation of the main article content.
 *   **`topics` table:**
     *   `name_es` (VARCHAR(100)): Spanish translation of the topic name.
     *   `name_ht` (VARCHAR(100)): Haitian Creole translation of the topic name.
@@ -25,21 +27,21 @@ The following columns have been added to the database to store translated conten
 
 ### AI Translation Integration (`backend/src/scraper.js`)
 
-A new function `generateAITranslation(text, targetLanguageCode)` has been added to `backend/src/scraper.js`. This function utilizes the Groq API to translate text into the specified target language (Spanish or Haitian Creole).
+A new function `generateAITranslation(text, targetLanguageCode, type)` has been added to `backend/src/scraper.js`. This function utilizes the Groq API to translate text into the specified target language (Spanish or Haitian Creole), with `type` allowing for specific handling of titles, summaries, and raw content.
 
 The `processScrapedData` function has been updated to:
-1.  Call `generateAITranslation` for the English `title` and `summary` to generate their Spanish and Haitian Creole counterparts.
-2.  Save these translated titles and summaries into the new `title_es`, `summary_es`, `title_ht`, and `summary_ht` columns in the `articles` table.
+1.  Call `generateAITranslation` for the English `title`, `summary`, and **`raw_content`** to generate their Spanish and Haitian Creole counterparts.
+2.  Save these translated titles, summaries, and **raw content** into the new `title_es`, `summary_es`, `raw_content_es`, `title_ht`, `summary_ht`, and `raw_content_ht` columns in the `articles` table.
 3.  When a new topic is created, its name is saved along with its pre-translated Spanish and Haitian Creole equivalents from a static mapping (`topicTranslations`) into the `name_es` and `name_ht` columns in the `topics` table. If an existing topic is encountered, its translations are updated from this static mapping if they are missing or differ.
 
-The `processAiForArticle` and `processMissingAiForSource` functions have been extended to support a new `featureType: 'translations'`. This allows for on-demand or scheduled processing to generate missing translations for existing articles.
+The `processAiForArticle` and `processMissingAiForSource` functions have been extended to support a new `featureType: 'translations'`. This allows for on-demand or scheduled processing to generate missing translations for existing articles, now including the **main article content**.
 
 ### API Endpoint Updates (`backend/src/index.js`)
 
 The following API endpoints now return the translated fields:
 
-*   **`GET /api/articles`**: The response for each article now includes `title_es`, `summary_es`, `title_ht`, `summary_ht`, `topics_es`, and `topics_ht`.
-*   **`GET /api/articles/:id`**: The response for a single article now includes `title_es`, `summary_es`, `title_ht`, `summary_ht`, `topics_es`, and `topics_ht`.
+*   **`GET /api/articles`**: The response for each article now includes `title_es`, `summary_es`, `raw_content_es`, `title_ht`, `summary_ht`, `raw_content_ht`, `topics_es`, and `topics_ht`.
+*   **`GET /api/articles/:id`**: The response for a single article now includes `title_es`, `summary_es`, `raw_content_es`, `title_ht`, `summary_ht`, `raw_content_ht`, `topics_es`, and `topics_ht`.
 *   **`GET /api/topics`**: The response for each topic now includes `name_es` and `name_ht`.
 
 The frontend will use these fields based on the user's selected language.
