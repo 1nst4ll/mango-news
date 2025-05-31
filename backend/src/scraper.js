@@ -351,13 +351,6 @@ async function processScrapedData(data) { // Accept a single data object
       const title_ht = await generateAITranslation(title, 'ht', 'title');
       const summary_ht = await generateAITranslation(summary, 'ht', 'summary');
 
-      // Save article to database
-      const articleResult = await pool.query(
-        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, title_ht, summary_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id',
-        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, title_ht, summary_ht]
-      );
-      const articleId = articleResult.rows[0].id;
-
       // Assign topics using AI if enabled
       let assignedTopics = [];
       if (shouldAssignTags) {
@@ -367,7 +360,10 @@ async function processScrapedData(data) { // Accept a single data object
          console.log('AI tag assignment is disabled. Skipping topic assignment.');
       }
 
-      // Save assigned topics and link to article
+      // Collect translated topics for the article
+      let translatedTopicsEs = [];
+      let translatedTopicsHt = [];
+
       for (const topicName of assignedTopics) {
         let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
         let topicId;
@@ -394,12 +390,26 @@ async function processScrapedData(data) { // Accept a single data object
             await pool.query('UPDATE topics SET name_es = COALESCE($1, name_es), name_ht = COALESCE($2, name_ht) WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
           }
         }
+        // Add translated topic names to the arrays
+        if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
+        if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
 
         // Link article and topic
         await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
       }
 
-      console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}.`);
+      // Convert translated topic arrays to comma-separated strings
+      const topics_es = translatedTopicsEs.join(', ');
+      const topics_ht = translatedTopicsHt.join(', ');
+
+      // Save article to database
+      const articleResult = await pool.query(
+        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, title_ht, summary_ht, topics_es, topics_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id',
+        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, title_ht, summary_ht, topics_es, topics_ht]
+      );
+      const articleId = articleResult.rows[0].id;
+
+      console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}. Translated topics (ES): ${topics_es}, (HT): ${topics_ht}.`);
 
     } else {
       console.error(`Failed to process scraped data for source: ${source.name}`, content ? 'Missing content' : 'No data received');
@@ -867,6 +877,10 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
         // First, remove existing topics for this article to avoid duplicates
         await pool.query('DELETE FROM article_topics WHERE article_id = $1', [article.id]);
 
+        // Collect translated topics for the article
+        let translatedTopicsEs = [];
+        let translatedTopicsHt = [];
+
         // Save assigned topics and link to article
             for (const topicName of assignedTopics) {
               let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
@@ -893,12 +907,22 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
                   await pool.query('UPDATE topics SET name_es = COALESCE($1, name_es), name_ht = COALESCE($2, name_ht) WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
                 }
               }
+              // Add translated topic names to the arrays
+              if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
+              if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
+
               await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
             }
-        // Also update the article's updated_at timestamp
-        await pool.query('UPDATE articles SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [article.id]);
+
+        // Convert translated topic arrays to comma-separated strings
+        const topics_es = translatedTopicsEs.join(', ');
+        const topics_ht = translatedTopicsHt.join(', ');
+
+        // Update the article with the new translated topics
+        await pool.query('UPDATE articles SET topics_es = $1, topics_ht = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3', [topics_es, topics_ht, article.id]);
+
         processed = true;
-        message = `Tags assigned successfully: ${assignedTopics.join(', ')}.`;
+        message = `Tags assigned successfully: ${assignedTopics.join(', ')}. Translated topics (ES): ${topics_es}, (HT): ${topics_ht}.`;
       } else {
         message = 'No tags assigned or tag assignment failed.';
       }
