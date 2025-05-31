@@ -9,6 +9,11 @@
                 <label for="mango-news-source-all" style="cursor:pointer;">All Sources</label>
             </div>
         </div>
+        <select id="mango-news-language-switcher" style="padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: white;">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="ht">Kreyòl Ayisyen</option>
+        </select>
     </div>
     <div class="mango-news-pagination-container mango-news-pagination-top" style="display: none;">
         <div class="mango-news-pagination-wrapper">
@@ -42,6 +47,49 @@
 
 <script>
 (function() {
+    // All available translations
+    const allTranslations = {
+        en: {
+            loading: 'Loading news feed...',
+            no_articles_found: 'No news articles found.',
+            no_articles_match_filters: 'No articles match your current filters.',
+            published: 'Published:',
+            by: 'By',
+            share_whatsapp: 'Share on WhatsApp',
+            share_facebook: 'Share on Facebook',
+            all_sources: 'All Sources',
+            search_articles: 'Search articles...',
+            error_loading_feed: 'Error loading news feed',
+            check_out_article: 'Check out this article'
+        },
+        es: {
+            loading: 'Cargando noticias...',
+            no_articles_found: 'No se encontraron artículos de noticias.',
+            no_articles_match_filters: 'No hay artículos que coincidan con sus filtros actuales.',
+            published: 'Publicado:',
+            by: 'Por',
+            share_whatsapp: 'Compartir en WhatsApp',
+            share_facebook: 'Compartir en Facebook',
+            all_sources: 'Todas las fuentes',
+            search_articles: 'Buscar artículos...',
+            error_loading_feed: 'Error al cargar noticias',
+            check_out_article: 'Mira este artículo'
+        },
+        ht: {
+            loading: 'Chaje nouvèl...',
+            no_articles_found: 'Pa gen okenn atik nouvèl yo jwenn.',
+            no_articles_match_filters: 'Pa gen okenn atik ki koresponn ak filtè aktyèl ou yo.',
+            published: 'Pibliye:',
+            by: 'Pa',
+            share_whatsapp: 'Pataje sou WhatsApp',
+            share_facebook: 'Pataje sou Facebook',
+            all_sources: 'Tout sous yo',
+            search_articles: 'Chèche atik...',
+            error_loading_feed: 'Erè pandan chaje nouvèl',
+            check_out_article: 'Gade atik sa a'
+        }
+    };
+
     // Configuration (change these values as needed)
     const config = {
         apiUrl: 'https://mango-news.onrender.com/api', // Original working API URL
@@ -54,7 +102,9 @@
         // Use target="_blank" to open in new tab, or change URL format if needed
         articleLinkFormat: '/news-article/?id=${id}', // Link to the WordPress page with ID as query parameter
         openInNewTab: false, // Set to true to open articles in new tabs
-        debug: true // Enable for console debugging
+        debug: true, // Enable for console debugging
+        displayLanguage: 'en', // Default language for direct embed
+        translations: allTranslations['en'] // Initialize with default English translations
     };
     
     // Pagination state
@@ -74,6 +124,7 @@
     const emptyEl = container.querySelector('.mango-news-empty');
     const errorEl = container.querySelector('.mango-news-error');
     const contentEl = container.querySelector('.mango-news-feed-content');
+    const languageSwitcher = document.getElementById('mango-news-language-switcher');
     
     // Bottom pagination elements
     const paginationContainerBottom = container.querySelector('.mango-news-pagination-bottom');
@@ -91,9 +142,19 @@
     const paginationPagesTop = paginationContainerTop.querySelector('.mango-news-pagination-pages-top');
     const prevBtnTop = paginationContainerTop.querySelector('.mango-news-pagination-prev-top');
     const nextBtnTop = paginationContainerTop.querySelector('.mango-news-pagination-next-top');
-    const paginationStartTop = paginationContainerTop.querySelector('.mango-news-pagination-start-top');
-    const paginationEndTop = paginationContainerTop.querySelector('.mango-news-pagination-end-top');
-    const paginationTotalTop = paginationContainerTop.querySelector('.mango-news-pagination-total-top');
+    const paginationStartTop = container.querySelector('.mango-news-pagination-start-top');
+    const paginationEndTop = container.querySelector('.mango-news-pagination-end-top');
+    const paginationTotalTop = container.querySelector('.mango-news-pagination-total-top');
+
+    // Set initial UI text based on default language
+    if(searchInput) searchInput.placeholder = config.translations.search_articles;
+    const allSourcesCheckboxLabel = document.querySelector('#mango-news-source-all + label'); // Get the label associated with the checkbox
+    if (allSourcesCheckboxLabel) {
+        allSourcesCheckboxLabel.textContent = config.translations.all_sources;
+    }
+    loadingEl.textContent = config.translations.loading;
+    emptyEl.textContent = config.translations.no_articles_found;
+    errorEl.innerHTML = `${config.translations.error_loading_feed}: ${error.message || ''}`; // Ensure error.message is not undefined
     
     // Function to fetch articles from the API
     function fetchArticles() {
@@ -129,15 +190,16 @@
                 
                 // Check if there are any articles
                 if (!articles || articles.length === 0) {
+                    emptyEl.textContent = config.translations.no_articles_found;
                     emptyEl.style.display = 'block';
-                return;
-            }
+                    return;
+                }
             
             // Store all articles for pagination and single article navigation
             paginationState.allArticles = articles; // Keep the original full list
             
             // Populate source picker
-            populateSourcePicker(articles);
+            populateSourceCheckboxes(articles);
 
             // Store the full article list in localStorage for single article navigation
             try {
@@ -169,7 +231,7 @@
                 console.error('Error fetching articles:', error);
                 loadingEl.style.display = 'none';
                 errorEl.style.display = 'block';
-                errorEl.innerHTML = `Error loading news feed: ${error.message}`;
+                errorEl.innerHTML = `${config.translations.error_loading_feed}: ${error.message}`;
                 
                 if (config.debug) {
                     // More detailed error message for debugging
@@ -189,7 +251,7 @@
     }
     
     // Function to populate the source checkboxes
-    function populateSourcePicker(articles) { // Renaming to populateSourceCheckboxes would be good practice later
+    function populateSourceCheckboxes(articles) { // Renaming to populateSourceCheckboxes would be good practice later
         const sources = {}; 
         articles.forEach(article => {
             if (article.source_url) {
@@ -238,6 +300,7 @@
         const allSourcesCheckbox = document.getElementById('mango-news-source-all');
         if (allSourcesCheckbox) {
             allSourcesCheckbox.addEventListener('change', handleSourceCheckboxChange);
+            allSourcesCheckbox.nextElementSibling.textContent = config.translations.all_sources; // Update "All Sources" text
         }
     }
 
@@ -251,7 +314,7 @@
                 specificSourceCheckboxes.forEach(cb => cb.checked = false);
             } else {
                 // If "All Sources" is unchecked, and no other boxes are checked, it should remain checked (or re-check it)
-                // Or, if user unchecks "All" when others are checked, it means they want to select specific ones.
+                // Or, if user unchecks "All" when others are checked, it1 means they want to select specific ones.
                 // This logic might need refinement based on desired UX. For now, if "All" is unchecked, we assume specific selection will follow.
             }
         } else { // A specific source checkbox changed
@@ -279,11 +342,15 @@
         // Filter by search term
         if (config.searchTerm) {
             const searchTermLower = config.searchTerm.toLowerCase();
-            articlesToFilter = articlesToFilter.filter(article => 
-                (article.title && article.title.toLowerCase().includes(searchTermLower)) ||
-                (article.summary && article.summary.toLowerCase().includes(searchTermLower)) ||
-                (article.content && article.content.toLowerCase().includes(searchTermLower)) // If full content is available
-            );
+            articlesToFilter = articlesToFilter.filter(article => {
+                const title = article[`title_${config.displayLanguage}`] || article.title;
+                const summary = article[`summary_${config.displayLanguage}`] || article.summary;
+                const content = article[`raw_content_${config.displayLanguage}`] || article.raw_content;
+
+                return (title && title.toLowerCase().includes(searchTermLower)) ||
+                       (summary && summary.toLowerCase().includes(searchTermLower)) ||
+                       (content && content.toLowerCase().includes(searchTermLower));
+            });
         }
 
         // Filter by selected source(s)
@@ -304,7 +371,6 @@
         paginationState.totalPages = Math.ceil(articlesToFilter.length / config.articlesPerPage) || 1;
         
         displayPage(1); // Display the first page of the filtered results
-        updatePaginationControls(); // Ensure pagination reflects filtered results
     }
     
     // Function to display a specific page of articles
@@ -358,16 +424,16 @@
         if (pageArticles.length === 0 && articlesForDisplay.length > 0) {
             // This case might happen if pageNumber is out of bounds after filtering, though validation should prevent it.
             // Or if all articles are filtered out.
-            emptyEl.textContent = "No articles match your current filters.";
+            emptyEl.textContent = config.translations.no_articles_match_filters;
             emptyEl.style.display = 'block';
             contentEl.style.display = 'none';
         } else if (pageArticles.length === 0 && articlesForDisplay.length === 0 && (config.searchTerm || config.selectedSources.length > 0)) {
-            emptyEl.textContent = "No articles match your current filters.";
+            emptyEl.textContent = config.translations.no_articles_match_filters;
             emptyEl.style.display = 'block';
             contentEl.style.display = 'none';
         }
          else if (pageArticles.length === 0 && articlesForDisplay.length === 0) {
-            emptyEl.textContent = "No news articles found."; // Default empty message
+            emptyEl.textContent = config.translations.no_articles_found; // Default empty message
             emptyEl.style.display = 'block';
             contentEl.style.display = 'none';
         }    
@@ -496,7 +562,7 @@
         
         for (const article of articles) {
             const date = new Date(article.publication_date);
-            const dateStr = date.toLocaleDateString('en-US', {
+            const dateStr = date.toLocaleDateString(config.displayLanguage === 'en' ? 'en-US' : config.displayLanguage, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
@@ -525,6 +591,10 @@
         const articleLink = config.articleLinkFormat.replace('${id}', article.id);
         const targetAttr = config.openInNewTab ? ' target="_blank" rel="noopener noreferrer"' : '';
         
+        const title = article[`title_${config.displayLanguage}`] || article.title || 'Untitled';
+        const summary = article[`summary_${config.displayLanguage}`] || article.summary || '';
+        const topics = article[`topics_${config.displayLanguage}`] || article.topics || [];
+
         // Create a wrapper div for the card instead of using the a tag as container
         let html = `<div class="mango-news-card-wrapper">`;
         // Add a click handler to store current state before navigating
@@ -534,13 +604,13 @@
         if (article.thumbnail_url) {
             html += `
                 <div class="mango-news-card-image-container">
-                    <img class="mango-news-card-image" src="${article.thumbnail_url}" alt="${article.title || 'News article'}">
+                    <img class="mango-news-card-image" src="${article.thumbnail_url}" alt="${title}">
             `;
             
             // Add topics if available and enabled
-            if (config.showTopics && article.topics && article.topics.length > 0) {
+            if (config.showTopics && topics.length > 0) {
                 html += '<div class="mango-news-card-topics">';
-                for (const topic of article.topics) {
+                for (const topic of topics) {
                     html += `<span class="mango-news-topic-tag">${topic}</span>`;
                 }
                 html += '</div>';
@@ -552,7 +622,7 @@
         // Add header with title and metadata
         html += `
             <div class="mango-news-card-header">
-                <h3 class="mango-news-card-title">${article.title || 'Untitled'}</h3>
+                <h3 class="mango-news-card-title">${title}</h3>
                 <div class="mango-news-card-meta">
         `;
         
@@ -562,13 +632,13 @@
         
         // Add author if available
         if (article.author) {
-            html += ` | <span class="mango-news-author">By ${article.author}</span>`;
+            html += ` | <span class="mango-news-author">${config.translations.by} ${article.author}</span>`;
         }
         
         // Add publication date
         if (article.publication_date) {
             const pubDate = new Date(article.publication_date);
-            html += ` | <span class="mango-news-date">Published: ${pubDate.toLocaleDateString()}</span>`;
+            html += ` | <span class="mango-news-date">${config.translations.published} ${pubDate.toLocaleDateString(config.displayLanguage === 'en' ? 'en-US' : config.displayLanguage)}</span>`;
         }
         
         html += `
@@ -577,13 +647,11 @@
         `;
         
         // Add content with summary
-        let summary = article.summary || '';
-        // Format bold text with strong tags
-        summary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        let formattedSummary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         
         html += `
             <div class="mango-news-card-content">
-                <div class="mango-news-card-summary">${summary}</div>
+                <div class="mango-news-card-summary">${formattedSummary}</div>
             </div>
         `;
         
@@ -592,9 +660,9 @@
         // Add sharing buttons if enabled (outside the card link but inside the card wrapper)
         if (config.showSharing) {
             html += `
-                <div class="mango-news-share-buttons" data-article-id="${article.id}" data-article-title="${encodeURIComponent(article.title || 'News article')}">
-                    <a href="#" class="mango-news-share-button mango-news-share-whatsapp">Share on WhatsApp</a>
-                    <a href="#" class="mango-news-share-button mango-news-share-facebook">Share on Facebook</a>
+                <div class="mango-news-share-buttons" data-article-id="${article.id}" data-article-title="${encodeURIComponent(title)}">
+                    <a href="#" class="mango-news-share-button mango-news-share-whatsapp">${config.translations.share_whatsapp}</a>
+                    <a href="#" class="mango-news-share-button mango-news-share-facebook">${config.translations.share_facebook}</a>
                 </div>
             `;
         }
@@ -634,7 +702,7 @@
                 // Use window.location.origin to ensure correct base URL
                 const articleUrl = window.location.origin + config.articleLinkFormat.replace('${id}', articleId);
                 
-                const shareText = `Check out this article: ${articleTitle} - ${articleUrl}`;
+                const shareText = `${config.translations.check_out_article}: ${articleTitle} - ${articleUrl}`;
                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
                 
                 window.open(whatsappUrl, '_blank');
@@ -664,16 +732,47 @@
     
     // Event Listeners for filters
     let searchDebounceTimer;
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => {
-            config.searchTerm = this.value;
-            applyFiltersAndRender();
-        }, 300); 
-    });
+    if(searchInput) { // Check if element exists
+        searchInput.placeholder = config.translations.search_articles; // Update placeholder
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                config.searchTerm = this.value;
+                applyFiltersAndRender();
+            }, 300); 
+        });
+    }
 
     // Event listeners for checkboxes are added dynamically in populateSourcePicker
     // and for "All Sources" checkbox.
+    const allSourcesCheckboxElement = document.getElementById('mango-news-source-all');
+    if (allSourcesCheckboxElement) {
+        const allSourcesCheckboxLabelElement = document.querySelector('#mango-news-source-all + label');
+        if (allSourcesCheckboxLabelElement) {
+            allSourcesCheckboxLabelElement.textContent = config.translations.all_sources;
+        }
+    }
+
+    // Language switcher event listener
+    if (languageSwitcher) {
+        languageSwitcher.value = config.displayLanguage; // Set initial selection
+        languageSwitcher.addEventListener('change', function() {
+            config.displayLanguage = this.value;
+            config.translations = allTranslations[config.displayLanguage] || allTranslations.en; // Correctly update translations
+
+            // Update static UI elements that don't get re-rendered by applyFiltersAndRender
+            if(searchInput) searchInput.placeholder = config.translations.search_articles;
+            const allSourcesCheckboxLabelElement = document.querySelector('#mango-news-source-all + label');
+            if (allSourcesCheckboxLabelElement) {
+                allSourcesCheckboxLabelElement.textContent = config.translations.all_sources;
+            }
+            loadingEl.textContent = config.translations.loading;
+            emptyEl.textContent = config.translations.no_articles_found;
+            errorEl.innerHTML = `${config.translations.error_loading_feed}: ${error.message || ''}`; // Ensure error.message is not undefined
+
+            applyFiltersAndRender(); // Re-render content with new language
+        });
+    }
 
     // Add pagination event listeners for bottom pagination
     prevBtnBottom.addEventListener('click', function(e) {
