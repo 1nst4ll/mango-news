@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card"; // Added CardDescription and CardFooter
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { ArticlesPerSourceBarChart } from "./charts/ArticlesPerSourceBarChart"; // Import the new chart component
-import { ArticlesPerYearBarChart } from "./charts/ArticlesPerYearAreaChart"; // Import the Articles per Year Bar chart component
+import { ArticlesPerSourceBarChart } from "./charts/ArticlesPerSourceBarChart";
+import { ArticlesPerYearBarChart } from "./charts/ArticlesPerYearAreaChart";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "./ui/dialog";
-import { Switch } from "./ui/switch"; // Assuming Switch is needed based on previous feedback
+import { Switch } from "./ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"; // Import Tabs components
+import { Toaster } from "./ui/toaster"; // Import Toaster
+import { useToast } from "./ui/use-toast"; // Import useToast hook
+
+
 
 
 // Interfaces from admin/page.tsx
@@ -44,18 +49,13 @@ interface Source {
   scrape_after_date: string | null; // Add scrape_after_date field
 }
 
-interface DiscoveredSource {
-  name: string;
-  url: string;
-}
-
 interface ModalFormData {
   name: string;
   url: string;
   enable_ai_summary: boolean;
-  enable_ai_tags: boolean; // Add enable_ai_tags field
-  enable_ai_image: boolean; // Add enable_ai_image field
-  enable_ai_translations: boolean; // Add enable_ai_translations field
+  enable_ai_tags: boolean;
+  enable_ai_image: boolean;
+  enable_ai_translations: boolean;
   include_selectors: string | null;
   exclude_selectors: string | null;
   scraping_method: string;
@@ -65,24 +65,25 @@ interface ModalFormData {
   os_author_selector: string | null;
   os_thumbnail_selector: string | null;
   os_topics_selector: string | null;
-  article_link_template: string | null; // Add article link template
-  exclude_patterns: string | null; // Add exclude patterns
-  scrape_after_date: string | null; // Add scrape_after_date field
+  article_link_template: string | null;
+  exclude_patterns: string | null;
+  scrape_after_date: string | null;
 }
 
 
 const SettingsPage: React.FC = () => {
-  const [jwtToken, setJwtToken] = useState<string | null>(null); // State to store JWT token
+  const { toast } = useToast(); // Initialize toast
+  const [jwtToken, setJwtToken] = useState<string | null>(null);
 
   // State for Scheduled Tasks
-  const [mainScraperFrequency, setMainScraperFrequency] = useState<string>('0 * * * *'); // Default to hourly
-  const [missingAiFrequency, setMissingAiFrequency] = useState<string>('*/20 * * * *'); // Default to every 20 minutes
-  const [enableScheduledMissingSummary, setEnableScheduledMissingSummary] = useState<boolean>(true); // New state for scheduled missing summary toggle
-  const [enableScheduledMissingTags, setEnableScheduledMissingTags] = useState<boolean>(true); // New state for scheduled missing tags toggle
-  const [enableScheduledMissingImage, setEnableScheduledMissingImage] = useState<boolean>(true); // New state for scheduled missing image toggle
-  const [enableScheduledMissingTranslations, setEnableScheduledMissingTranslations] = useState<boolean>(true); // New state for scheduled missing translations toggle
+  const [mainScraperFrequency, setMainScraperFrequency] = useState<string>('0 * * * *');
+  const [missingAiFrequency, setMissingAiFrequency] = useState<string>('*/20 * * * *');
+  const [enableScheduledMissingSummary, setEnableScheduledMissingSummary] = useState<boolean>(true);
+  const [enableScheduledMissingTags, setEnableScheduledMissingTags] = useState<boolean>(true);
+  const [enableScheduledMissingImage, setEnableScheduledMissingImage] = useState<boolean>(true);
+  const [enableScheduledMissingTranslations, setEnableScheduledMissingTranslations] = useState<boolean>(true);
   const [savingSchedule, setSavingSchedule] = useState<boolean>(false);
-  const [scheduleStatus, setScheduleStatus] = useState<string | null>(null);
+  const [scheduleStatus, setScheduleStatus] = useState<string | null>(null); // This can probably be removed after toast implementation
 
 
   // State from admin/page.tsx
@@ -91,8 +92,8 @@ const SettingsPage: React.FC = () => {
   const [purgeStatus, setPurgeStatus] = useState<string | null>(null);
   const [purgeLoading, setPurgeLoading] = useState<boolean>(false);
   const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(true);
-  const [enableGlobalAiTags, setEnableGlobalAiTags] = useState<boolean>(true); // New state for AI tags
-  const [enableGlobalAiImage, setEnableGlobalAiImage] = useState<boolean>(true); // New state for AI image
+  const [enableGlobalAiTags, setEnableGlobalAiTags] = useState<boolean>(true);
+  const [enableGlobalAiImage, setEnableGlobalAiImage] = useState<boolean>(true);
   const [stats, setStats] = useState<ArticleStats>({ totalArticles: null, totalSources: null, articlesPerSource: [], articlesPerYear: [] });
   const [statsLoading, setStatsLoading] = useState<boolean>(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -110,17 +111,14 @@ const SettingsPage: React.FC = () => {
   const [sourceProcessingLoading, setSourceProcessingLoading] = useState<{ [key: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean } }>({});
   const [sourceProcessingStatus, setSourceProcessingStatus] = useState<{ [key: number]: { summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null } }>({});
 
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null); // Changed type to string | null
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFormData, setModalFormData] = useState<ModalFormData>({
     name: '',
     url: '',
     enable_ai_summary: true,
-    enable_ai_tags: true, // Initialize enable_ai_tags field
-    enable_ai_image: true, // Initialize enable_ai_image field
-    enable_ai_translations: true, // Initialize enable_ai_translations field
+    enable_ai_tags: true,
+    enable_ai_image: true,
+    enable_ai_translations: true,
     include_selectors: null,
     exclude_selectors: null,
     scraping_method: 'opensource',
@@ -130,15 +128,51 @@ const SettingsPage: React.FC = () => {
     os_author_selector: null,
     os_thumbnail_selector: null,
     os_topics_selector: null,
-    article_link_template: null, // Initialize new field
-    exclude_patterns: null, // Initialize new field
-    scrape_after_date: null, // Initialize new field
+    article_link_template: null,
+    exclude_patterns: null,
+    scrape_after_date: null,
 });
 
   // State for confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [confirmDialogAction, setConfirmDialogAction] = useState<'purgeAll' | 'deleteSourceArticles' | 'deleteSource' | null>(null);
   const [confirmDialogSourceId, setConfirmDialogSourceId] = useState<number | null>(null);
+
+  // Effects for fetching scheduler settings
+  useEffect(() => {
+    const fetchSchedulerSettings = async () => {
+      if (!jwtToken) return; // Don't fetch if no token
+
+      try {
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`,
+        };
+
+        const response = await fetch(`${apiUrl}/api/settings/scheduler`, { headers });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setMainScraperFrequency(data.main_scraper_frequency);
+        setMissingAiFrequency(data.missing_ai_frequency);
+        setEnableScheduledMissingSummary(data.enable_scheduled_missing_summary);
+        setEnableScheduledMissingTags(data.enable_scheduled_missing_tags);
+        setEnableScheduledMissingImage(data.enable_scheduled_missing_image);
+        setEnableScheduledMissingTranslations(data.enable_scheduled_missing_translations);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        toast({
+          title: "Error Loading Schedule Settings",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchSchedulerSettings();
+  }, [jwtToken, toast]); // Depend on jwtToken and toast
 
   // Effects from admin/page.tsx
   useEffect(() => {
@@ -195,25 +229,13 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('enableGlobalAiTags');
-      if (saved !== null) {
-        setEnableGlobalAiTags(JSON.parse(saved));
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
       localStorage.setItem('enableGlobalAiTags', JSON.stringify(enableGlobalAiTags));
     }
   }, [enableGlobalAiTags]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('enableGlobalAiImage');
-      if (saved !== null) {
-        setEnableGlobalAiImage(JSON.parse(saved));
-      }
+      localStorage.setItem('enableGlobalAiImage', JSON.stringify(enableGlobalAiImage));
     }
   }, []);
 
@@ -284,12 +306,19 @@ const SettingsPage: React.FC = () => {
         throw new Error(data.error || 'Failed to trigger scraper');
       }
       setScrapingStatus(data.message || 'Scraper triggered successfully. Check backend logs for progress.');
+      toast({
+        title: "Scraper Triggered",
+        description: data.message || 'Scraper triggered successfully. Check backend logs for progress.',
+        variant: "default",
+      });
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        setScrapingStatus(`Error: ${error.message}`);
-      } else {
-        setScrapingStatus('An unknown error occurred during scraping.');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
+      setScrapingStatus(`Error: ${errorMessage}`);
+      toast({
+        title: "Scraper Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -322,12 +351,19 @@ const SettingsPage: React.FC = () => {
         throw new Error(data.error || 'Failed to purge articles');
       }
       setPurgeStatus(data.message || 'All articles purged successfully.');
+      toast({
+        title: "Articles Purged",
+        description: data.message || 'All articles purged successfully.',
+        variant: "default",
+      });
     } catch (error: unknown) {
-       if (error instanceof Error) {
-        setPurgeStatus(`Error: ${error.message}`);
-      } else {
-        setPurgeStatus('An unknown error occurred during purging.');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during purging.';
+      setPurgeStatus(`Error: ${errorMessage}`);
+      toast({
+        title: "Purge Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setPurgeLoading(false);
     }
@@ -358,12 +394,19 @@ const SettingsPage: React.FC = () => {
         ...prev,
         [sourceId]: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles. Check backend logs for details.`,
       }));
+      toast({
+        title: "Source Scrape Triggered",
+        description: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles.`,
+        variant: "default",
+      });
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: `Error: ${error.message}` }));
-      } else {
-        setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: 'An unknown error occurred during scraping.' }));
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
+      setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: `Error: ${errorMessage}` }));
+      toast({
+        title: "Source Scrape Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setSourceScrapingLoading(prev => ({ ...prev, [sourceId]: false }));
     }
@@ -408,23 +451,56 @@ const SettingsPage: React.FC = () => {
         ...prev,
         [sourceId]: { ...prev[sourceId], [featureType]: data.message || `Processed missing ${featureType} for source ${sourceId}.` }
       }));
+      toast({
+        title: `Missing ${featureType.charAt(0).toUpperCase() + featureType.slice(1)} Processed`,
+        description: data.message || `Processed missing ${featureType} for source ${sourceId}.`,
+        variant: "default",
+      });
       // Optionally refetch stats after processing tags or images
       if (featureType === 'tags' || featureType === 'image') {
          // Consider if refetching stats is necessary or too heavy
          // fetchStats();
       }
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        setSourceProcessingStatus(prev => ({ ...prev, [sourceId]: { ...prev[sourceId], [featureType]: `Error: ${error.message}` } }));
-      } else {
-        setSourceProcessingStatus(prev => ({ ...prev, [sourceId]: { ...prev[sourceId], [featureType]: `An unknown error occurred during ${featureType} processing.` } }));
-      }
+      const errorMessage = error instanceof Error ? error.message : `An unknown error occurred during ${featureType} processing.`;
+      setSourceProcessingStatus(prev => ({ ...prev, [sourceId]: { ...prev[sourceId], [featureType]: `Error: ${errorMessage}` } }));
+      toast({
+        title: `Error Processing Missing ${featureType.charAt(0).toUpperCase() + featureType.slice(1)}`,
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setSourceProcessingLoading(prev => ({
         ...prev,
         [sourceId]: { ...prev[sourceId], [featureType]: false }
       }));
     }
+  };
+
+  // New handler function to process all missing AI data for a source
+  const handleProcessAllMissingAi = async (
+    sourceId: number,
+    enableSummary: boolean,
+    enableTags: boolean,
+    enableImage: boolean,
+    enableTranslations: boolean
+  ) => {
+    const processingPromises: Promise<void>[] = [];
+
+    if (enableSummary) {
+      processingPromises.push(handleProcessMissingAi(sourceId, 'summary'));
+    }
+    if (enableTags) {
+      processingPromises.push(handleProcessMissingAi(sourceId, 'tags'));
+    }
+    if (enableImage) {
+      processingPromises.push(handleProcessMissingAi(sourceId, 'image'));
+    }
+    if (enableTranslations) {
+      processingPromises.push(handleProcessMissingAi(sourceId, 'translations'));
+    }
+
+    await Promise.all(processingPromises);
   };
 
   // Handler to block a source from scraping
@@ -486,13 +562,61 @@ const SettingsPage: React.FC = () => {
       };
       fetchSources();
 
-      alert(`Source ${sourceId} blocked successfully.`);
+      toast({
+        title: "Source Blocked",
+        description: `Source ${sourceId} blocked successfully.`,
+        variant: "default",
+      });
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(`Error blocking source: ${err.message}`);
-      } else {
-        alert('An unknown error occurred while blocking the source.');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      toast({
+        title: "Error Blocking Source",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveScheduleSettings = async () => {
+    setSavingSchedule(true);
+    try {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`,
+      };
+
+      const response = await fetch(`${apiUrl}/api/settings/scheduler`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          main_scraper_frequency: mainScraperFrequency,
+          missing_ai_frequency: missingAiFrequency,
+          enable_scheduled_missing_summary: enableScheduledMissingSummary,
+          enable_scheduled_missing_tags: enableScheduledMissingTags,
+          enable_scheduled_missing_image: enableScheduledMissingImage,
+          enable_scheduled_missing_translations: enableScheduledMissingTranslations,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save schedule settings');
       }
+      toast({
+        title: "Schedule Settings Saved",
+        description: data.message || 'Scheduler settings updated successfully.',
+        variant: "default",
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while saving schedule settings.';
+      toast({
+        title: "Error Saving Schedule Settings",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSchedule(false);
     }
   };
 
@@ -523,14 +647,21 @@ const SettingsPage: React.FC = () => {
         throw new Error(data.error || `Failed to delete articles for source ${sourceId}`);
       }
       setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: data.message || `All articles for source ${sourceId} purged successfully.` }));
+      toast({
+        title: "Articles Purged for Source",
+        description: data.message || `All articles for source ${sourceId} purged successfully.`,
+        variant: "default",
+      });
       // Optionally refetch stats after deletion
       // fetchStats();
     } catch (error: unknown) {
-       if (error instanceof Error) {
-        setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: `Error: ${error.message}` }));
-      } else {
-        setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: 'An unknown error occurred during article deletion.' }));
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during article deletion.';
+      setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: `Error: ${errorMessage}` }));
+      toast({
+        title: "Article Deletion Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setSourceArticleDeletionLoading(prev => ({ ...prev, [sourceId]: false }));
     }
@@ -549,7 +680,11 @@ const SettingsPage: React.FC = () => {
 
   const handleAddSource = async () => {
     if (!modalFormData.name || !modalFormData.url) {
-      alert('Please enter both source name and URL.');
+      toast({
+        title: "Missing Information",
+        description: "Please enter both source name and URL.",
+        variant: "destructive",
+      });
       return;
     }
     try {
@@ -572,12 +707,18 @@ const SettingsPage: React.FC = () => {
       const addedSource = await response.json();
       setSources([...sources, addedSource]);
       closeAddEditModal();
+      toast({
+        title: "Source Added",
+        description: `Source "${addedSource.name}" added successfully.`,
+        variant: "default",
+      });
     } catch (error: unknown) {
-       if (error instanceof Error) {
-        setSourcesError(error.message);
-      } else {
-        setSourcesError('An unknown error occurred while adding the source.');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      toast({
+        title: "Error Adding Source",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
@@ -585,7 +726,11 @@ const SettingsPage: React.FC = () => {
     if (!editingSource) return;
 
     if (!modalFormData.name || !modalFormData.url) {
-      alert('Please enter both source name and URL.');
+      toast({
+        title: "Missing Information",
+        description: "Please enter both source name and URL.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -609,12 +754,18 @@ const SettingsPage: React.FC = () => {
       const updatedSource = await response.json();
       setSources(sources.map(source => source.id === updatedSource.id ? updatedSource : source));
       closeAddEditModal();
+      toast({
+        title: "Source Updated",
+        description: `Source "${updatedSource.name}" updated successfully.`,
+        variant: "default",
+      });
     } catch (error: unknown) {
-       if (error instanceof Error) {
-        setSourcesError(error.message);
-      } else {
-        setSourcesError('An unknown error occurred while editing the source.');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      toast({
+        title: "Error Updating Source",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
@@ -641,59 +792,21 @@ const SettingsPage: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       setSources(sources.filter(source => source.id !== id));
+      toast({
+        title: "Source Deleted",
+        description: `Source ${id} deleted successfully.`,
+        variant: "default",
+      });
     } catch (error: unknown) {
-       if (error instanceof Error) {
-        setSourcesError(error.message);
-      } else {
-        setSourcesError('An unknown error occurred while deleting the source.');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while deleting the source.';
+      toast({
+        title: "Error Deleting Source",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
-  const discoverNewSources = async () => {
-    setIsDiscovering(true);
-    setDiscoveredSources([]);
-    setDiscoveryError(null);
-
-    try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-      const response = await fetch(`${apiUrl}/api/discover-sources`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: DiscoveredSource[] = await response.json();
-      setDiscoveredSources(data);
-    } catch (err: unknown) {
-      setDiscoveryError(String(err)); // Convert error to string
-    } finally {
-      setIsDiscovering(false);
-    }
-  };
-
-  const handleAddDiscoveredSourceToForm = (source: DiscoveredSource) => {
-    setModalFormData({
-      name: source.name,
-      url: source.url,
-      enable_ai_summary: true,
-      enable_ai_tags: true, // Initialize enable_ai_tags field
-      enable_ai_image: true, // Initialize enable_ai_image field
-      enable_ai_translations: true, // Initialize enable_ai_translations field
-      include_selectors: null,
-      exclude_selectors: null,
-      scraping_method: 'opensource',
-      os_title_selector: null,
-      os_content_selector: "article.tgMH9T", // Set default content selector
-      os_date_selector: null,
-      os_author_selector: null,
-      os_thumbnail_selector: null,
-      os_topics_selector: null,
-      article_link_template: null, // Initialize new field
-      exclude_patterns: null, // Initialize new field
-      scrape_after_date: null, // Initialize new field
-    });
-    setDiscoveredSources([]);
-    openAddModal();
-  };
 
   const openAddModal = () => {
     setEditingSource(null);
@@ -708,7 +821,7 @@ const SettingsPage: React.FC = () => {
       exclude_selectors: null,
       scraping_method: 'opensource',
       os_title_selector: null,
-      os_content_selector: "article.tgMH9T", // Set default content selector
+      os_content_selector: null, // Set default content selector
       os_date_selector: null,
       os_author_selector: null,
       os_thumbnail_selector: null,
@@ -735,7 +848,7 @@ const SettingsPage: React.FC = () => {
       os_title_selector: source.os_title_selector,
       os_content_selector: source.os_content_selector,
       os_date_selector: source.os_date_selector,
-      os_author_selector: source.os_author_selector,
+      os_author_selector: null,
       os_thumbnail_selector: source.os_thumbnail_selector,
       os_topics_selector: source.os_topics_selector,
       article_link_template: source.article_link_template, // Populate from source
@@ -759,7 +872,7 @@ const SettingsPage: React.FC = () => {
       exclude_selectors: null,
       scraping_method: 'opensource',
       os_title_selector: null,
-      os_content_selector: "article.tgMH9T", // Reset default content selector
+      os_content_selector: null, // Reset default content selector
       os_date_selector: null,
       os_author_selector: null,
       os_thumbnail_selector: null,
@@ -781,473 +894,388 @@ const SettingsPage: React.FC = () => {
 
 
   return (
-    <div className="container mx-auto p-4">
+    <Tabs defaultValue="overview" className="container mx-auto p-4">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="overview">Overview & Stats</TabsTrigger>
+        <TabsTrigger value="global">Global Settings & Actions</TabsTrigger>
+        <TabsTrigger value="scheduled">Scheduled Tasks</TabsTrigger>
+        <TabsTrigger value="sources">Source Management</TabsTrigger>
+      </TabsList>
 
-      {/* Dashboard Section */}
-      <Card className="mb-6 pt-4">
-        <CardHeader>
-          <CardTitle className="pb-4">Database</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Dashboard Statistics and Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
-            <div className="grid grid-cols-1 gap-4 lg:col-span-2">
-              <Card>
-                <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
-                  <div>
-                    <CardDescription>Total Articles</CardDescription>
-                    <CardTitle className="text-2xl">
-                      {statsLoading ? (
-                        <span>Loading...</span>
-                      ) : statsError ? (
-                        <span className="text-red-500">{statsError}</span>
-                      ) : (
-                        <span>{stats.totalArticles !== null ? stats.totalArticles : 'N/A'}</span>
-                      )}
-                    </CardTitle>
+      <TabsContent value="overview">
+        <Card className="mb-6 pt-4">
+          <CardHeader>
+            <CardTitle className="pb-4">Database</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Dashboard Statistics and Charts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
+              <div className="grid grid-cols-1 gap-4 lg:col-span-2">
+                <Card>
+                  <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
+                    <div>
+                      <CardDescription>Total Articles</CardDescription>
+                      <CardTitle className="text-2xl">
+                        {statsLoading ? (
+                          <span>Loading...</span>
+                        ) : statsError ? (
+                          <span className="text-red-500">{statsError}</span>
+                        ) : (
+                          <span>{stats.totalArticles !== null ? stats.totalArticles : 'N/A'}</span>
+                        )}
+                      </CardTitle>
+                    </div>
+                    <img src="/file.svg" alt="Articles Icon" className="w-8 h-8 text-gray-500" />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    {/* Additional content if needed */}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
+                    <div>
+                      <CardDescription>Total Sources</CardDescription>
+                      <CardTitle className="text-2xl">
+                        {statsLoading ? (
+                          <span>Loading...</span>
+                        ) : statsError ? (
+                          <span className="text-red-500">{statsError}</span>
+                        ) : (
+                          <span>{stats.totalSources !== null ? stats.totalSources : 'N/A'}</span>
+                        )}
+                      </CardTitle>
+                    </div>
+                    <img src="/globe.svg" alt="Sources Icon" className="w-8 h-8 text-gray-500" />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    {/* Additional content if needed */}
+                  </CardContent>
+                </Card>
+              </div>
+              {/* Articles per Source Chart */}
+              <div className="lg:col-span-2">
+                <ArticlesPerSourceBarChart data={stats.articlesPerSource || []} />
+              </div>
+              {/* Articles per Year Chart */}
+              <div className="lg:col-span-2">
+                <ArticlesPerYearBarChart data={stats.articlesPerYear || []} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="global">
+        <Card className="mb-6 pt-4">
+          <CardHeader>
+            <CardTitle className="pb-4">Global Settings & Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Controls */}
+            <div className="mb-4">
+              <ul className="space-y-4">
+                <li>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enableGlobalAiSummary"
+                      checked={enableGlobalAiSummary}
+                      onCheckedChange={(checked: boolean) => setEnableGlobalAiSummary(checked)}
+                    />
+                    <Label htmlFor="enableGlobalAiSummary">
+                      Enable AI Summaries for this scrape
+                    </Label>
                   </div>
-                  <img src="/file.svg" alt="Articles Icon" className="w-8 h-8 text-gray-500" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {/* Additional content if needed */}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
-                  <div>
-                    <CardDescription>Total Sources</CardDescription>
-                    <CardTitle className="text-2xl">
-                       {statsLoading ? (
-                      <span>Loading...</span>
-                    ) : statsError ? (
-                      <span className="text-red-500">{statsError}</span>
-                    ) : (
-                      <span>{stats.totalSources !== null ? stats.totalSources : 'N/A'}</span>
-                    )}
-                    </CardTitle>
+                </li>
+                <li>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enableGlobalAiTags"
+                      checked={enableGlobalAiTags}
+                      onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)}
+                    />
+                    <Label htmlFor="enableGlobalAiTags">
+                      Enable AI Tags for this scrape
+                    </Label>
                   </div>
-                  <img src="/globe.svg" alt="Sources Icon" className="w-8 h-8 text-gray-500" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {/* Additional content if needed */}
-                </CardContent>
-              </Card>
-            </div>
-            {/* Articles per Source Chart */}
-            <div className="lg:col-span-2">
-              <ArticlesPerSourceBarChart data={stats.articlesPerSource || []} /> {/* Use the chart component */}
-            </div>
-            {/* Articles per Year Chart */}
-            <div className="lg:col-span-2">
-              <ArticlesPerYearBarChart data={stats.articlesPerYear || []} /> {/* Use the Articles per Year Bar chart component */}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Database Section */}
-      <Card className="mb-6 pt-4">
-        <CardHeader>
-          <CardTitle className="pb-4">Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Controls */}
-          <div className="mb-4">
-            <ul className="space-y-4">
-              <li>
-                <div className="flex items-center space-x-2">
-                  {/* Assuming Checkbox component is used here */}
-                  <Switch
-                    id="enableGlobalAiSummary"
-                    checked={enableGlobalAiSummary}
-                    onCheckedChange={(checked: boolean) => setEnableGlobalAiSummary(checked)}
-                  />
-                  <Label htmlFor="enableGlobalAiSummary">
-                    Enable AI Summaries for this scrape
-                  </Label>
-                </div>
-              </li>
-              <li>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableGlobalAiTags"
-                    checked={enableGlobalAiTags}
-                    onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)}
-                  />
-                  <Label htmlFor="enableGlobalAiTags">
-                    Enable AI Tags for this scrape
-                  </Label>
-                </div>
-              </li>
-              <li>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableGlobalAiImage"
-                    checked={enableGlobalAiImage}
-                    onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)}
-                  />
-                  <Label htmlFor="enableGlobalAiImage">
-                    Enable AI Image Generation for this scrape
-                  </Label>
-                </div>
-              </li>
-              <li>
-                <Button
-                  onClick={handleTriggerScraper}
-                  disabled={loading}
-                >
-                  {loading ? 'Triggering...' : 'Trigger Full Scraper Run'}
-                </Button>
-              </li>
-              <li>
-                <Button
-                  onClick={handlePurgeArticles}
-                  disabled={purgeLoading}
-                  variant="destructive"
-                >
-                  {purgeLoading ? 'Purging...' : 'Purge All Articles'}
-                </Button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Status Messages */}
-          {scrapingStatus && (
-            <div className="text-sm text-green-600 mt-2">
-              Scraper Status: {scrapingStatus}
-            </div>
-          )}
-          {purgeStatus && (
-            <div className="text-sm text-green-600 mt-2">
-              Purge Status: {purgeStatus}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Scheduled Tasks Section */}
-      <Card className="mb-6 pt-4">
-        <CardHeader>
-          <CardTitle className="pb-4">Scheduled Tasks</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Main Scraper Schedule */}
-            <div>
-              <h5 className="text-md font-semibold mb-2">Main Scraper Schedule</h5>
-              <div className="grid gap-2">
-                <Label htmlFor="mainScraperFrequency">Cron Schedule:</Label>
-                <Input
-                  id="mainScraperFrequency"
-                  name="mainScraperFrequency"
-                  value={mainScraperFrequency}
-                  onChange={(e) => setMainScraperFrequency(e.target.value)}
-                  placeholder="e.g., 0 * * * *"
-                />
-                <p className="text-sm text-gray-500">Current: Runs every hour.</p> {/* Add current frequency */}
-              </div>
+                </li>
+                <li>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enableGlobalAiImage"
+                      checked={enableGlobalAiImage}
+                      onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)}
+                    />
+                    <Label htmlFor="enableGlobalAiImage">
+                      Enable AI Image Generation for this scrape
+                    </Label>
+                  </div>
+                </li>
+                <li>
+                  <Button
+                    onClick={handleTriggerScraper}
+                    disabled={loading}
+                  >
+                    {loading ? 'Triggering...' : 'Trigger Full Scraper Run'}
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    onClick={handlePurgeArticles}
+                    disabled={purgeLoading}
+                    variant="destructive"
+                  >
+                    {purgeLoading ? 'Purging...' : 'Purge All Articles'}
+                  </Button>
+                </li>
+              </ul>
             </div>
 
-            {/* Missing AI Data Processor Schedule */}
-            <div>
-              <h5 className="text-md font-semibold mb-2">Missing AI Data Processor Schedule</h5>
-              <div className="grid gap-2">
-                <Label htmlFor="missingAiFrequency">Cron Schedule:</Label>
-                <Input
-                  id="missingAiFrequency"
-                  name="missingAiFrequency"
-                  value={missingAiFrequency}
-                  onChange={(e) => setMissingAiFrequency(e.target.value)}
-                  placeholder="e.g., */20 * * * *"
-                />
-                 <p className="text-sm text-gray-500">Current: Runs every 20 minutes.</p> {/* Add current frequency */}
-              </div>
-              <div className="mt-4 space-y-2">
-                 <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableScheduledMissingSummary"
-                    checked={enableScheduledMissingSummary}
-                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingSummary(checked)}
-                  />
-                  <Label htmlFor="enableScheduledMissingSummary">
-                    Process Missing Summaries
-                  </Label>
-                </div>
-                 <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableScheduledMissingTags"
-                    checked={enableScheduledMissingTags}
-                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingTags(checked)}
-                  />
-                  <Label htmlFor="enableScheduledMissingTags">
-                    Process Missing Tags
-                  </Label>
-                </div>
-                 <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableScheduledMissingImage"
-                    checked={enableScheduledMissingImage}
-                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingImage(checked)}
-                  />
-                  <Label htmlFor="enableScheduledMissingImage">
-                    Process Missing Images
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableScheduledMissingTranslations"
-                    checked={enableScheduledMissingTranslations}
-                    onCheckedChange={(checked: boolean) => setEnableScheduledMissingTranslations(checked)}
-                  />
-                  <Label htmlFor="enableScheduledMissingTranslations">
-                    Process Missing Translations
-                  </Label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-         <CardFooter className="pt-4">
-           <Button onClick={() => { /* TODO: Implement save schedule logic */ }} disabled={savingSchedule}>
-             {savingSchedule ? 'Saving...' : 'Save Schedule Settings'}
-           </Button>
-            {scheduleStatus && (
-            <div className="text-sm text-green-600 mt-2 ml-4">
-              Status: {scheduleStatus}
-            </div>
-          )}
-         </CardFooter>
-      </Card>
-
-
-      {/* Sources Section */}
-      <Card className="mb-6 pt-4">
-        <CardHeader>
-          <CardTitle className="pb-4">Sources</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Source Discovery Section */}
-          <Card className="mb-6 pt-4">
-            <CardHeader>
-              <CardTitle className="text-md font-semibold">Discover New Sources</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                 <Button
-                  onClick={discoverNewSources}
-                  disabled={isDiscovering}
-                >
-                  {isDiscovering ? 'Searching...' : 'Discover Sources'}
-                </Button>
-               {isDiscovering && <span className="text-gray-600">Searching for new sources...</span>}
-              </div>
-
-              {/* Display discovery error message */}
-            {discoveryError && (
-              <div className="text-red-500 mt-2">
-                Discovery Error: {discoveryError}
+            {/* Status Messages */}
+            {scrapingStatus && (
+              <div className="text-sm text-green-600 mt-2">
+                Scraper Status: {scrapingStatus}
               </div>
             )}
-
-            {discoveredSources.length > 0 && (
-              <div className="mt-4">
-                <h5 className="text-sm font-medium mb-2">Discovered Sources:</h5>
-                <ul className="space-y-2">
-                  {discoveredSources.map((source, index) => (
-                    <li key={index} className="flex justify-between items-center border-b pb-2">
-                      <div>
-                        <div className="font-medium">{source.name}</div>
-                        <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">{source.url}</a>
-                      </div>
-                      <Button onClick={() => handleAddDiscoveredSourceToForm(source)} size="sm">
-                        Add as New Source
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+            {purgeStatus && (
+              <div className="text-sm text-green-600 mt-2">
+                Purge Status: {purgeStatus}
               </div>
             )}
           </CardContent>
-          </Card>
+        </Card>
+      </TabsContent>
 
+      <TabsContent value="scheduled">
+        <Card className="mb-6 pt-4">
+          <CardHeader>
+            <CardTitle className="pb-4">Scheduled Tasks</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Main Scraper Schedule */}
+              <div>
+                <h5 className="text-md font-semibold mb-2">Main Scraper Schedule</h5>
+                <div className="grid gap-2">
+                  <Label htmlFor="mainScraperFrequency">Cron Schedule:</Label>
+                  <Input
+                    id="mainScraperFrequency"
+                    name="mainScraperFrequency"
+                    value={mainScraperFrequency}
+                    onChange={(e) => setMainScraperFrequency(e.target.value)}
+                    placeholder="e.g., 0 * * * *"
+                  />
+                  <p className="text-sm text-gray-500">Current: Runs every hour.</p>
+                </div>
+              </div>
 
-        {/* Existing Sources Section */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-md font-semibold">Existing Sources</h4>
-            <Button onClick={openAddModal} size="sm">
-              Add New Source
-            </Button>
-          </div>
-          {sourcesLoading ? (
-            <div>Loading sources...</div>
-          ) : sourcesError ? (
-            <div className="text-red-500">Error loading sources: {sourcesError instanceof Error ? sourcesError.message : 'An unknown error occurred'}</div>
-          ) : sources.length === 0 ? (
-            <div className="text-gray-600">No sources found.</div>
-          ) : (
-            <ul className="space-y-4">
-              {sources.map((source) => (
-                <li key={source.id} className="border rounded-lg p-4 shadow-sm pt-4">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
-                    <div>
-                      <div className="text-lg font-medium">{source.name}</div>
-                      <div className="text-sm text-gray-600">
-                        URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'} | Method: {source.scraping_method || 'N/A'}
-                      </div>
-                      {source.include_selectors && <div className="text-sm text-gray-600 break-words">Include: {source.include_selectors}</div>}
-                      {source.exclude_selectors && <div>Exclude: {source.exclude_selectors}</div>}
-                    </div>
-                  <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 mt-2 md:mt-0">
-                      <Button
-                        onClick={() => window.location.href = `/settings/source/${source.id}`}
-                        size="sm"
-                        variant="outline"
-                      >
-                        View Articles
-                      </Button>
-                      <Button
-                        onClick={() => handleTriggerScraperForSource(source.id)}
-                        disabled={sourceScrapingLoading[source.id]}
-                        size="sm"
-                      >
-                        {sourceScrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
-                      </Button>
-                       <Button
-                        onClick={() => handleDeleteArticlesForSource(source.id)}
-                        disabled={sourceArticleDeletionLoading[source.id]}
-                        size="sm"
-                        variant="destructive"
-                      >
-                        {sourceArticleDeletionLoading[source.id] ? 'Deleting...' : 'Delete Articles'}
-                      </Button>
-                      <Button
-                        onClick={() => openEditModal(source)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteSource(source.id)}
-                        size="sm"
-                        variant="destructive"
-                      >
-                        Delete Source
-                      </Button>
-                    </div>
+              {/* Missing AI Data Processor Schedule */}
+              <div>
+                <h5 className="text-md font-semibold mb-2">Missing AI Data Processor Schedule</h5>
+                <div className="grid gap-2">
+                  <Label htmlFor="missingAiFrequency">Cron Schedule:</Label>
+                  <Input
+                    id="missingAiFrequency"
+                    name="missingAiFrequency"
+                    value={missingAiFrequency}
+                    onChange={(e) => setMissingAiFrequency(e.target.value)}
+                    placeholder="e.g., */20 * * * *"
+                  />
+                  <p className="text-sm text-gray-500">Current: Runs every 20 minutes.</p>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enableScheduledMissingSummary"
+                      checked={enableScheduledMissingSummary}
+                      onCheckedChange={(checked: boolean) => setEnableScheduledMissingSummary(checked)}
+                    />
+                    <Label htmlFor="enableScheduledMissingSummary">
+                      Process Missing Summaries
+                    </Label>
                   </div>
-                  {/* Display scraping status directly within the card */}
-                  {sourceScrapingStatus[source.id] && (
-                    <div className="text-sm text-green-600 mt-2">
-                      Scrape Status: {sourceScrapingStatus[source.id]}
-                    </div>
-                  )}
-                   {/* Display article deletion status directly within the card */}
-                  {sourceArticleDeletionStatus[source.id] && (
-                    <div className="text-sm text-green-600 mt-2">
-                      Deletion Status: {sourceArticleDeletionStatus[source.id]}
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enableScheduledMissingTags"
+                      checked={enableScheduledMissingTags}
+                      onCheckedChange={(checked: boolean) => setEnableScheduledMissingTags(checked)}
+                    />
+                    <Label htmlFor="enableScheduledMissingTags">
+                      Process Missing Tags
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enableScheduledMissingImage"
+                      checked={enableScheduledMissingImage}
+                      onCheckedChange={(checked: boolean) => setEnableScheduledMissingImage(checked)}
+                    />
+                    <Label htmlFor="enableGlobalAiImage">
+                      Process Missing Images
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enableScheduledMissingTranslations"
+                      checked={enableScheduledMissingTranslations}
+                      onCheckedChange={(checked: boolean) => setEnableScheduledMissingTranslations(checked)}
+                    />
+                    <Label htmlFor="enableScheduledMissingTranslations">
+                      Process Missing Translations
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+         <CardFooter className="pt-4">
+           <Button onClick={handleSaveScheduleSettings} disabled={savingSchedule}>
+             {savingSchedule ? 'Saving...' : 'Save Schedule Settings'}
+           </Button>
+            {/* Removed scheduleStatus display as toasts are used */}
+         </CardFooter>
+        </Card>
+      </TabsContent>
 
-                  {/* New: Buttons and Status for Processing Missing AI Data */}
+
+      <TabsContent value="sources">
+        <Card className="mb-6 pt-4">
+          <CardHeader>
+            <CardTitle className="pb-4">Sources</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Existing Sources Section */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-md font-semibold">Existing Sources</h4>
+                <Button onClick={openAddModal} size="sm">
+                  Add New Source
+                </Button>
+              </div>
+              {sourcesLoading ? (
+                <div>Loading sources...</div>
+              ) : sourcesError ? (
+                <div className="text-red-500">Error loading sources: {sourcesError instanceof Error ? sourcesError.message : 'An unknown error occurred'}</div>
+              ) : sources.length === 0 ? (
+                <div className="text-gray-600">No sources found.</div>
+              ) : (
+                <ul className="space-y-4">
+                  {sources.map((source) => (
+                    <li key={source.id} className="border rounded-lg p-4 shadow-sm pt-4">
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
+                        <div>
+                          <div className="text-lg font-medium">{source.name}</div>
+                          <div className="text-sm text-gray-600">
+                            URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'} | Method: {source.scraping_method || 'N/A'}
+                          </div>
+                          {source.include_selectors && <div className="text-sm text-gray-600 break-words">Include: {source.include_selectors}</div>}
+                          {source.exclude_selectors && <div>Exclude: {source.exclude_selectors}</div>}
+                        </div>
+                        <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 mt-2 md:mt-0">
+                          <Button
+                            onClick={() => window.location.href = `/settings/source/${source.id}`}
+                            size="sm"
+                            variant="outline"
+                          >
+                            View Articles
+                          </Button>
+                          <Button
+                            onClick={() => handleTriggerScraperForSource(source.id)}
+                            disabled={sourceScrapingLoading[source.id]}
+                            size="sm"
+                          >
+                            {sourceScrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteArticlesForSource(source.id)}
+                            disabled={sourceArticleDeletionLoading[source.id]}
+                            size="sm"
+                            variant="destructive"
+                          >
+                            {sourceArticleDeletionLoading[source.id] ? 'Deleting...' : 'Delete Articles'}
+                          </Button>
+                          <Button
+                            onClick={() => openEditModal(source)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteSource(source.id)}
+                            size="sm"
+                            variant="destructive"
+                          >
+                            Delete Source
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Display scraping status directly within the card */}
+                      {sourceScrapingStatus[source.id] && (
+                        <div className="text-sm text-green-600 mt-2">
+                          Scrape Status: {sourceScrapingStatus[source.id]}
+                        </div>
+                      )}
+                      {/* Display article deletion status directly within the card */}
+                      {sourceArticleDeletionStatus[source.id] && (
+                        <div className="text-sm text-green-600 mt-2">
+                          Deletion Status: {sourceArticleDeletionStatus[source.id]}
+                        </div>
+                      )}
+
+                  {/* New: Single Button for Processing Missing AI Data */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <h5 className="text-md font-semibold mb-2">Process Missing AI Data:</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Process Missing Summary */}
-                      <div>
-                        <Button
-                          onClick={() => handleProcessMissingAi(source.id, 'summary')}
-                          disabled={sourceProcessingLoading[source.id]?.summary || !source.enable_ai_summary}
-                          size="sm"
-                          variant="secondary"
-                          className="w-full"
-                        >
-                          {sourceProcessingLoading[source.id]?.summary ? 'Processing...' : 'Process Missing Summary'}
-                        </Button>
-                        {sourceProcessingStatus[source.id]?.summary && (
-                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            {sourceProcessingStatus[source.id]?.summary}
-                          </div>
-                        )}
-                         {!source.enable_ai_summary && (
-                           <div className="text-xs mt-1 text-gray-500">AI Summary disabled for this source.</div>
-                         )}
+                    <Button
+                      onClick={() => handleProcessAllMissingAi(source.id, source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image, source.enable_ai_translations)}
+                      disabled={
+                        sourceProcessingLoading[source.id]?.summary ||
+                        sourceProcessingLoading[source.id]?.tags ||
+                        sourceProcessingLoading[source.id]?.image ||
+                        sourceProcessingLoading[source.id]?.translations
+                      }
+                      size="sm"
+                      variant="secondary"
+                      className="w-full"
+                    >
+                      {
+                        (sourceProcessingLoading[source.id]?.summary ||
+                          sourceProcessingLoading[source.id]?.tags ||
+                          sourceProcessingLoading[source.id]?.image ||
+                          sourceProcessingLoading[source.id]?.translations) ? 'Processing...' : 'Process All Missing AI Data'
+                      }
+                    </Button>
+                    {sourceProcessingStatus[source.id]?.summary && (
+                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                        Summary: {sourceProcessingStatus[source.id]?.summary}
                       </div>
-
-                      {/* Process Missing Tags */}
-                      <div>
-                        <Button
-                          onClick={() => handleProcessMissingAi(source.id, 'tags')}
-                          disabled={sourceProcessingLoading[source.id]?.tags || !source.enable_ai_tags}
-                          size="sm"
-                          variant="secondary"
-                          className="w-full"
-                        >
-                          {sourceProcessingLoading[source.id]?.tags ? 'Processing...' : 'Process Missing Tags'}
-                        </Button>
-                         {sourceProcessingStatus[source.id]?.tags && (
-                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            {sourceProcessingStatus[source.id]?.tags}
-                          </div>
-                        )}
-                         {!source.enable_ai_tags && (
-                           <div className="text-xs mt-1 text-gray-500">AI Tags disabled for this source.</div>
-                         )}
+                    )}
+                    {sourceProcessingStatus[source.id]?.tags && (
+                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                        Tags: {sourceProcessingStatus[source.id]?.tags}
                       </div>
-
-                      {/* Process Missing Image */}
-                      <div>
-                        <Button
-                          onClick={() => handleProcessMissingAi(source.id, 'image')}
-                          disabled={sourceProcessingLoading[source.id]?.image || !source.enable_ai_image}
-                          size="sm"
-                          variant="secondary"
-                          className="w-full"
-                        >
-                          {sourceProcessingLoading[source.id]?.image ? 'Processing...' : 'Process Missing Image'}
-                        </Button>
-                         {sourceProcessingStatus[source.id]?.image && (
-                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            {sourceProcessingStatus[source.id]?.image}
-                          </div>
-                        )}
-                         {!source.enable_ai_image && (
-                           <div className="text-xs mt-1 text-gray-500">AI Image disabled for this source.</div>
-                         )}
+                    )}
+                    {sourceProcessingStatus[source.id]?.image && (
+                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                        Image: {sourceProcessingStatus[source.id]?.image}
                       </div>
-                      {/* Process Missing Translations */}
-                      <div>
-                        <Button
-                          onClick={() => handleProcessMissingAi(source.id, 'translations')}
-                          disabled={sourceProcessingLoading[source.id]?.translations || !source.enable_ai_translations}
-                          size="sm"
-                          variant="secondary"
-                          className="w-full"
-                        >
-                          {sourceProcessingLoading[source.id]?.translations ? 'Processing...' : 'Process Missing Translations'}
-                        </Button>
-                         {sourceProcessingStatus[source.id]?.translations && (
-                          <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            {sourceProcessingStatus[source.id]?.translations}
-                          </div>
-                        )}
-                         {!source.enable_ai_translations && (
-                           <div className="text-xs mt-1 text-gray-500">AI Translations disabled for this source.</div>
-                         )}
+                    )}
+                    {sourceProcessingStatus[source.id]?.translations && (
+                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                        Translations: {sourceProcessingStatus[source.id]?.translations}
                       </div>
-                    </div>
+                    )}
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        </CardContent>
-      </Card>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
 
 
       {/* Add/Edit Source Modal */}
@@ -1424,7 +1452,7 @@ const SettingsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-    </div>
+    </Tabs>
   );
 
 };

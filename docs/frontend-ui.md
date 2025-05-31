@@ -111,6 +111,14 @@ Secure login authorization has been implemented on the frontend to protect admin
 
 The Admin Dashboard and Source Management features have been combined into a single Settings page (`frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.
 
+**Recent Enhancements:**
+*   **Tabbed Interface:** The page now uses a tabbed layout (`shadcn/ui Tabs`) to organize settings into "Overview & Stats", "Global Settings & Actions", "Scheduled Tasks", and "Source Management" for improved navigation and reduced clutter.
+*   **Removed "Discover New Sources":** The "Discover New Sources" functionality has been removed to streamline source management.
+*   **Streamlined AI Data Processing:** The "Process Missing AI Data" section for individual sources has been simplified to a single button that triggers processing for all enabled AI features (summary, tags, image, translations) for that source.
+*   **Save Schedule Settings:** Functionality to save scheduled task settings (cron frequencies and AI processing toggles) has been implemented.
+*   **Toast Notifications:** User feedback for various actions (e.g., triggering scrapes, purging data, adding/editing/deleting sources, saving settings) is now provided via non-intrusive toast notifications (`shadcn/ui toast`).
+*   **Full shadcn/ui Utilization:** All UI elements within the Settings page are consistently built using shadcn/ui components for a cohesive and accessible design.
+
 ---
 
 ### Social Sharing (Open Graph Meta Tags)
