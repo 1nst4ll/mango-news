@@ -377,18 +377,31 @@ async function processScrapedData(data) { // Accept a single data object
           console.warn(`No pre-translation found for topic: "${topicName}". This topic will not be translated.`);
         }
 
+        let currentTopicEs = topicResult.rows[0]?.name_es;
+        let currentTopicHt = topicResult.rows[0]?.name_ht;
+
         if (topicResult.rows.length === 0) {
-          // Topic doesn't exist, create it with pre-translated names
+          // Topic doesn't exist, create it. Generate translations if not pre-translated.
+          if (!preTranslatedEs) preTranslatedEs = await generateAITranslation(topicName, 'es', 'general');
+          if (!preTranslatedHt) preTranslatedHt = await generateAITranslation(topicName, 'ht', 'general');
+
           topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
           topicId = topicResult.rows[0].id;
         } else {
           topicId = topicResult.rows[0].id;
-          // If topic exists but translations are missing or different, update them
-          // Only update if preTranslatedEs/Ht are not null, to avoid overwriting with null if translation is genuinely missing
-          if ((preTranslatedEs !== null && topicResult.rows[0].name_es !== preTranslatedEs) ||
-              (preTranslatedHt !== null && topicResult.rows[0].name_ht !== preTranslatedHt)) {
-            await pool.query('UPDATE topics SET name_es = COALESCE($1, name_es), name_ht = COALESCE($2, name_ht) WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
+          // If topic exists, check if translations are missing or different, then update.
+          // Prioritize pre-translated values, otherwise generate with AI if missing.
+          let updatedEs = preTranslatedEs || currentTopicEs;
+          let updatedHt = preTranslatedHt || currentTopicHt;
+
+          if (!updatedEs) updatedEs = await generateAITranslation(topicName, 'es', 'general');
+          if (!updatedHt) updatedHt = await generateAITranslation(topicName, 'ht', 'general');
+
+          if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
+            await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
           }
+          preTranslatedEs = updatedEs; // Use the final determined translation for article topics
+          preTranslatedHt = updatedHt; // Use the final determined translation for article topics
         }
         // Add translated topic names to the arrays
         if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
@@ -885,27 +898,34 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
             for (const topicName of assignedTopics) {
               let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
               let topicId;
-              let preTranslatedEs = null;
-              let preTranslatedHt = null;
+              let preTranslatedEs = topicTranslations[topicName]?.es || null;
+              let preTranslatedHt = topicTranslations[topicName]?.ht || null;
 
-              if (topicTranslations[topicName]) {
-                preTranslatedEs = topicTranslations[topicName].es;
-                preTranslatedHt = topicTranslations[topicName].ht;
-              } else {
-                console.warn(`No pre-translation found for topic: "${topicName}". This topic will not be translated.`);
-              }
+              let currentTopicEs = topicResult.rows[0]?.name_es;
+              let currentTopicHt = topicResult.rows[0]?.name_ht;
 
               if (topicResult.rows.length === 0) {
-                // Topic doesn't exist, create it with pre-translated names
+                // Topic doesn't exist, create it. Generate translations if not pre-translated.
+                if (!preTranslatedEs) preTranslatedEs = await generateAITranslation(topicName, 'es', 'general');
+                if (!preTranslatedHt) preTranslatedHt = await generateAITranslation(topicName, 'ht', 'general');
+
                 topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
                 topicId = topicResult.rows[0].id;
               } else {
                 topicId = topicResult.rows[0].id;
-                // If topic exists but translations are missing or different, update them
-                if ((preTranslatedEs !== null && topicResult.rows[0].name_es !== preTranslatedEs) ||
-                    (preTranslatedHt !== null && topicResult.rows[0].name_ht !== preTranslatedHt)) {
-                  await pool.query('UPDATE topics SET name_es = COALESCE($1, name_es), name_ht = COALESCE($2, name_ht) WHERE id = $3', [preTranslatedEs, preTranslatedHt, topicId]);
+                // If topic exists, check if translations are missing or different, then update.
+                // Prioritize pre-translated values, otherwise generate with AI if missing.
+                let updatedEs = preTranslatedEs || currentTopicEs;
+                let updatedHt = preTranslatedHt || currentTopicHt;
+
+                if (!updatedEs) updatedEs = await generateAITranslation(topicName, 'es', 'general');
+                if (!updatedHt) updatedHt = await generateAITranslation(topicName, 'ht', 'general');
+
+                if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
+                  await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
                 }
+                preTranslatedEs = updatedEs; // Use the final determined translation for article topics
+                preTranslatedHt = updatedHt; // Use the final determined translation for article topics
               }
               // Add translated topic names to the arrays
               if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
@@ -1324,14 +1344,38 @@ async function reprocessTranslatedTopicsForSource(sourceId) {
 
           for (const topicName of article.english_topics) {
             // Fetch translations from the topics table (more reliable than topicTranslations object)
-            const topicResult = await pool.query('SELECT name_es, name_ht FROM topics WHERE name = $1', [topicName]);
-            if (topicResult.rows.length > 0) {
-              const { name_es, name_ht } = topicResult.rows[0];
-              if (name_es) translatedTopicsEs.push(name_es);
-              if (name_ht) translatedTopicsHt.push(name_ht);
+            const topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
+            let topicId;
+            let currentTopicEs = topicResult.rows[0]?.name_es;
+            let currentTopicHt = topicResult.rows[0]?.name_ht;
+            let preTranslatedEs = topicTranslations[topicName]?.es || null;
+            let preTranslatedHt = topicTranslations[topicName]?.ht || null;
+
+            if (topicResult.rows.length === 0) {
+              // This case should ideally not happen if topics are created during initial scrape,
+              // but adding a fallback to create and translate if missing.
+              if (!preTranslatedEs) preTranslatedEs = await generateAITranslation(topicName, 'es', 'general');
+              if (!preTranslatedHt) preTranslatedHt = await generateAITranslation(topicName, 'ht', 'general');
+              const newTopicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
+              topicId = newTopicResult.rows[0].id;
             } else {
-              console.warn(`Topic "${topicName}" not found in topics table during re-processing for article ${article.id}.`);
+              topicId = topicResult.rows[0].id;
+              // Prioritize pre-translated values, otherwise generate with AI if missing.
+              let updatedEs = preTranslatedEs || currentTopicEs;
+              let updatedHt = preTranslatedHt || currentTopicHt;
+
+              if (!updatedEs) updatedEs = await generateAITranslation(topicName, 'es', 'general');
+              if (!updatedHt) updatedHt = await generateAITranslation(topicName, 'ht', 'general');
+
+              if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
+                await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
+              }
+              preTranslatedEs = updatedEs; // Use the final determined translation for article topics
+              preTranslatedHt = updatedHt; // Use the final determined translation for article topics
             }
+            // Add translated topic names to the arrays
+            if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
+            if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
           }
 
           const topics_es = translatedTopicsEs.join(', ');
