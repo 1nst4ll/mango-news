@@ -103,6 +103,27 @@ Both `NewsFeed.tsx` and `ArticleDetail.tsx` now:
 
 The `navItems` array now uses `titleKey` properties (e.g., `"home"`, `"automoto"`) instead of hardcoded titles. These keys correspond to the entries in the locale JSON files, allowing the `Header` component to fetch the correct translated title for each navigation link.
 
+### WordPress Widget Integration (`widgets/`)
+
+Multilingual support has been extended to the WordPress news feed widgets, allowing content to be displayed in English, Spanish, or Haitian Creole.
+
+*   **Elementor Widget (`widgets/mango-news-feed-elementor-widget.php`)**:
+    *   A new **"Display Language"** control has been added to the widget settings in Elementor.
+    *   Administrators can select the desired language (English, Spanish, or Haitian Creole) for the articles, summaries, topics, and static UI text displayed by that specific widget instance.
+
+*   **Direct HTML/JS Embed (`widgets/mango-news-direct-code.php`)**:
+    *   When embedding the news feed directly using the HTML/JS snippet, the display language can be set by modifying the `displayLanguage` property within the JavaScript `config` object.
+    *   Example: `displayLanguage: 'es',` for Spanish.
+    *   The `translations` object within the JavaScript also contains the necessary strings for each language.
+
+*   **PHP Function & Shortcode (`widgets/mango-news-direct-code.php`)**:
+    *   The `mango_news_feed()` PHP function now accepts a `language` argument.
+    *   Example usage in a theme template: `<?php mango_news_feed(['language' => 'es']); ?>`
+    *   The `[mango_news_feed]` shortcode also accepts a `language` attribute.
+    *   Example usage in a post/page: `[mango_news_feed language="ht"]`
+
+The widget will automatically fetch and display the appropriate translated content (titles, summaries, topics) from the API based on the configured language. If a translation is not available for a specific field, it will fall back to the English version.
+
 ## Usage and Maintenance
 
 ### Adding New Translations

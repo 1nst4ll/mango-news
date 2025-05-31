@@ -133,6 +133,21 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
             ]
         );
 
+        $this->add_control(
+            'display_language',
+            [
+                'label' => __('Display Language', 'mango-news-feed'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => 'en',
+                'options' => [
+                    'en' => __('English', 'mango-news-feed'),
+                    'es' => __('Spanish', 'mango-news-feed'),
+                    'ht' => __('Haitian Creole', 'mango-news-feed'),
+                ],
+                'description' => __('Select the language for article titles, summaries, and UI text.', 'mango-news-feed'),
+            ]
+        );
+
 
         $this->end_controls_section();
 
@@ -314,6 +329,44 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
         <script>
         (function() {
             const widgetId = <?php echo json_encode($widget_id); ?>;
+            <?php
+            $translations = [
+                'en' => [
+                    'loading' => 'Loading news feed...',
+                    'no_articles_found' => 'No news articles found.',
+                    'no_articles_match_filters' => 'No articles match your current filters.',
+                    'published' => 'Published:',
+                    'by' => 'By',
+                    'share_whatsapp' => 'Share on WhatsApp',
+                    'share_facebook' => 'Share on Facebook',
+                    'all_sources' => 'All Sources',
+                    'search_articles' => 'Search articles...',
+                ],
+                'es' => [
+                    'loading' => 'Cargando noticias...',
+                    'no_articles_found' => 'No se encontraron artículos de noticias.',
+                    'no_articles_match_filters' => 'No hay artículos que coincidan con sus filtros actuales.',
+                    'published' => 'Publicado:',
+                    'by' => 'Por',
+                    'share_whatsapp' => 'Compartir en WhatsApp',
+                    'share_facebook' => 'Compartir en Facebook',
+                    'all_sources' => 'Todas las fuentes',
+                    'search_articles' => 'Buscar artículos...',
+                ],
+                'ht' => [
+                    'loading' => 'Chaje nouvèl...',
+                    'no_articles_found' => 'Pa gen okenn atik nouvèl yo jwenn.',
+                    'no_articles_match_filters' => 'Pa gen okenn atik ki koresponn ak filtè aktyèl ou yo.',
+                    'published' => 'Pibliye:',
+                    'by' => 'Pa',
+                    'share_whatsapp' => 'Pataje sou WhatsApp',
+                    'share_facebook' => 'Pataje sou Facebook',
+                    'all_sources' => 'Tout sous yo',
+                    'search_articles' => 'Chèche atik...',
+                ],
+            ];
+            $current_translations = $translations[$settings['display_language']] ?? $translations['en'];
+            ?>
             const config = {
                 apiUrl: <?php echo json_encode($settings['api_url']); ?>,
                 articlesPerPage: <?php echo intval($settings['articles_per_page']); ?>,
@@ -324,7 +377,9 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
                 articleLinkFormat: <?php echo json_encode($settings['article_link_format']); ?>,
                 openInNewTab: <?php echo ($settings['open_in_new_tab'] === 'yes' ? 'true' : 'false'); ?>,
                 refreshInterval: 0, // Refresh interval might be better handled globally or disabled for widgets
-                debug: true 
+                debug: true,
+                displayLanguage: <?php echo json_encode($settings['display_language']); ?>,
+                translations: <?php echo json_encode($current_translations); ?>
             };
             
             let paginationState = {
@@ -337,7 +392,7 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
             
             const container = document.getElementById(widgetId);
             const searchInput = document.getElementById('mango-news-search-input-' + widgetId);
-            const sourceCheckboxContainer = document.getElementById('mango-news-source-checkbox-container-' + widgetId);
+            const sourceCheckboxContainer = container.querySelector('#mango-news-source-checkbox-container-' + widgetId);
             const loadingEl = container.querySelector('.mango-news-loading');
             const emptyEl = container.querySelector('.mango-news-empty');
             const errorEl = container.querySelector('.mango-news-error');
@@ -389,7 +444,7 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
                     .then(articles => {
                         loadingEl.style.display = 'none';
                         if (!articles || articles.length === 0) {
-                            emptyEl.textContent = "No news articles found.";
+                            emptyEl.textContent = config.translations.no_articles_found;
                             emptyEl.style.display = 'block';
                             return;
                         }
@@ -408,7 +463,7 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
                         console.error(`[${widgetId}] Error fetching articles:`, error);
                         loadingEl.style.display = 'none';
                         errorEl.style.display = 'block';
-                        errorEl.innerHTML = `Error loading news feed: ${error.message}`;
+                        errorEl.innerHTML = `Error loading news feed: ${config.translations.error_loading_feed}: ${error.message}`;
                     });
             }
             
@@ -492,11 +547,15 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
                 let articlesToFilter = [...paginationState.allArticles];
                 if (config.searchTerm) {
                     const searchTermLower = config.searchTerm.toLowerCase();
-                    articlesToFilter = articlesToFilter.filter(article => 
-                        (article.title && article.title.toLowerCase().includes(searchTermLower)) ||
-                        (article.summary && article.summary.toLowerCase().includes(searchTermLower)) ||
-                        (article.content && article.content.toLowerCase().includes(searchTermLower)) 
-                    );
+                    articlesToFilter = articlesToFilter.filter(article => {
+                        const title = article[`title_${config.displayLanguage}`] || article.title;
+                        const summary = article[`summary_${config.displayLanguage}`] || article.summary;
+                        const content = article[`raw_content_${config.displayLanguage}`] || article.raw_content;
+
+                        return (title && title.toLowerCase().includes(searchTermLower)) ||
+                               (summary && summary.toLowerCase().includes(searchTermLower)) ||
+                               (content && content.toLowerCase().includes(searchTermLower));
+                    });
                 }
                 if (config.selectedSources.length > 0) {
                     articlesToFilter = articlesToFilter.filter(article => {
@@ -540,11 +599,11 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
                     dateIndex++;
                 }
                 if (pageArticles.length === 0 && (config.searchTerm || config.selectedSources.length > 0)) {
-                    emptyEl.textContent = "No articles match your current filters.";
+                    emptyEl.textContent = config.translations.no_articles_match_filters;
                     emptyEl.style.display = 'block';
                     contentEl.style.display = 'none';
                 } else if (pageArticles.length === 0) {
-                    emptyEl.textContent = "No news articles found."; 
+                    emptyEl.textContent = config.translations.no_articles_found; 
                     emptyEl.style.display = 'block';
                     contentEl.style.display = 'none';
                 } else {
@@ -629,7 +688,7 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
                 const grouped = {};
                 for (const article of articles) {
                     const date = new Date(article.publication_date);
-                    const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    const dateStr = date.toLocaleDateString(config.displayLanguage === 'en' ? 'en-US' : config.displayLanguage, { year: 'numeric', month: 'long', day: 'numeric' });
                     if (!grouped[dateStr]) {
                         grouped[dateStr] = [];
                     }
@@ -643,36 +702,40 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
             function renderArticleCard(article) {
                 const articleLink = config.articleLinkFormat.replace('${id}', article.id);
                 const targetAttr = config.openInNewTab ? ' target="_blank" rel="noopener noreferrer"' : '';
+                
+                const title = article[`title_${config.displayLanguage}`] || article.title || 'Untitled';
+                const summary = article[`summary_${config.displayLanguage}`] || article.summary || '';
+                const topics = article[`topics_${config.displayLanguage}`] || article.topics || [];
+
                 let html = `<div class="mango-news-card-wrapper">`;
                 html += `<a href="${articleLink}" class="mango-news-card" data-article-id="${article.id}"${targetAttr}>`;
                 if (article.thumbnail_url) {
-                    html += `<div class="mango-news-card-image-container"><img class="mango-news-card-image" src="${article.thumbnail_url}" alt="${article.title || 'News article'}">`;
-                    if (config.showTopics && article.topics && article.topics.length > 0) {
+                    html += `<div class="mango-news-card-image-container"><img class="mango-news-card-image" src="${article.thumbnail_url}" alt="${title}">`;
+                    if (config.showTopics && topics.length > 0) {
                         html += '<div class="mango-news-card-topics">';
-                        for (const topic of article.topics) {
+                        for (const topic of topics) {
                             html += `<span class="mango-news-topic-tag">${topic}</span>`;
                         }
                         html += '</div>';
                     }
                     html += '</div>'; 
                 }
-                html += `<div class="mango-news-card-header"><h3 class="mango-news-card-title">${article.title || 'Untitled'}</h3><div class="mango-news-card-meta">`;
+                html += `<div class="mango-news-card-header"><h3 class="mango-news-card-title">${title}</h3><div class="mango-news-card-meta">`;
                 const domain = getDomainFromUrl(article.source_url || '');
                 html += `<span class="mango-news-source">${domain}</span>`;
                 if (article.author) {
-                    html += ` | <span class="mango-news-author">By ${article.author}</span>`;
+                    html += ` | <span class="mango-news-author">${config.translations.by} ${article.author}</span>`;
                 }
                 if (article.publication_date) {
                     const pubDate = new Date(article.publication_date);
-                    html += ` | <span class="mango-news-date">Published: ${pubDate.toLocaleDateString()}</span>`;
+                    html += ` | <span class="mango-news-date">${config.translations.published} ${pubDate.toLocaleDateString(config.displayLanguage === 'en' ? 'en-US' : config.displayLanguage)}</span>`;
                 }
                 html += `</div></div>`;
-                let summary = article.summary || '';
-                summary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                html += `<div class="mango-news-card-content"><div class="mango-news-card-summary">${summary}</div></div>`;
+                let formattedSummary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                html += `<div class="mango-news-card-content"><div class="mango-news-card-summary">${formattedSummary}</div></div>`;
                 html += '</a>'; 
                 if (config.showSharing) {
-                    html += `<div class="mango-news-share-buttons" data-article-id="${article.id}" data-article-title="${encodeURIComponent(article.title || 'News article')}"><a href="#" class="mango-news-share-button mango-news-share-whatsapp">Share on WhatsApp</a><a href="#" class="mango-news-share-button mango-news-share-facebook">Share on Facebook</a></div>`;
+                    html += `<div class="mango-news-share-buttons" data-article-id="${article.id}" data-article-title="${encodeURIComponent(title)}"><a href="#" class="mango-news-share-button mango-news-share-whatsapp">${config.translations.share_whatsapp}</a><a href="#" class="mango-news-share-button mango-news-share-facebook">${config.translations.share_facebook}</a></div>`;
                 }
                 html += '</div>'; 
                 return html;
@@ -699,7 +762,7 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
                         const articleId = shareDiv.dataset.articleId;
                         const articleTitle = decodeURIComponent(shareDiv.dataset.articleTitle);
                         const articleUrl = window.location.origin + config.articleLinkFormat.replace('${id}', articleId);
-                        const shareText = `Check out this article: ${articleTitle} - ${articleUrl}`;
+                        const shareText = `${config.translations.check_out_article}: ${articleTitle} - ${articleUrl}`; // New translation key
                         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
                         window.open(whatsappUrl, '_blank');
                     });
@@ -720,6 +783,7 @@ class Mango_News_Feed_Elementor_Widget extends \Elementor\Widget_Base {
             
             if(searchInput) { 
                 let searchDebounceTimer;
+                searchInput.placeholder = config.translations.search_articles; // Update placeholder
                 searchInput.addEventListener('input', function() {
                     clearTimeout(searchDebounceTimer);
                     searchDebounceTimer = setTimeout(() => {
