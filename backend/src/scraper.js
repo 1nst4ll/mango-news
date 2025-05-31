@@ -576,7 +576,7 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
           content: text,
         }
       ],
-      model: "meta-llama/llama-4-scout-17b-16e-instruc", // Using a suitable Groq model for text generation
+      model: "meta-llama/llama-4-scout-17b-16e-instruct", // Using a suitable Groq model for text generation
       temperature: 0.3, // Keep temperature low for accurate translation
       max_tokens: currentMaxTokens, // Dynamically set max tokens
     });
