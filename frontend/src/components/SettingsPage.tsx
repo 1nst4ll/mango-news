@@ -94,6 +94,7 @@ const SettingsPage: React.FC = () => {
   const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(true);
   const [enableGlobalAiTags, setEnableGlobalAiTags] = useState<boolean>(true);
   const [enableGlobalAiImage, setEnableGlobalAiImage] = useState<boolean>(true);
+  const [enableGlobalAiTranslations, setEnableGlobalAiTranslations] = useState<boolean>(true); // New state for global AI translations
   const [stats, setStats] = useState<ArticleStats>({ totalArticles: null, totalSources: null, articlesPerSource: [], articlesPerYear: [] });
   const [statsLoading, setStatsLoading] = useState<boolean>(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -245,6 +246,22 @@ const SettingsPage: React.FC = () => {
     }
   }, [enableGlobalAiImage]);
 
+  // New effect for global AI translations toggle
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('enableGlobalAiTranslations');
+      if (saved !== null) {
+        setEnableGlobalAiTranslations(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('enableGlobalAiTranslations', JSON.stringify(enableGlobalAiTranslations));
+    }
+  }, [enableGlobalAiTranslations]);
+
   // Effects from admin/sources/page.tsx
   useEffect(() => {
     const fetchSources = async () => {
@@ -299,7 +316,7 @@ const SettingsPage: React.FC = () => {
       const response = await fetch(`${apiUrl}/api/scrape/run`, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }),
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }), // Include new toggle
       });
       const data = await response.json();
       if (!response.ok) {
@@ -384,7 +401,7 @@ const SettingsPage: React.FC = () => {
       const response = await fetch(`${apiUrl}/api/scrape/run/${sourceId}`, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage }),
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }), // Include new toggle
       });
       const data = await response.json();
       if (!response.ok) {
@@ -999,36 +1016,48 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </li>
                 <li>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="enableGlobalAiImage"
-                      checked={enableGlobalAiImage}
-                      onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)}
-                    />
-                    <Label htmlFor="enableGlobalAiImage">
-                      Enable AI Image Generation for this scrape
-                    </Label>
-                  </div>
-                </li>
-                <li>
-                  <Button
-                    onClick={handleTriggerScraper}
-                    disabled={loading}
-                  >
-                    {loading ? 'Triggering...' : 'Trigger Full Scraper Run'}
-                  </Button>
-                </li>
-                <li>
-                  <Button
-                    onClick={handlePurgeArticles}
-                    disabled={purgeLoading}
-                    variant="destructive"
-                  >
-                    {purgeLoading ? 'Purging...' : 'Purge All Articles'}
-                  </Button>
-                </li>
-              </ul>
-            </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableGlobalAiImage"
+                    checked={enableGlobalAiImage}
+                    onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)}
+                  />
+                  <Label htmlFor="enableGlobalAiImage">
+                    Enable AI Image Generation for this scrape
+                  </Label>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableGlobalAiTranslations"
+                    checked={enableGlobalAiTranslations}
+                    onCheckedChange={(checked: boolean) => setEnableGlobalAiTranslations(checked)}
+                  />
+                  <Label htmlFor="enableGlobalAiTranslations">
+                    Enable AI Translations for this scrape
+                  </Label>
+                </div>
+              </li>
+              <li>
+                <Button
+                  onClick={handleTriggerScraper}
+                  disabled={loading}
+                >
+                  {loading ? 'Triggering...' : 'Trigger Full Scraper Run'}
+                </Button>
+              </li>
+              <li>
+                <Button
+                  onClick={handlePurgeArticles}
+                  disabled={purgeLoading}
+                  variant="destructive"
+                >
+                  {purgeLoading ? 'Purging...' : 'Purge All Articles'}
+                </Button>
+              </li>
+            </ul>
+          </div>
 
             {/* Status Messages */}
             {scrapingStatus && (

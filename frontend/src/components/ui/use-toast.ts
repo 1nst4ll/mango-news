@@ -148,7 +148,7 @@ export function useToast() {
 
   return {
     ...activeToasts,
-    toast: React.useCallback((props: ToasterToast) => {
+    toast: React.useCallback((props: Omit<ToasterToast, "id">) => { // Changed type to Omit<ToasterToast, "id">
       const id = genId()
 
       const update = (props: ToasterToast) =>
