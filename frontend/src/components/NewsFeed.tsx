@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button"; // Import Button component
+import { Share2, Facebook, Loader2, XCircle, Info } from 'lucide-react'; // Import icons
 
 // Import locale files
 import en from '../locales/en.json';
 import es from '../locales/es.json';
 import ht from '../locales/ht.json';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 
 const locales = { en, es, ht };
 
@@ -154,24 +157,39 @@ function NewsFeed({
   if (loading) {
     return (
       <div className="container mx-auto p-4">
-        <div className="text-center text-xl font-semibold">{t.loading}</div>
-        <p className="text-center text-gray-600">{t.loading_latest_news}</p>
+        <Alert className="text-center">
+          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+          <AlertTitle className="text-xl font-semibold">{t.loading}</AlertTitle>
+          <AlertDescription className="text-gray-600">{t.loading_latest_news}</AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-4 text-red-500">
-        {t.error_loading_articles} {error instanceof Error ? error.message : 'An unknown error occurred'}
+      <div className="container mx-auto p-4">
+        <Alert variant="destructive" className="text-center">
+          <XCircle className="h-4 w-4 mx-auto" />
+          <AlertTitle className="text-xl font-semibold">{t.error_loading_articles}</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error ? error.message : 'An unknown error occurred'}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   if (filteredArticles.length === 0) {
      return (
-      <div className="container mx-auto p-4 text-center text-gray-600">
-        {t.no_articles_found}
+      <div className="container mx-auto p-4">
+        <Alert className="text-center">
+          <Info className="h-4 w-4 mx-auto" />
+          <AlertTitle className="text-xl font-semibold">{t.no_articles_found}</AlertTitle>
+          <AlertDescription className="text-gray-600">
+            {t.try_adjusting_filters || "Try adjusting your filters or check back later."}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -273,8 +291,9 @@ function NewsFeed({
                           <p className="text-foreground" dangerouslySetInnerHTML={{ __html: (displaySummary || (currentLocale !== 'en' ? `${article.summary} (${getFallbackMessage(currentLocale)})` : article.summary))?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                       </CardContent>
                       <div className="px-6 pb-4 flex gap-4">
-                        <button
-                          className="text-sm text-blue-600 hover:underline"
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
@@ -283,10 +302,11 @@ function NewsFeed({
                             window.open(whatsappUrl, '_blank');
                           }}
                         >
-                          {t.share_on_whatsapp}
-                        </button>
-                         <button
-                          className="text-sm text-blue-600 hover:underline"
+                          <Share2 className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+                        </Button>
+                         <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
@@ -294,8 +314,8 @@ function NewsFeed({
                             window.open(facebookUrl, '_blank');
                           }}
                         >
-                          {t.share_on_facebook}
-                        </button>
+                          <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
+                        </Button>
                       </div>
                     </Card>
                   </a>

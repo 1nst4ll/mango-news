@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Button } from "./ui/button"; // Import Button component
+import { Share2, Facebook, Loader2, XCircle, Info } from 'lucide-react'; // Import icons
 
 // Import locale files
 import en from '../locales/en.json';
 import es from '../locales/es.json';
 import ht from '../locales/ht.json';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 
 const locales = { en, es, ht };
 
@@ -102,23 +105,41 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   if (loading) {
     return (
       <div className="container mx-auto p-4">
-        <div className="text-center text-xl font-semibold">{t.loading_article}</div>
+        <Alert className="text-center">
+          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+          <AlertTitle className="text-xl font-semibold">{t.loading_article}</AlertTitle>
+          <AlertDescription className="text-gray-600">
+            {t.loading_latest_news || "Please wait while we load the article."}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-4 text-red-500">
-        {t.error_loading_articles} {error instanceof Error ? error.message : 'An unknown error occurred'}
+      <div className="container mx-auto p-4">
+        <Alert variant="destructive" className="text-center">
+          <XCircle className="h-4 w-4 mx-auto" />
+          <AlertTitle className="text-xl font-semibold">{t.error_loading_articles}</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error ? error.message : 'An unknown error occurred'}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   if (!article) {
     return (
-      <div className="container mx-auto p-4 text-center text-gray-600">
-        {t.article_not_found}
+      <div className="container mx-auto p-4">
+        <Alert className="text-center">
+          <Info className="h-4 w-4 mx-auto" />
+          <AlertTitle className="text-xl font-semibold">{t.article_not_found}</AlertTitle>
+          <AlertDescription className="text-gray-600">
+            {t.try_adjusting_filters || "The article you are looking for could not be found."}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -163,8 +184,9 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           })}
         </div>
         <div className="mt-6 flex gap-4">
-          <button
-            className="text-sm text-blue-600 hover:underline"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               const articleUrl = window.location.href;
               const shareText = `Check out this article: ${displayTitle || article.title} - ${articleUrl}`;
@@ -172,18 +194,19 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               window.open(whatsappUrl, '_blank');
             }}
           >
-            {t.share_on_whatsapp}
-          </button>
-          <button
-            className="text-sm text-blue-600 hover:underline"
+            <Share2 className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               const articleUrl = window.location.href;
               const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
               window.open(facebookUrl, '_blank');
             }}
           >
-            {t.share_on_facebook}
-          </button>
+            <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
+          </Button>
         </div>
       </article>
     </div>
