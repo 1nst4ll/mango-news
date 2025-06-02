@@ -39,7 +39,6 @@ The following endpoints now require a valid JWT in the `Authorization: Bearer YO
 *   `POST /api/scrape/run/:id`
 *   `POST /api/scrape/run`
 *   `POST /api/process-missing-ai/:sourceId`
-*   `GET /api/discover-sources`
 *   `POST /api/articles/purge`
 *   `POST /api/articles/purge/:sourceId`
 *   `GET /api/stats`
@@ -89,9 +88,6 @@ Triggers the scraper for a specific source by ID.
 
 Triggers a full scraper run for all active sources.
 
-### GET /api/discover-sources
-
-Initiates a basic source discovery process (currently uses opensourceScraper).
 
 ### POST /api/articles/purge
 

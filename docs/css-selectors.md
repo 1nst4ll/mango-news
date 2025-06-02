@@ -47,6 +47,10 @@ Based on the structure observed from scraping:
 
 Remember to verify these selectors using browser developer tools on the actual website.
 
+## Selectors for magneticmediatv.com
+
+For `magneticmediatv.com`, the article URLs often follow a `/year/month/slug/` format. Specific CSS selectors for content extraction would need to be identified by inspecting the site's HTML structure.
+
 ## Updating Documentation
 
 After successfully identifying and using selectors for a new source, update this document with the specific selectors used for that source to maintain a record.

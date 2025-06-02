@@ -28,9 +28,6 @@ This section provides overall control and status information for the application
 
 This section allows you to view, add, edit, and delete news sources, presented within a **shadcn/ui Card**.
 
--   **Source Discovery:** Discover potential new news sources. This section is wrapped in a **shadcn/ui Card**.
-    -   **Discover Sources:** Initiate the source discovery process using a **shadcn/ui Button**. Status information will be displayed while the discovery process is in progress.
-    -   **Discovered Sources List:** Any discovered sources will be listed with their name and URL. An "Add as New Source" **shadcn/ui Button** is available for each discovered source.
 -   **Existing Sources:** View a list of all configured news sources.
     -   **Add New Source Button:** A **shadcn/ui Button** to open the modal for adding a new source.
 -   **Sources List:** Each source is displayed within a styled list item, showing its details (name, URL, active status, AI summary setting, AI tag setting, AI image setting, scraping method, include/exclude selectors, article link template, exclude patterns). Action buttons (**shadcn/ui Buttons** for "Scrape Now", "Delete Articles", "Edit", and "Delete Source") are available for each source.
