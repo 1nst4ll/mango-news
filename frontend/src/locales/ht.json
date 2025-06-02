@@ -32,5 +32,8 @@
   "official_source": "Sous Ofisyèl",
   "facebook_page": "Paj Facebook",
   "try_adjusting_filters": "Eseye ajiste filtè ou yo oswa tcheke ankò pita.",
-  "search_sources_placeholder": "Chèche sous..."
+  "search_sources_placeholder": "Chèche sous...",
+  "loading_more_articles": "Ap chaje plis atik...",
+  "no_more_articles": "Pa gen plis atik pou chaje.",
+  "all_articles_loaded": "Ou rive nan fen fil nouvèl la."
 }

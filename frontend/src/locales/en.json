@@ -32,5 +32,8 @@
   "official_source": "Official Source",
   "facebook_page": "Facebook Page",
   "try_adjusting_filters": "Try adjusting your filters or check back later.",
-  "search_sources_placeholder": "Search sources..."
+  "search_sources_placeholder": "Search sources...",
+  "loading_more_articles": "Loading more articles...",
+  "no_more_articles": "No more articles to load.",
+  "all_articles_loaded": "You've reached the end of the news feed."
 }

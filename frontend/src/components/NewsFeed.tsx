@@ -59,9 +59,24 @@ function NewsFeed({
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const { t, currentLocale } = useTranslations(); // Use the translation hook
 
+  const articlesPerPage = 15; // Define how many articles to fetch per page
+
   useEffect(() => {
+    // Reset articles, page, and hasMore when filters change
+    setArticles([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    setLoading(true); // Set loading true to show initial loader
+    setError(null); // Clear previous errors
+  }, [searchTerm, selectedSources]);
+
+  useEffect(() => {
+    if (!hasMore && currentPage > 1) return; // Don't fetch if no more articles and not initial load
+
     const fetchArticles = async () => {
       setLoading(true);
       setError(null);
@@ -69,11 +84,6 @@ function NewsFeed({
         const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         let url = `${apiUrl}/api/articles`;
         const params = new URLSearchParams();
-
-        console.log('Fetching articles with filters:', {
-          searchTerm,
-          selectedSources,
-        });
 
         if (selectedSources.length > 0) {
             params.append('sources', selectedSources.join(','));
@@ -83,17 +93,37 @@ function NewsFeed({
             params.append('searchTerm', searchTerm);
         }
 
+        // Add pagination parameters
+        params.append('page', currentPage.toString());
+        params.append('limit', articlesPerPage.toString());
+
         if (params.toString()) {
           url += `?${params.toString()}`;
         }
+
+        console.log('Fetching articles with URL:', url);
 
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+
         const data: Article[] = await response.json();
         console.log('Fetched articles data:', data);
-        setArticles(data);
+
+        setArticles(prevArticles => {
+          // Filter out duplicates if any (e.g., if backend sends some overlap)
+          const newArticles = data.filter(
+            newArticle => !prevArticles.some(existingArticle => existingArticle.id === newArticle.id)
+          );
+          return [...prevArticles, ...newArticles];
+        });
+
+        // Check if there are more articles to load
+        // Assuming backend sends total count in a header or response body
+        // For now, we'll assume if less than limit, no more pages
+        setHasMore(data.length === articlesPerPage);
+
       } catch (err: unknown) {
         setError(err);
       } finally {
@@ -102,7 +132,30 @@ function NewsFeed({
     };
 
     fetchArticles();
-  }, [searchTerm, selectedSources]);
+  }, [searchTerm, selectedSources, currentPage]); // Re-fetch when filters or page changes
+
+  // Intersection Observer for infinite scrolling
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          setCurrentPage(prevPage => prevPage + 1);
+        }
+      },
+      { threshold: 1.0 } // Trigger when the target is fully visible
+    );
+
+    const loadMoreRef = document.getElementById('load-more-trigger');
+    if (loadMoreRef) {
+      observer.observe(loadMoreRef);
+    }
+
+    return () => {
+      if (loadMoreRef) {
+        observer.unobserve(loadMoreRef);
+      }
+    };
+  }, [hasMore, loading]); // Re-run observer setup if hasMore or loading state changes
 
   const filteredArticles = articles.filter(article => {
     const matchesCategory = activeCategory === 'all' ||
@@ -132,7 +185,7 @@ function NewsFeed({
   });
 
 
-  if (loading) {
+  if (loading && articles.length === 0) { // Show initial loader only if no articles are loaded yet
     return (
       <div className="container mx-auto p-4">
         <Alert className="text-center">
@@ -158,7 +211,7 @@ function NewsFeed({
     );
   }
 
-  if (filteredArticles.length === 0) {
+  if (filteredArticles.length === 0 && !loading) { // Show no articles found only if not loading and no articles
      return (
       <div className="container mx-auto p-4">
         <Alert className="text-center">
@@ -306,6 +359,25 @@ function NewsFeed({
           </div>
         </div>
       ))}
+      {/* Loading indicator or "No More Articles" message */}
+      <div id="load-more-trigger" className="py-4 text-center">
+        {loading && articles.length > 0 && (
+          <Alert className="text-center">
+            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+            <AlertTitle className="text-xl font-semibold">{t.loading}</AlertTitle>
+            <AlertDescription className="text-gray-600">{t.loading_more_articles || "Loading more articles..."}</AlertDescription>
+          </Alert>
+        )}
+        {!hasMore && articles.length > 0 && !loading && (
+          <Alert className="text-center">
+            <Info className="h-4 w-4 mx-auto" />
+            <AlertTitle className="text-xl font-semibold">{t.no_more_articles || "No more articles to load."}</AlertTitle>
+            <AlertDescription className="text-gray-600">
+              {t.all_articles_loaded || "You've reached the end of the news feed."}
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   );
 }

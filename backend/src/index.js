@@ -331,14 +331,24 @@ app.get('/api/topics', async (req, res) => {
   }
 });
 
-// Get all articles
+// Get all articles with pagination
 app.get('/api/articles', async (req, res) => {
   const endpoint = '/api/articles';
-  const { topic, startDate, endDate, searchTerm, sources } = req.query;
-  let query = `
+  const { topic, startDate, endDate, searchTerm, sources, page = 1, limit = 15 } = req.query; // Add page and limit with defaults
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  let countQuery = `
+    SELECT COUNT(DISTINCT a.id)
+    FROM articles a
+    LEFT JOIN article_topics at ON a.id = at.article_id
+    LEFT JOIN topics t ON at.topic_id = t.id
+    LEFT JOIN sources s ON a.source_id = s.id
+  `;
+
+  let articlesQuery = `
     SELECT
         a.*,
-        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics, -- Use ARRAY_REMOVE to handle articles without topics
+        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics,
         ARRAY_REMOVE(ARRAY_AGG(t.name_es), NULL) AS topics_es,
         ARRAY_REMOVE(ARRAY_AGG(t.name_ht), NULL) AS topics_ht
     FROM
@@ -350,13 +360,13 @@ app.get('/api/articles', async (req, res) => {
     LEFT JOIN
         sources s ON a.source_id = s.id
   `;
+
   const values = [];
   const conditions = [];
   let valueIndex = 1;
 
-  // Handle comma-separated topics (case-insensitive)
   if (topic) {
-    const topicNames = topic.split(',').map(name => name.toLowerCase()); // Convert to lowercase for case-insensitive comparison
+    const topicNames = topic.split(',').map(name => name.toLowerCase());
     conditions.push(`EXISTS (
       SELECT 1
       FROM article_topics at_filter
@@ -382,31 +392,38 @@ app.get('/api/articles', async (req, res) => {
     valueIndex++;
   }
 
-  // Handle comma-separated sources (case-insensitive)
   if (sources) {
-    const sourceNames = sources.split(',').map(name => name.toLowerCase()); // Convert to lowercase for case-insensitive comparison
+    const sourceNames = sources.split(',').map(name => name.toLowerCase());
     conditions.push(`LOWER(s.name) = ANY($${valueIndex++})`);
     values.push(sourceNames);
   }
 
-
   if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
+    const whereClause = ' WHERE ' + conditions.join(' AND ');
+    countQuery += whereClause;
+    articlesQuery += whereClause;
   }
 
-  // The GROUP BY is needed to aggregate topics for each article.
-  query += ' GROUP BY a.id ORDER BY a.publication_date DESC';
+  articlesQuery += ' GROUP BY a.id ORDER BY a.publication_date DESC';
+  articlesQuery += ` LIMIT $${valueIndex++} OFFSET $${valueIndex++}`;
+  values.push(parseInt(limit), offset);
 
   try {
-    const result = await pool.query(query, values);
-    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${result.rows.length} articles with filters: ${JSON.stringify(req.query)}`);
-    res.json(result.rows);
+    const countResult = await pool.query(countQuery, values.slice(0, values.length - 2)); // Exclude limit and offset for count query
+    const totalArticles = parseInt(countResult.rows[0].count, 10);
+
+    const articlesResult = await pool.query(articlesQuery, values);
+
+    res.set('X-Total-Count', totalArticles.toString()); // Set total count in header
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${articlesResult.rows.length} articles (Total: ${totalArticles}) with filters: ${JSON.stringify(req.query)}`);
+    res.json(articlesResult.rows);
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching articles:`, err);
-     // If the articles table doesn't exist yet, return an empty array as a fallback
-    if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
+    if (err.code === '42P01') {
        console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Articles table not found, returning empty array. Ensure database schema is applied.`);
        res.json([]);
+    } else {
+      res.status(500).json({ error: 'Internal Server Error' });
     }
   }
 });

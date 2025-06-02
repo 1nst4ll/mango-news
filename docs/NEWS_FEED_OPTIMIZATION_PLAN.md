@@ -29,23 +29,23 @@ These changes are outside the direct scope of the frontend codebase but are cruc
 
 These changes will be made within the `frontend` directory.
 
-*   [ ] **Task 2: Update `NewsFeed.tsx` to Implement Infinite Scrolling**
-    *   [ ] **Sub-task 2.1:** Introduce new state variables in `NewsFeed.tsx` for `currentPage` (default to 1) and `hasMore` (boolean, default to true).
-    *   [ ] **Sub-task 2.2:** Modify the `fetchArticles` function to include `page` and `limit` parameters in the API request. A reasonable `limit` could be 10-20 articles per page initially.
-    *   [ ] **Sub-task 2.3:** Adjust `fetchArticles` to *append* new articles to the existing `articles` state instead of overwriting it.
-    *   [ ] **Sub-task 2.4:** Update `hasMore` state based on the backend's response (e.g., if the number of returned articles is less than the requested `limit`, set `hasMore` to `false`).
-    *   [ ] **Sub-task 2.5:** Implement an Intersection Observer or a scroll event listener to detect when the user scrolls near the bottom of the `NewsFeed` component.
-    *   [ ] **Sub-task 2.6:** When the bottom is reached and `hasMore` is true, increment `currentPage` and trigger `fetchArticles` again.
-    *   [ ] **Sub-task 2.7:** Add a loading indicator at the bottom of the feed when `loading` is true and `articles` are already present (to distinguish from initial load).
-    *   [ ] **Sub-task 2.8:** Add a "No More Articles" message when `hasMore` is false.
-    *   [ ] **Sub-task 2.9:** Re-evaluate client-side filtering by `activeCategory`. Ideally, this should be handled by the backend if possible, but if not, ensure it's applied to the *appended* articles.
+*   [x] **Task 2: Update `NewsFeed.tsx` to Implement Infinite Scrolling**
+    *   [x] **Sub-task 2.1:** Introduce new state variables in `NewsFeed.tsx` for `currentPage` (default to 1) and `hasMore` (boolean, default to true).
+    *   [x] **Sub-task 2.2:** Modify the `fetchArticles` function to include `page` and `limit` parameters in the API request. A reasonable `limit` could be 10-20 articles per page initially.
+    *   [x] **Sub-task 2.3:** Adjust `fetchArticles` to *append* new articles to the existing `articles` state instead of overwriting it.
+    *   [x] **Sub-task 2.4:** Update `hasMore` state based on the backend's response (e.g., if the number of returned articles is less than the requested `limit`, set `hasMore` to `false`).
+    *   [x] **Sub-task 2.5:** Implement an Intersection Observer or a scroll event listener to detect when the user scrolls near the bottom of the `NewsFeed` component.
+    *   [x] **Sub-task 2.6:** When the bottom is reached and `hasMore` is true, increment `currentPage` and trigger `fetchArticles` again.
+    *   [x] **Sub-task 2.7:** Add a loading indicator at the bottom of the feed when `loading` is true and `articles` are already present (to distinguish from initial load).
+    *   [x] **Sub-task 2.8:** Add a "No More Articles" message when `hasMore` is false.
+    *   [x] **Sub-task 2.9:** Re-evaluate client-side filtering by `activeCategory`. Ideally, this should be handled by the backend if possible, but if not, ensure it's applied to the *appended* articles.
 
-*   [ ] **Task 3: Refine `IndexPage.tsx` (Minor Adjustments)**
-    *   [ ] **Sub-task 3.1:** Ensure `NewsFeed` component props are compatible with the new pagination logic (e.g., if `searchTerm` or `selectedSources` change, `NewsFeed` should reset `currentPage` and clear `articles` before refetching).
+*   [x] **Task 3: Refine `IndexPage.tsx` (Minor Adjustments)**
+    *   [x] **Sub-task 3.1:** Ensure `NewsFeed` component props are compatible with the new pagination logic (e.g., if `searchTerm` or `selectedSources` change, `NewsFeed` should reset `currentPage` and clear `articles` before refetching).
 
-*   [ ] **Task 4: Update Documentation**
-    *   [ ] **Sub-task 4.1:** Update `docs/frontend-ui.md` to reflect the new infinite scrolling implementation and data fetching strategy.
-    *   [ ] **Sub-task 4.2:** Add a note in `PROGRESS.md` about this performance improvement.
+*   [x] **Task 4: Update Documentation**
+    *   [x] **Sub-task 4.1:** Update `docs/frontend-ui.md` to reflect the new infinite scrolling implementation and data fetching strategy.
+    *   [x] **Sub-task 4.2:** Add a note in `PROGRESS.md` about this performance improvement.
 
 ## Testing Considerations
 
