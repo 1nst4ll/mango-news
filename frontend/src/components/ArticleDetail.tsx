@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from "./ui/button"; // Import Button component
-import { Share2, Facebook, Loader2, XCircle, Info } from 'lucide-react'; // Import icons
+import { MessageCircleMore, Facebook, Loader2, XCircle, Info } from 'lucide-react'; // Import icons
 
 // Import locale files
 import en from '../locales/en.json';
@@ -183,9 +183,9 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             return null;
           })}
         </div>
-        <div className="mt-6 flex gap-4">
+        <div className="mt-6 flex flex-wrap gap-2"> {/* Added flex-wrap and adjusted gap */}
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => {
               const articleUrl = window.location.href;
@@ -194,10 +194,10 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               window.open(whatsappUrl, '_blank');
             }}
           >
-            <Share2 className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+            <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
           </Button>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => {
               const articleUrl = window.location.href;
