@@ -29,8 +29,8 @@ interface Article {
   summary_es?: string;
   title_ht?: string;
   summary_ht?: string;
-  topics_es?: string; // Changed from string[] to string
-  topics_ht?: string; // Changed from string[] to string
+  topics_es?: string[]; // Ensure this is string[]
+  topics_ht?: string[]; // Ensure this is string[]
 }
 
 interface NewsFeedProps {
@@ -239,11 +239,11 @@ function NewsFeed({
 
   // Helper to get translated topics with fallback
   const getTranslatedTopics = (article: Article, locale: string): string[] | undefined => {
-    if (locale === 'es' && article.topics_es) {
-      return article.topics_es.split(',').map(topic => topic.trim());
+    if (locale === 'es' && article.topics_es && article.topics_es.length > 0) {
+      return article.topics_es;
     }
-    if (locale === 'ht' && article.topics_ht) {
-      return article.topics_ht.split(',').map(topic => topic.trim());
+    if (locale === 'ht' && article.topics_ht && article.topics_ht.length > 0) {
+      return article.topics_ht;
     }
     return article.topics; // Fallback to English (which is already an array)
   };
