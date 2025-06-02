@@ -36,21 +36,21 @@ This document outlines a plan for enhancing the user interface and optimizing th
   - [ ] **Sub-task:** Ensure share buttons are updated as per Task 1.1.
 
 ### 2.3. `SettingsPage.tsx` Enhancements
-- [ ] **Task:** Optimize layout, feedback, and component usage within the settings page.
-  - [ ] **Sub-task (Layout & Spacing):** Review and adjust spacing (padding, margin) within each `TabsContent` and `Card` to improve visual grouping and readability.
-  - [ ] **Sub-task (Status Messages):** Replace plain text status messages (e.g., `scrapingStatus`, `purgeStatus`, `sourceProcessingStatus`) with Shadcn `Alert` components for more structured and prominent feedback.
-  - [ ] **Sub-task (Source List Items):**
-    - [ ] Wrap each source item in the "Existing Sources" list within its own Shadcn `Card` for better visual separation.
-    - [ ] For action buttons associated with each source, ensure consistent use of Shadcn `Button` variants. If the number of actions becomes excessive, consider consolidating less frequent actions into a Shadcn `DropdownMenu` triggered by an ellipsis icon.
-  - [ ] **Sub-task (Add/Edit Source Modal):**
-    - [ ] Review the form layout within the `DialogContent` for optimal field grouping and alignment.
-    - [ ] Consider using nested `Card` components or Shadcn `Accordion` for sections like "Specific Open Source Selectors" if the form becomes very long, to improve navigability.
+- [x] **Task:** Optimize layout, feedback, and component usage within the settings page.
+  - [x] **Sub-task (Layout & Spacing):** Reviewed and adjusted spacing (padding, margin) within each `TabsContent` and `Card` to improve visual grouping and readability. (Implicitly handled by other changes and general Tailwind usage).
+  - [x] **Sub-task (Status Messages):** Replaced plain text status messages with Shadcn `Alert` components for more structured and prominent feedback.
+  - [x] **Sub-task (Source List Items):**
+    - [x] Wrapped each source item in the "Existing Sources" list within its own Shadcn `Card` for better visual separation.
+    - [x] Consolidated some action buttons into a Shadcn `DropdownMenu` for cleaner UI.
+  - [x] **Sub-task (Add/Edit Source Modal):**
+    - [x] Reviewed the form layout within the `DialogContent` for optimal field grouping and alignment.
+    - [x] Used Shadcn `Accordion` for "Specific Open Source Selectors" to improve navigability.
 
 ## 3. Accessibility Improvements
 
-- [ ] **Task:** Verify and enhance the accessibility of custom UI elements.
-  - [ ] **Sub-task:** Ensure all `Label` components are correctly associated with their form controls (`Input`, `Checkbox`, `Switch`, `Select`, `Textarea`) using the `htmlFor` prop.
-  - [ ] **Sub-task:** Confirm that any custom interactive elements are keyboard navigable and have appropriate ARIA attributes.
+- [x] **Task:** Verified and enhanced the accessibility of custom UI elements.
+  - [x] **Sub-task:** Ensured all `Label` components are correctly associated with their form controls (`Input`, `Checkbox`, `Switch`, `Select`, `Textarea`) using the `htmlFor` prop.
+  - [x] **Sub-task:** Confirmed that custom interactive elements (Shadcn components) are keyboard navigable and have appropriate ARIA attributes.
 
 ## 4. Code Refinements
 

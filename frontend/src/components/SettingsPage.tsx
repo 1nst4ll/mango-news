@@ -13,6 +13,10 @@ import { Switch } from "./ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"; // Import Tabs components
 import { Toaster } from "./ui/toaster"; // Import Toaster
 import { useToast } from "./ui/use-toast"; // Import useToast hook
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert"; // Import Alert components
+import { CheckCircle, XCircle, Info, Loader2, MoreHorizontal } from 'lucide-react'; // Import icons
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu"; // Import DropdownMenu components
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"; // Import Accordion components
 
 
 
@@ -1061,14 +1065,18 @@ const SettingsPage: React.FC = () => {
 
             {/* Status Messages */}
             {scrapingStatus && (
-              <div className="text-sm text-green-600 mt-2">
-                Scraper Status: {scrapingStatus}
-              </div>
+              <Alert className="mt-4">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Scraper Status</AlertTitle>
+                <AlertDescription>{scrapingStatus}</AlertDescription>
+              </Alert>
             )}
             {purgeStatus && (
-              <div className="text-sm text-green-600 mt-2">
-                Purge Status: {purgeStatus}
-              </div>
+              <Alert className="mt-4">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Purge Status</AlertTitle>
+                <AlertDescription>{purgeStatus}</AlertDescription>
+              </Alert>
             )}
           </CardContent>
         </Card>
@@ -1189,69 +1197,73 @@ const SettingsPage: React.FC = () => {
               ) : (
                 <ul className="space-y-4">
                   {sources.map((source) => (
-                    <li key={source.id} className="border rounded-lg p-4 shadow-sm pt-4">
+                    <Card key={source.id} className="p-4 shadow-sm pt-4">
                       <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
                         <div>
-                          <div className="text-lg font-medium">{source.name}</div>
-                          <div className="text-sm text-gray-600">
+                          <CardTitle className="text-lg font-medium">{source.name}</CardTitle>
+                          <CardDescription className="text-sm text-muted-foreground">
                             URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
-                          </div>
-                          <div className="text-sm text-gray-600">
+                          </CardDescription>
+                          <CardDescription className="text-sm text-muted-foreground">
                             Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'} | Method: {source.scraping_method || 'N/A'}
-                          </div>
-                          {source.include_selectors && <div className="text-sm text-gray-600 break-words">Include: {source.include_selectors}</div>}
-                          {source.exclude_selectors && <div>Exclude: {source.exclude_selectors}</div>}
+                          </CardDescription>
+                          {source.include_selectors && <CardDescription className="text-sm text-muted-foreground break-words">Include: {source.include_selectors}</CardDescription>}
+                          {source.exclude_selectors && <CardDescription className="text-sm text-muted-foreground">Exclude: {source.exclude_selectors}</CardDescription>}
                         </div>
                         <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 mt-2 md:mt-0">
-                          <Button
-                            onClick={() => window.location.href = `/settings/source/${source.id}`}
-                            size="sm"
-                            variant="outline"
-                          >
-                            View Articles
-                          </Button>
-                          <Button
-                            onClick={() => handleTriggerScraperForSource(source.id)}
-                            disabled={sourceScrapingLoading[source.id]}
-                            size="sm"
-                          >
-                            {sourceScrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteArticlesForSource(source.id)}
-                            disabled={sourceArticleDeletionLoading[source.id]}
-                            size="sm"
-                            variant="destructive"
-                          >
-                            {sourceArticleDeletionLoading[source.id] ? 'Deleting...' : 'Delete Articles'}
-                          </Button>
-                          <Button
-                            onClick={() => openEditModal(source)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteSource(source.id)}
-                            size="sm"
-                            variant="destructive"
-                          >
-                            Delete Source
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => window.location.href = `/settings/source/${source.id}`}>
+                                View Articles
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleTriggerScraperForSource(source.id)}
+                                disabled={sourceScrapingLoading[source.id]}
+                              >
+                                {sourceScrapingLoading[source.id] ? 'Scraping...' : 'Scrape Now'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteArticlesForSource(source.id)}
+                                disabled={sourceArticleDeletionLoading[source.id]}
+                                className="text-red-600"
+                              >
+                                {sourceArticleDeletionLoading[source.id] ? 'Deleting...' : 'Delete Articles'}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openEditModal(source)}>
+                                Edit Source
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteSource(source.id)}
+                                className="text-red-600"
+                              >
+                                Delete Source
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                       {/* Display scraping status directly within the card */}
                       {sourceScrapingStatus[source.id] && (
-                        <div className="text-sm text-green-600 mt-2">
-                          Scrape Status: {sourceScrapingStatus[source.id]}
-                        </div>
+                        <Alert className="mt-2">
+                          <Info className="h-4 w-4" />
+                          <AlertTitle>Scrape Status</AlertTitle>
+                          <AlertDescription>{sourceScrapingStatus[source.id]}</AlertDescription>
+                        </Alert>
                       )}
                       {/* Display article deletion status directly within the card */}
                       {sourceArticleDeletionStatus[source.id] && (
-                        <div className="text-sm text-green-600 mt-2">
-                          Deletion Status: {sourceArticleDeletionStatus[source.id]}
-                        </div>
+                        <Alert className="mt-2">
+                          <Info className="h-4 w-4" />
+                          <AlertTitle>Deletion Status</AlertTitle>
+                          <AlertDescription>{sourceArticleDeletionStatus[source.id]}</AlertDescription>
+                        </Alert>
                       )}
 
                   {/* New: Single Button for Processing Missing AI Data */}
@@ -1273,31 +1285,39 @@ const SettingsPage: React.FC = () => {
                         (sourceProcessingLoading[source.id]?.summary ||
                           sourceProcessingLoading[source.id]?.tags ||
                           sourceProcessingLoading[source.id]?.image ||
-                          sourceProcessingLoading[source.id]?.translations) ? 'Processing...' : 'Process All Missing AI Data'
+                          sourceProcessingLoading[source.id]?.translations) ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
+                            </>
+                          ) : 'Process All Missing AI Data'
                       }
                     </Button>
                     {sourceProcessingStatus[source.id]?.summary && (
-                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                        Summary: {sourceProcessingStatus[source.id]?.summary}
-                      </div>
+                      <Alert variant={sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+                        {sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                        <AlertDescription className="text-xs">Summary: {sourceProcessingStatus[source.id]?.summary}</AlertDescription>
+                      </Alert>
                     )}
                     {sourceProcessingStatus[source.id]?.tags && (
-                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                        Tags: {sourceProcessingStatus[source.id]?.tags}
-                      </div>
+                      <Alert variant={sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+                        {sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                        <AlertDescription className="text-xs">Tags: {sourceProcessingStatus[source.id]?.tags}</AlertDescription>
+                      </Alert>
                     )}
                     {sourceProcessingStatus[source.id]?.image && (
-                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                        Image: {sourceProcessingStatus[source.id]?.image}
-                      </div>
+                      <Alert variant={sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+                        {sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                        <AlertDescription className="text-xs">Image: {sourceProcessingStatus[source.id]?.image}</AlertDescription>
+                      </Alert>
                     )}
                     {sourceProcessingStatus[source.id]?.translations && (
-                      <div className={`text-xs mt-1 ${sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                        Translations: {sourceProcessingStatus[source.id]?.translations}
-                      </div>
+                      <Alert variant={sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+                        {sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                        <AlertDescription className="text-xs">Translations: {sourceProcessingStatus[source.id]?.translations}</AlertDescription>
+                      </Alert>
                     )}
                   </div>
-                    </li>
+                    </Card>
                   ))}
                 </ul>
               )}
@@ -1375,34 +1395,41 @@ const SettingsPage: React.FC = () => {
                   className="md:col-span-3"
                 />
               </div>
-              {/* New: Specific Open Source Selectors */}
+              {/* Specific Open Source Selectors (Accordion) */}
               {modalFormData.scraping_method === 'opensource' && (
-                <>
-                  <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
-                    <Label htmlFor="os_title_selector" className="md:text-right">Title Selector:</Label>
-                    <Input id="os_title_selector" name="os_title_selector" value={modalFormData.os_title_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
-                    <Label htmlFor="os_content_selector" className="md:text-right">Content Selector:</Label>
-                    <Input id="os_content_selector" name="os_content_selector" value={modalFormData.os_content_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
-                  </div>
-                   <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
-                    <Label htmlFor="os_date_selector" className="md:text-right">Date Selector:</Label>
-                    <Input id="os_date_selector" name="os_date_selector" value={modalFormData.os_date_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
-                  </div>
-                   <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
-                    <Label htmlFor="os_author_selector" className="md:text-right">Author Selector:</Label>
-                    <Input id="os_author_selector" name="os_author_selector" value={modalFormData.os_author_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
-                  </div>
-                   <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
-                    <Label htmlFor="os_thumbnail_selector" className="md:text-right">Thumbnail Selector:</Label>
-                    <Input id="os_thumbnail_selector" name="os_thumbnail_selector" value={modalFormData.os_thumbnail_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
-                  </div>
-                   <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
-                    <Label htmlFor="os_topics_selector" className="md:text-right">Topics Selector (comma-separated):</Label>
-                    <Input id="os_topics_selector" name="os_topics_selector" value={modalFormData.os_topics_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
-                  </div>
-                </>
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="item-1">
+                    <AccordionTrigger className="text-md font-semibold">Open Source Selectors</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                          <Label htmlFor="os_title_selector" className="md:text-right">Title Selector:</Label>
+                          <Input id="os_title_selector" name="os_title_selector" value={modalFormData.os_title_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                          <Label htmlFor="os_content_selector" className="md:text-right">Content Selector:</Label>
+                          <Input id="os_content_selector" name="os_content_selector" value={modalFormData.os_content_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                          <Label htmlFor="os_date_selector" className="md:text-right">Date Selector:</Label>
+                          <Input id="os_date_selector" name="os_date_selector" value={modalFormData.os_date_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                          <Label htmlFor="os_author_selector" className="md:text-right">Author Selector:</Label>
+                          <Input id="os_author_selector" name="os_author_selector" value={modalFormData.os_author_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                          <Label htmlFor="os_thumbnail_selector" className="md:text-right">Thumbnail Selector:</Label>
+                          <Input id="os_thumbnail_selector" name="os_thumbnail_selector" value={modalFormData.os_thumbnail_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                          <Label htmlFor="os_topics_selector" className="md:text-right">Topics Selector (comma-separated):</Label>
+                          <Input id="os_topics_selector" name="os_topics_selector" value={modalFormData.os_topics_selector || ''} onChange={handleModalInputChange} className="md:col-span-3" />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               )}
               {/* Existing Include/Exclude Selectors */}
               <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
