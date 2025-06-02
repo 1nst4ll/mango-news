@@ -11,7 +11,8 @@ Welcome to the mango.tc news documentation. This guide provides comprehensive in
 - [Settings Page (Admin Controls and Source Management)](admin-ui.md) - **Updated to reflect combined page and new UI**
 - [Troubleshooting Common Issues](troubleshooting.md)
 - [Frontend UI Styling and Stack](frontend-ui.md) - **Updated to reflect Astro migration**
-- [Multilingual Support (Spanish & Haitian Creole)](multilingual-support.md) - **New**
+- [Multilingual Support (Spanish & Haitian Creole)](multilingual-support.md) - **Updated**
+- [WordPress Widget Integration](wordpress-integration.md) - **New**
 
 ## Backend API Endpoints
 
@@ -141,12 +142,17 @@ This section outlines key features and components of the Mango News frontend app
 ### News Feed
 
 The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggregated news articles.
-
+- **Multilingual Display:** Articles (titles, summaries, and topics) are displayed in the user's selected language (English, Spanish, or Haitian Creole) with AI-powered translations.
 - **Dynamic Topic Filtering:** Articles can be filtered by topic. The available topics are fetched dynamically from the backend API (`/api/topics`).
 
 ### Article Detail Page
 
 The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article.
+- **Multilingual Display:** The full article content (title, summary, main content, and topics) is displayed in the user's selected language (English, Spanish, or Haitian Creole) with AI-powered translations.
+
+### Multilingual Display
+
+The frontend supports English, Spanish, and Haitian Creole. Users can switch languages via a language switcher in the header. Dynamic content, including article titles, summaries, main content, and topics, is displayed in the selected language, leveraging AI-powered translations from the backend. Static UI text is managed via locale files. For more details, refer to the [Multilingual Support](multilingual-support.md) documentation.
 
 ### Navigation
 

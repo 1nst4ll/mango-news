@@ -94,7 +94,8 @@ The `Header` component now also uses a `useTranslations` hook (defined locally w
 
 Both `NewsFeed.tsx` and `ArticleDetail.tsx` now:
 *   Utilize the `useTranslations` hook to access the current locale and translated static UI strings.
-*   Display article titles, summaries, and topic tags in the selected language (Spanish or Haitian Creole) if available from the backend.
+*   Display article titles, summaries, **main article content (`raw_content`)**, and topic tags in the selected language (Spanish or Haitian Creole) if available from the backend.
+*   **Topics are handled as arrays (`string[]`) for both display and internal logic.**
 *   Implement a fallback mechanism: if a translation is not available, the original English text is displayed along with a message like "Translation to [Language] not available yet." (this message itself is translatable).
 *   Date formatting (e.g., `toLocaleDateString`) is now dynamic based on the `currentLocale`.
 *   Share button text is also translated.
@@ -103,26 +104,9 @@ Both `NewsFeed.tsx` and `ArticleDetail.tsx` now:
 
 The `navItems` array now uses `titleKey` properties (e.g., `"home"`, `"automoto"`) instead of hardcoded titles. These keys correspond to the entries in the locale JSON files, allowing the `Header` component to fetch the correct translated title for each navigation link.
 
-### WordPress Widget Integration (`widgets/`)
+### WordPress Widget Integration
 
-Multilingual support has been extended to the WordPress news feed widgets, allowing content to be displayed in English, Spanish, or Haitian Creole.
-
-*   **Elementor Widget (`widgets/mango-news-feed-elementor-widget.php`)**:
-    *   A new **"Display Language"** control has been added to the widget settings in Elementor.
-    *   Administrators can select the desired language (English, Spanish, or Haitian Creole) for the articles, summaries, topics, and static UI text displayed by that specific widget instance.
-
-*   **Direct HTML/JS Embed (`widgets/mango-news-direct-code.php`)**:
-    *   When embedding the news feed directly using the HTML/JS snippet, the display language can be set by modifying the `displayLanguage` property within the JavaScript `config` object.
-    *   Example: `displayLanguage: 'es',` for Spanish.
-    *   The `translations` object within the JavaScript also contains the necessary strings for each language.
-
-*   **PHP Function & Shortcode (`widgets/mango-news-direct-code.php`)**:
-    *   The `mango_news_feed()` PHP function now accepts a `language` argument.
-    *   Example usage in a theme template: `<?php mango_news_feed(['language' => 'es']); ?>`
-    *   The `[mango_news_feed]` shortcode also accepts a `language` attribute.
-    *   Example usage in a post/page: `[mango_news_feed language="ht"]`
-
-The widget will automatically fetch and display the appropriate translated content (titles, summaries, topics) from the API based on the configured language. If a translation is not available for a specific field, it will fall back to the English version.
+For details on multilingual support for WordPress widgets, please refer to the [WordPress Widget Integration](wordpress-integration.md) documentation.
 
 ## Usage and Maintenance
 
