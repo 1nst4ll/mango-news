@@ -54,6 +54,6 @@ This document outlines a plan for enhancing the user interface and optimizing th
 
 ## 4. Code Refinements
 
-- [ ] **Task:** Refactor duplicated code for better maintainability.
-  - [ ] **Sub-task:** Extract the `useTranslations` hook from `frontend/src/components/NewsFeed.tsx`, `frontend/src/components/ArticleDetail.tsx`, and `frontend/src/components/IndexPage.tsx` into a single shared utility file (e.g., `frontend/src/lib/hooks/useTranslations.ts` or `frontend/src/utils/useTranslations.ts`).
-  - [ ] **Sub-task:** Update all components to import the `useTranslations` hook from the new shared location.
+- [x] **Task:** Refactored duplicated code for better maintainability.
+  - [x] **Sub-task:** Extracted the `useTranslations` hook from `frontend/src/components/NewsFeed.tsx`, `frontend/src/components/ArticleDetail.tsx`, and `frontend/src/components/IndexPage.tsx` into a single shared utility file (`frontend/src/lib/hooks/useTranslations.ts`).
+  - [x] **Sub-task:** Updated all components to import the `useTranslations` hook from the new shared location.

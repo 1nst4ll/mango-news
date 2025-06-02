@@ -2,31 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Button } from "./ui/button"; // Import Button component
 import { MessageCircleMore, Facebook, Loader2, XCircle, Info } from 'lucide-react'; // Import icons
 
-// Import locale files
-import en from '../locales/en.json';
-import es from '../locales/es.json';
-import ht from '../locales/ht.json';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
-
-const locales = { en, es, ht };
-
-// Helper hook for translations (duplicate from NewsFeed for now, could be refactored)
-const useTranslations = () => {
-  const [currentLocale, setCurrentLocale] = useState('en');
-
-  useEffect(() => {
-    const pathSegments = window.location.pathname.split('/');
-    const localeFromPath = pathSegments[1];
-    if (locales[localeFromPath as keyof typeof locales]) {
-      setCurrentLocale(localeFromPath);
-    } else {
-      setCurrentLocale('en'); // Fallback
-    }
-  }, []);
-
-  const t = locales[currentLocale as keyof typeof locales];
-  return { t, currentLocale };
-};
+import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
 
 interface Article {
   id: number;
