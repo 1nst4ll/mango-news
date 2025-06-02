@@ -168,7 +168,7 @@ function NewsFeed({
     const date = new Date(article.publication_date);
     const year = date.getFullYear();
     const monthIndex = date.getMonth(); // Get month as 0-11 index
-    const monthName = t.months[monthIndex as keyof typeof t.months]; // Get translated month name from locale
+    const monthName = t.months[monthIndex.toString() as keyof typeof t.months]; // Get translated month name from locale
     const day = date.getDate();
     const dateKey = `${monthName} ${day}, ${year}`;
 
