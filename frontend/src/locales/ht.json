@@ -1,4 +1,18 @@
 {
+  "months": {
+    "0": "Janvye",
+    "1": "Fevriye",
+    "2": "Mas",
+    "3": "Avril",
+    "4": "Me",
+    "5": "Jen",
+    "6": "Jiyè",
+    "7": "Out",
+    "8": "Septanm",
+    "9": "Oktòb",
+    "10": "Novanm",
+    "11": "Desanm"
+  },
   "home": "Akèy",
   "vehicles": "Machin",
   "real_estate": "Imobilye",
