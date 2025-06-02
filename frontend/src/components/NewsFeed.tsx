@@ -295,6 +295,7 @@ function NewsFeed({
                                     className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation(); // Prevent click from propagating to the parent article link
+                                      e.preventDefault(); // Prevent the default action of the parent <a> tag
                                       window.location.href = `/${currentLocale}/news/topic/${encodeURIComponent(topic)}`;
                                     }}
                                   >
