@@ -32,9 +32,11 @@ interface Article {
   // New translated fields
   title_es?: string;
   summary_es?: string;
+  raw_content_es?: string; // Add translated raw content
+  topics_es?: string[];
   title_ht?: string;
   summary_ht?: string;
-  topics_es?: string[];
+  raw_content_ht?: string; // Add translated raw content
   topics_ht?: string[];
 }
 
@@ -52,7 +54,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   const [currentArticleIndex, setCurrentArticleIndex] = useState<number>(-1);
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [loadingRelated, setLoadingRelated] = useState<boolean>(false);
-  const [relatedError, setRelatedError] = useState<unknown>(null);
+  const [relatedError, setRelatedError] = useState<string | null>(null);
 
   useEffect(() => {
     // Load article list from localStorage
@@ -134,7 +136,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         // Filter out the current article from related articles
         setRelatedArticles(data.filter(ra => ra.id !== article.id));
       } catch (err: unknown) {
-        setRelatedError(err);
+        setRelatedError(err instanceof Error ? err.message : String(err));
       } finally {
         setLoadingRelated(false);
       }
@@ -205,9 +207,30 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   }
 
   const displayTitle = getTranslatedText(article, 'title', currentLocale);
-  // raw_content is not translated for now, so always use the original
-  const displayContent = article.raw_content;
-  const displayTopics = article.topics && article.topics.length > 0 ? article.topics : [];
+  // Helper to get translated raw content with fallback
+  const getTranslatedRawContent = (article: Article, locale: string) => {
+    if (locale === 'es' && article.raw_content_es) {
+      return article.raw_content_es;
+    }
+    if (locale === 'ht' && article.raw_content_ht) {
+      return article.raw_content_ht;
+    }
+    return article.raw_content; // Fallback to English
+  };
+
+  // Helper to get translated topics with fallback
+  const getTranslatedTopics = (article: Article, locale: string) => {
+    if (locale === 'es' && article.topics_es && article.topics_es.length > 0) {
+      return article.topics_es;
+    }
+    if (locale === 'ht' && article.topics_ht && article.topics_ht.length > 0) {
+      return article.topics_ht;
+    }
+    return article.topics && article.topics.length > 0 ? article.topics : []; // Fallback to English topics or empty array
+  };
+
+  const displayContent = getTranslatedRawContent(article, currentLocale);
+  const displayTopics = getTranslatedTopics(article, currentLocale);
   const firstTopic = displayTopics.length > 0 ? displayTopics[0] : null;
 
 
@@ -345,7 +368,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               <XCircle className="h-4 w-4 mx-auto" />
               <AlertTitle className="text-xl font-semibold">{t.error_loading_related_articles || "Error loading related articles."}</AlertTitle>
               <AlertDescription>
-                {String(relatedError ? (relatedError instanceof Error ? relatedError.message : relatedError) : 'An unknown error occurred')}
+                {relatedError}
               </AlertDescription>
             </Alert>
           </div>
