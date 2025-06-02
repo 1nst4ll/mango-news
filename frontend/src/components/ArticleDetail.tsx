@@ -2,6 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Button } from "./ui/button"; // Import Button component
 import { Badge } from "./ui/badge"; // Import Badge component
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"; // Import Card components
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "./ui/breadcrumb"; // Import Breadcrumb components
 import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react'; // Import icons
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
@@ -205,26 +213,36 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="mb-4 text-sm text-muted-foreground">
-        <a href={`/${currentLocale}/`} className="hover:underline">
-          {t.news_feed || 'News Feed'}
-        </a>
-        {firstTopic && (
-          <>
-            <span className="mx-1">/</span>
-            <a href={`/${currentLocale}/news/topic/${firstTopic.toLowerCase().replace(/\s+/g, '-')}`} className="hover:underline">
-              {firstTopic}
-            </a>
-          </>
-        )}
-        <span className="mx-1">/</span>
-        <span>{displayTitle}</span>
-      </div>
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${currentLocale}/`}>
+              {t.news_feed || 'News Feed'}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          {firstTopic && (
+            <>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/${currentLocale}/news/topic/${firstTopic.toLowerCase().replace(/\s+/g, '-')}`}>
+                  {firstTopic}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </>
+          )}
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{displayTitle}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <div className="mb-4">
-        <a href={`/${currentLocale}/`} className="text-blue-500 hover:underline flex items-center">
-          <ChevronLeft className="h-4 w-4 mr-1" /> {t.back_to_news_feed || 'Back to News Feed'}
-        </a>
+        <Button variant="link" size="sm" asChild className="p-0 h-auto text-blue-500">
+          <a href={`/${currentLocale}/`} className="flex items-center">
+            <ChevronLeft className="h-4 w-4 mr-1" /> {t.back_to_news_feed || 'Back to News Feed'}
+          </a>
+        </Button>
       </div>
 
       <article className="prose lg:prose-xl article-content">
@@ -327,7 +345,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               <XCircle className="h-4 w-4 mx-auto" />
               <AlertTitle className="text-xl font-semibold">{t.error_loading_related_articles || "Error loading related articles."}</AlertTitle>
               <AlertDescription>
-                {relatedError instanceof Error ? relatedError.message : 'An unknown error occurred'}
+                {String(relatedError ? (relatedError instanceof Error ? relatedError.message : relatedError) : 'An unknown error occurred')}
               </AlertDescription>
             </Alert>
           </div>
