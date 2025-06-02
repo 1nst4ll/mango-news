@@ -81,6 +81,11 @@ const dynamicDescription = description === "mango.tc news - Your source for news
     <meta property="og:url" content={ogUrl} />
     {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
     <meta property="og:site_name" content="mango.tc news" />
+    {/* Twitter Card Meta Tags */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={dynamicTitle} />
+    <meta name="twitter:description" content={dynamicDescription} />
+    {ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}
   </head>
   <body>
     <Header client:load />
