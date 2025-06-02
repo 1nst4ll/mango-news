@@ -72,7 +72,7 @@ function NewsFeed({
     setHasMore(true);
     setLoading(true); // Set loading true to show initial loader
     setError(null); // Clear previous errors
-  }, [searchTerm, selectedSources]);
+  }, [searchTerm, selectedSources, activeCategory]); // Add activeCategory to dependency array
 
   useEffect(() => {
     if (!hasMore && currentPage > 1) return; // Don't fetch if no more articles and not initial load
@@ -91,6 +91,11 @@ function NewsFeed({
 
         if (searchTerm) {
             params.append('searchTerm', searchTerm);
+        }
+
+        // Add activeCategory as 'topic' parameter for backend filtering
+        if (activeCategory && activeCategory !== 'all') {
+            params.append('topic', activeCategory);
         }
 
         // Add pagination parameters
@@ -132,7 +137,7 @@ function NewsFeed({
     };
 
     fetchArticles();
-  }, [searchTerm, selectedSources, currentPage]); // Re-fetch when filters or page changes
+  }, [searchTerm, selectedSources, activeCategory, currentPage]); // Add activeCategory to dependency array
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
@@ -157,14 +162,9 @@ function NewsFeed({
     };
   }, [hasMore, loading]); // Re-run observer setup if hasMore or loading state changes
 
-  const filteredArticles = articles.filter(article => {
-    const matchesCategory = activeCategory === 'all' ||
-                            article.category?.toLowerCase() === activeCategory.toLowerCase();
-    return matchesCategory;
-  });
-
   // Group articles by date (Day, Month, Year)
-  const groupedArticles = filteredArticles.reduce((acc, article) => {
+  // Use 'articles' directly as filtering is now handled by the backend API
+  const groupedArticles = articles.reduce((acc, article) => {
     const date = new Date(article.publication_date);
     // Use currentLocale for date formatting
     const year = date.getFullYear();
@@ -211,7 +211,8 @@ function NewsFeed({
     );
   }
 
-  if (filteredArticles.length === 0 && !loading) { // Show no articles found only if not loading and no articles
+  // Use 'articles.length' directly as filtering is now handled by the backend API
+  if (articles.length === 0 && !loading) { // Show no articles found only if not loading and no articles
      return (
       <div className="container mx-auto p-4">
         <Alert className="text-center">
@@ -276,7 +277,7 @@ function NewsFeed({
                     key={article.id}
                     className="block"
                     onClick={() => {
-                      const articleIds = filteredArticles.map(a => a.id);
+                      const articleIds = articles.map(a => a.id); // Use 'articles' directly
                       localStorage.setItem('articleList', JSON.stringify(articleIds));
                     }}
                   >
