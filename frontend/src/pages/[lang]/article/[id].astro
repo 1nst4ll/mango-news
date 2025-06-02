@@ -17,6 +17,22 @@ const pageTitle = `${article.title}`;
 const pageDescription = article.summary || (article.raw_content ? article.raw_content.substring(0, 160) + '...' : 'Read this article on mango.tc news');
 const thumbnailUrl = article.thumbnail_url;
 const ogImageUrl = thumbnailUrl ? (thumbnailUrl.startsWith('http') ? thumbnailUrl : `${Astro.url.origin}${thumbnailUrl.startsWith('/') ? '' : '/'}${thumbnailUrl}`) : null;
+
+// Extract width and height from the thumbnail_url if available
+let ogImageWidth: number | undefined;
+let ogImageHeight: number | undefined;
+
+if (thumbnailUrl) {
+  const widthMatch = thumbnailUrl.match(/w_(\d+)/);
+  const heightMatch = thumbnailUrl.match(/h_(\d+)/);
+  if (widthMatch && widthMatch[1]) {
+    ogImageWidth = parseInt(widthMatch[1], 10);
+  }
+  if (heightMatch && heightMatch[1]) {
+    ogImageHeight = parseInt(heightMatch[1], 10);
+  }
+}
+
 const ogUrl = Astro.url.href;
 const ogType = "article";
 ---
@@ -25,6 +41,8 @@ const ogType = "article";
   title={pageTitle}
   description={pageDescription}
   ogImageUrl={ogImageUrl}
+  ogImageWidth={ogImageWidth}
+  ogImageHeight={ogImageHeight}
   ogUrl={ogUrl}
   ogType={ogType}
 >
