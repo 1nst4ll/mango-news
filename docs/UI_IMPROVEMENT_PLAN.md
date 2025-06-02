@@ -23,11 +23,11 @@ This document outlines a plan for enhancing the user interface and optimizing th
 ## 2. Component-Specific Improvements
 
 ### 2.1. `IndexPage.tsx` / `NewsFeed.tsx` Enhancements
-- [ ] **Task:** Improve the source filter and article card presentation.
-  - [ ] **Sub-task (Source Filter Popover):** Investigate integrating a Shadcn `Command` component within the `PopoverContent` in `frontend/src/components/IndexPage.tsx` to enable searching and filtering of sources, especially if the source list is expected to grow.
-  - [ ] **Sub-task (Article Cards - `NewsFeed.tsx`):**
-    - [ ] Replace plain `<span>` elements used for topics/tags with Shadcn `Badge` components.
-    - [ ] Ensure share buttons are updated as per Task 1.1.
+- [x] **Task:** Improve the source filter and article card presentation.
+  - [x] **Sub-task (Source Filter Popover):** Integrated a Shadcn `Command` component within the `PopoverContent` in `frontend/src/components/IndexPage.tsx` to enable searching and filtering of sources.
+  - [x] **Sub-task (Article Cards - `NewsFeed.tsx`):**
+    - [x] Replaced plain `<span>` elements used for topics/tags with Shadcn `Badge` components.
+    - [x] Ensured share buttons are updated as per Task 1.1.
 
 ### 2.2. `ArticleDetail.tsx` Enhancements
 - [ ] **Task:** Improve the presentation of article metadata.

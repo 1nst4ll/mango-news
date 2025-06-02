@@ -9,6 +9,14 @@ import { Button } from './ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from './ui/command'; // Import Command components
 
 // Import locale files
 import en from '../locales/en.json';
@@ -113,35 +121,42 @@ export default function IndexPage() {
                 {t.sources} ({selectedSources.length})
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-full md:w-[200px] p-2">
-              {sources.map(source => (
-                <div
-                  key={source.id}
-                  className="flex items-center space-x-2 py-1 cursor-pointer"
-                  onClick={() => {
-                    const isSelected = selectedSources.includes(source.name);
-                    if (isSelected) {
-                      setSelectedSources(selectedSources.filter(name => name !== source.name));
-                    } else {
-                      setSelectedSources([...selectedSources, source.name]);
-                    }
-                  }}
-                >
-                  <Checkbox
-                    id={`source-${source.id}`}
-                    checked={selectedSources.includes(source.name)}
-                    onCheckedChange={(checked) => {
-                       if (checked) {
-                        setSelectedSources([...selectedSources, source.name]);
-                      } else {
-                        setSelectedSources(selectedSources.filter(name => name !== source.name));
-                      }
-                    }}
-                    className="mr-2"
-                  />
-                  <Label htmlFor={`source-${source.id}`} className="cursor-pointer">{source.name}</Label>
-                </div>
-              ))}
+            <PopoverContent className="w-full md:w-[200px] p-0"> {/* Removed padding */}
+              <Command>
+                <CommandInput placeholder={t.search_sources_placeholder || "Search sources..."} />
+                <CommandList>
+                  <CommandEmpty>{t.no_sources_found}</CommandEmpty>
+                  <CommandGroup>
+                    {sources.map(source => (
+                      <CommandItem
+                        key={source.id}
+                        onSelect={() => {
+                          const isSelected = selectedSources.includes(source.name);
+                          if (isSelected) {
+                            setSelectedSources(selectedSources.filter(name => name !== source.name));
+                          } else {
+                            setSelectedSources([...selectedSources, source.name]);
+                          }
+                        }}
+                      >
+                        <Checkbox
+                          id={`source-${source.id}`}
+                          checked={selectedSources.includes(source.name)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedSources([...selectedSources, source.name]);
+                            } else {
+                              setSelectedSources(selectedSources.filter(name => name !== source.name));
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <Label htmlFor={`source-${source.id}`} className="cursor-pointer">{source.name}</Label>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
             </PopoverContent>
           </Popover>
         </div>

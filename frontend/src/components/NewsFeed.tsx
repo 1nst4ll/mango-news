@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button"; // Import Button component
+import { Badge } from "./ui/badge"; // Import Badge component
 import { MessageCircleMore, Facebook, Loader2, XCircle, Info } from 'lucide-react'; // Import icons
 
 // Import locale files
@@ -249,9 +250,9 @@ function NewsFeed({
                             <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
                               <div className="flex flex-wrap gap-1">
                                 {displayTopics.map(topic => (
-                                  <span key={topic} className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">
+                                  <Badge key={topic} variant="secondary" className="text-white bg-blue-500 hover:bg-blue-600">
                                     {topic}
-                                  </span>
+                                  </Badge>
                                 ))}
                               </div>
                             </div>

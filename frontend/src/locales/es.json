@@ -31,5 +31,6 @@
   "verified_source": "Fuente Verificada",
   "official_source": "Fuente Oficial",
   "facebook_page": "Página de Facebook",
-  "try_adjusting_filters": "Intente ajustar sus filtros o vuelva a intentarlo más tarde."
+  "try_adjusting_filters": "Intente ajustar sus filtros o vuelva a intentarlo más tarde.",
+  "search_sources_placeholder": "Buscar fuentes..."
 }
