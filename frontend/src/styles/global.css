@@ -156,21 +156,47 @@
   }
 
   /* Custom scrollbar styling for dialogs */
+  /* Custom scrollbar styling for dialogs */
   .dialog-scrollable-content::-webkit-scrollbar {
     width: 8px; /* Adjust width as needed */
   }
 
   .dialog-scrollable-content::-webkit-scrollbar-track {
-    background: #f1f1f1; /* Light grey track */
+    background: var(--card); /* Use card background for track */
     border-radius: 10px;
   }
 
   .dialog-scrollable-content::-webkit-scrollbar-thumb {
-    background: #888; /* Dark grey thumb */
+    background: var(--primary); /* Use primary color for thumb */
     border-radius: 10px;
   }
 
   .dialog-scrollable-content::-webkit-scrollbar-thumb:hover {
-    background: #555; /* Even darker grey on hover */
+    background: var(--primary-foreground); /* Use primary-foreground on hover */
+  }
+
+  /* Global scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--foreground);
+  }
+
+  /* Firefox scrollbar styling */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) var(--background);
   }
 }
