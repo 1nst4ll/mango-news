@@ -238,7 +238,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
       </Breadcrumb>
 
       <div className="mb-4">
-        <Button variant="default" size="sm" asChild>
+        <Button variant="outline" size="sm" asChild>
           <a href={`/${currentLocale}/`} className="flex items-center">
             <ChevronLeft className="h-4 w-4 mr-1" /> {t.back_to_news_feed || 'Back to News Feed'}
           </a>
