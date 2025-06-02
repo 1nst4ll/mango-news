@@ -222,6 +222,7 @@ async function processScrapedData(data) { // Accept a single data object
   console.log(`processScrapedData function started. scrapeType received: ${scrapeType}`); // Added log at the beginning
   console.log(`Processing scraped data for source: ${source.name} (Scrape Type: ${scrapeType})`);
   console.log(`processScrapedData received scrapeType: ${scrapeType}, enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
+  let collectedTopicIds = []; // Initialize array to collect topic IDs
   try {
     if (content) {
       console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`);
@@ -409,8 +410,8 @@ async function processScrapedData(data) { // Accept a single data object
         if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
         if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
 
-        // Link article and topic
-        await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
+        // Collect topic IDs for later linking
+        collectedTopicIds.push(topicId);
       }
 
       // Convert translated topic arrays to comma-separated strings
@@ -423,6 +424,11 @@ async function processScrapedData(data) { // Accept a single data object
         [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht]
       );
       const articleId = articleResult.rows[0].id;
+
+      // Link article and topics now that articleId is available
+      for (const topicId of collectedTopicIds) {
+        await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
+      }
 
       console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}. Translated topics (ES): ${topics_es}, (HT): ${topics_ht}.`);
 
@@ -589,9 +595,9 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
     currentMaxTokens = 100; // Shorter for titles
   } else if (type === 'summary') {
     currentMaxTokens = 200; // Shorter for summaries
-  } else if (type === 'raw_content') {
-    currentMaxTokens = 10000; // Significantly higher for full article content
-  }
+} else if (type === 'raw_content') {
+  currentMaxTokens = 8192; // Adjust to Groq's maximum limit
+}
 
   try {
     const chatCompletion = await groq.chat.completions.create({

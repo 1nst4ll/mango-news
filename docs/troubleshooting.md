@@ -33,6 +33,19 @@ This error occurs when the scraper attempts to access the `urlBlacklist` variabl
 
 *   **Resolution:** This error is addressed by using the `getBlacklist()` function from `backend/src/configLoader.js` to access the blacklist, ensuring it is always retrieved after being loaded. Ensure your backend code is updated to use `getBlacklist()` where the blacklist is needed.
 
+### Groq API `max_tokens` Error
+
+This error occurs when the `max_tokens` parameter sent to the Groq API for AI translation (especially for `raw_content`) exceeds the model's maximum allowed limit.
+
+*   **Error Message Example:** `BadRequestError: 400 {"error":{"message":"`max_tokens` must be less than or equal to `8192`..."}}`
+*   **Resolution:** The `generateAITranslation` function in `backend/src/scraper.js` has been updated to cap the `max_tokens` for `raw_content` translations at `8192`, which is the current maximum allowed by the Groq API. Ensure your `backend/src/scraper.js` file is updated with this change.
+
+### `ReferenceError: Cannot access 'articleId' before initialization`
+
+This error occurs in the `processScrapedData` function when the `articleId` variable is used before it has been assigned a value, specifically when linking articles to topics.
+
+*   **Resolution:** The logic within the `processScrapedData` function in `backend/src/scraper.js` has been reordered. The `articleId` is now retrieved from the database after the main article insertion, and then used to link the article to its assigned topics. Ensure your `backend/src/scraper.js` file is updated with this corrected flow.
+
 ## Frontend Issues
 
 ### Frontend Not Displaying Correctly
