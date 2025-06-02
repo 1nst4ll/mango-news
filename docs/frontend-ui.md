@@ -70,8 +70,15 @@ The application is designed to be responsive across various screen sizes using T
 
 The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article. The page title is dynamically set to "mangonews - [Article Title]" by fetching the article data server-side.
 
-**Article Navigation:**
-The single article page now includes "Previous" and "Next" navigation buttons, styled identically to the pagination buttons on the main news feed. These buttons allow users to easily navigate between articles in the list they viewed on the feed page. The functionality relies on the list of articles stored in `localStorage` by the feed widget.
+**Enhanced Article Navigation:**
+The single article page now offers multiple navigation options to improve user experience and content discovery:
+
+*   **Previous/Next Article Buttons:** Located at the bottom of the article, these buttons allow users to navigate sequentially through articles from the list they were viewing on the main news feed. The functionality relies on the list of article IDs stored in `localStorage` by the news feed component.
+*   **Breadcrumbs:** A breadcrumb trail is displayed at the top of the page, providing clear hierarchical navigation. The structure is typically `News Feed > [Primary Topic (if available)] > Article Title`. The "News Feed" and "Primary Topic" (if present) are clickable links.
+*   **"Back to News Feed" Link:** A prominent link with a back arrow icon is provided near the top of the article, offering a quick return to the main news feed.
+*   **Clickable Topic Badges:** Topics associated with the article are displayed as clickable badges. Clicking a badge navigates the user to a page listing all articles related to that specific topic.
+*   **Clickable Source Link:** The article's source URL is displayed and is clickable, linking directly to the original source website.
+*   **"Related Articles" Section:** A section titled "Related Articles" is displayed at the bottom of the page. This section dynamically fetches and presents a list of articles that share the same primary topic as the current article, encouraging further content exploration.
 
 ### Navigation
 

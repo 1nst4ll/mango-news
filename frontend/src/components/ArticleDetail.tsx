@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Button } from "./ui/button"; // Import Button component
-import { MessageCircleMore, Facebook, Loader2, XCircle, Info } from 'lucide-react'; // Import icons
+import { Badge } from "./ui/badge"; // Import Badge component
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"; // Import Card components
+import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react'; // Import icons
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
@@ -38,6 +40,48 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   const [error, setError] = useState<unknown>(null);
   const { t, currentLocale } = useTranslations(); // Use the translation hook
 
+  const [articleList, setArticleList] = useState<number[]>([]);
+  const [currentArticleIndex, setCurrentArticleIndex] = useState<number>(-1);
+  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
+  const [loadingRelated, setLoadingRelated] = useState<boolean>(false);
+  const [relatedError, setRelatedError] = useState<unknown>(null);
+
+  useEffect(() => {
+    // Load article list from localStorage
+    const storedList = localStorage.getItem('articleList');
+    if (storedList) {
+      try {
+        const parsedList = JSON.parse(storedList);
+        if (Array.isArray(parsedList)) {
+          setArticleList(parsedList);
+          const currentIndex = parsedList.indexOf(parseInt(id));
+          setCurrentArticleIndex(currentIndex);
+        }
+      } catch (e) {
+        console.error("Failed to parse articleList from localStorage", e);
+        setArticleList([]);
+        setCurrentArticleIndex(-1);
+      }
+    }
+  }, [id]);
+
+  const navigateToArticle = useCallback((articleId: number) => {
+    const baseUrl = window.location.origin;
+    window.location.href = `${baseUrl}/${currentLocale}/article/${articleId}`;
+  }, [currentLocale]);
+
+  const handlePrevious = () => {
+    if (currentArticleIndex > 0) {
+      navigateToArticle(articleList[currentArticleIndex - 1]);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentArticleIndex < articleList.length - 1) {
+      navigateToArticle(articleList[currentArticleIndex + 1]);
+    }
+  };
+
   useEffect(() => {
     const fetchArticle = async () => {
       setLoading(true);
@@ -60,7 +104,38 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
     if (id) {
       fetchArticle();
     }
-  }, [id]);
+  }, [id]); // Depend on 'id' to refetch article data when ID changes
+
+  useEffect(() => {
+    const fetchRelatedArticles = async () => {
+      if (!article || !article.topics || article.topics.length === 0) {
+        setRelatedArticles([]);
+        return;
+      }
+
+      setLoadingRelated(true);
+      setRelatedError(null);
+      try {
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+        const primaryTopic = article.topics[0]; // Use the first topic for relatedness
+        const response = await fetch(`${apiUrl}/api/articles?topic=${encodeURIComponent(primaryTopic)}&limit=4`); // Fetch a few related articles
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: Article[] = await response.json();
+        // Filter out the current article from related articles
+        setRelatedArticles(data.filter(ra => ra.id !== article.id));
+      } catch (err: unknown) {
+        setRelatedError(err);
+      } finally {
+        setLoadingRelated(false);
+      }
+    };
+
+    if (article) {
+      fetchRelatedArticles();
+    }
+  }, [article]); // Re-fetch related articles when the main article data changes
 
   // Helper to get translated text with fallback
   const getTranslatedText = (article: Article, field: 'title' | 'summary', locale: string) => {
@@ -124,10 +199,34 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   const displayTitle = getTranslatedText(article, 'title', currentLocale);
   // raw_content is not translated for now, so always use the original
   const displayContent = article.raw_content;
+  const displayTopics = article.topics && article.topics.length > 0 ? article.topics : [];
+  const firstTopic = displayTopics.length > 0 ? displayTopics[0] : null;
 
 
   return (
     <div className="container mx-auto p-4">
+      <div className="mb-4 text-sm text-muted-foreground">
+        <a href={`/${currentLocale}/`} className="hover:underline">
+          {t.news_feed || 'News Feed'}
+        </a>
+        {firstTopic && (
+          <>
+            <span className="mx-1">/</span>
+            <a href={`/${currentLocale}/news/topic/${firstTopic.toLowerCase().replace(/\s+/g, '-')}`} className="hover:underline">
+              {firstTopic}
+            </a>
+          </>
+        )}
+        <span className="mx-1">/</span>
+        <span>{displayTitle}</span>
+      </div>
+
+      <div className="mb-4">
+        <a href={`/${currentLocale}/`} className="text-blue-500 hover:underline flex items-center">
+          <ChevronLeft className="h-4 w-4 mr-1" /> {t.back_to_news_feed || 'Back to News Feed'}
+        </a>
+      </div>
+
       <article className="prose lg:prose-xl article-content">
         <h1>{displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}</h1>
         <div className="text-sm text-muted-foreground mb-4">
@@ -161,6 +260,15 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           })}
         </div>
         <div className="mt-6 flex flex-wrap gap-2"> {/* Added flex-wrap and adjusted gap */}
+          {displayTopics.map(topic => (
+            <a href={`/${currentLocale}/news/topic/${topic.toLowerCase().replace(/\s+/g, '-')}`} key={topic}>
+              <Badge variant="secondary" className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer">
+                {topic}
+              </Badge>
+            </a>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-wrap gap-2"> {/* Added flex-wrap and adjusted gap */}
           <Button
             variant="outline"
             size="sm"
@@ -185,9 +293,86 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
           </Button>
         </div>
+        {articleList.length > 0 && (
+          <div className="flex justify-between mt-8">
+            <Button
+              onClick={handlePrevious}
+              disabled={currentArticleIndex <= 0}
+              variant="outline"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" /> {t.previous_article || 'Previous Article'}
+            </Button>
+            <Button
+              onClick={handleNext}
+              disabled={currentArticleIndex >= articleList.length - 1}
+              variant="outline"
+            >
+              {t.next_article || 'Next Article'} <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        )}
+
+        {loadingRelated && (
+          <div className="py-4 text-center">
+            <Alert className="text-center">
+              <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+              <AlertTitle className="text-xl font-semibold">{t.loading_related_articles || "Loading related articles..."}</AlertTitle>
+            </Alert>
+          </div>
+        )}
+
+        {relatedError && (
+          <div className="py-4 text-center">
+            <Alert variant="destructive" className="text-center">
+              <XCircle className="h-4 w-4 mx-auto" />
+              <AlertTitle className="text-xl font-semibold">{t.error_loading_related_articles || "Error loading related articles."}</AlertTitle>
+              <AlertDescription>
+                {relatedError instanceof Error ? relatedError.message : 'An unknown error occurred'}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {!loadingRelated && !relatedError && relatedArticles.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">{t.related_articles || 'Related Articles'}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {relatedArticles.map(relatedArticle => (
+                <a href={`/${currentLocale}/article/${relatedArticle.id}`} key={relatedArticle.id} className="block">
+                  <Card className="flex flex-col h-full">
+                    {relatedArticle.thumbnail_url && (
+                      <div className="relative w-full h-32 overflow-hidden rounded-t-lg">
+                        <img src={relatedArticle.thumbnail_url} alt={relatedArticle.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <CardHeader className="px-4 py-2">
+                      <CardTitle className="text-base">
+                        {getTranslatedText(relatedArticle, 'title', currentLocale)}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-4 py-2 text-sm text-muted-foreground">
+                      {getDomainFromUrl(relatedArticle.source_url)}
+                    </CardContent>
+                  </Card>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </article>
     </div>
   );
+};
+
+// Helper function to extract domain from URL (copied from NewsFeed.tsx for consistency)
+const getDomainFromUrl = (url: string): string => {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.hostname;
+  } catch (e) {
+    console.error("Invalid URL:", url, e);
+    return url;
+  }
 };
 
 export default ArticleDetail;

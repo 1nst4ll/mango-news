@@ -35,5 +35,12 @@
   "search_sources_placeholder": "Chèche sous...",
   "loading_more_articles": "Ap chaje plis atik...",
   "no_more_articles": "Pa gen plis atik pou chaje.",
-  "all_articles_loaded": "Ou rive nan fen fil nouvèl la."
+  "all_articles_loaded": "Ou rive nan fen fil nouvèl la.",
+  "previous_article": "Atik Anvan",
+  "next_article": "Pwochen Atik",
+  "news_feed": "Fil Nouvèl",
+  "back_to_news_feed": "Retounen nan Fil Nouvèl",
+  "loading_related_articles": "Ap chaje atik ki gen rapò...",
+  "error_loading_related_articles": "Erè pandan chajman atik ki gen rapò.",
+  "related_articles": "Atik ki gen rapò"
 }

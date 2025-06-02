@@ -271,7 +271,15 @@ function NewsFeed({
                 const displayTopics = getTranslatedTopics(article, currentLocale);
 
                 return (
-                  <a href={`/${currentLocale}/article/${article.id}`} key={article.id} className="block">
+                  <a
+                    href={`/${currentLocale}/article/${article.id}`}
+                    key={article.id}
+                    className="block"
+                    onClick={() => {
+                      const articleIds = filteredArticles.map(a => a.id);
+                      localStorage.setItem('articleList', JSON.stringify(articleIds));
+                    }}
+                  >
                     <Card className="flex flex-col h-full">
                       {article.thumbnail_url && (
                         <div className="relative w-full h-48 overflow-hidden rounded-t-xl">

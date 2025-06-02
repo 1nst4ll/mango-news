@@ -35,5 +35,12 @@
   "search_sources_placeholder": "Buscar fuentes...",
   "loading_more_articles": "Cargando más artículos...",
   "no_more_articles": "No hay más artículos para cargar.",
-  "all_articles_loaded": "Has llegado al final del feed de noticias."
+  "all_articles_loaded": "Has llegado al final del feed de noticias.",
+  "previous_article": "Artículo Anterior",
+  "next_article": "Artículo Siguiente",
+  "news_feed": "Noticias",
+  "back_to_news_feed": "Volver a Noticias",
+  "loading_related_articles": "Cargando artículos relacionados...",
+  "error_loading_related_articles": "Error al cargar artículos relacionados.",
+  "related_articles": "Artículos Relacionados"
 }
