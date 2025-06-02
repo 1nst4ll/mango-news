@@ -289,7 +289,15 @@ function NewsFeed({
                             <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
                               <div className="flex flex-wrap gap-1">
                                 {displayTopics.map(topic => (
-                                  <Badge key={topic} variant="secondary" className="text-white bg-blue-500 hover:bg-blue-600">
+                                  <Badge
+                                    key={topic}
+                                    variant="secondary"
+                                    className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent click from propagating to the parent article link
+                                      window.location.href = `/${currentLocale}/news/topic/${encodeURIComponent(topic)}`;
+                                    }}
+                                  >
                                     {topic}
                                   </Badge>
                                 ))}
