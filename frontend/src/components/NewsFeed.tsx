@@ -77,7 +77,14 @@ function NewsFeed({
   useEffect(() => {
     if (!hasMore && currentPage > 1) return; // Don't fetch if no more articles and not initial load
 
+    const controller = new AbortController(); // Create controller inside effect
+    const timeoutId = setTimeout(() => {
+      console.log('[NewsFeed] Fetch request timed out (via AbortController).');
+      controller.abort();
+    }, 10000); // 10 second timeout
+
     const fetchArticles = async () => {
+      console.log('[NewsFeed] fetchArticles function invoked.'); // New log
       setLoading(true);
       setError(null);
       try {
@@ -106,60 +113,40 @@ function NewsFeed({
           url += `?${params.toString()}`;
         }
 
-        console.log('[NewsFeed] TESTING TIMEOUT: Simulating a hanging fetch for 12 seconds.');
+        console.log('[NewsFeed] Fetching articles with URL:', url);
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          console.log('[NewsFeed] TESTING TIMEOUT: AbortController.abort() called by setTimeout.');
-          controller.abort();
-        }, 10000); // 10 second timeout
+        const response = await fetch(url, { signal: controller.signal }); // Use the effect's controller
+        clearTimeout(timeoutId); // Clear the timeout if the fetch completes in time
 
-        try {
-          // Simulate a long operation that respects the abort signal
-          await new Promise((resolve, reject) => {
-            const signal = controller.signal;
-            if (signal.aborted) {
-              console.log('[NewsFeed] TESTING TIMEOUT: Signal already aborted before promise started.');
-              return reject(new DOMException('Aborted', 'AbortError'));
-            }
-            const abortHandler = () => {
-              console.log('[NewsFeed] TESTING TIMEOUT: Abort signal received by promise.');
-              clearTimeout(timeoutId); // Clear our main timeout
-              reject(new DOMException('Aborted', 'AbortError'));
-            };
-            signal.addEventListener('abort', abortHandler);
+        console.log('[NewsFeed] API Response Status:', response.status);
 
-            // Simulate work that takes longer than the timeout
-            setTimeout(() => { // This inner timeout just simulates work
-              signal.removeEventListener('abort', abortHandler);
-              if (!signal.aborted) {
-                console.log('[NewsFeed] TESTING TIMEOUT: Simulated work completed (should not happen if timeout works).');
-                resolve('Simulated success');
-              }
-            }, 12000); // 12 seconds, longer than our 10s abort timeout
-          });
-          
-          console.log('[NewsFeed] TESTING TIMEOUT: Simulated fetch succeeded (this should not be reached if timeout works).');
-          // No actual data processing here for this test
-          setArticles([]); // Clear articles for this test
-          setHasMore(false); // Indicate no more articles for this test
-
-        } catch (err: unknown) {
-          if (err instanceof DOMException && err.name === 'AbortError') {
-            console.error('[NewsFeed] Fetch request timed out:', err);
-            setError(new Error('Request timed out (Test). Please try again.'));
-          } else {
-            console.error('[NewsFeed] Error fetching articles:', err);
-            setError(err);
-          }
-        } finally {
-          clearTimeout(timeoutId); // Clear the timeout if the promise completes/aborts
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data: Article[] = await response.json();
+        console.log('[NewsFeed] Fetched articles data:', data);
+
+        setArticles(prevArticles => {
+          // Filter out duplicates if any (e.g., if backend sends some overlap)
+          const newArticles = data.filter(
+            newArticle => !prevArticles.some(existingArticle => existingArticle.id === newArticle.id)
+          );
+          return [...prevArticles, ...newArticles];
+        });
+
+        // Check if there are more articles to load
+        // Assuming backend sends total count in a header or response body
+        // For now, we'll assume if less than limit, no more pages
+        setHasMore(data.length === articlesPerPage);
 
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') {
-          console.error('[NewsFeed] Fetch request timed out:', err);
-          setError(new Error('Request timed out. Please try again.'));
+          console.error('[NewsFeed] Fetch request aborted or timed out:', err);
+          // Only set error if it's not a manual abort due to effect cleanup
+          if (err.message !== 'The user aborted a request.') {
+            setError(new Error('Request timed out. Please try again.'));
+          }
         } else {
           console.error('[NewsFeed] Error fetching articles:', err);
           setError(err);
@@ -171,7 +158,15 @@ function NewsFeed({
     };
 
     fetchArticles();
-  }, [searchTerm, selectedSources, activeCategory, currentPage]); // Add activeCategory to dependency array
+
+    // Cleanup function: abort the fetch if the component unmounts or effect re-runs
+    return () => {
+      console.log('[NewsFeed] Effect cleanup: Aborting ongoing fetch.');
+      controller.abort();
+      clearTimeout(timeoutId); // Ensure timeout is cleared on cleanup
+    };
+
+  }, [searchTerm, selectedSources, activeCategory, currentPage]); // Dependencies remain the same
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
@@ -419,7 +414,7 @@ function NewsFeed({
           <Alert className="text-center">
             <Loader2 className="h-4 w-4 animate-spin mx-auto" />
             <AlertTitle className="text-xl font-semibold">{t.loading}</AlertTitle>
-            <AlertDescription className="text-gray-600">{t.loading_more_articles || "Loading more articles..."}</AlertDescription>
+            <AlertDescription className="text-gray-600">{t.loading_latest_news}</AlertDescription>
           </Alert>
         )}
         {!hasMore && articles.length > 0 && !loading && (
