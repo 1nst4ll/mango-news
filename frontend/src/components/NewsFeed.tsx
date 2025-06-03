@@ -106,15 +106,17 @@ function NewsFeed({
           url += `?${params.toString()}`;
         }
 
-        console.log('Fetching articles with URL:', url);
+        console.log('[NewsFeed] Fetching articles with URL:', url);
 
         const response = await fetch(url);
+        console.log('[NewsFeed] API Response Status:', response.status);
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data: Article[] = await response.json();
-        console.log('Fetched articles data:', data);
+        console.log('[NewsFeed] Fetched articles data:', data);
 
         setArticles(prevArticles => {
           // Filter out duplicates if any (e.g., if backend sends some overlap)
@@ -130,8 +132,10 @@ function NewsFeed({
         setHasMore(data.length === articlesPerPage);
 
       } catch (err: unknown) {
+        console.error('[NewsFeed] Error fetching articles:', err);
         setError(err);
       } finally {
+        console.log('[NewsFeed] Setting loading to false in finally block.');
         setLoading(false);
       }
     };
@@ -161,6 +165,8 @@ function NewsFeed({
       }
     };
   }, [hasMore, loading]); // Re-run observer setup if hasMore or loading state changes
+
+  console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
   // Group articles by date (Day, Month, Year)
   // Use 'articles' directly as filtering is now handled by the backend API
