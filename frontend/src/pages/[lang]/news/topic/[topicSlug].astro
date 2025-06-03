@@ -2,24 +2,67 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import NewsFeed from '../../../../components/NewsFeed'; // Import as a React component
 import { getCollection } from 'astro:content';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../../../../frontend/src/components/ui/breadcrumb'; // Adjust path as needed
+import { Button } from '../../../../frontend/src/components/ui/button'; // Adjust path as needed
+import { ChevronLeft } from 'lucide-react'; // Import ChevronLeft icon
+
+// Import locale files
+import en from '../../../../frontend/src/locales/en.json';
+import es from '../../../../frontend/src/locales/es.json';
+import ht from '../../../../frontend/src/locales/ht.json';
+
+const locales = { en, es, ht };
 
 export const prerender = false; // Mark this page for dynamic rendering
 
 const { lang, topicSlug } = Astro.params;
 
-// Fetch all topics to get the original topic name if needed, or just use topicSlug
-// For now, we'll just pass topicSlug directly to NewsFeed as activeCategory
+// Get current locale and translations
+const currentLocale = lang || 'en';
+const t = locales[currentLocale as keyof typeof locales]; // Type assertion for safety
 
-// Construct the page title
-const pageTitle = `mango.tc news - ${topicSlug ? topicSlug.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Topic'}`;
-const pageDescription = `Latest news articles on ${topicSlug ? topicSlug.replace(/-/g, ' ') : 'a specific topic'} from across the Turks and Caicos Islands.`;
+// Format topic slug for display
+const formattedTopic = topicSlug ? topicSlug.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Topic';
+
+// Construct the page title and description
+const pageTitle = `mango.tc news - ${formattedTopic}`;
+const pageDescription = `Latest news articles on ${formattedTopic} from across the Turks and Caicos Islands.`;
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription}>
   <main class="flex-grow">
     <div class="container mx-auto p-4">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${currentLocale}/`}>
+              {t.news_feed || 'News Feed'}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{formattedTopic}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <div className="mb-4">
+        <Button variant="outline" size="sm" asChild>
+          <a href={`/${currentLocale}/`} className="flex items-center">
+            <ChevronLeft className="h-4 w-4 mr-1" /> {t.back_to_news_feed || 'Back to News Feed'}
+          </a>
+        </Button>
+      </div>
+
       <h1 class="text-3xl font-bold mb-6">
-        {topicSlug ? topicSlug.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Topic'}
+        {formattedTopic}
       </h1>
       <NewsFeed client:load activeCategory={topicSlug} />
     </div>
