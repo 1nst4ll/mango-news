@@ -209,8 +209,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
             disabled={reprocessLoading}
             size="sm"
             variant="outline"
+            title="Re-evaluates and updates Spanish and Haitian Creole topic translations for all articles from this source."
           >
-            {reprocessLoading ? 'Reprocessing...' : 'Reprocess Topics'}
+            {reprocessLoading ? 'Updating...' : 'Update Translated Topics'}
           </Button>
         </div>
       </CardHeader>
