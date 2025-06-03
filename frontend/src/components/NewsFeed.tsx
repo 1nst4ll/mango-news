@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button"; // Import Button component
 import { Badge } from "./ui/badge"; // Import Badge component
@@ -65,6 +65,8 @@ function NewsFeed({
 
   const articlesPerPage = 15; // Define how many articles to fetch per page
 
+  const fetchInProgressRef = useRef(false); // New ref to track if a fetch is in progress
+
   useEffect(() => {
     // Reset articles, page, and hasMore when filters change
     setArticles([]);
@@ -72,10 +74,17 @@ function NewsFeed({
     setHasMore(true);
     setLoading(true); // Set loading true to show initial loader
     setError(null); // Clear previous errors
+    fetchInProgressRef.current = false; // Reset the flag
   }, [searchTerm, selectedSources, activeCategory]); // Add activeCategory to dependency array
 
   useEffect(() => {
     if (!hasMore && currentPage > 1) return; // Don't fetch if no more articles and not initial load
+
+    // Only proceed if a fetch is not already in progress
+    if (fetchInProgressRef.current) {
+      console.log('[NewsFeed] Fetch attempt skipped: a fetch is already in progress.');
+      return;
+    }
 
     const controller = new AbortController(); // Create controller inside effect
     const timeoutPromise = new Promise<Response>((_, reject) => // Explicitly type as Promise<Response>
@@ -87,6 +96,7 @@ function NewsFeed({
 
     const fetchArticles = async () => {
       console.log('[NewsFeed] fetchArticles function invoked.');
+      fetchInProgressRef.current = true; // Set flag when fetch starts
       try {
         const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         let url = `${apiUrl}/api/articles`;
@@ -100,10 +110,12 @@ function NewsFeed({
             params.append('searchTerm', searchTerm);
         }
 
+        // Add activeCategory as 'topic' parameter for backend filtering
         if (activeCategory && activeCategory !== 'all') {
             params.append('topic', activeCategory);
         }
 
+        // Add pagination parameters
         params.append('page', currentPage.toString());
         params.append('limit', articlesPerPage.toString());
 
@@ -151,6 +163,7 @@ function NewsFeed({
       } finally {
         console.log('[NewsFeed] Setting loading to false in finally block.');
         setLoading(false);
+        fetchInProgressRef.current = false; // Clear flag when fetch completes/fails
       }
     };
 
@@ -160,9 +173,10 @@ function NewsFeed({
     return () => {
       console.log('[NewsFeed] Effect cleanup: Aborting ongoing fetch.');
       controller.abort(); // Abort any ongoing fetch
+      fetchInProgressRef.current = false; // Ensure flag is cleared on cleanup
     };
 
-  }, [searchTerm, selectedSources, activeCategory, currentPage]);
+  }, [searchTerm, selectedSources, activeCategory, currentPage]); // Dependencies remain the same
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
