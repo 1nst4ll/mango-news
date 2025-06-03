@@ -87,7 +87,6 @@ const SettingsPage: React.FC = () => {
   const [enableScheduledMissingImage, setEnableScheduledMissingImage] = useState<boolean>(true);
   const [enableScheduledMissingTranslations, setEnableScheduledMissingTranslations] = useState<boolean>(true);
   const [savingSchedule, setSavingSchedule] = useState<boolean>(false);
-  const [scheduleStatus, setScheduleStatus] = useState<string | null>(null); // This can probably be removed after toast implementation
 
 
   // State from admin/page.tsx
@@ -1003,7 +1002,7 @@ const SettingsPage: React.FC = () => {
                       onCheckedChange={(checked: boolean) => setEnableGlobalAiSummary(checked)}
                     />
                     <Label htmlFor="enableGlobalAiSummary">
-                      Enable AI Summaries for this scrape
+                      For next manual scrape: Generate AI Summaries
                     </Label>
                   </div>
                 </li>
@@ -1015,7 +1014,7 @@ const SettingsPage: React.FC = () => {
                       onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)}
                     />
                     <Label htmlFor="enableGlobalAiTags">
-                      Enable AI Tags for this scrape
+                      For next manual scrape: Generate AI Tags
                     </Label>
                   </div>
                 </li>
@@ -1027,7 +1026,7 @@ const SettingsPage: React.FC = () => {
                     onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)}
                   />
                   <Label htmlFor="enableGlobalAiImage">
-                    Enable AI Image Generation for this scrape
+                    For next manual scrape: Generate AI Images
                   </Label>
                 </div>
               </li>
@@ -1039,11 +1038,11 @@ const SettingsPage: React.FC = () => {
                     onCheckedChange={(checked: boolean) => setEnableGlobalAiTranslations(checked)}
                   />
                   <Label htmlFor="enableGlobalAiTranslations">
-                    Enable AI Translations for this scrape
-                  </Label>
-                </div>
-              </li>
-              <li>
+                    For next manual scrape: Generate AI Translations
+                    </Label>
+                  </div>
+                </li>
+                <li>
                 <Button
                   onClick={handleTriggerScraper}
                   disabled={loading}
@@ -1101,7 +1100,7 @@ const SettingsPage: React.FC = () => {
                     onChange={(e) => setMainScraperFrequency(e.target.value)}
                     placeholder="e.g., 0 * * * *"
                   />
-                  <p className="text-sm text-gray-500">Current: Runs every hour.</p>
+                  <p className="text-sm text-gray-500">Current: Runs every hour. <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
                 </div>
               </div>
 
@@ -1117,7 +1116,7 @@ const SettingsPage: React.FC = () => {
                     onChange={(e) => setMissingAiFrequency(e.target.value)}
                     placeholder="e.g., */20 * * * *"
                   />
-                  <p className="text-sm text-gray-500">Current: Runs every 20 minutes.</p>
+                  <p className="text-sm text-gray-500">Current: Runs every 20 minutes. <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
                 </div>
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center space-x-2">
@@ -1168,7 +1167,6 @@ const SettingsPage: React.FC = () => {
            <Button onClick={handleSaveScheduleSettings} disabled={savingSchedule}>
              {savingSchedule ? 'Saving...' : 'Save Schedule Settings'}
            </Button>
-            {/* Removed scheduleStatus display as toasts are used */}
          </CardFooter>
         </Card>
       </TabsContent>

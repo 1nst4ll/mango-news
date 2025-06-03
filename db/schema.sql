@@ -19,6 +19,7 @@ CREATE TABLE sources (
     enable_ai_summary BOOLEAN DEFAULT TRUE, -- Add column for AI summary toggle
     enable_ai_tags BOOLEAN DEFAULT TRUE, -- Add column for AI tags toggle
     enable_ai_image BOOLEAN DEFAULT TRUE, -- Add column for AI image toggle
+    enable_ai_translations BOOLEAN DEFAULT TRUE, -- Add column for AI translations toggle
     -- Selectors for open-source scraping method
     os_title_selector TEXT,
     os_content_selector TEXT,

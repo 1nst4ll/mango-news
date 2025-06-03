@@ -218,10 +218,10 @@ async function assignTopicsWithAI(source, content) {
 
 // This function will process the scraped data and save it to the database
 async function processScrapedData(data) { // Accept a single data object
-  const { source, content, metadata, scrapeType, enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = data; // Destructure data object
+  const { source, content, metadata, scrapeType, enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations } = data; // Destructure data object
   console.log(`processScrapedData function started. scrapeType received: ${scrapeType}`); // Added log at the beginning
   console.log(`Processing scraped data for source: ${source.name} (Scrape Type: ${scrapeType})`);
-  console.log(`processScrapedData received scrapeType: ${scrapeType}, enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
+  console.log(`processScrapedData received scrapeType: ${scrapeType}, enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, enableGlobalAiTranslations: ${enableGlobalAiTranslations}`); // Log received values
   let collectedTopicIds = []; // Initialize array to collect topic IDs
   try {
     if (content) {
@@ -311,15 +311,18 @@ async function processScrapedData(data) { // Accept a single data object
       let shouldGenerateSummary = false;
       let shouldAssignTags = false;
       let shouldGenerateImage = false;
+      let shouldGenerateTranslations = false; // New flag for translations
 
       if (scrapeType === 'per-source') {
         shouldGenerateSummary = source.enable_ai_summary;
         shouldAssignTags = source.enable_ai_tags;
         shouldGenerateImage = source.enable_ai_image;
+        shouldGenerateTranslations = source.enable_ai_translations; // Use source-specific toggle
       } else if (scrapeType === 'global') { // Includes scheduled scrapes
         shouldGenerateSummary = enableGlobalAiSummary && source.enable_ai_summary;
         shouldAssignTags = enableGlobalAiTags && source.enable_ai_tags;
         shouldGenerateImage = enableGlobalAiImage && source.enable_ai_image;
+        shouldGenerateTranslations = enableGlobalAiTranslations && source.enable_ai_translations; // Use global and source-specific toggle
       }
 
       // Generate AI summary if enabled
@@ -346,13 +349,25 @@ async function processScrapedData(data) { // Accept a single data object
       // Determine the final thumbnail URL: use AI image if generated, otherwise use scraped thumbnail
       const finalThumbnailUrl = aiImagePath || metadata?.thumbnail_url || null;
 
-      // Generate translations for title and summary
-      const title_es = await generateAITranslation(title, 'es', 'title');
-      const summary_es = await generateAITranslation(summary, 'es', 'summary');
-      const raw_content_es = await generateAITranslation(raw_content, 'es', 'raw_content');
-      const title_ht = await generateAITranslation(title, 'ht', 'title');
-      const summary_ht = await generateAITranslation(summary, 'ht', 'summary');
-      const raw_content_ht = await generateAITranslation(raw_content, 'ht', 'raw_content');
+      // Generate translations for title and summary if enabled
+      let title_es = null;
+      let summary_es = null;
+      let raw_content_es = null;
+      let title_ht = null;
+      let summary_ht = null;
+      let raw_content_ht = null;
+
+      if (shouldGenerateTranslations) {
+        console.log('AI translation generation is enabled. Generating translations...');
+        title_es = await generateAITranslation(title, 'es', 'title');
+        summary_es = await generateAITranslation(summary, 'es', 'summary');
+        raw_content_es = await generateAITranslation(raw_content, 'es', 'raw_content');
+        title_ht = await generateAITranslation(title, 'ht', 'title');
+        summary_ht = await generateAITranslation(summary, 'ht', 'summary');
+        raw_content_ht = await generateAITranslation(raw_content, 'ht', 'raw_content');
+      } else {
+        console.log('AI translation generation is disabled. Skipping translation generation.');
+      }
 
       // Assign topics using AI if enabled
       let assignedTopics = [];
@@ -628,9 +643,9 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
 
 
 // Function to scrape a single article page based on source method
-async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, scrapeAfterDate = null) { // Accept scrape type, global toggle states, and scrapeAfterDate
+async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true, scrapeAfterDate = null) { // Accept scrape type, global toggle states, and scrapeAfterDate
   console.log(`Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
-  console.log(`scrapeArticlePage received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, scrapeAfterDate: ${scrapeAfterDate}`); // Log received values
+  console.log(`scrapeArticlePage received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, enableGlobalAiTranslations: ${enableGlobalAiTranslations}, scrapeAfterDate: ${scrapeAfterDate}`); // Log received values
   let scrapedResult = null;
   let metadata = null;
   let content = null;
@@ -669,7 +684,7 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
         };
         console.log(`Successfully scraped article with opensource: ${metadata?.title || 'No Title'}`);
         console.log(`scrapeArticlePage passing scrapeType to processScrapedData: ${scrapeType}`); // Added log
-        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage }); // Pass data as an object
+        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object
       } else {
         console.error(`Failed to scrape article page with opensource: ${articleUrl}`);
       }
@@ -698,7 +713,7 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
         content = firecrawlResult.markdown; // Get markdown content
         metadata = firecrawlResult.extract; // Get extracted data as metadata
         console.log(`Successfully scraped article with Firecrawl: ${metadata?.title || 'No Title'}`);
-        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage }); // Pass data as an object
+        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object
       } else {
         console.error(`Failed to scrape article page with Firecrawl: ${articleUrl}`, firecrawlResult);
       }
@@ -709,7 +724,7 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
 }
 
 
-async function runScraper(enableGlobalAiSummary = true, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
+async function runScraper(enableGlobalAiSummary = true, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true) { // Accept global toggle states including image and translations
   console.log('Starting news scraping process...');
   await loadUrlBlacklist(); // Ensure blacklist is loaded before scraping
   const activeSources = await getActiveSources();
@@ -771,7 +786,7 @@ async function runScraper(enableGlobalAiSummary = true, enableGlobalAiTags = tru
 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
-        const processed = await scrapeArticlePage(source, articleUrl, 'global', true, enableGlobalAiTags, enableGlobalAiImage); // Pass scrape type and explicitly true for global summary toggle
+        const processed = await scrapeArticlePage(source, articleUrl, 'global', true, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations); // Pass scrape type and explicitly true for global summary toggle
         if (processed) {
           articlesAdded++;
         }
@@ -1060,9 +1075,9 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
 
 
 // Function to run the scraper for a specific source ID
-async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true) { // Accept global toggle states including image
+async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true) { // Accept global toggle states including image and translations
   console.log(`Starting news scraping process for source ID: ${sourceId}`);
-  console.log(`runScraperForSource received enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}`); // Log received values
+  console.log(`runScraperForSource received enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, enableGlobalAiTranslations: ${enableGlobalAiTranslations}`); // Log received values
   let linksFound = 0;
   let articlesAdded = 0;
 
@@ -1132,7 +1147,7 @@ async function runScraperForSource(sourceId, enableGlobalAiSummary = undefined, 
       // Scrape each new article URL
       for (const articleUrl of newArticleUrls) {
         // Pass the scrape_after_date from the source object to scrapeArticlePage
-        const processed = await scrapeArticlePage(source, articleUrl, 'per-source', source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image, source.scrape_after_date); // Pass scrape type, source toggles, and scrape_after_date
+        const processed = await scrapeArticlePage(source, articleUrl, 'per-source', source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image, source.enable_ai_translations, source.scrape_after_date); // Pass scrape type, source toggles, and scrape_after_date
         if (processed) {
           articlesAdded++;
         }
@@ -1187,7 +1202,7 @@ async function processMissingAiForSource(sourceId, featureType) { // featureType
     } else if (featureType === 'image' && source.enable_ai_image) {
       // Find articles missing ai_image_path AND thumbnail_url (don't overwrite scraped thumbnails)
       query = 'SELECT id, title, raw_content FROM articles WHERE source_id = $1 AND ai_image_path IS NULL AND (thumbnail_url IS NULL OR thumbnail_url = \'\')';
-    } else if (featureType === 'translations') {
+    } else if (featureType === 'translations' && source.enable_ai_translations) { // Add check for source.enable_ai_translations
       // Find articles missing any of the translation fields
       query = 'SELECT id, title, raw_content, summary, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht FROM articles WHERE source_id = $1 AND (title_es IS NULL OR summary_es IS NULL OR raw_content_es IS NULL OR title_ht IS NULL OR summary_ht IS NULL OR raw_content_ht IS NULL)';
     } else {

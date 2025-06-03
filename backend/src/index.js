@@ -161,15 +161,15 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
 // Add a new source
 app.post('/api/sources', authenticateToken, async (req, res) => {
   const endpoint = '/api/sources';
-  const { name, url, is_active, enable_ai_summary, enable_ai_tags, include_selectors, exclude_selectors, scraping_method, scrape_after_date } = req.body;
+  const { name, url, is_active, enable_ai_summary, enable_ai_tags, enable_ai_image, enable_ai_translations, include_selectors, exclude_selectors, scraping_method, scrape_after_date } = req.body;
   if (!name || !url) {
     console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing required fields (name or url)`);
     return res.status(400).json({ error: 'Source name and URL are required.' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO sources (name, url, is_active, enable_ai_summary, enable_ai_tags, include_selectors, exclude_selectors, scraping_method, scrape_after_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [name, url, is_active !== undefined ? is_active : true, enable_ai_summary !== undefined ? enable_ai_summary : true, enable_ai_tags !== undefined ? enable_ai_tags : true, include_selectors || null, exclude_selectors || null, scraping_method || 'opensource', scrape_after_date ? new Date(scrape_after_date) : null]
+      'INSERT INTO sources (name, url, is_active, enable_ai_summary, enable_ai_tags, enable_ai_image, enable_ai_translations, include_selectors, exclude_selectors, scraping_method, scrape_after_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+      [name, url, is_active !== undefined ? is_active : true, enable_ai_summary !== undefined ? enable_ai_summary : true, enable_ai_tags !== undefined ? enable_ai_tags : true, enable_ai_image !== undefined ? enable_ai_image : true, enable_ai_translations !== undefined ? enable_ai_translations : true, include_selectors || null, exclude_selectors || null, scraping_method || 'opensource', scrape_after_date ? new Date(scrape_after_date) : null]
     );
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Successfully added new source: ${result.rows[0].name} (ID: ${result.rows[0].id})`);
     res.status(201).json(result.rows[0]);
@@ -183,7 +183,7 @@ app.post('/api/sources', authenticateToken, async (req, res) => {
 app.put('/api/sources/:id', authenticateToken, async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/sources/${sourceId}`;
-  const { name, url, is_active, enable_ai_summary, enable_ai_tags, enable_ai_image, os_title_selector, os_content_selector, os_date_selector, os_author_selector, os_thumbnail_selector, os_topics_selector, include_selectors, exclude_selectors, article_link_template, exclude_patterns, scraping_method, scrape_after_date } = req.body;
+  const { name, url, is_active, enable_ai_summary, enable_ai_tags, enable_ai_image, enable_ai_translations, os_title_selector, os_content_selector, os_date_selector, os_author_selector, os_thumbnail_selector, os_topics_selector, include_selectors, exclude_selectors, article_link_template, exclude_patterns, scraping_method, scrape_after_date } = req.body;
 
   const updates = {};
   if (name !== undefined) updates.name = name;
@@ -192,6 +192,7 @@ app.put('/api/sources/:id', authenticateToken, async (req, res) => {
   if (enable_ai_summary !== undefined) updates.enable_ai_summary = enable_ai_summary;
   if (enable_ai_tags !== undefined) updates.enable_ai_tags = enable_ai_tags;
   if (enable_ai_image !== undefined) updates.enable_ai_image = enable_ai_image;
+  if (enable_ai_translations !== undefined) updates.enable_ai_translations = enable_ai_translations;
   if (os_title_selector !== undefined) updates.os_title_selector = os_title_selector;
   if (os_content_selector !== undefined) updates.os_content_selector = os_content_selector;
   if (os_date_selector !== undefined) updates.os_date_selector = os_date_selector;
