@@ -54,7 +54,7 @@ const pageDescription = `Latest news articles on ${formattedTopic} from across t
       </Breadcrumb>
 
       <div className="mb-4">
-        <Button variant="outline" size="sm" href={`/${currentLocale}/`} className="flex items-center">
+        <Button client:load variant="outline" size="sm" href={`/${currentLocale}/`} className="flex items-center">
           <ChevronLeft className="h-4 w-4 mr-1" /> {t.back_to_news_feed || 'Back to News Feed'}
         </Button>
       </div>
