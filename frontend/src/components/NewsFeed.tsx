@@ -78,15 +78,15 @@ function NewsFeed({
     if (!hasMore && currentPage > 1) return; // Don't fetch if no more articles and not initial load
 
     const controller = new AbortController(); // Create controller inside effect
-    const timeoutId = setTimeout(() => {
-      console.log('[NewsFeed] Fetch request timed out (via AbortController).');
-      controller.abort();
-    }, 10000); // 10 second timeout
+    const timeoutPromise = new Promise<Response>((_, reject) => // Explicitly type as Promise<Response>
+      setTimeout(() => {
+        controller.abort(); // Abort the fetch if timeout occurs
+        reject(new DOMException('Request timed out.', 'TimeoutError'));
+      }, 10000) // 10 second timeout
+    );
 
     const fetchArticles = async () => {
-      console.log('[NewsFeed] fetchArticles function invoked.'); // New log
-      // setLoading(true); // Removed: Handled by the first useEffect
-      // setError(null); // Removed: Handled by the first useEffect
+      console.log('[NewsFeed] fetchArticles function invoked.');
       try {
         const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         let url = `${apiUrl}/api/articles`;
@@ -100,12 +100,10 @@ function NewsFeed({
             params.append('searchTerm', searchTerm);
         }
 
-        // Add activeCategory as 'topic' parameter for backend filtering
         if (activeCategory && activeCategory !== 'all') {
             params.append('topic', activeCategory);
         }
 
-        // Add pagination parameters
         params.append('page', currentPage.toString());
         params.append('limit', articlesPerPage.toString());
 
@@ -115,8 +113,11 @@ function NewsFeed({
 
         console.log('[NewsFeed] Fetching articles with URL:', url);
 
-        const response = await fetch(url, { signal: controller.signal }); // Use the effect's controller
-        clearTimeout(timeoutId); // Clear the timeout if the fetch completes in time
+        // Use Promise.race to race the fetch with the timeout
+        const response = await Promise.race([
+          fetch(url, { signal: controller.signal }),
+          timeoutPromise
+        ]);
 
         console.log('[NewsFeed] API Response Status:', response.status);
 
@@ -128,20 +129,16 @@ function NewsFeed({
         console.log('[NewsFeed] Fetched articles data:', data);
 
         setArticles(prevArticles => {
-          // Filter out duplicates if any (e.g., if backend sends some overlap)
           const newArticles = data.filter(
             newArticle => !prevArticles.some(existingArticle => existingArticle.id === newArticle.id)
           );
           return [...prevArticles, ...newArticles];
         });
 
-        // Check if there are more articles to load
-        // Assuming backend sends total count in a header or response body
-        // For now, we'll assume if less than limit, no more pages
         setHasMore(data.length === articlesPerPage);
 
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
+        if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
           console.error('[NewsFeed] Fetch request aborted or timed out:', err);
           // Only set error if it's not a manual abort due to effect cleanup
           if (err.message !== 'The user aborted a request.') {
@@ -162,11 +159,10 @@ function NewsFeed({
     // Cleanup function: abort the fetch if the component unmounts or effect re-runs
     return () => {
       console.log('[NewsFeed] Effect cleanup: Aborting ongoing fetch.');
-      controller.abort();
-      clearTimeout(timeoutId); // Ensure timeout is cleared on cleanup
+      controller.abort(); // Abort any ongoing fetch
     };
 
-  }, [searchTerm, selectedSources, activeCategory, currentPage]); // Dependencies remain the same
+  }, [searchTerm, selectedSources, activeCategory, currentPage]);
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
