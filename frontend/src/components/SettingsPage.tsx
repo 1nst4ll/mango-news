@@ -1193,9 +1193,9 @@ const SettingsPage: React.FC = () => {
               ) : sources.length === 0 ? (
                 <div className="text-gray-600">No sources found.</div>
               ) : (
-                <ul className="space-y-4">
+                <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {sources.map((source) => (
-                    <Card key={source.id} className="p-4 shadow-sm pt-4">
+                    <Card key={source.id} className="p-4 shadow-sm pt-4 flex flex-col"> {/* Added flex flex-col to make card content stretch */}
                       <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
                         <div>
                           <CardTitle className="text-lg font-medium">{source.name}</CardTitle>
