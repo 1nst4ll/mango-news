@@ -111,12 +111,10 @@ function NewsFeed({
             params.append('searchTerm', searchTerm);
         }
 
-        // Add activeCategory as 'topic' parameter for backend filtering
         if (activeCategory && activeCategory !== 'all') {
             params.append('topic', activeCategory);
         }
 
-        // Add pagination parameters
         params.append('page', currentPage.toString());
         params.append('limit', articlesPerPage.toString());
 
@@ -177,7 +175,7 @@ function NewsFeed({
       fetchInProgressRef.current = false; // Ensure flag is cleared on cleanup
     };
 
-  }, [searchTerm, JSON.stringify(selectedSources), activeCategory, currentPage]); // Changed selectedSources to JSON.stringify(selectedSources)
+  }, [searchTerm, JSON.stringify(selectedSources), activeCategory, currentPage]); // Dependencies remain the same
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
