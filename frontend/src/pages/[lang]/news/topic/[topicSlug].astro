@@ -1,6 +1,6 @@
 ---
-import BaseLayout from '../../../../layouts/BaseLayout.astro';
-import NewsFeed from '../../../../components/NewsFeed'; // Import as a React component
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import NewsFeed from '@/components/NewsFeed'; // Import as a React component
 import { getCollection } from 'astro:content';
 import {
   Breadcrumb,
@@ -9,14 +9,14 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '../../../../frontend/src/components/ui/breadcrumb'; // Adjust path as needed
-import { Button } from '../../../../frontend/src/components/ui/button'; // Adjust path as needed
+} from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react'; // Import ChevronLeft icon
 
 // Import locale files
-import en from '../../../../frontend/src/locales/en.json';
-import es from '../../../../frontend/src/locales/es.json';
-import ht from '../../../../frontend/src/locales/ht.json';
+import en from '@/locales/en.json';
+import es from '@/locales/es.json';
+import ht from '@/locales/ht.json';
 
 const locales = { en, es, ht };
 

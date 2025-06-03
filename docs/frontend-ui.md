@@ -76,9 +76,22 @@ The single article page now offers multiple navigation options to improve user e
 *   **Previous/Next Article Buttons:** Located at the bottom of the article, these buttons allow users to navigate sequentially through articles from the list they were viewing on the main news feed. The functionality relies on the list of article IDs stored in `localStorage` by the news feed component.
 *   **Breadcrumbs:** A breadcrumb trail is displayed at the top of the page, providing clear hierarchical navigation. The structure is typically `News Feed > [Primary Topic (if available)] > Article Title`. The "News Feed" and "Primary Topic" (if present) are clickable links.
 *   **"Back to News Feed" Link:** A prominent link with a back arrow icon is provided near the top of the article, offering a quick return to the main news feed.
-*   **Clickable Topic Badges:** Topics associated with the article are displayed as clickable badges. Clicking a badge navigates the user to a page listing all articles related to that specific topic.
+*   **Clickable Topic Badges:** Topics associated with the article are displayed as clickable badges. Clicking a badge navigates the user to a dedicated topic feed page (`frontend/src/pages/[lang]/news/topic/[topicSlug].astro`) listing all articles related to that specific topic.
 *   **Clickable Source Link:** The article's source URL is displayed and is clickable, linking directly to the original source website.
 *   **"Related Articles" Section:** A section titled "Related Articles" is displayed at the bottom of the page. This section dynamically fetches and presents a list of articles that share the same primary topic as the current article, encouraging further content exploration.
+
+---
+
+### Topic Feed Page
+
+The Topic Feed page (`frontend/src/pages/[lang]/news/topic/[topicSlug].astro`) displays a list of articles filtered by a specific topic. This page reuses the `NewsFeed` component to display articles and includes navigation enhancements for improved user experience.
+
+**Key Features:**
+*   **Dynamic Routing:** The page uses dynamic routing to capture the `topicSlug` from the URL (e.g., `/en/news/topic/technology`).
+*   **NewsFeed Integration:** The `NewsFeed` React component is loaded on this page, receiving the `topicSlug` as its `activeCategory` prop. This triggers the `NewsFeed` to fetch articles from the backend that are associated with the specified topic.
+*   **Breadcrumbs:** A breadcrumb trail is displayed at the top of the page, providing clear hierarchical navigation. The structure is typically `News Feed > [Topic Name]`. The "News Feed" is a clickable link.
+*   **"Back to News Feed" Button:** A prominent button with a back arrow icon is provided near the top of the page, offering a quick return to the main news feed.
+*   **Resolved Rendering Issues:** The `NewsFeed.tsx` component was updated to resolve an infinite rendering loop that caused loading issues and console warnings on topic pages. This was fixed by ensuring the `selectedSources` prop's reference stability in `useEffect` dependencies.
 
 ### Navigation
 

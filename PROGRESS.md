@@ -169,6 +169,12 @@
 - Added loading indicators and "no more articles" messages.
 - Updated `frontend/src/locales/en.json`, `es.json`, and `ht.json` with new translation keys.
 
+## Topic Feed Enhancements (Completed on 2025-06-03)
+
+- Resolved infinite loading and excessive console warnings on topic-specific news feed pages by updating the `useEffect` dependency array in `frontend/src/components/NewsFeed.tsx` to use `JSON.stringify(selectedSources)`.
+- Implemented breadcrumbs and a "Back to News Feed" button on the topic news feed page (`frontend/src/pages/[lang]/news/topic/[topicSlug].astro`) for consistent navigation.
+- Updated import paths in `frontend/src/pages/[lang]/news/topic/[topicSlug].astro` to use the `@` path alias for correct module resolution.
+
 ## Detailed Steps for Pending Tasks
 
 (This section will be updated with detailed steps for the "Next Steps: Astro Frontend Migration" as they are worked on.)
