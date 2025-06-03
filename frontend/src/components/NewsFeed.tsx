@@ -144,6 +144,18 @@ function NewsFeed({
           setArticles([]); // Clear articles for this test
           setHasMore(false); // Indicate no more articles for this test
 
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            console.error('[NewsFeed] Fetch request timed out:', err);
+            setError(new Error('Request timed out (Test). Please try again.'));
+          } else {
+            console.error('[NewsFeed] Error fetching articles:', err);
+            setError(err);
+          }
+        } finally {
+          clearTimeout(timeoutId); // Clear the timeout if the promise completes/aborts
+        }
+
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') {
           console.error('[NewsFeed] Fetch request timed out:', err);
