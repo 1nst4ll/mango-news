@@ -75,7 +75,7 @@ function NewsFeed({
     setLoading(true); // Set loading true to show initial loader
     setError(null); // Clear previous errors
     fetchInProgressRef.current = false; // Reset the flag
-  }, [searchTerm, selectedSources, activeCategory]); // Add activeCategory to dependency array
+  }, [searchTerm, JSON.stringify(selectedSources), activeCategory]); // Add activeCategory to dependency array
 
   useEffect(() => {
     console.count('[NewsFeed] fetch effect evaluated'); // Diagnostic log
