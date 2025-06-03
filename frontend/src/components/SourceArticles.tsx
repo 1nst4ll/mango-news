@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card"; // Added CardDescription
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"; // Assuming you have a Table component
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"; // Import Select components
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"; // For confirmation dialog
 
@@ -33,6 +34,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [reprocessLoading, setReprocessLoading] = useState<boolean>(false); // New state for reprocess button
   const [reprocessStatus, setReprocessStatus] = useState<string | null>(null); // New state for reprocess status
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [articlesPerPage, setArticlesPerPage] = useState(15); // Default articles per page
+  const [totalArticles, setTotalArticles] = useState(0);
+
   // State for confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [confirmDialogArticleId, setConfirmDialogArticleId] = useState<number | null>(null);
@@ -50,9 +56,13 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/sources/${sourceId}/articles`);
+      const response = await fetch(`${apiUrl}/api/sources/${sourceId}/articles?page=${currentPage}&limit=${articlesPerPage}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const totalCount = response.headers.get('X-Total-Count');
+      if (totalCount) {
+        setTotalArticles(parseInt(totalCount, 10));
       }
       const data: Article[] = await response.json();
       setArticles(data);
@@ -69,7 +79,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   useEffect(() => {
     fetchArticles();
-  }, [sourceId]); // Refetch articles when sourceId changes
+  }, [sourceId, currentPage, articlesPerPage]); // Refetch articles when sourceId, currentPage, or articlesPerPage changes
 
   const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
     setProcessingLoading(prev => ({
@@ -501,6 +511,53 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
           </>
         )}
       </CardContent>
+
+      {/* Pagination Controls */}
+      {articles.length > 0 && (
+        <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 p-4 border-t">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-muted-foreground">Articles per page:</span>
+            <Select
+              value={articlesPerPage.toString()}
+              onValueChange={(value) => {
+                setArticlesPerPage(parseInt(value, 10));
+                setCurrentPage(1); // Reset to first page when articles per page changes
+              }}
+            >
+              <SelectTrigger className="w-[80px]">
+                <SelectValue placeholder={articlesPerPage} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {Math.ceil(totalArticles / articlesPerPage)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={currentPage * articlesPerPage >= totalArticles}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
        {/* Confirmation Dialog */}
       <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>

@@ -124,34 +124,85 @@ app.get('/api/sources', async (req, res) => {
 app.get('/api/sources/:sourceId/articles', async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/sources/${sourceId}/articles`;
+  const { page = 1, limit = 15, sortBy = 'publication_date', sortOrder = 'DESC', filterByAiStatus } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  let baseQuery = `
+    FROM articles a
+    LEFT JOIN article_topics at ON a.id = at.article_id
+    LEFT JOIN topics t ON at.topic_id = t.id
+    WHERE a.source_id = $1
+  `;
+
+  const queryParams = [sourceId];
+  let paramIndex = 2; // Start index for additional parameters
+
+  // Add AI status filtering
+  if (filterByAiStatus) {
+    switch (filterByAiStatus) {
+      case 'missing_summary':
+        baseQuery += ` AND (a.summary IS NULL OR a.summary = '' OR a.summary = 'Summary generation failed.')`;
+        break;
+      case 'missing_tags':
+        baseQuery += ` AND NOT EXISTS (SELECT 1 FROM article_topics WHERE article_id = a.id)`;
+        break;
+      case 'missing_image':
+        baseQuery += ` AND (a.ai_image_path IS NULL AND (a.thumbnail_url IS NULL OR a.thumbnail_url = ''))`;
+        break;
+      case 'missing_translations':
+        baseQuery += ` AND (a.title_es IS NULL OR a.summary_es IS NULL OR a.raw_content_es IS NULL OR a.title_ht IS NULL OR a.summary_ht IS NULL OR a.raw_content_ht IS NULL)`;
+        break;
+      case 'has_summary':
+        baseQuery += ` AND (a.summary IS NOT NULL AND a.summary != '' AND a.summary != 'Summary generation failed.')`;
+        break;
+      case 'has_tags':
+        baseQuery += ` AND EXISTS (SELECT 1 FROM article_topics WHERE article_id = a.id)`;
+        break;
+      case 'has_image':
+        baseQuery += ` AND (a.ai_image_path IS NOT NULL OR a.thumbnail_url IS NOT NULL)`;
+        break;
+      case 'has_translations':
+        baseQuery += ` AND (a.title_es IS NOT NULL AND a.summary_es IS NOT NULL AND a.raw_content_es IS NOT NULL AND a.title_ht IS NOT NULL AND a.summary_ht IS NOT NULL AND a.raw_content_ht IS NOT NULL)`;
+        break;
+      // Add more cases for other statuses if needed
+    }
+  }
+
+  let countQuery = `SELECT COUNT(DISTINCT a.id) ${baseQuery}`;
+
+  let articlesQuery = `
+    SELECT
+        a.id,
+        a.title,
+        a.source_url,
+        a.thumbnail_url,
+        a.summary AS ai_summary,
+        a.ai_image_path AS ai_image_url,
+        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS ai_tags,
+        a.topics_es,
+        a.topics_ht,
+        a.publication_date
+    ${baseQuery}
+    GROUP BY
+        a.id, a.title, a.source_url, a.thumbnail_url, a.summary, a.ai_image_path, a.topics_es, a.topics_ht, a.publication_date
+    ORDER BY
+        ${sortBy} ${sortOrder}
+    LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+  `;
+
+  queryParams.push(parseInt(limit), offset);
+
   try {
-    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching articles for source ID: ${sourceId}`);
-    const result = await pool.query(`
-      SELECT
-          a.id,
-          a.title,
-          a.source_url,
-          a.thumbnail_url, -- Include thumbnail_url from the database
-          a.summary AS ai_summary,
-          a.ai_image_path AS ai_image_url,
-          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS ai_tags, -- English topics
-          a.topics_es, -- Spanish translated topics
-          a.topics_ht -- Haitian Creole translated topics
-      FROM
-          articles a
-      LEFT JOIN
-          article_topics at ON a.id = at.article_id
-      LEFT JOIN
-          topics t ON at.topic_id = t.id
-      WHERE
-          a.source_id = $1
-      GROUP BY
-          a.id, a.title, a.source_url, a.thumbnail_url, a.summary, a.ai_image_path, a.topics_es, a.topics_ht -- Include new columns in GROUP BY
-      ORDER BY
-          a.publication_date DESC
-    `, [sourceId]);
-    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${result.rows.length} articles for source ID ${sourceId}`);
-    res.json(result.rows);
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching articles for source ID: ${sourceId}, Page: ${page}, Limit: ${limit}, SortBy: ${sortBy}, SortOrder: ${sortOrder}, FilterByAiStatus: ${filterByAiStatus}`);
+
+    const countResult = await pool.query(countQuery, queryParams.slice(0, queryParams.length - 2)); // Exclude limit and offset for count query
+    const totalArticles = parseInt(countResult.rows[0].count, 10);
+
+    const articlesResult = await pool.query(articlesQuery, queryParams);
+
+    res.set('X-Total-Count', totalArticles.toString()); // Set total count in header
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${articlesResult.rows.length} articles (Total: ${totalArticles}) for source ID ${sourceId}`);
+    res.json(articlesResult.rows);
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching articles for source ID ${sourceId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
