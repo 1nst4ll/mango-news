@@ -108,7 +108,12 @@ function NewsFeed({
 
         console.log('[NewsFeed] Fetching articles with URL:', url);
 
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId); // Clear the timeout if the fetch completes in time
+
         console.log('[NewsFeed] API Response Status:', response.status);
 
         if (!response.ok) {
@@ -132,8 +137,13 @@ function NewsFeed({
         setHasMore(data.length === articlesPerPage);
 
       } catch (err: unknown) {
-        console.error('[NewsFeed] Error fetching articles:', err);
-        setError(err);
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.error('[NewsFeed] Fetch request timed out:', err);
+          setError(new Error('Request timed out. Please try again.'));
+        } else {
+          console.error('[NewsFeed] Error fetching articles:', err);
+          setError(err);
+        }
       } finally {
         console.log('[NewsFeed] Setting loading to false in finally block.');
         setLoading(false);
