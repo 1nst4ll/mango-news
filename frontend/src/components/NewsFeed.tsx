@@ -177,7 +177,7 @@ function NewsFeed({
       fetchInProgressRef.current = false; // Ensure flag is cleared on cleanup
     };
 
-  }, [searchTerm, selectedSources, activeCategory, currentPage]); // Dependencies remain the same
+  }, [searchTerm, JSON.stringify(selectedSources), activeCategory, currentPage]); // Changed selectedSources to JSON.stringify(selectedSources)
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
