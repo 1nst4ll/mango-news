@@ -78,6 +78,7 @@ function NewsFeed({
   }, [searchTerm, selectedSources, activeCategory]); // Add activeCategory to dependency array
 
   useEffect(() => {
+    console.count('[NewsFeed] fetch effect evaluated'); // Diagnostic log
     if (!hasMore && currentPage > 1) return; // Don't fetch if no more articles and not initial load
 
     // Only proceed if a fetch is not already in progress
