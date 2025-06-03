@@ -85,8 +85,8 @@ function NewsFeed({
 
     const fetchArticles = async () => {
       console.log('[NewsFeed] fetchArticles function invoked.'); // New log
-      setLoading(true);
-      setError(null);
+      // setLoading(true); // Removed: Handled by the first useEffect
+      // setError(null); // Removed: Handled by the first useEffect
       try {
         const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         let url = `${apiUrl}/api/articles`;
