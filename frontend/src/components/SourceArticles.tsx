@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card"; // Added CardDescription
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"; // Assuming you have a Table component
 
@@ -17,6 +17,7 @@ interface Article {
   ai_image_path: string | null;
   topics_es: string | null; // Spanish translated topics (comma-separated string)
   topics_ht: string | null; // Haitian Creole translated topics (comma-separated string)
+  publication_date: string | null; // Add publication_date
 }
 
 interface SourceArticlesProps {
@@ -27,8 +28,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [processingStatus, setProcessingStatus] = useState<{ [articleId: number]: { summary?: string | null; tags?: string | null; image?: string | null; deleting?: string | null } }>({});
-  const [processingLoading, setProcessingLoading] = useState<{ [articleId: number]: { summary?: boolean; tags?: boolean; image?: boolean; deleting?: boolean } }>({});
+  const [processingStatus, setProcessingStatus] = useState<{ [articleId: number]: { summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null; deleting?: string | null } }>({});
+  const [processingLoading, setProcessingLoading] = useState<{ [articleId: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean; deleting?: boolean } }>({});
   const [reprocessLoading, setReprocessLoading] = useState<boolean>(false); // New state for reprocess button
   const [reprocessStatus, setReprocessStatus] = useState<string | null>(null); // New state for reprocess status
 
@@ -70,7 +71,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     fetchArticles();
   }, [sourceId]); // Refetch articles when sourceId changes
 
-  const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image') => {
+  const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
     setProcessingLoading(prev => ({
       ...prev,
       [articleId]: { ...prev[articleId], [featureType]: true }
@@ -85,6 +86,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }), // Add Authorization header if token exists
         },
         body: JSON.stringify({ featureType }),
       });
@@ -225,130 +227,277 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         ) : articles.length === 0 ? (
           <div className="text-gray-600">No articles found for this source.</div>
         ) : (
-          <div className="overflow-x-auto"> {/* Add overflow for responsiveness */}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead>Thumbnail URL</TableHead> {/* New Header */}
-                  <TableHead>AI Summary</TableHead>
-                  <TableHead>AI Tags</TableHead>
-                  <TableHead>AI Image Path</TableHead> {/* Updated Header */}
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {articles.map((article) => (
-                  <TableRow key={article.id}>
-                    <TableCell className="font-medium max-w-xs truncate">{article.title}</TableCell> {/* Truncate long titles */}
-                    <TableCell className="max-w-xs truncate">
-                      <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                        {article.source_url}
-                      </a>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate"> {/* New Cell */}
-                       {article.thumbnail_url ? (
-                         <a href={article.thumbnail_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                           {article.thumbnail_url}
-                         </a>
-                       ) : (
-                         <span className="text-gray-500">N/A</span>
-                       )}
-                    </TableCell>
-                    <TableCell className="max-w-xs"> {/* Adjusted Cell */}
-                      <div className="flex items-center space-x-2">
-                        <textarea
-                          value={article.ai_summary || ''}
-                          readOnly // Make it read-only for now, editing functionality can be added later
-                          className="flex-grow border rounded-md p-1 text-sm min-h-[50px]"
-                          placeholder="No summary generated"
-                        />
-                        <Button
-                          onClick={() => handleProcessAi(article.id, 'summary')}
-                          disabled={processingLoading[article.id]?.summary}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          {processingLoading[article.id]?.summary ? '...' : 'Generate'}
-                        </Button>
-                      </div>
-                       {processingStatus[article.id]?.summary && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Summary: {processingStatus[article.id]?.summary}
-                          </div>
-                        )}
-                    </TableCell>
-                    <TableCell className="max-w-xs"> {/* Adjusted Cell */}
-                       <div className="flex items-center space-x-2">
-                         <textarea
-                           value={article.ai_tags && article.ai_tags.length > 0 ? article.ai_tags.join(', ') : ''}
-                           readOnly // Make it read-only for now
-                           className="flex-grow border rounded-md p-1 text-sm min-h-[50px]"
-                           placeholder="No tags generated"
-                         />
-                         <Button
-                           onClick={() => handleProcessAi(article.id, 'tags')}
-                           disabled={processingLoading[article.id]?.tags}
-                           size="sm"
-                           variant="secondary"
-                         >
-                           {processingLoading[article.id]?.tags ? '...' : 'Generate'}
-                         </Button>
-                       </div>
-                       {processingStatus[article.id]?.tags && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Tags: {processingStatus[article.id]?.tags}
-                          </div>
-                        )}
-                    </TableCell>
-                    <TableCell className="max-w-xs"> {/* Adjusted Cell */}
-                       <div className="flex items-center space-x-2">
-                         <input
-                           type="text"
-                           value={article.ai_image_path || ''} // Changed from ai_image_url to ai_image_path
-                           readOnly // Make it read-only for now
-                           className="flex-grow border rounded-md p-1 text-sm"
-                           placeholder="No image URL"
-                         />
-                         <Button
-                           onClick={() => handleProcessAi(article.id, 'image')}
-                           disabled={processingLoading[article.id]?.image}
-                           size="sm"
-                           variant="secondary"
-                         >
-                           {processingLoading[article.id]?.image ? '...' : 'Generate'}
-                         </Button>
-                       </div>
-                       {processingStatus[article.id]?.image && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Image: {processingStatus[article.id]?.image}
-                          </div>
-                        )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-col space-y-2 justify-end"> {/* Simplified layout */}
-                        <Button
-                          onClick={() => handleDeleteArticle(article.id)}
-                          disabled={processingLoading[article.id]?.deleting}
-                          size="sm"
-                          variant="destructive"
-                        >
-                          {processingLoading[article.id]?.deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                      </div>
-                       {/* Display processing status messages */}
-                         {processingStatus[article.id]?.deleting && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.deleting?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Deletion: {processingStatus[article.id]?.deleting}
-                          </div>
-                        )}
-                    </TableCell>
+          <>
+            {/* Table View for larger screens (md and up) */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>URL</TableHead>
+                    <TableHead>Thumbnail</TableHead> {/* New Header */}
+                    <TableHead>Publication Date</TableHead> {/* New Header */}
+                    <TableHead>AI Summary</TableHead>
+                    <TableHead>AI Tags</TableHead>
+                    <TableHead>AI Image Path</TableHead> {/* Updated Header */}
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {articles.map((article) => (
+                    <TableRow key={article.id}>
+                      <TableCell className="font-medium max-w-xs truncate">{article.title}</TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                          {article.source_url}
+                        </a>
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                         {article.thumbnail_url || article.ai_image_path ? (
+                           <a href={article.thumbnail_url || article.ai_image_path || '#'} target="_blank" rel="noopener noreferrer">
+                             <img src={article.thumbnail_url || article.ai_image_path || ''} alt="Thumbnail" className="max-w-20 max-h-20 object-cover" />
+                           </a>
+                         ) : (
+                           <span className="text-gray-500">N/A</span>
+                         )}
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        {article.publication_date ? new Date(article.publication_date).toLocaleString() : 'N/A'}
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <div className="flex items-center space-x-2">
+                          <textarea
+                            value={article.ai_summary || ''}
+                            readOnly
+                            className="flex-grow border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
+                            placeholder="No summary generated"
+                          />
+                          <Button
+                            onClick={() => handleProcessAi(article.id, 'summary')}
+                            disabled={processingLoading[article.id]?.summary}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            {processingLoading[article.id]?.summary ? '...' : 'Rerun Summary'}
+                          </Button>
+                        </div>
+                         {processingStatus[article.id]?.summary && (
+                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                              Summary: {processingStatus[article.id]?.summary}
+                            </div>
+                          )}
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                         <div className="flex items-center space-x-2">
+                           <textarea
+                             value={article.ai_tags && article.ai_tags.length > 0 ? article.ai_tags.join(', ') : ''}
+                             readOnly
+                             className="flex-grow border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
+                             placeholder="No tags generated"
+                           />
+                           <Button
+                             onClick={() => handleProcessAi(article.id, 'tags')}
+                             disabled={processingLoading[article.id]?.tags}
+                             size="sm"
+                             variant="secondary"
+                           >
+                             {processingLoading[article.id]?.tags ? '...' : 'Rerun Tags'}
+                           </Button>
+                         </div>
+                         {processingStatus[article.id]?.tags && (
+                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                              Tags: {processingStatus[article.id]?.tags}
+                            </div>
+                          )}
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                         <div className="flex items-center space-x-2">
+                           <input
+                             type="text"
+                             value={article.ai_image_path || ''}
+                             readOnly
+                             className="flex-grow border rounded-md p-1 text-sm"
+                             placeholder="No image URL"
+                           />
+                           <Button
+                             onClick={() => handleProcessAi(article.id, 'image')}
+                             disabled={processingLoading[article.id]?.image}
+                             size="sm"
+                             variant="secondary"
+                           >
+                             {processingLoading[article.id]?.image ? '...' : 'Rerun Image'}
+                           </Button>
+                         </div>
+                         {processingStatus[article.id]?.image && (
+                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                              Image: {processingStatus[article.id]?.image}
+                            </div>
+                          )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col space-y-2 justify-end">
+                          <Button
+                            onClick={() => handleProcessAi(article.id, 'translations')}
+                            disabled={processingLoading[article.id]?.translations}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            {processingLoading[article.id]?.translations ? '...' : 'Rerun Translations'}
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteArticle(article.id)}
+                            disabled={processingLoading[article.id]?.deleting}
+                            size="sm"
+                            variant="destructive"
+                          >
+                            {processingLoading[article.id]?.deleting ? 'Deleting...' : 'Delete'}
+                          </Button>
+                        </div>
+                         {/* Display processing status messages */}
+                           {processingStatus[article.id]?.deleting && (
+                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.deleting?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                              Deletion: {processingStatus[article.id]?.deleting}
+                            </div>
+                          )}
+                          {processingStatus[article.id]?.translations && (
+                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                              Translations: {processingStatus[article.id]?.translations}
+                            </div>
+                          )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Card View for smaller screens (hidden on md and up) */}
+            <div className="md:hidden grid grid-cols-1 gap-4">
+              {articles.map((article) => (
+                <Card key={article.id} className="p-4 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-medium">{article.title}</CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      {article.publication_date ? new Date(article.publication_date).toLocaleString() : 'N/A'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {article.thumbnail_url || article.ai_image_path ? (
+                      <a href={article.thumbnail_url || article.ai_image_path || '#'} target="_blank" rel="noopener noreferrer">
+                        <img src={article.thumbnail_url || article.ai_image_path || ''} alt="Thumbnail" className="w-full h-32 object-cover rounded-md" />
+                      </a>
+                    ) : (
+                      <div className="text-gray-500 text-sm">No Thumbnail</div>
+                    )}
+                    <p className="text-sm text-muted-foreground break-words">
+                      URL: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{article.source_url}</a>
+                    </p>
+                    <div>
+                      <p className="text-sm font-semibold">AI Summary:</p>
+                      <textarea
+                        value={article.ai_summary || ''}
+                        readOnly
+                        className="w-full border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
+                        placeholder="No summary generated"
+                      />
+                      <Button
+                        onClick={() => handleProcessAi(article.id, 'summary')}
+                        disabled={processingLoading[article.id]?.summary}
+                        size="sm"
+                        variant="secondary"
+                        className="mt-1 w-full"
+                      >
+                        {processingLoading[article.id]?.summary ? '...' : 'Rerun Summary'}
+                      </Button>
+                      {processingStatus[article.id]?.summary && (
+                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                          Summary: {processingStatus[article.id]?.summary}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">AI Tags:</p>
+                      <textarea
+                        value={article.ai_tags && article.ai_tags.length > 0 ? article.ai_tags.join(', ') : ''}
+                        readOnly
+                        className="w-full border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
+                        placeholder="No tags generated"
+                      />
+                      <Button
+                        onClick={() => handleProcessAi(article.id, 'tags')}
+                        disabled={processingLoading[article.id]?.tags}
+                        size="sm"
+                        variant="secondary"
+                        className="mt-1 w-full"
+                      >
+                        {processingLoading[article.id]?.tags ? '...' : 'Rerun Tags'}
+                      </Button>
+                      {processingStatus[article.id]?.tags && (
+                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                          Tags: {processingStatus[article.id]?.tags}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">AI Image Path:</p>
+                      <input
+                        type="text"
+                        value={article.ai_image_path || ''}
+                        readOnly
+                        className="w-full border rounded-md p-1 text-sm"
+                        placeholder="No image URL"
+                      />
+                      <Button
+                        onClick={() => handleProcessAi(article.id, 'image')}
+                        disabled={processingLoading[article.id]?.image}
+                        size="sm"
+                        variant="secondary"
+                        className="mt-1 w-full"
+                      >
+                        {processingLoading[article.id]?.image ? '...' : 'Rerun Image'}
+                      </Button>
+                      {processingStatus[article.id]?.image && (
+                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                          Image: {processingStatus[article.id]?.image}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Translations:</p>
+                      <Button
+                        onClick={() => handleProcessAi(article.id, 'translations')}
+                        disabled={processingLoading[article.id]?.translations}
+                        size="sm"
+                        variant="secondary"
+                        className="mt-1 w-full"
+                      >
+                        {processingLoading[article.id]?.translations ? '...' : 'Rerun Translations'}
+                      </Button>
+                      {processingStatus[article.id]?.translations && (
+                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                          Translations: {processingStatus[article.id]?.translations}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      onClick={() => handleDeleteArticle(article.id)}
+                      disabled={processingLoading[article.id]?.deleting}
+                      size="sm"
+                      variant="destructive"
+                      className="mt-4 w-full"
+                    >
+                      {processingLoading[article.id]?.deleting ? 'Deleting...' : 'Delete Article'}
+                    </Button>
+                    {processingStatus[article.id]?.deleting && (
+                      <div className={`text-xs mt-1 ${processingStatus[article.id]?.deleting?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                        Deletion: {processingStatus[article.id]?.deleting}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
 
