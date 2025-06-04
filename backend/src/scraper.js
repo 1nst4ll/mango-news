@@ -1330,4 +1330,5 @@ module.exports = {
   runScraperForSource, // Export the new function
   processMissingAiForSource, // Export the new function for processing missing AI data
   reprocessTranslatedTopicsForSource, // Export the new function for re-processing translated topics
+  processAiForArticle, // Export the function to process AI data for a single article
 };
