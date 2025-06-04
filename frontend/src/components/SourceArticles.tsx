@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"; // Import Shadcn Pagination components
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"; // For confirmation dialog
+import { Alert, AlertDescription } from "./ui/alert"; // Import Alert components
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react'; // Import icons
 
 
 // Interface for Article data (matching the backend endpoint response)
@@ -22,12 +24,41 @@ interface Article {
   publication_date: string | null; // Add publication_date
 }
 
+// Interface for Source data (matching the backend endpoint response)
+interface Source {
+  id: number;
+  name: string;
+  url: string;
+  is_active: boolean;
+  enable_ai_summary: boolean;
+  enable_ai_tags: boolean;
+  enable_ai_image: boolean;
+  enable_ai_translations: boolean;
+  include_selectors: string | null;
+  exclude_selectors: string | null;
+  scraping_method?: string;
+  os_title_selector: string | null;
+  os_content_selector: string | null;
+  os_date_selector: string | null;
+  os_author_selector: string | null;
+  os_thumbnail_selector: string | null;
+  os_topics_selector: string | null;
+  article_link_template: string | null;
+  exclude_patterns: string | null;
+  scrape_after_date: string | null;
+}
+
 interface SourceArticlesProps {
   sourceId: string; // sourceId will be a string from Astro.params
 }
 
 const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [sourceSettings, setSourceSettings] = useState<any>(null); // State to hold source settings
+
+  // New state for processing missing AI data for the current source
+  const [articleProcessingLoading, setArticleProcessingLoading] = useState<{ summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean } | null>(null);
+  const [articleProcessingStatus, setArticleProcessingStatus] = useState<{ summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null } | null>(null);
 
   // Helper function to generate pagination items
   const generatePaginationItems = (currentPage: number, totalPages: number) => {
@@ -100,6 +131,25 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     setJwtToken(token);
   }, []);
 
+  // Fetch source settings
+  useEffect(() => {
+    const fetchSourceSettings = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/sources/${sourceId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: Source = await response.json();
+        setSourceSettings(data);
+      } catch (err) {
+        console.error("Error fetching source settings:", err);
+        // Handle error appropriately
+      }
+    };
+    fetchSourceSettings();
+  }, [sourceId, apiUrl]);
+
+
   const fetchArticles = async () => {
     setLoading(true);
     setError(null);
@@ -134,6 +184,113 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   useEffect(() => {
     fetchArticles();
   }, [sourceId, currentPage, articlesPerPage, sortBy, sortOrder, filterByAiStatus]); // Refetch articles when sourceId, currentPage, articlesPerPage, sortBy, sortOrder, or filterByAiStatus changes
+
+  // New handler function to process all missing AI data for a source
+  const handleProcessAllMissingAi = async () => {
+    if (!sourceSettings) return;
+
+    const processingPromises: Promise<void>[] = [];
+
+    // Reset all processing statuses and loading states
+    setArticleProcessingLoading({ summary: false, tags: false, image: false, translations: false });
+    setArticleProcessingStatus({ summary: null, tags: null, image: null, translations: null });
+
+    if (sourceSettings.enable_ai_summary) {
+      setArticleProcessingLoading(prev => ({ ...prev, summary: true }));
+      processingPromises.push(
+        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
+          },
+          body: JSON.stringify({ featureType: 'summary' }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.error) {
+            setArticleProcessingStatus(prev => ({ ...prev, summary: data.message || `Processed missing summary.` }));
+          } else {
+            setArticleProcessingStatus(prev => ({ ...prev, summary: `Error: ${data.error}` }));
+          }
+        })
+        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, summary: `Error: ${err.message}` })))
+        .finally(() => setArticleProcessingLoading(prev => ({ ...prev, summary: false })))
+      );
+    }
+    if (sourceSettings.enable_ai_tags) {
+      setArticleProcessingLoading(prev => ({ ...prev, tags: true }));
+      processingPromises.push(
+        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
+          },
+          body: JSON.stringify({ featureType: 'tags' }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.error) {
+            setArticleProcessingStatus(prev => ({ ...prev, tags: data.message || `Processed missing tags.` }));
+          } else {
+            setArticleProcessingStatus(prev => ({ ...prev, tags: `Error: ${data.error}` }));
+          }
+        })
+        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, tags: `Error: ${err.message}` })))
+        .finally(() => setArticleProcessingLoading(prev => ({ ...prev, tags: false })))
+      );
+    }
+    if (sourceSettings.enable_ai_image) {
+      setArticleProcessingLoading(prev => ({ ...prev, image: true }));
+      processingPromises.push(
+        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
+          },
+          body: JSON.stringify({ featureType: 'image' }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.error) {
+            setArticleProcessingStatus(prev => ({ ...prev, image: data.message || `Processed missing image.` }));
+          } else {
+            setArticleProcessingStatus(prev => ({ ...prev, image: `Error: ${data.error}` }));
+          }
+        })
+        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, image: `Error: ${err.message}` })))
+        .finally(() => setArticleProcessingLoading(prev => ({ ...prev, image: false })))
+      );
+    }
+    if (sourceSettings.enable_ai_translations) {
+      setArticleProcessingLoading(prev => ({ ...prev, translations: true }));
+      processingPromises.push(
+        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
+          },
+          body: JSON.stringify({ featureType: 'translations' }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.error) {
+            setArticleProcessingStatus(prev => ({ ...prev, translations: data.message || `Processed missing translations.` }));
+          } else {
+            setArticleProcessingStatus(prev => ({ ...prev, translations: `Error: ${data.error}` }));
+          }
+        })
+        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, translations: `Error: ${err.message}` })))
+        .finally(() => setArticleProcessingLoading(prev => ({ ...prev, translations: false })))
+      );
+    }
+
+    await Promise.all(processingPromises);
+    fetchArticles(); // Refetch articles after all processing is done
+  };
 
   const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
     setProcessingLoading(prev => ({
@@ -236,15 +393,66 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   return (
     <Card className="mb-6 pt-4">
-      <CardHeader className="flex flex-col items-start space-y-2 pb-2"> {/* Adjusted for button */}
-        <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
-        <Button
-          size="sm"
-          variant="outline"
-          title="Go back to Settings"
-        >
-          <a href={`/settings?tab=sources`}>Back to Settings</a>
-        </Button>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2"> {/* Adjusted for button */}
+        <div className="flex flex-col space-y-2">
+          <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            title="Go back to Settings"
+          >
+            <a href={`/settings?tab=sources`}>Back to Settings</a>
+          </Button>
+        </div>
+        {/* New: Single Button for Processing Missing AI Data */}
+        <div className="flex flex-col items-end space-y-2">
+          <Button
+            onClick={handleProcessAllMissingAi}
+            disabled={
+              articleProcessingLoading?.summary ||
+              articleProcessingLoading?.tags ||
+              articleProcessingLoading?.image ||
+              articleProcessingLoading?.translations
+            }
+            size="sm"
+            variant="secondary"
+          >
+            {
+              (articleProcessingLoading?.summary ||
+                articleProcessingLoading?.tags ||
+                articleProcessingLoading?.image ||
+                articleProcessingLoading?.translations) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
+                  </>
+                ) : 'Process All Missing AI Data'
+            }
+          </Button>
+          {articleProcessingStatus?.summary && (
+            <Alert variant={articleProcessingStatus?.summary?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+              {articleProcessingStatus?.summary?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+              <AlertDescription className="text-xs">Summary: {articleProcessingStatus?.summary}</AlertDescription>
+            </Alert>
+          )}
+          {articleProcessingStatus?.tags && (
+            <Alert variant={articleProcessingStatus?.tags?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+              {articleProcessingStatus?.tags?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+              <AlertDescription className="text-xs">Tags: {articleProcessingStatus?.tags}</AlertDescription>
+            </Alert>
+          )}
+          {articleProcessingStatus?.image && (
+            <Alert variant={articleProcessingStatus?.image?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+              {articleProcessingStatus?.image?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+              <AlertDescription className="text-xs">Image: {articleProcessingStatus?.image}</AlertDescription>
+            </Alert>
+          )}
+          {articleProcessingStatus?.translations && (
+            <Alert variant={articleProcessingStatus?.translations?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
+              {articleProcessingStatus?.translations?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+              <AlertDescription className="text-xs">Translations: {articleProcessingStatus?.translations}</AlertDescription>
+            </Alert>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -354,12 +562,14 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                         </div>
                       </TableCell>
                       <TableCell className="w-auto">
-                         {article.thumbnail_url || article.ai_image_path ? (
-                           <a href={article.thumbnail_url || article.ai_image_path || '#'} target="_blank" rel="noopener noreferrer">
-                             <img src={article.thumbnail_url || article.ai_image_path || ''} alt="Thumbnail" className="max-w-20 max-h-20 object-cover" />
+                         {article.ai_image_path ? (
+                           <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
+                             <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" />
                            </a>
+                         ) : article.thumbnail_url ? (
+                           <span className="text-gray-500">Original Image Available</span>
                          ) : (
-                           <span className="text-gray-500">N/A</span>
+                           <span className="text-gray-500">No Image Available</span>
                          )}
                       </TableCell>
                       <TableCell className="w-auto text-center">
@@ -490,12 +700,14 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {article.thumbnail_url || article.ai_image_path ? (
-                      <a href={article.thumbnail_url || article.ai_image_path || '#'} target="_blank" rel="noopener noreferrer">
-                        <img src={article.thumbnail_url || article.ai_image_path || ''} alt="Thumbnail" className="w-full h-32 object-cover rounded-md" />
+                    {article.ai_image_path ? (
+                      <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
+                        <img src={article.ai_image_path} alt="AI Image" className="w-full h-32 object-cover rounded-md" />
                       </a>
+                    ) : article.thumbnail_url ? (
+                      <div className="text-gray-500 text-sm">Original Image Available</div>
                     ) : (
-                      <div className="text-gray-500 text-sm">No Thumbnail</div>
+                      <div className="text-gray-500 text-sm">No Image Available</div>
                     )}
                     <p className="text-sm text-muted-foreground break-words">
                       URL: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{article.source_url}</a>
@@ -553,7 +765,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                           <img src={article.ai_image_path} alt="AI Image" className="w-full h-32 object-cover rounded-md" />
                         </a>
                       ) : article.thumbnail_url ? (
-                        <span className="text-gray-500">Article Image Exists</span>
+                        <span className="text-gray-500">Original Image Available</span>
                       ) : (
                         <span className="text-gray-500">N/A</span>
                       )}

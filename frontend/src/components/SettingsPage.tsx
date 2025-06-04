@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"; // Import 
 import { Toaster } from "./ui/toaster"; // Import Toaster
 import { useToast } from "./ui/use-toast"; // Import useToast hook
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"; // Import Alert components
-import { CheckCircle, XCircle, Info, Loader2, MoreHorizontal } from 'lucide-react'; // Import icons
+import { Info, MoreHorizontal } from 'lucide-react'; // Import icons
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu"; // Import DropdownMenu components
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"; // Import Accordion components
 
@@ -111,9 +111,6 @@ const SettingsPage: React.FC = () => {
   const [sourceScrapingLoading, setSourceScrapingLoading] = useState<{ [key: number]: boolean }>({});
   const [sourceArticleDeletionStatus, setSourceArticleDeletionStatus] = useState<{ [key: number]: string | null }>({});
   const [sourceArticleDeletionLoading, setSourceArticleDeletionLoading] = useState<{ [key: number]: boolean }>({});
-  // New state for processing missing AI data
-  const [sourceProcessingLoading, setSourceProcessingLoading] = useState<{ [key: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean } }>({});
-  const [sourceProcessingStatus, setSourceProcessingStatus] = useState<{ [key: number]: { summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null } }>({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFormData, setModalFormData] = useState<ModalFormData>({
@@ -438,90 +435,6 @@ const SettingsPage: React.FC = () => {
     setIsConfirmDialogOpen(true);
   };
 
-  // New handler function to process missing AI data for a source
-  const handleProcessMissingAi = async (sourceId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
-    setSourceProcessingLoading(prev => ({
-      ...prev,
-      [sourceId]: { ...prev[sourceId], [featureType]: true }
-    }));
-    setSourceProcessingStatus(prev => ({
-      ...prev,
-      [sourceId]: { ...prev[sourceId], [featureType]: null }
-    }));
-
-    try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ featureType }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `Failed to process missing ${featureType} for source ${sourceId}`);
-      }
-      setSourceProcessingStatus(prev => ({
-        ...prev,
-        [sourceId]: { ...prev[sourceId], [featureType]: data.message || `Processed missing ${featureType} for source ${sourceId}.` }
-      }));
-      toast({
-        title: `Missing ${featureType.charAt(0).toUpperCase() + featureType.slice(1)} Processed`,
-        description: data.message || `Processed missing ${featureType} for source ${sourceId}.`,
-        variant: "default",
-      });
-      // Optionally refetch stats after processing tags or images
-      if (featureType === 'tags' || featureType === 'image') {
-         // Consider if refetching stats is necessary or too heavy
-         // fetchStats();
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : `An unknown error occurred during ${featureType} processing.`;
-      setSourceProcessingStatus(prev => ({ ...prev, [sourceId]: { ...prev[sourceId], [featureType]: `Error: ${errorMessage}` } }));
-      toast({
-        title: `Error Processing Missing ${featureType.charAt(0).toUpperCase() + featureType.slice(1)}`,
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setSourceProcessingLoading(prev => ({
-        ...prev,
-        [sourceId]: { ...prev[sourceId], [featureType]: false }
-      }));
-    }
-  };
-
-  // New handler function to process all missing AI data for a source
-  const handleProcessAllMissingAi = async (
-    sourceId: number,
-    enableSummary: boolean,
-    enableTags: boolean,
-    enableImage: boolean,
-    enableTranslations: boolean
-  ) => {
-    const processingPromises: Promise<void>[] = [];
-
-    if (enableSummary) {
-      processingPromises.push(handleProcessMissingAi(sourceId, 'summary'));
-    }
-    if (enableTags) {
-      processingPromises.push(handleProcessMissingAi(sourceId, 'tags'));
-    }
-    if (enableImage) {
-      processingPromises.push(handleProcessMissingAi(sourceId, 'image'));
-    }
-    if (enableTranslations) {
-      processingPromises.push(handleProcessMissingAi(sourceId, 'translations'));
-    }
-
-    await Promise.all(processingPromises);
-  };
 
   // Handler to block a source from scraping
   const handleBlockSource = async (sourceId: number) => {
@@ -820,7 +733,7 @@ const SettingsPage: React.FC = () => {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while deleting the source.';
       toast({
-        title: "Error Deleting Source",
+        title: "Error Deletion Source",
         description: errorMessage,
         variant: "destructive",
       });
