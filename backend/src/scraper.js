@@ -465,6 +465,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
     console.warn('IDEOGRAM_API_KEY is not set. Skipping AI image generation.');
     return null;
   }
+  console.log(`IDEOGRAM_API_KEY is set: ${!!ideogramApiKey}`); // Log if key is present (masked)
 
   // Ideogram 3.0 API endpoint
   const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
@@ -501,8 +502,13 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
     formData.append('aspect_ratio', '16x9'); // Use the string format for aspect ratio
     formData.append('magic_prompt', 'OFF'); // Use magic_prompt for V3
     formData.append('style_type', 'REALISTIC'); // Add realistic style type
-
-    // Add other Ideogram API parameters as needed, e.g., seed, resolution, negative_prompt, num_images, color_palette, style_codes, style_type
+    console.log('Ideogram API request parameters:', {
+      prompt: optimizedPrompt,
+      rendering_speed: 'TURBO',
+      aspect_ratio: '16x9',
+      magic_prompt: 'OFF',
+      style_type: 'REALISTIC'
+    });
 
     const headers = formData.getHeaders();
     headers['Api-Key'] = ideogramApiKey; // Add the API key to the headers
@@ -519,6 +525,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
     }
 
     const responseData = await response.json();
+    console.log('Ideogram API raw response data:', JSON.stringify(responseData, null, 2));
 
     // Assuming the response structure includes a 'data' array with image objects, each having a 'url'
     if (responseData && responseData.data && responseData.data.length > 0) {
@@ -526,10 +533,12 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
       console.log('Generated AI image URL:', imageUrl);
 
       // --- Download the image ---
+      console.log('Attempting to download image from:', imageUrl);
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
         throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
       }
+      console.log('Image downloaded successfully.');
 
       const arrayBuffer = await imageResponse.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
@@ -564,6 +573,7 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
       // Use PutObjectCommand and client.send() for v3
       const command = new PutObjectCommand(uploadParams);
       const uploadResult = await s3Client.send(command);
+      console.log('S3 Upload Result:', uploadResult); // Log S3 upload result
 
       // Construct the public URL manually for v3 as Location is not always returned
       const s3ImageUrl = `https://${uploadParams.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${uploadParams.Key}`;
