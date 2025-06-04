@@ -79,7 +79,7 @@ const firecrawl = new Firecrawl({
   apiKey: process.env.FIRECRAWL_API_KEY, // Use the environment variable
 });
 
-async function getActiveSources() {
+const getActiveSources = async () => {
   try {
     // Select all columns including the new selector settings
     const result = await pool.query('SELECT * FROM sources WHERE is_active = TRUE');
@@ -88,10 +88,10 @@ async function getActiveSources() {
     console.error('Error fetching active sources:', err);
     return [];
   }
-}
+};
 
 // This function will handle scraping based on the source's scraping_method
-async function scrapeSource(source) {
+const scrapeSource = async (source) => {
   console.log(`Scraping source: ${source.name} (${source.url}) using method: ${source.scraping_method || 'firecrawl'}`);
   let scrapedResult = null;
 
@@ -131,10 +131,10 @@ async function scrapeSource(source) {
   } catch (err) {
     console.error(`Error during scraping for source ${source.name}:`, err); // Log the full error object
   }
-}
+};
 
 // This function generates AI summaries using the Groq API
-async function generateAISummary(content) {
+const generateAISummary = async (content) => {
   console.log('Generating AI summary using Groq...');
   const maxContentLength = 10000; // Define max content length to avoid hitting token limits
 
@@ -169,10 +169,10 @@ async function generateAISummary(content) {
     console.error('Error generating summary with Groq:', llmErr);
     return "Summary generation failed."; // Return a default error message
   }
-}
+};
 
 // This function assigns topics to an article using the Groq API
-async function assignTopicsWithAI(source, content) {
+const assignTopicsWithAI = async (source, content) => {
   console.log('Assigning topics using Groq...');
   const maxContentLength = 5000; // Define max content length for topic assignment
 
@@ -213,11 +213,11 @@ async function assignTopicsWithAI(source, content) {
     console.error('Error assigning topics with Groq:', llmErr);
     return []; // Return an empty array on error
   }
-}
+};
 
 
 // This function will process the scraped data and save it to the database
-async function processScrapedData(data) { // Accept a single data object
+const processScrapedData = async (data) => { // Accept a single data object
   const { source, content, metadata, scrapeType, enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations } = data; // Destructure data object
   console.log(`processScrapedData function started. scrapeType received: ${scrapeType}`); // Added log at the beginning
   console.log(`Processing scraped data for source: ${source.name} (Scrape Type: ${scrapeType})`);
@@ -340,6 +340,7 @@ async function processScrapedData(data) { // Accept a single data object
       if (shouldGenerateImage && (!metadata?.thumbnail_url || metadata.thumbnail_url.trim() === '')) {
         console.log('AI image generation is enabled and no thumbnail exists. Generating image...');
         aiImagePath = await generateAIImage(title, summary || raw_content); // Use summary if available, otherwise raw_content
+        console.log(`generateAIImage returned: ${aiImagePath}`); // Log return value
       } else if (!shouldGenerateImage) {
         console.log('AI image generation is disabled. Skipping image generation.');
       } else {
@@ -399,7 +400,6 @@ async function processScrapedData(data) { // Accept a single data object
         let currentTopicHt = topicResult.rows[0]?.name_ht;
 
         if (topicResult.rows.length === 0) {
-          // Topic doesn't exist, create it. Generate translations if not pre-translated.
           if (!preTranslatedEs) preTranslatedEs = await generateAITranslation(topicName, 'es', 'general');
           if (!preTranslatedHt) preTranslatedHt = await generateAITranslation(topicName, 'ht', 'general');
 
@@ -407,8 +407,6 @@ async function processScrapedData(data) { // Accept a single data object
           topicId = topicResult.rows[0].id;
         } else {
           topicId = topicResult.rows[0].id;
-          // If topic exists, check if translations are missing or different, then update.
-          // Prioritize pre-translated values, otherwise generate with AI if missing.
           let updatedEs = preTranslatedEs || currentTopicEs;
           let updatedHt = preTranslatedHt || currentTopicHt;
 
@@ -418,29 +416,24 @@ async function processScrapedData(data) { // Accept a single data object
           if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
             await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
           }
-          preTranslatedEs = updatedEs; // Use the final determined translation for article topics
-          preTranslatedHt = updatedHt; // Use the final determined translation for article topics
+          preTranslatedEs = updatedEs;
+          preTranslatedHt = updatedHt;
         }
-        // Add translated topic names to the arrays
         if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
         if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
 
-        // Collect topic IDs for later linking
         collectedTopicIds.push(topicId);
       }
 
-      // Convert translated topic arrays to comma-separated strings
       const topics_es = translatedTopicsEs.join(', ');
       const topics_ht = translatedTopicsHt.join(', ');
 
-      // Save article to database
       const articleResult = await pool.query(
         'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id',
         [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht]
       );
       const articleId = articleResult.rows[0].id;
 
-      // Link article and topics now that articleId is available
       for (const topicId of collectedTopicIds) {
         await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
       }
@@ -457,7 +450,7 @@ async function processScrapedData(data) { // Accept a single data object
 
 
 // Function to generate AI image using Ideogram API
-async function generateAIImage(title, summary) { // Changed signature to accept summary
+const generateAIImage = async (title, summary) => { // Changed signature to accept summary
   console.log('Attempting to generate AI image using Ideogram API...');
 
   const ideogramApiKey = process.env.IDEOGRAM_API_KEY;
@@ -592,10 +585,10 @@ async function generateAIImage(title, summary) { // Changed signature to accept 
     console.error('Error generating or uploading AI image with Ideogram API or S3:', apiErr);
     return null; // Return null on error
   }
-}
+};
 
 // This function generates AI translations using the Groq API
-async function generateAITranslation(text, targetLanguageCode, type = 'general') { // Added 'type' parameter
+const generateAITranslation = async (text, targetLanguageCode, type = 'general') => { // Added 'type' parameter
   if (!text) {
     return null;
   }
@@ -649,11 +642,11 @@ async function generateAITranslation(text, targetLanguageCode, type = 'general')
     console.error(`Error generating translation for "${text}" to ${targetLanguageCode} (type: ${type}) with Groq:`, llmErr);
     return null;
   }
-}
+};
 
 
 // Function to scrape a single article page based on source method
-async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true, scrapeAfterDate = null) { // Accept scrape type, global toggle states, and scrapeAfterDate
+const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true, scrapeAfterDate = null) => { // Accept scrape type, global toggle states, and scrapeAfterDate
   console.log(`Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
   console.log(`scrapeArticlePage received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, enableGlobalAiTranslations: ${enableGlobalAiTranslations}, scrapeAfterDate: ${scrapeAfterDate}`); // Log received values
   let scrapedResult = null;
@@ -731,10 +724,10 @@ async function scrapeArticlePage(source, articleUrl, scrapeType, globalSummaryTo
   } catch (err) {
     console.error(`Error during scraping article page ${articleUrl}:`, err);
   }
-}
+};
 
 
-async function runScraper(enableGlobalAiSummary = true, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true) { // Accept global toggle states including image and translations
+const runScraper = async (enableGlobalAiSummary = true, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true) => { // Accept global toggle states including image and translations
   console.log('Starting news scraping process...');
   await loadUrlBlacklist(); // Ensure blacklist is loaded before scraping
   const activeSources = await getActiveSources();
@@ -808,7 +801,7 @@ async function runScraper(enableGlobalAiSummary = true, enableGlobalAiTags = tru
   }
 
   console.log('News scraping process finished.');
-}
+};
 
 // Schedule the scraper to run periodically (e.g., every hour)
 // TODO: Adjust the cron schedule as needed
@@ -878,7 +871,7 @@ cron.schedule('*/20 * * * *', async () => {
 
 
 // Function to process AI data for a single article
-async function processAiForArticle(articleId, featureType) { // featureType can be 'summary', 'tags', or 'image'
+const processAiForArticle = async (articleId, featureType) => { // featureType can be 'summary', 'tags', or 'image'
   console.log(`Starting AI processing for article ID: ${articleId}, feature: ${featureType}`);
 
   if (!featureType || !['summary', 'tags', 'image', 'translations'].includes(featureType)) {
@@ -1080,14 +1073,14 @@ async function processAiForArticle(articleId, featureType) { // featureType can 
     console.error(`Error during AI processing for article ID ${articleId}, feature ${featureType}:`, err);
     return { success: false, message: `Error processing article ${articleId}: ${err.message}` };
   }
-}
+};
 
 
 // Optional: Run the scraper immediately when the script starts
 // runScraper();
 
 // Function to reprocess and update translated topics for all articles of a specific source
-async function reprocessTranslatedTopicsForSource(sourceId) {
+const reprocessTranslatedTopicsForSource = async (sourceId) => {
   console.log(`Starting re-processing of translated topics for source ID: ${sourceId}`);
   let processedCount = 0;
   let errorCount = 0;
@@ -1178,7 +1171,7 @@ async function reprocessTranslatedTopicsForSource(sourceId) {
     console.error(`Error during re-processing translated topics for source ID ${sourceId}:`, err);
     return { success: false, message: `Error re-processing source ${sourceId}: ${err.message}` };
   }
-}
+};
 
 // Export the runScraper function if you want to trigger it manually or from another script
 module.exports = {
