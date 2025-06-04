@@ -84,7 +84,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   // Filtering and Sorting states
   const [filterByAiStatus, setFilterByAiStatus] = useState<string>('all'); // 'all', 'missing_summary', 'has_summary', etc.
-  const [sortBy, setSortBy] = useState<string>('publication_date'); // 'publication_date', 'title'
+  const [sortBy, setSortBy] = useState<string>('id'); // 'id', 'publication_date', 'title'
   const [sortOrder, setSortOrder] = useState<string>('DESC'); // 'ASC', 'DESC'
 
   // State for confirmation dialog
@@ -293,6 +293,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     <SelectValue placeholder="Publication Date" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="id">Article Number</SelectItem>
                     <SelectItem value="publication_date">Publication Date</SelectItem>
                     <SelectItem value="title">Title</SelectItem>
                   </SelectContent>
@@ -329,7 +330,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     <TableHead className="w-[300px]">Title</TableHead>
                     <TableHead className="w-[300px]">URL</TableHead>
                     <TableHead className="w-auto">Thumbnail</TableHead>
-                    <TableHead className="w-auto">Publication Date</TableHead>
+                    <TableHead className="w-auto text-center">Publication Date</TableHead>
                     <TableHead className="w-auto">AI Summary</TableHead>
                     <TableHead className="w-auto">AI Tags</TableHead>
                     <TableHead className="w-auto">AI Image</TableHead>
@@ -361,7 +362,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                            <span className="text-gray-500">N/A</span>
                          )}
                       </TableCell>
-                      <TableCell className="w-auto">
+                      <TableCell className="w-auto text-center">
                         {article.publication_date ? new Date(article.publication_date).toLocaleDateString() : 'N/A'}
                       </TableCell>
                       <TableCell className="w-auto"> {/* Removed max-w-xs */}
@@ -674,8 +675,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
       {/* Pagination Controls */}
       {articles.length > 0 && (
-        <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 p-4 border-t">
-          <div className="flex items-center space-x-2">
+        <div className="flex flex-col md:flex-row items-center justify-end space-y-2 md:space-y-0 p-4 border-t">
+          <div className="flex items-center space-x-2 mr-4">
             <span className="text-sm text-muted-foreground">Articles per page:</span>
             <Select
               value={articlesPerPage.toString()}
