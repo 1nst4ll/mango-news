@@ -122,6 +122,27 @@ app.get('/api/sources', async (req, res) => {
   }
 });
 
+// Get a single source by ID
+app.get('/api/sources/:id', async (req, res) => {
+  const sourceId = req.params.id;
+  const endpoint = `/api/sources/${sourceId}`;
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching source with ID: ${sourceId}`);
+    const result = await pool.query('SELECT * FROM sources WHERE id = $1', [sourceId]);
+
+    if (result.rows.length === 0) {
+      console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Source with ID ${sourceId} not found`);
+      return res.status(404).json({ error: 'Source not found.' });
+    }
+
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched source with ID ${sourceId}`);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching source with ID ${sourceId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Get articles for a specific source
 app.get('/api/sources/:sourceId/articles', async (req, res) => {
   const sourceId = req.params.sourceId;
@@ -1002,7 +1023,7 @@ app.post('/api/settings/scheduler', authenticateToken, async (req, res) => {
   } catch (err) {
     await pool.query('ROLLBACK'); // Rollback transaction on error
     console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error saving scheduler settings:`, err);
-    res.status(500).json({ error: 'Failed to save scheduler settings.' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
