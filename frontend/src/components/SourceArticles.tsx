@@ -470,7 +470,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               articleProcessingLoading?.translations
             }
             size="sm"
-            variant="secondary"
+            variant="outline"
           >
             {
               (articleProcessingLoading?.summary ||
@@ -480,7 +480,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
                   </>
-                ) : 'Process All Missing AI Data'
+                ) : 'Missing AI Data'
             }
           </Button>
         </div>
