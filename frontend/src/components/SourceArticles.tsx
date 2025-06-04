@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"; // Import Shadcn Pagination components
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"; // For confirmation dialog
-import { Alert, AlertDescription } from "./ui/alert"; // Import Alert components
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'; // Import icons
+import { useToast } from "./ui/use-toast"; // Import useToast
 
 
 // Interface for Article data (matching the backend endpoint response)
@@ -58,7 +58,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   // New state for processing missing AI data for the current source
   const [articleProcessingLoading, setArticleProcessingLoading] = useState<{ summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean } | null>(null);
-  const [articleProcessingStatus, setArticleProcessingStatus] = useState<{ summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null } | null>(null);
+
+  const { toast } = useToast(); // Initialize useToast
 
   // Helper function to generate pagination items
   const generatePaginationItems = (currentPage: number, totalPages: number) => {
@@ -105,7 +106,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   };
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [processingStatus, setProcessingStatus] = useState<{ [articleId: number]: { summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null; deleting?: string | null } }>({});
   const [processingLoading, setProcessingLoading] = useState<{ [articleId: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean; deleting?: boolean } }>({});
 
   // Pagination states
@@ -193,7 +193,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
     // Reset all processing statuses and loading states
     setArticleProcessingLoading({ summary: false, tags: false, image: false, translations: false });
-    setArticleProcessingStatus({ summary: null, tags: null, image: null, translations: null });
 
     if (sourceSettings.enable_ai_summary) {
       setArticleProcessingLoading(prev => ({ ...prev, summary: true }));
@@ -209,13 +208,25 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(response => response.json())
         .then(data => {
           if (!data.error) {
-            setArticleProcessingStatus(prev => ({ ...prev, summary: data.message || `Processed missing summary.` }));
+            toast({
+              title: "Success",
+              description: data.message || `Processed missing summary.`,
+            });
           } else {
-            setArticleProcessingStatus(prev => ({ ...prev, summary: `Error: ${data.error}` }));
+            toast({
+              title: "Error",
+              description: `Error: ${data.error}`,
+              variant: "destructive",
+            });
           }
         })
-        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, summary: `Error: ${err.message}` })))
+        .catch(err => toast({
+          title: "Error",
+          description: `Error: ${err.message}`,
+          variant: "destructive",
+        }))
         .finally(() => setArticleProcessingLoading(prev => ({ ...prev, summary: false })))
+        .then(() => {}) // Ensure the promise resolves to void
       );
     }
     if (sourceSettings.enable_ai_tags) {
@@ -232,13 +243,25 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(response => response.json())
         .then(data => {
           if (!data.error) {
-            setArticleProcessingStatus(prev => ({ ...prev, tags: data.message || `Processed missing tags.` }));
+            toast({
+              title: "Success",
+              description: data.message || `Processed missing tags.`,
+            });
           } else {
-            setArticleProcessingStatus(prev => ({ ...prev, tags: `Error: ${data.error}` }));
+            toast({
+              title: "Error",
+              description: `Error: ${data.error}`,
+              variant: "destructive",
+            });
           }
         })
-        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, tags: `Error: ${err.message}` })))
+        .catch(err => toast({
+          title: "Error",
+          description: `Error: ${err.message}`,
+          variant: "destructive",
+        }))
         .finally(() => setArticleProcessingLoading(prev => ({ ...prev, tags: false })))
+        .then(() => {}) // Ensure the promise resolves to void
       );
     }
     if (sourceSettings.enable_ai_image) {
@@ -255,13 +278,25 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(response => response.json())
         .then(data => {
           if (!data.error) {
-            setArticleProcessingStatus(prev => ({ ...prev, image: data.message || `Processed missing image.` }));
+            toast({
+              title: "Success",
+              description: data.message || `Processed missing image.`,
+            });
           } else {
-            setArticleProcessingStatus(prev => ({ ...prev, image: `Error: ${data.error}` }));
+            toast({
+              title: "Error",
+              description: `Error: ${data.error}`,
+              variant: "destructive",
+            });
           }
         })
-        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, image: `Error: ${err.message}` })))
+        .catch(err => toast({
+          title: "Error",
+          description: `Error: ${err.message}`,
+          variant: "destructive",
+        }))
         .finally(() => setArticleProcessingLoading(prev => ({ ...prev, image: false })))
+        .then(() => {}) // Ensure the promise resolves to void
       );
     }
     if (sourceSettings.enable_ai_translations) {
@@ -278,13 +313,25 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(response => response.json())
         .then(data => {
           if (!data.error) {
-            setArticleProcessingStatus(prev => ({ ...prev, translations: data.message || `Processed missing translations.` }));
+            toast({
+              title: "Success",
+              description: data.message || `Processed missing translations.`,
+            });
           } else {
-            setArticleProcessingStatus(prev => ({ ...prev, translations: `Error: ${data.error}` }));
+            toast({
+              title: "Error",
+              description: `Error: ${data.error}`,
+              variant: "destructive",
+            });
           }
         })
-        .catch(err => setArticleProcessingStatus(prev => ({ ...prev, translations: `Error: ${err.message}` })))
+        .catch(err => toast({
+          title: "Error",
+          description: `Error: ${err.message}`,
+          variant: "destructive",
+        }))
         .finally(() => setArticleProcessingLoading(prev => ({ ...prev, translations: false })))
+        .then(() => {}) // Ensure the promise resolves to void
       );
     }
 
@@ -296,10 +343,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     setProcessingLoading(prev => ({
       ...prev,
       [articleId]: { ...prev[articleId], [featureType]: true }
-    }));
-    setProcessingStatus(prev => ({
-      ...prev,
-      [articleId]: { ...prev[articleId], [featureType]: null }
     }));
 
     try {
@@ -315,17 +358,25 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       if (!response.ok) {
         throw new Error(data.error || `Failed to process ${featureType} for article ${articleId}`);
       }
-      setProcessingStatus(prev => ({
-        ...prev,
-        [articleId]: { ...prev[articleId], [featureType]: data.message || `Processed ${featureType} for article ${articleId}.` }
-      }));
+      toast({
+        title: "Success",
+        description: data.message || `Processed ${featureType} for article ${articleId}.`,
+      });
       // Optionally refetch articles after processing to show updated status/data
       fetchArticles();
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setProcessingStatus(prev => ({ ...prev, [articleId]: { ...prev[articleId], [featureType]: `Error: ${err.message}` } }));
+        toast({
+          title: "Error",
+          description: `Error: ${err.message}`,
+          variant: "destructive",
+        });
       } else {
-        setProcessingStatus(prev => ({ ...prev, [articleId]: { ...prev[articleId], [featureType]: `An unknown error occurred during ${featureType} processing.` } }));
+        toast({
+          title: "Error",
+          description: `An unknown error occurred during ${featureType} processing.`,
+          variant: "destructive",
+        });
       }
     } finally {
       setProcessingLoading(prev => ({
@@ -351,10 +402,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       ...prev,
       [articleId]: { ...prev[articleId], deleting: true }
     }));
-    setProcessingStatus(prev => ({
-      ...prev,
-      [articleId]: { ...prev[articleId], deleting: null }
-    }));
 
     try {
       const response = await fetch(`${apiUrl}/api/articles/${articleId}`, {
@@ -372,15 +419,23 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
       // Remove the deleted article from the state
       setArticles(articles.filter(article => article.id !== articleId));
-      setProcessingStatus(prev => ({
-        ...prev,
-        [articleId]: { ...prev[articleId], deleting: `Article ${articleId} deleted successfully.` }
-      }));
+      toast({
+        title: "Success",
+        description: `Article ${articleId} deleted successfully.`,
+      });
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setProcessingStatus(prev => ({ ...prev, [articleId]: { ...prev[articleId], deleting: `Error: ${err.message}` } }));
+        toast({
+          title: "Error",
+          description: `Error: ${err.message}`,
+          variant: "destructive",
+        });
       } else {
-        setProcessingStatus(prev => ({ ...prev, [articleId]: { ...prev[articleId], deleting: 'An unknown error occurred during deletion.' } }));
+        toast({
+          title: "Error",
+          description: 'An unknown error occurred during deletion.',
+          variant: "destructive",
+        });
       }
     } finally {
       setProcessingLoading(prev => ({
@@ -428,30 +483,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                 ) : 'Process All Missing AI Data'
             }
           </Button>
-          {articleProcessingStatus?.summary && (
-            <Alert variant={articleProcessingStatus?.summary?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-              {articleProcessingStatus?.summary?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-              <AlertDescription className="text-xs">Summary: {articleProcessingStatus?.summary}</AlertDescription>
-            </Alert>
-          )}
-          {articleProcessingStatus?.tags && (
-            <Alert variant={articleProcessingStatus?.tags?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-              {articleProcessingStatus?.tags?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-              <AlertDescription className="text-xs">Tags: {articleProcessingStatus?.tags}</AlertDescription>
-            </Alert>
-          )}
-          {articleProcessingStatus?.image && (
-            <Alert variant={articleProcessingStatus?.image?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-              {articleProcessingStatus?.image?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-              <AlertDescription className="text-xs">Image: {articleProcessingStatus?.image}</AlertDescription>
-            </Alert>
-          )}
-          {articleProcessingStatus?.translations && (
-            <Alert variant={articleProcessingStatus?.translations?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-              {articleProcessingStatus?.translations?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-              <AlertDescription className="text-xs">Translations: {articleProcessingStatus?.translations}</AlertDescription>
-            </Alert>
-          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -591,11 +622,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             {processingLoading[article.id]?.summary ? '...' : 'Rerun Summary'}
                           </Button>
                         </div>
-                         {processingStatus[article.id]?.summary && (
-                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                              Summary: {processingStatus[article.id]?.summary}
-                            </div>
-                          )}
                       </TableCell>
                       <TableCell className="w-auto"> {/* Removed max-w-xs */}
                          <div className="flex flex-col space-y-2 items-start">
@@ -615,11 +641,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                              {processingLoading[article.id]?.tags ? '...' : 'Rerun Tags'}
                            </Button>
                          </div>
-                         {processingStatus[article.id]?.tags && (
-                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                              Tags: {processingStatus[article.id]?.tags}
-                            </div>
-                          )}
                       </TableCell>
                       <TableCell className="w-auto"> {/* Removed max-w-xs */}
                         <div className="flex flex-col space-y-2 items-start">
@@ -642,11 +663,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             {processingLoading[article.id]?.image ? '...' : 'Rerun Image'}
                           </Button>
                         </div>
-                        {processingStatus[article.id]?.image && (
-                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                            Image: {processingStatus[article.id]?.image}
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex flex-col space-y-2 justify-end">
@@ -669,17 +685,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             {processingLoading[article.id]?.deleting ? 'Deleting...' : 'Delete'}
                           </Button>
                         </div>
-                         {/* Display processing status messages */}
-                           {processingStatus[article.id]?.deleting && (
-                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.deleting?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                              Deletion: {processingStatus[article.id]?.deleting}
-                            </div>
-                          )}
-                          {processingStatus[article.id]?.translations && (
-                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                              Translations: {processingStatus[article.id]?.translations}
-                            </div>
-                          )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -725,11 +730,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                       >
                         {processingLoading[article.id]?.summary ? '...' : 'Rerun Summary'}
                       </Button>
-                      {processingStatus[article.id]?.summary && (
-                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.summary?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                          Summary: {processingStatus[article.id]?.summary}
-                        </div>
-                      )}
                     </div>
                     <div>
                       <p className="text-sm font-semibold">AI Tags:</p>
@@ -748,11 +748,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                       >
                         {processingLoading[article.id]?.tags ? '...' : 'Rerun Tags'}
                       </Button>
-                      {processingStatus[article.id]?.tags && (
-                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.tags?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                          Tags: {processingStatus[article.id]?.tags}
-                        </div>
-                      )}
                     </div>
                     <div>
                       <p className="text-sm font-semibold">AI Image:</p>
@@ -774,11 +769,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                       >
                         {processingLoading[article.id]?.image ? '...' : 'Rerun Image'}
                       </Button>
-                      {processingStatus[article.id]?.image && (
-                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                          Image: {processingStatus[article.id]?.image}
-                        </div>
-                      )}
                     </div>
                     <div>
                       <p className="text-sm font-semibold">Translations:</p>
@@ -791,11 +781,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                       >
                         {processingLoading[article.id]?.translations ? '...' : 'Rerun Translations'}
                       </Button>
-                      {processingStatus[article.id]?.translations && (
-                        <div className={`text-xs mt-1 ${processingStatus[article.id]?.translations?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                          Translations: {processingStatus[article.id]?.translations}
-                        </div>
-                      )}
                     </div>
                     <Button
                       onClick={() => handleDeleteArticle(article.id)}
@@ -806,11 +791,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     >
                       {processingLoading[article.id]?.deleting ? 'Deleting...' : 'Delete Article'}
                     </Button>
-                    {processingStatus[article.id]?.deleting && (
-                      <div className={`text-xs mt-1 ${processingStatus[article.id]?.deleting?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                        Deletion: {processingStatus[article.id]?.deleting}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
