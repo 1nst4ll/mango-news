@@ -36,7 +36,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [articlesPerPage, setArticlesPerPage] = useState(15); // Default articles per page
+  const [articlesPerPage, setArticlesPerPage] = useState(5); // Default articles per page
   const [totalArticles, setTotalArticles] = useState(0);
 
   // Filtering and Sorting states
