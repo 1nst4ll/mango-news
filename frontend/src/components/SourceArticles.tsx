@@ -325,9 +325,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               <Table className="table-fixed w-full"> {/* Added table-fixed and w-full */}
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-auto">#</TableHead>
-                    <TableHead className="w-[200px]">Title</TableHead>
-                    <TableHead className="w-[200px]">URL</TableHead>
+                    <TableHead className="w-[50px]">#</TableHead>
+                    <TableHead className="w-[300px]">Title</TableHead>
+                    <TableHead className="w-[300px]">URL</TableHead>
                     <TableHead className="w-auto">Thumbnail</TableHead>
                     <TableHead className="w-auto">Publication Date</TableHead>
                     <TableHead className="w-auto">AI Summary</TableHead>
