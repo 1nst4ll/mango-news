@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"; // Assuming you have a Table component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"; // Import Select components
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"; // Import Shadcn Pagination components
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"; // For confirmation dialog
 
@@ -225,6 +226,13 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"> {/* Adjusted for button */}
         <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
         <div className="flex items-center space-x-2">
+          <Button
+            size="sm"
+            variant="outline"
+            title="Go back to Source Settings"
+          >
+            <a href={`/settings/source/${sourceId}`}>Back to Source Settings</a>
+          </Button>
           <Button
             onClick={handleReprocessTopics}
             disabled={reprocessLoading}
@@ -663,27 +671,35 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {currentPage} of {Math.ceil(totalArticles / articlesPerPage)}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={currentPage * articlesPerPage >= totalArticles}
-            >
-              Next
-            </Button>
-          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+              </PaginationItem>
+              <PaginationItem>
+                <span className="text-sm text-muted-foreground mx-2">
+                  Page {currentPage} of {Math.ceil(totalArticles / articlesPerPage)}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage * articlesPerPage >= totalArticles}
+                >
+                  Next
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 
