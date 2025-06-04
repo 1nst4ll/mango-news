@@ -325,21 +325,21 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               <Table className="table-fixed w-full"> {/* Added table-fixed and w-full */}
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px]">#</TableHead>
+                    <TableHead className="w-auto">#</TableHead>
                     <TableHead className="w-[200px]">Title</TableHead>
                     <TableHead className="w-[200px]">URL</TableHead>
-                    <TableHead className="w-[100px]">Thumbnail</TableHead>
-                    <TableHead className="w-[100px]">Publication Date</TableHead>
-                    <TableHead>AI Summary</TableHead>
-                    <TableHead>AI Tags</TableHead>
-                    <TableHead>AI Image</TableHead>
+                    <TableHead className="w-auto">Thumbnail</TableHead>
+                    <TableHead className="w-auto">Publication Date</TableHead>
+                    <TableHead className="w-auto">AI Summary</TableHead>
+                    <TableHead className="w-auto">AI Tags</TableHead>
+                    <TableHead className="w-auto">AI Image</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {articles.map((article, index) => (
                     <TableRow key={article.id}>
-                      <TableCell className="font-medium w-[50px]">{index + 1}</TableCell>
+                      <TableCell className="font-medium w-auto">{article.id}</TableCell>
                       <TableCell className="font-medium w-[200px]">
                         <div className="break-all whitespace-normal overflow-hidden">
                           {article.title}
@@ -352,7 +352,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                           </a>
                         </div>
                       </TableCell>
-                      <TableCell className="w-[100px]">
+                      <TableCell className="w-auto">
                          {article.thumbnail_url || article.ai_image_path ? (
                            <a href={article.thumbnail_url || article.ai_image_path || '#'} target="_blank" rel="noopener noreferrer">
                              <img src={article.thumbnail_url || article.ai_image_path || ''} alt="Thumbnail" className="max-w-20 max-h-20 object-cover" />
@@ -361,10 +361,10 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                            <span className="text-gray-500">N/A</span>
                          )}
                       </TableCell>
-                      <TableCell className="w-[100px]">
+                      <TableCell className="w-auto">
                         {article.publication_date ? new Date(article.publication_date).toLocaleDateString() : 'N/A'}
                       </TableCell>
-                      <TableCell> {/* Removed max-w-xs */}
+                      <TableCell className="w-auto"> {/* Removed max-w-xs */}
                         <div className="flex flex-col space-y-2 items-start">
                           <textarea
                             value={article.ai_summary || ''}
@@ -388,7 +388,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             </div>
                           )}
                       </TableCell>
-                      <TableCell> {/* Removed max-w-xs */}
+                      <TableCell className="w-auto"> {/* Removed max-w-xs */}
                          <div className="flex flex-col space-y-2 items-start">
                            <textarea
                              value={article.ai_tags && article.ai_tags.length > 0 ? article.ai_tags.join(', ') : ''}
@@ -412,7 +412,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             </div>
                           )}
                       </TableCell>
-                      <TableCell> {/* Removed max-w-xs */}
+                      <TableCell className="w-auto"> {/* Removed max-w-xs */}
                         <div className="flex flex-col space-y-2 items-start">
                           {article.ai_image_path ? (
                             <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
