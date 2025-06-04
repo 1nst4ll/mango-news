@@ -28,6 +28,50 @@ interface SourceArticlesProps {
 
 const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [articles, setArticles] = useState<Article[]>([]);
+
+  // Helper function to generate pagination items
+  const generatePaginationItems = (currentPage: number, totalPages: number) => {
+    const paginationItems: (number | 'ellipsis-start' | 'ellipsis-end')[] = [];
+    const maxPagesToShow = 5; // Number of page links to show directly
+
+    // Always show first page
+    if (totalPages > 0) {
+      paginationItems.push(1);
+    }
+
+    // Determine start and end for the main block of pages
+    let startPage = Math.max(2, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages - 1, currentPage + Math.floor(maxPagesToShow / 2));
+
+    // Adjust start/end if near boundaries
+    if (currentPage <= Math.ceil(maxPagesToShow / 2) && totalPages > maxPagesToShow) {
+      endPage = maxPagesToShow;
+    } else if (currentPage > totalPages - Math.floor(maxPagesToShow / 2) && totalPages > maxPagesToShow) {
+      startPage = totalPages - maxPagesToShow + 1;
+    }
+
+    // Add ellipsis if needed at the beginning
+    if (startPage > 2) {
+      paginationItems.push('ellipsis-start');
+    }
+
+    // Add main page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      paginationItems.push(i);
+    }
+
+    // Add ellipsis if needed at the end
+    if (endPage < totalPages - 1) {
+      paginationItems.push('ellipsis-end');
+    }
+
+    // Always show last page if not already included
+    if (totalPages > 1 && !paginationItems.includes(totalPages)) {
+      paginationItems.push(totalPages);
+    }
+
+    return paginationItems;
+  };
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState<{ [articleId: number]: { summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null; deleting?: string | null } }>({});
@@ -674,29 +718,34 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <PaginationPrevious
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
+                  className={currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}
+                  aria-disabled={currentPage === 1}
+                />
               </PaginationItem>
+
+              {generatePaginationItems(currentPage, Math.ceil(totalArticles / articlesPerPage)).map((item, index) => (
+                <PaginationItem key={index}>
+                  {typeof item === 'number' ? (
+                    <PaginationLink
+                      onClick={() => setCurrentPage(item)}
+                      isActive={currentPage === item}
+                    >
+                      {item}
+                    </PaginationLink>
+                  ) : (
+                    <PaginationEllipsis />
+                  )}
+                </PaginationItem>
+              ))}
+
               <PaginationItem>
-                <span className="text-sm text-muted-foreground mx-2">
-                  Page {currentPage} of {Math.ceil(totalArticles / articlesPerPage)}
-                </span>
-              </PaginationItem>
-              <PaginationItem>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <PaginationNext
                   onClick={() => setCurrentPage(prev => prev + 1)}
-                  disabled={currentPage * articlesPerPage >= totalArticles}
-                >
-                  Next
-                </Button>
+                  className={currentPage * articlesPerPage >= totalArticles ? 'opacity-50 cursor-not-allowed' : ''}
+                  aria-disabled={currentPage * articlesPerPage >= totalArticles}
+                />
               </PaginationItem>
             </PaginationContent>
           </Pagination>
