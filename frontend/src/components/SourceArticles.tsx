@@ -326,7 +326,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     <TableHead>Publication Date</TableHead> {/* New Header */}
                     <TableHead>AI Summary</TableHead>
                     <TableHead>AI Tags</TableHead>
-                    <TableHead>AI Image Path</TableHead> {/* Updated Header */}
+                    <TableHead>AI Image</TableHead> {/* Updated Header */}
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -398,28 +398,15 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                           )}
                       </TableCell>
                       <TableCell className="max-w-xs">
-                         <div className="flex items-center space-x-2">
-                           <input
-                             type="text"
-                             value={article.ai_image_path || ''}
-                             readOnly
-                             className="flex-grow border rounded-md p-1 text-sm"
-                             placeholder="No image URL"
-                           />
-                           <Button
-                             onClick={() => handleProcessAi(article.id, 'image')}
-                             disabled={processingLoading[article.id]?.image}
-                             size="sm"
-                             variant="secondary"
-                           >
-                             {processingLoading[article.id]?.image ? '...' : 'Rerun Image'}
-                           </Button>
-                         </div>
-                         {processingStatus[article.id]?.image && (
-                            <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-                              Image: {processingStatus[article.id]?.image}
-                            </div>
-                          )}
+                        {article.ai_image_path ? (
+                          <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
+                            <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" />
+                          </a>
+                        ) : article.thumbnail_url ? (
+                          <span className="text-gray-500">Article Image Exists</span>
+                        ) : (
+                          <span className="text-gray-500">N/A</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex flex-col space-y-2 justify-end">
@@ -526,14 +513,16 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold">AI Image Path:</p>
-                      <input
-                        type="text"
-                        value={article.ai_image_path || ''}
-                        readOnly
-                        className="w-full border rounded-md p-1 text-sm"
-                        placeholder="No image URL"
-                      />
+                      <p className="text-sm font-semibold">AI Image:</p>
+                      {article.ai_image_path ? (
+                        <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
+                          <img src={article.ai_image_path} alt="AI Image" className="w-full h-32 object-cover rounded-md" />
+                        </a>
+                      ) : article.thumbnail_url ? (
+                        <span className="text-gray-500">Article Image Exists</span>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
                       <Button
                         onClick={() => handleProcessAi(article.id, 'image')}
                         disabled={processingLoading[article.id]?.image}
