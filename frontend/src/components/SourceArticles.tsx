@@ -267,7 +267,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     <TableHead className="w-[50px]">#</TableHead>
                     <TableHead className="w-[300px]">Title</TableHead>
                     <TableHead className="w-[300px]">URL</TableHead>
-                    <TableHead className="w-auto">Thumbnail</TableHead>
+                    <TableHead className="w-[70px]">Thumbnail</TableHead>
                     <TableHead className="w-auto text-center">Publication Date</TableHead>
                     <TableHead className="w-auto">AI Summary</TableHead>
                     <TableHead className="w-auto">AI Tags</TableHead>
@@ -279,19 +279,19 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                   {articles.map((article, index) => (
                     <TableRow key={article.id}>
                       <TableCell className="font-medium w-auto">{article.id}</TableCell>
-                      <TableCell className="font-medium w-[200px]">
+                      <TableCell className="font-medium w-[300px]">
                         <div className="break-all whitespace-normal overflow-hidden">
                           {article.title}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[200px]">
+                      <TableCell className="w-[300px]">
                         <div className="break-all whitespace-normal overflow-hidden">
                           <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                             {article.source_url}
                           </a>
                         </div>
                       </TableCell>
-                      <TableCell className="w-auto">
+                      <TableCell className="w-[50px]">
                          {article.thumbnail_url || article.ai_image_path ? (
                            <a href={article.thumbnail_url || article.ai_image_path || '#'} target="_blank" rel="noopener noreferrer">
                              <img src={article.thumbnail_url || article.ai_image_path || ''} alt="Thumbnail" className="max-w-20 max-h-20 object-cover" />
