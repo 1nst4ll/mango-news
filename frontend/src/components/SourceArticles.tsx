@@ -253,7 +253,69 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
           <div className="text-red-500">Error loading articles: {error}</div>
         ) : (
           <>
-
+            {/* Filter and Sort Controls */}
+            <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 p-4 border-b">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Filter by AI Status:</span>
+                <Select
+                  value={filterByAiStatus}
+                  onValueChange={(value) => {
+                    setFilterByAiStatus(value);
+                    setCurrentPage(1); // Reset to first page when filter changes
+                  }}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All Articles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Articles</SelectItem>
+                    <SelectItem value="missing_summary">Missing Summary</SelectItem>
+                    <SelectItem value="has_summary">Has Summary</SelectItem>
+                    <SelectItem value="missing_tags">Missing Tags</SelectItem>
+                    <SelectItem value="has_tags">Has Tags</SelectItem>
+                    <SelectItem value="missing_image">Missing Image</SelectItem>
+                    <SelectItem value="has_image">Has Image</SelectItem>
+                    <SelectItem value="missing_translations">Missing Translations</SelectItem>
+                    <SelectItem value="has_translations">Has Translations</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Sort By:</span>
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => {
+                    setSortBy(value);
+                    setCurrentPage(1); // Reset to first page when sort changes
+                  }}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Publication Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="id">Article Number</SelectItem>
+                    <SelectItem value="publication_date">Publication Date</SelectItem>
+                    <SelectItem value="title">Title</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={sortOrder}
+                  onValueChange={(value) => {
+                    setSortOrder(value);
+                    setCurrentPage(1); // Reset to first page when sort order changes
+                  }}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="DESC" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DESC">Descending</SelectItem>
+                    <SelectItem value="ASC">Ascending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             {/* Display "No articles found" message if articles.length is 0 AFTER loading */}
             {articles.length === 0 && !loading && !error && (
               <div className="text-gray-600 p-4">No articles found for this source with the current filters.</div>
