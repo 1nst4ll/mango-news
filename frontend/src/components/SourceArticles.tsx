@@ -39,6 +39,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [articlesPerPage, setArticlesPerPage] = useState(15); // Default articles per page
   const [totalArticles, setTotalArticles] = useState(0);
 
+  // Filtering and Sorting states
+  const [filterByAiStatus, setFilterByAiStatus] = useState<string>('all'); // 'all', 'missing_summary', 'has_summary', etc.
+  const [sortBy, setSortBy] = useState<string>('publication_date'); // 'publication_date', 'title'
+  const [sortOrder, setSortOrder] = useState<string>('DESC'); // 'ASC', 'DESC'
+
   // State for confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [confirmDialogArticleId, setConfirmDialogArticleId] = useState<number | null>(null);
@@ -56,7 +61,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     setLoading(true);
     setError(null);
     try {
-      const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles?page=${currentPage}&limit=${articlesPerPage}`;
+      const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles?page=${currentPage}&limit=${articlesPerPage}&sortBy=${sortBy}&sortOrder=${sortOrder}&filterByAiStatus=${filterByAiStatus}`;
       console.log(`[Frontend] Fetching articles from: ${fetchUrl}`);
       const response = await fetch(fetchUrl);
       if (!response.ok) {
@@ -85,7 +90,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   useEffect(() => {
     fetchArticles();
-  }, [sourceId, currentPage, articlesPerPage]); // Refetch articles when sourceId, currentPage, or articlesPerPage changes
+  }, [sourceId, currentPage, articlesPerPage, sortBy, sortOrder, filterByAiStatus]); // Refetch articles when sourceId, currentPage, articlesPerPage, sortBy, sortOrder, or filterByAiStatus changes
 
   const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
     setProcessingLoading(prev => ({
@@ -245,6 +250,68 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
           <div className="text-gray-600">No articles found for this source.</div>
         ) : (
           <>
+            {/* Filter and Sort Controls */}
+            <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 p-4 border-b">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Filter by AI Status:</span>
+                <Select
+                  value={filterByAiStatus}
+                  onValueChange={(value) => {
+                    setFilterByAiStatus(value);
+                    setCurrentPage(1); // Reset to first page when filter changes
+                  }}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All Articles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Articles</SelectItem>
+                    <SelectItem value="missing_summary">Missing Summary</SelectItem>
+                    <SelectItem value="has_summary">Has Summary</SelectItem>
+                    <SelectItem value="missing_tags">Missing Tags</SelectItem>
+                    <SelectItem value="has_tags">Has Tags</SelectItem>
+                    <SelectItem value="missing_image">Missing Image</SelectItem>
+                    <SelectItem value="has_image">Has Image</SelectItem>
+                    <SelectItem value="missing_translations">Missing Translations</SelectItem>
+                    <SelectItem value="has_translations">Has Translations</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Sort By:</span>
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => {
+                    setSortBy(value);
+                    setCurrentPage(1); // Reset to first page when sort changes
+                  }}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Publication Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="publication_date">Publication Date</SelectItem>
+                    <SelectItem value="title">Title</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={sortOrder}
+                  onValueChange={(value) => {
+                    setSortOrder(value);
+                    setCurrentPage(1); // Reset to first page when sort order changes
+                  }}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="DESC" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DESC">Descending</SelectItem>
+                    <SelectItem value="ASC">Ascending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {/* Table View for larger screens (md and up) */}
             <div className="hidden md:block overflow-x-auto">
               <Table>
