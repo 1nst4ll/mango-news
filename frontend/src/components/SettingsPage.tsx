@@ -1111,7 +1111,8 @@ const SettingsPage: React.FC = () => {
                     <Card key={source.id} className="p-4 shadow-sm pt-4 flex flex-col"> {/* Added flex flex-col to make card content stretch */}
                       <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
                         <div>
-                          <CardTitle className="text-lg font-medium">ID: {source.id} - {source.name}</CardTitle>
+                          <div className="text-sm text-muted-foreground">ID: {source.id}</div>
+                          <CardTitle className="text-lg font-medium">{source.name}</CardTitle>
                           <CardDescription className="text-sm text-muted-foreground">
                             URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
                           </CardDescription>
@@ -1177,7 +1178,16 @@ const SettingsPage: React.FC = () => {
                         </Alert>
                       )}
 
-                    <div className="mt-4 pt-4 border-t border-gray-200"></div>
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <Button
+                        onClick={() => window.location.href = `/settings/source/${source.id}`}
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                      >
+                        View Articles
+                      </Button>
+                    </div>
                     </Card>
                   ))}
                 </ul>
