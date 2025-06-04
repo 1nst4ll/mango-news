@@ -56,21 +56,27 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/sources/${sourceId}/articles?page=${currentPage}&limit=${articlesPerPage}`);
+      const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles?page=${currentPage}&limit=${articlesPerPage}`;
+      console.log(`[Frontend] Fetching articles from: ${fetchUrl}`);
+      const response = await fetch(fetchUrl);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const totalCount = response.headers.get('X-Total-Count');
+      console.log(`[Frontend] Received X-Total-Count header: ${totalCount}`);
       if (totalCount) {
         setTotalArticles(parseInt(totalCount, 10));
       }
       const data: Article[] = await response.json();
+      console.log(`[Frontend] Received ${data.length} articles.`);
       setArticles(data);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(`Error fetching articles: ${err.message}`);
+        console.error(`[Frontend] Error fetching articles:`, err);
       } else {
         setError('An unknown error occurred while fetching articles.');
+        console.error(`[Frontend] An unknown error occurred while fetching articles.`);
       }
     } finally {
       setLoading(false);
@@ -528,6 +534,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                 <SelectValue placeholder={articlesPerPage} />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="5">5</SelectItem>
                 <SelectItem value="10">10</SelectItem>
                 <SelectItem value="15">15</SelectItem>
                 <SelectItem value="20">20</SelectItem>

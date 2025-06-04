@@ -197,6 +197,7 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
 
     const countResult = await pool.query(countQuery, queryParams.slice(0, queryParams.length - 2)); // Exclude limit and offset for count query
     const totalArticles = parseInt(countResult.rows[0].count, 10);
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Calculated totalArticles: ${totalArticles}`);
 
     const articlesResult = await pool.query(articlesQuery, queryParams);
 
