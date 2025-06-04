@@ -325,6 +325,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               <Table className="table-fixed w-full"> {/* Added table-fixed and w-full */}
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">#</TableHead>
                     <TableHead className="w-[200px]">Title</TableHead>
                     <TableHead className="w-[200px]">URL</TableHead>
                     <TableHead className="w-[100px]">Thumbnail</TableHead>
@@ -336,8 +337,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {articles.map((article) => (
+                  {articles.map((article, index) => (
                     <TableRow key={article.id}>
+                      <TableCell className="font-medium w-[50px]">{index + 1}</TableCell>
                       <TableCell className="font-medium w-[200px]">
                         <div className="break-all whitespace-normal overflow-hidden">
                           {article.title}
