@@ -544,7 +544,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     setCurrentPage(1); // Reset to first page when sort order changes
                   }}
                 >
-                  <SelectTrigger className="w-[100px]">
+                  <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="DESC" />
                   </SelectTrigger>
                   <SelectContent>
