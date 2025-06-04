@@ -1180,3 +1180,154 @@ module.exports = {
   processMissingAiForSource, // Export the new function for processing missing AI data
   reprocessTranslatedTopicsForSource, // Export the new function for re-processing translated topics
 };
+
+// Function to run the scraper for a specific source
+const runScraperForSource = async (sourceId, enableAiSummary, enableAiTags, enableAiImage, enableAiTranslations) => {
+  console.log(`Starting scraper for single source ID: ${sourceId}`);
+  await loadUrlBlacklist(); // Ensure blacklist is loaded
+
+  try {
+    const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1 AND is_active = TRUE', [sourceId]);
+    const source = sourceResult.rows[0];
+
+    if (!source) {
+      console.log(`Source with ID ${sourceId} not found or not active.`);
+      return { success: false, message: `Source with ID ${sourceId} not found or not active.` };
+    }
+
+    console.log(`Discovering articles from source: ${source.name} (${source.url}) using method: ${source.scraping_method || 'firecrawl'}`);
+    let articleUrls = [];
+
+    if (source.scraping_method === 'opensource') {
+      // Use open-source discovery (no limit for single source run)
+      console.log(`Using open-source discovery for source: ${source.name}`);
+      const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns);
+      articleUrls = discovered;
+      console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);
+
+    } else { // Default to Firecrawl
+      console.log(`Using Firecrawl discovery for source: ${source.name}`);
+      const extractedData = await firecrawl.scrapeUrl(source.url, {
+        formats: ['extract'],
+        extract: {
+          schema: {
+            type: "object",
+            properties: {
+              articles: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: {"type": "string"},
+                    url: {"type": "string"},
+                    date: {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          prompt: "Extract a list of recent news article links from the page, including their title and URL."
+        }
+      });
+
+      if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
+        articleUrls = extractedData.extract.articles.map(article => article.url).filter(url => url); // Extract URLs and filter out nulls
+        console.log(`Discovered ${articleUrls.length} potential article URLs with Firecrawl.`);
+      } else {
+        console.error(`Failed to extract article list from source with Firecrawl: ${source.name}`, extractedData);
+      }
+    }
+
+    // Fetch existing article URLs for this source
+    const existingArticlesResult = await pool.query('SELECT source_url FROM articles WHERE source_id = $1', [source.id]);
+    const existingUrls = new Set(existingArticlesResult.rows.map(row => row.source_url));
+
+    // Filter out URLs that already exist in the database
+    const newArticleUrls = articleUrls.filter(url => !existingUrls.has(url));
+
+    console.log(`Found ${articleUrls.length} potential article links, ${newArticleUrls.length} are new.`);
+    let articlesAdded = 0;
+
+    // Scrape each new article URL
+    for (const articleUrl of newArticleUrls) {
+      const processed = await scrapeArticlePage(source, articleUrl, 'per-source', enableAiSummary, enableAiTags, enableAiImage, enableAiTranslations, source.scrape_after_date); // Pass scrape type and individual AI toggles
+      if (processed) {
+        articlesAdded++;
+      }
+    }
+
+    const message = `Scraping for source ${source.name} finished. Discovered ${articleUrls.length} links, added ${articlesAdded} new articles.`;
+    console.log(message);
+    return { success: true, message: message, articlesAdded };
+
+  } catch (err) {
+    console.error(`Error running scraper for source ID ${sourceId}:`, err);
+    return { success: false, message: `Error running scraper for source ID ${sourceId}: ${err.message}` };
+  }
+};
+
+// Function to process missing AI data for a specific source
+const processMissingAiForSource = async (sourceId, featureType) => {
+  console.log(`Starting processing of missing AI data for source ID: ${sourceId}, feature: ${featureType}`);
+  let processedCount = 0;
+  let errorCount = 0;
+
+  try {
+    const sourceResult = await pool.query('SELECT enable_ai_summary, enable_ai_tags, enable_ai_image, enable_ai_translations FROM sources WHERE id = $1', [sourceId]);
+    const source = sourceResult.rows[0];
+
+    if (!source) {
+      console.error(`Source with ID ${sourceId} not found.`);
+      return { success: false, message: `Source with ID ${sourceId} not found.` };
+    }
+
+    let articlesToProcessQuery = `
+      SELECT id, title, raw_content, summary, thumbnail_url, source_id, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht
+      FROM articles
+      WHERE source_id = $1
+    `;
+    let queryParams = [sourceId];
+
+    if (featureType === 'summary' && source.enable_ai_summary) {
+      articlesToProcessQuery += ` AND (summary IS NULL OR summary = '' OR summary = 'Summary generation failed.')`;
+    } else if (featureType === 'tags' && source.enable_ai_tags) {
+      // Select articles that don't have any associated topics
+      articlesToProcessQuery += ` AND NOT EXISTS (SELECT 1 FROM article_topics WHERE article_id = articles.id)`;
+    } else if (featureType === 'image' && source.enable_ai_image) {
+      articlesToProcessQuery += ` AND (ai_image_path IS NULL OR ai_image_path = '') AND (thumbnail_url IS NULL OR thumbnail_url = '')`;
+    } else if (featureType === 'translations' && source.enable_ai_translations) {
+      articlesToProcessQuery += ` AND (title_es IS NULL OR summary_es IS NULL OR raw_content_es IS NULL OR title_ht IS NULL OR summary_ht IS NULL OR raw_content_ht IS NULL)`;
+    } else {
+      console.log(`AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. Skipping processing.`);
+      return { success: true, message: `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid.`, processedCount: 0, errorCount: 0 };
+    }
+
+    const articlesResult = await pool.query(articlesToProcessQuery, queryParams);
+    const articles = articlesResult.rows;
+
+    console.log(`Found ${articles.length} articles with missing ${featureType} for source ID ${sourceId}.`);
+
+    for (const article of articles) {
+      try {
+        const result = await processAiForArticle(article.id, featureType);
+        if (result.success) {
+          processedCount++;
+        } else {
+          errorCount++;
+          console.error(`Failed to process ${featureType} for article ID ${article.id}: ${result.message}`);
+        }
+      } catch (articleErr) {
+        console.error(`Error processing ${featureType} for article ID ${article.id}:`, articleErr);
+        errorCount++;
+      }
+    }
+
+    const message = `Finished processing missing ${featureType} for source ID ${sourceId}. Processed: ${processedCount}, Errors: ${errorCount}.`;
+    console.log(message);
+    return { success: true, message: message, processedCount, errorCount };
+
+  } catch (err) {
+    console.error(`Error during processing missing AI data for source ID ${sourceId}, feature ${featureType}:`, err);
+    return { success: false, message: `Error processing missing AI data for source ID ${sourceId}: ${err.message}` };
+  }
+};
