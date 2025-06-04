@@ -562,14 +562,12 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                         </div>
                       </TableCell>
                       <TableCell className="w-auto">
-                         {article.ai_image_path ? (
-                           <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
-                             <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" />
+                         {article.thumbnail_url ? (
+                           <a href={article.thumbnail_url} target="_blank" rel="noopener noreferrer">
+                             <img src={article.thumbnail_url} alt="Thumbnail" className="max-w-20 max-h-20 object-cover" />
                            </a>
-                         ) : article.thumbnail_url ? (
-                           <span className="text-gray-500">Original Image Available</span>
                          ) : (
-                           <span className="text-gray-500">No Image Available</span>
+                           <span className="text-gray-500">N/A</span>
                          )}
                       </TableCell>
                       <TableCell className="w-auto text-center">
@@ -630,9 +628,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                               <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" />
                             </a>
                           ) : article.thumbnail_url ? (
-                            <span className="text-gray-500">Article Image Exists</span>
+                            <span className="text-gray-500">Original Image Available</span>
                           ) : (
-                            <span className="text-gray-500">N/A</span>
+                            <span className="text-gray-500">No Image Available</span>
                           )}
                           <Button
                             onClick={() => handleProcessAi(article.id, 'image')}
@@ -700,14 +698,12 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {article.ai_image_path ? (
-                      <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
-                        <img src={article.ai_image_path} alt="AI Image" className="w-full h-32 object-cover rounded-md" />
+                    {article.thumbnail_url ? (
+                      <a href={article.thumbnail_url} target="_blank" rel="noopener noreferrer">
+                        <img src={article.thumbnail_url} alt="Thumbnail" className="w-full h-32 object-cover rounded-md" />
                       </a>
-                    ) : article.thumbnail_url ? (
-                      <div className="text-gray-500 text-sm">Original Image Available</div>
                     ) : (
-                      <div className="text-gray-500 text-sm">No Image Available</div>
+                      <div className="text-gray-500 text-sm">No Thumbnail</div>
                     )}
                     <p className="text-sm text-muted-foreground break-words">
                       URL: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{article.source_url}</a>
@@ -767,7 +763,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                       ) : article.thumbnail_url ? (
                         <span className="text-gray-500">Original Image Available</span>
                       ) : (
-                        <span className="text-gray-500">N/A</span>
+                        <span className="text-gray-500">No Image Available</span>
                       )}
                       <Button
                         onClick={() => handleProcessAi(article.id, 'image')}
