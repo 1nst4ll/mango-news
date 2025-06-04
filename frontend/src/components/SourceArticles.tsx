@@ -537,12 +537,12 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     <TableHead className="w-[50px]">#</TableHead>
                     <TableHead className="w-[300px]">Title</TableHead>
                     <TableHead className="w-[300px]">URL</TableHead>
-                    <TableHead className="w-[80px]">Thumbnail</TableHead>
+                    <TableHead className="w-[80px] text-center">Thumbnail</TableHead>
                     <TableHead className="w-auto text-center">Publication Date</TableHead>
-                    <TableHead className="w-auto">AI Summary</TableHead>
-                    <TableHead className="w-auto">AI Tags</TableHead>
-                    <TableHead className="w-auto">AI Image</TableHead>
-                    <TableHead className="w-auto">Actions</TableHead>
+                    <TableHead className="w-auto text-center">AI Summary</TableHead>
+                    <TableHead className="w-auto text-center">AI Tags</TableHead>
+                    <TableHead className="w-auto text-center">AI Image</TableHead>
+                    <TableHead className="w-auto text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -17,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "./ui/alert"; // Import Aler
 import { Info, MoreHorizontal } from 'lucide-react'; // Import icons
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu"; // Import DropdownMenu components
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"; // Import Accordion components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"; // Import Tooltip components
 
 
 
@@ -956,12 +957,21 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </li>
                 <li>
-                <Button
-                  onClick={handleTriggerScraper}
-                  disabled={loading}
-                >
-                  {loading ? 'Triggering...' : 'Trigger Full Scraper Run'}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleTriggerScraper}
+                        disabled={loading}
+                      >
+                        {loading ? 'Triggering...' : 'Run Scraper'}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Triggers a full scrape run for all active sources.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </li>
               <li>
                 <Button
