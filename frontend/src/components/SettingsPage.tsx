@@ -1264,57 +1264,16 @@ const SettingsPage: React.FC = () => {
                         </Alert>
                       )}
 
-                  {/* New: Single Button for Processing Missing AI Data */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h5 className="text-md font-semibold mb-2">Process Missing AI Data:</h5>
-                    <Button
-                      onClick={() => handleProcessAllMissingAi(source.id, source.enable_ai_summary, source.enable_ai_tags, source.enable_ai_image, source.enable_ai_translations)}
-                      disabled={
-                        sourceProcessingLoading[source.id]?.summary ||
-                        sourceProcessingLoading[source.id]?.tags ||
-                        sourceProcessingLoading[source.id]?.image ||
-                        sourceProcessingLoading[source.id]?.translations
-                      }
-                      size="sm"
-                      variant="secondary"
-                      className="w-full"
-                    >
-                      {
-                        (sourceProcessingLoading[source.id]?.summary ||
-                          sourceProcessingLoading[source.id]?.tags ||
-                          sourceProcessingLoading[source.id]?.image ||
-                          sourceProcessingLoading[source.id]?.translations) ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
-                            </>
-                          ) : 'Process All Missing AI Data'
-                      }
-                    </Button>
-                    {sourceProcessingStatus[source.id]?.summary && (
-                      <Alert variant={sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-                        {sourceProcessingStatus[source.id]?.summary?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                        <AlertDescription className="text-xs">Summary: {sourceProcessingStatus[source.id]?.summary}</AlertDescription>
-                      </Alert>
-                    )}
-                    {sourceProcessingStatus[source.id]?.tags && (
-                      <Alert variant={sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-                        {sourceProcessingStatus[source.id]?.tags?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                        <AlertDescription className="text-xs">Tags: {sourceProcessingStatus[source.id]?.tags}</AlertDescription>
-                      </Alert>
-                    )}
-                    {sourceProcessingStatus[source.id]?.image && (
-                      <Alert variant={sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-                        {sourceProcessingStatus[source.id]?.image?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                        <AlertDescription className="text-xs">Image: {sourceProcessingStatus[source.id]?.image}</AlertDescription>
-                      </Alert>
-                    )}
-                    {sourceProcessingStatus[source.id]?.translations && (
-                      <Alert variant={sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? 'destructive' : 'default'} className="mt-1">
-                        {sourceProcessingStatus[source.id]?.translations?.startsWith('Error:') ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                        <AlertDescription className="text-xs">Translations: {sourceProcessingStatus[source.id]?.translations}</AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <Button
+                        onClick={() => window.location.href = `/settings/source/${source.id}`}
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                      >
+                        View Articles
+                      </Button>
+                    </div>
                     </Card>
                   ))}
                 </ul>

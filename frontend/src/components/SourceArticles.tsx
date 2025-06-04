@@ -243,7 +243,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
           variant="outline"
           title="Go back to Settings"
         >
-          <a href={`/settings`}>Back to Settings</a>
+          <a href={`/settings?tab=sources`}>Back to Settings</a>
         </Button>
       </CardHeader>
       <CardContent>
@@ -338,8 +338,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                 <TableBody>
                   {articles.map((article) => (
                     <TableRow key={article.id}>
-                      <TableCell className="font-medium max-w-xs truncate">{article.title}</TableCell>
-                      <TableCell className="max-w-xs truncate">
+                      <TableCell className="font-medium">{article.title}</TableCell>
+                      <TableCell>
                         <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                           {article.source_url}
                         </a>
