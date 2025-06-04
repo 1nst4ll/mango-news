@@ -649,7 +649,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                               <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" />
                             </a>
                           ) : article.thumbnail_url ? (
-                            <span className="text-gray-500">Original Image Available</span>
+                            <a href={article.thumbnail_url} target="_blank" rel="noopener noreferrer">
+                              <img src={article.thumbnail_url} alt="Original Thumbnail" className="max-w-20 max-h-20 object-cover" />
+                            </a>
                           ) : (
                             <span className="text-gray-500">No Image Available</span>
                           )}
@@ -756,7 +758,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                           <img src={article.ai_image_path} alt="AI Image" className="w-full h-32 object-cover rounded-md" />
                         </a>
                       ) : article.thumbnail_url ? (
-                        <span className="text-gray-500">Original Image Available</span>
+                        <a href={article.thumbnail_url} target="_blank" rel="noopener noreferrer">
+                          <img src={article.thumbnail_url} alt="Original Thumbnail" className="w-full h-32 object-cover rounded-md" />
+                        </a>
                       ) : (
                         <span className="text-gray-500">No Image Available</span>
                       )}
