@@ -338,8 +338,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                 <TableBody>
                   {articles.map((article) => (
                     <TableRow key={article.id}>
-                      <TableCell className="font-medium">{article.title}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium max-w-md break-words">{article.title}</TableCell>
+                      <TableCell className="max-w-md break-words">
                         <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                           {article.source_url}
                         </a>
