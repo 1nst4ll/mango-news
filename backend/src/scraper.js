@@ -1173,14 +1173,6 @@ const reprocessTranslatedTopicsForSource = async (sourceId) => {
   }
 };
 
-// Export the runScraper function if you want to trigger it manually or from another script
-module.exports = {
-  runScraper,
-  runScraperForSource, // Export the new function
-  processMissingAiForSource, // Export the new function for processing missing AI data
-  reprocessTranslatedTopicsForSource, // Export the new function for re-processing translated topics
-};
-
 // Function to run the scraper for a specific source
 const runScraperForSource = async (sourceId, enableAiSummary, enableAiTags, enableAiImage, enableAiTranslations) => {
   console.log(`Starting scraper for single source ID: ${sourceId}`);
@@ -1330,4 +1322,12 @@ const processMissingAiForSource = async (sourceId, featureType) => {
     console.error(`Error during processing missing AI data for source ID ${sourceId}, feature ${featureType}:`, err);
     return { success: false, message: `Error processing missing AI data for source ID ${sourceId}: ${err.message}` };
   }
+};
+
+// Export the runScraper function if you want to trigger it manually or from another script
+module.exports = {
+  runScraper,
+  runScraperForSource, // Export the new function
+  processMissingAiForSource, // Export the new function for processing missing AI data
+  reprocessTranslatedTopicsForSource, // Export the new function for re-processing translated topics
 };
