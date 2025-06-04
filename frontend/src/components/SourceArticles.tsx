@@ -76,8 +76,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [error, setError] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState<{ [articleId: number]: { summary?: string | null; tags?: string | null; image?: string | null; translations?: string | null; deleting?: string | null } }>({});
   const [processingLoading, setProcessingLoading] = useState<{ [articleId: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean; deleting?: boolean } }>({});
-  const [reprocessLoading, setReprocessLoading] = useState<boolean>(false); // New state for reprocess button
-  const [reprocessStatus, setReprocessStatus] = useState<string | null>(null); // New state for reprocess status
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -236,64 +234,19 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   };
 
 
-  const handleReprocessTopics = async () => {
-    setReprocessLoading(true);
-    setReprocessStatus(null);
-    try {
-      const response = await fetch(`${apiUrl}/api/sources/${sourceId}/reprocess-topics`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }), // Add Authorization header if token exists
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `Failed to reprocess topics for source ${sourceId}`);
-      }
-      setReprocessStatus(data.message || `Reprocessed topics for source ${sourceId}.`);
-      // Optionally refetch articles after processing to show updated status/data
-      fetchArticles();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setReprocessStatus(`Error: ${err.message}`);
-      } else {
-        setReprocessStatus('An unknown error occurred during topic re-processing.');
-      }
-    } finally {
-      setReprocessLoading(false);
-    }
-  };
-
   return (
     <Card className="mb-6 pt-4">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"> {/* Adjusted for button */}
+      <CardHeader className="flex flex-col items-start space-y-2 pb-2"> {/* Adjusted for button */}
         <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
-        <div className="flex items-center space-x-2">
-          <Button
-            size="sm"
-            variant="outline"
-            title="Go back to Source Settings"
-          >
-            <a href={`/settings/source/${sourceId}`}>Back to Source Settings</a>
-          </Button>
-          <Button
-            onClick={handleReprocessTopics}
-            disabled={reprocessLoading}
-            size="sm"
-            variant="outline"
-            title="Re-evaluates and updates Spanish and Haitian Creole topic translations for all articles from this source."
-          >
-            {reprocessLoading ? 'Updating...' : 'Update Translated Topics'}
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          title="Go back to Settings"
+        >
+          <a href={`/settings`}>Back to Settings</a>
+        </Button>
       </CardHeader>
       <CardContent>
-        {reprocessStatus && (
-          <div className={`text-sm mb-4 ${reprocessStatus.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
-            {reprocessStatus}
-          </div>
-        )}
         {loading ? (
           <div>Loading articles...</div>
         ) : error ? (
@@ -404,11 +357,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                         {article.publication_date ? new Date(article.publication_date).toLocaleDateString() : 'N/A'}
                       </TableCell>
                       <TableCell className="max-w-xs">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-col space-y-2 items-start">
                           <textarea
                             value={article.ai_summary || ''}
                             readOnly
-                            className="flex-grow border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
+                            className="w-full border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
                             placeholder="No summary generated"
                           />
                           <Button
@@ -416,6 +369,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             disabled={processingLoading[article.id]?.summary}
                             size="sm"
                             variant="secondary"
+                            className="w-full"
                           >
                             {processingLoading[article.id]?.summary ? '...' : 'Rerun Summary'}
                           </Button>
@@ -427,11 +381,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                           )}
                       </TableCell>
                       <TableCell className="max-w-xs">
-                         <div className="flex items-center space-x-2">
+                         <div className="flex flex-col space-y-2 items-start">
                            <textarea
                              value={article.ai_tags && article.ai_tags.length > 0 ? article.ai_tags.join(', ') : ''}
                              readOnly
-                             className="flex-grow border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
+                             className="w-full border rounded-md p-1 text-sm min-h-[50px] max-h-[100px] overflow-y-auto"
                              placeholder="No tags generated"
                            />
                            <Button
@@ -439,6 +393,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                              disabled={processingLoading[article.id]?.tags}
                              size="sm"
                              variant="secondary"
+                             className="w-full"
                            >
                              {processingLoading[article.id]?.tags ? '...' : 'Rerun Tags'}
                            </Button>
@@ -450,14 +405,30 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                           )}
                       </TableCell>
                       <TableCell className="max-w-xs">
-                        {article.ai_image_path ? (
-                          <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
-                            <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" />
-                          </a>
-                        ) : article.thumbnail_url ? (
-                          <span className="text-gray-500">Article Image Exists</span>
-                        ) : (
-                          <span className="text-gray-500">N/A</span>
+                        <div className="flex flex-col space-y-2 items-start">
+                          {article.ai_image_path ? (
+                            <a href={article.ai_image_path} target="_blank" rel="noopener noreferrer">
+                              <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" />
+                            </a>
+                          ) : article.thumbnail_url ? (
+                            <span className="text-gray-500">Article Image Exists</span>
+                          ) : (
+                            <span className="text-gray-500">N/A</span>
+                          )}
+                          <Button
+                            onClick={() => handleProcessAi(article.id, 'image')}
+                            disabled={processingLoading[article.id]?.image}
+                            size="sm"
+                            variant="secondary"
+                            className="w-full"
+                          >
+                            {processingLoading[article.id]?.image ? '...' : 'Rerun Image'}
+                          </Button>
+                        </div>
+                        {processingStatus[article.id]?.image && (
+                          <div className={`text-xs mt-1 ${processingStatus[article.id]?.image?.startsWith('Error:') ? 'text-red-500' : 'text-green-600'}`}>
+                            Image: {processingStatus[article.id]?.image}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -467,6 +438,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             disabled={processingLoading[article.id]?.translations}
                             size="sm"
                             variant="secondary"
+                            className="w-full"
                           >
                             {processingLoading[article.id]?.translations ? '...' : 'Rerun Translations'}
                           </Button>
@@ -475,6 +447,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                             disabled={processingLoading[article.id]?.deleting}
                             size="sm"
                             variant="destructive"
+                            className="w-full"
                           >
                             {processingLoading[article.id]?.deleting ? 'Deleting...' : 'Delete'}
                           </Button>
