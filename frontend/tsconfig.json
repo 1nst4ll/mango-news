@@ -1,29 +1,25 @@
 {
   "compilerOptions": {
-    // Recommended options for Astro projects
-    "strict": true,
-    "esModuleInterop": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "isolatedModules": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
     "skipLibCheck": true,
-    "target": "es2022",
-    "module": "es2022",
-    "moduleResolution": "bundler", // Or "node" depending on your setup, "bundler" is common with Vite/Astro
-
-    // Existing options
-    "baseUrl": "./", // Set base URL for path aliases
     "jsx": "react-jsx",
     "jsxImportSource": "react",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    }
+      "@/*": ["src/*"]
+    },
+    "allowJs": true,
+    "types": ["node"]
   },
-  "include": [
-    ".astro/types.d.ts",
-    "**/*"
-  ],
-  "exclude": [
-    "dist"
-  ]
+  "include": ["src", ".astro/types.d.ts"],
+  "exclude": ["node_modules", "dist"]
 }

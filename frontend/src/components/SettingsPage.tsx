@@ -327,7 +327,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Scraper Triggered",
         description: data.message || 'Scraper triggered successfully. Check backend logs for progress.',
-        variant: "default",
+        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
@@ -372,7 +372,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Articles Purged",
         description: data.message || 'All articles purged successfully.',
-        variant: "default",
+        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during purging.';
@@ -415,7 +415,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Source Scrape Triggered",
         description: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles.`,
-        variant: "default",
+        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
@@ -499,7 +499,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Source Blocked",
         description: `Source ${sourceId} blocked successfully.`,
-        variant: "default",
+        variant: "success",
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
@@ -533,14 +533,14 @@ const SettingsPage: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
+      const res = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to save schedule settings');
+        throw new Error(res.error || 'Failed to save schedule settings');
       }
       toast({
         title: "Schedule Settings Saved",
-        description: data.message || 'Scheduler settings updated successfully.',
-        variant: "default",
+        description: res.message || 'Scheduler settings updated successfully.',
+        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while saving schedule settings.';
@@ -584,7 +584,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Articles Purged for Source",
         description: data.message || `All articles for source ${sourceId} purged successfully.`,
-        variant: "default",
+        variant: "success",
       });
       // Optionally refetch stats after deletion
       // fetchStats();
@@ -644,7 +644,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Source Added",
         description: `Source "${addedSource.name}" added successfully.`,
-        variant: "default",
+        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -691,7 +691,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Source Updated",
         description: `Source "${updatedSource.name}" updated successfully.`,
-        variant: "default",
+        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -729,7 +729,7 @@ const SettingsPage: React.FC = () => {
       toast({
         title: "Source Deleted",
         description: `Source ${id} deleted successfully.`,
-        variant: "default",
+        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while deleting the source.';
@@ -1233,7 +1233,7 @@ const SettingsPage: React.FC = () => {
                 <Label htmlFor="scraping_method" className="md:text-right">Scraping Method:</Label>
                 <Select
                   value={modalFormData.scraping_method || 'opensource'}
-                  onValueChange={(value) => setModalFormData({ ...modalFormData, scraping_method: value })}
+                  onValueChange={(value: string) => setModalFormData({ ...modalFormData, scraping_method: value })}
                 >
                   <SelectTrigger className="md:col-span-3">
                     <SelectValue placeholder="Select scraping method" />
