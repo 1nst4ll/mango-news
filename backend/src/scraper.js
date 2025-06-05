@@ -292,8 +292,8 @@ const processScrapedData = async (data) => { // Accept a single data object
       const existingArticle = await pool.query('SELECT id FROM articles WHERE source_id = $1 AND source_url = $2', [source.id, source_url]);
 
       if (existingArticle.rows.length > 0) {
-        console.log(`Article with URL ${source_url} from source ${source.name} already exists. Skipping.`);
-        return; // Skip saving if article already exists
+      console.log(`Article with URL ${source_url} from source ${source.name} already exists. Skipping.`);
+      return false; // Skip saving if article already exists
       }
 
       // Check if the article's publication date is older than the scrape_after_date setting
@@ -303,7 +303,7 @@ const processScrapedData = async (data) => { // Accept a single data object
 
         if (articlePublicationDate < scrapeAfterDate) {
           console.log(`Article "${title}" (${source_url}) is older than the scrape_after_date setting for source ${source.name}. Skipping.`);
-          return; // Skip saving if the article is older than the specified date
+          return false; // Skip saving if the article is older than the specified date
         }
       }
 
@@ -439,12 +439,14 @@ const processScrapedData = async (data) => { // Accept a single data object
       }
 
       console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}. Translated topics (ES): ${topics_es}, (HT): ${topics_ht}.`);
-
+      return true; // Indicate success
     } else {
       console.error(`Failed to process scraped data for source: ${source.name}`, content ? 'Missing content' : 'No data received');
+      return false; // Indicate failure
     }
   } catch (err) {
     console.error(`Error processing scraped data for source ${source.name}:`, err);
+    return false; // Indicate failure
   }
 }
 
@@ -687,9 +689,10 @@ const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryTo
         };
         console.log(`Successfully scraped article with opensource: ${metadata?.title || 'No Title'}`);
         console.log(`scrapeArticlePage passing scrapeType to processScrapedData: ${scrapeType}`); // Added log
-        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object
+        return await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object and return its result
       } else {
         console.error(`Failed to scrape article page with opensource: ${articleUrl}`);
+        return false; // Indicate failure
       }
 
     } else { // Default to Firecrawl
@@ -716,13 +719,15 @@ const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryTo
         content = firecrawlResult.markdown; // Get markdown content
         metadata = firecrawlResult.extract; // Get extracted data as metadata
         console.log(`Successfully scraped article with Firecrawl: ${metadata?.title || 'No Title'}`);
-        await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object
+        return await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object and return its result
       } else {
         console.error(`Failed to scrape article page with Firecrawl: ${articleUrl}`, firecrawlResult);
+        return false; // Indicate failure
       }
     }
   } catch (err) {
     console.error(`Error during scraping article page ${articleUrl}:`, err);
+    return false; // Indicate failure
   }
 };
 
