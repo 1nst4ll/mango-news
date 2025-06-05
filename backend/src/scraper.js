@@ -1250,7 +1250,7 @@ const runScraperForSource = async (sourceId, enableAiSummary, enableAiTags, enab
 
     const message = `Scraping for source ${source.name} finished. Discovered ${articleUrls.length} links, added ${articlesAdded} new articles.`;
     console.log(message);
-    return { success: true, message: message, articlesAdded };
+    return { success: true, message: message, articlesAdded, linksFound: articleUrls.length };
 
   } catch (err) {
     console.error(`Error running scraper for source ID ${sourceId}:`, err);
