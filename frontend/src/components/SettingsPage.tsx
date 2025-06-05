@@ -408,10 +408,6 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || `Failed to trigger scraper for source ${sourceId}`);
       }
-      setSourceScrapingStatus(prev => ({
-        ...prev,
-        [sourceId]: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles. Check backend logs for details.`,
-      }));
       toast({
         title: "Source Scrape Triggered",
         description: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles.`,
@@ -419,7 +415,6 @@ const SettingsPage: React.FC = () => {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
-      setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: `Error: ${errorMessage}` }));
       toast({
         title: "Source Scrape Error",
         description: errorMessage,
@@ -580,7 +575,6 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || `Failed to delete articles for source ${sourceId}`);
       }
-      setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: data.message || `All articles for source ${sourceId} purged successfully.` }));
       toast({
         title: "Articles Purged for Source",
         description: data.message || `All articles for source ${sourceId} purged successfully.`,
@@ -590,7 +584,6 @@ const SettingsPage: React.FC = () => {
       // fetchStats();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during article deletion.';
-      setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: `Error: ${errorMessage}` }));
       toast({
         title: "Article Deletion Error",
         description: errorMessage,
@@ -1171,22 +1164,6 @@ const SettingsPage: React.FC = () => {
                           </DropdownMenu>
                         </div>
                       </div>
-                      {/* Display scraping status directly within the card */}
-                      {sourceScrapingStatus[source.id] && (
-                        <Alert className="mt-2">
-                          <Info className="h-4 w-4" />
-                          <AlertTitle>Scrape Status</AlertTitle>
-                          <AlertDescription>{sourceScrapingStatus[source.id]}</AlertDescription>
-                        </Alert>
-                      )}
-                      {/* Display article deletion status directly within the card */}
-                      {sourceArticleDeletionStatus[source.id] && (
-                        <Alert className="mt-2">
-                          <Info className="h-4 w-4" />
-                          <AlertTitle>Deletion Status</AlertTitle>
-                          <AlertDescription>{sourceArticleDeletionStatus[source.id]}</AlertDescription>
-                        </Alert>
-                      )}
 
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <Button
