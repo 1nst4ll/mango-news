@@ -209,8 +209,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(data => {
           if (!data.error) {
             toast({
-              title: "Success",
-              description: data.message || `Processed missing summary.`,
+              title: "Processing Complete",
+              description: data.message || `Processed missing summaries for ${data.processedCount} articles.`,
+              variant: "success",
             });
           } else {
             toast({
@@ -244,8 +245,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(data => {
           if (!data.error) {
             toast({
-              title: "Success",
-              description: data.message || `Processed missing tags.`,
+              title: "Processing Complete",
+              description: data.message || `Processed missing tags for ${data.processedCount} articles.`,
+              variant: "success",
             });
           } else {
             toast({
@@ -279,8 +281,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(data => {
           if (!data.error) {
             toast({
-              title: "Success",
-              description: data.message || `Processed missing image.`,
+              title: "Processing Complete",
+              description: data.message || `Processed missing images for ${data.processedCount} articles.`,
+              variant: "success",
             });
           } else {
             toast({
@@ -314,8 +317,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         .then(data => {
           if (!data.error) {
             toast({
-              title: "Success",
-              description: data.message || `Processed missing translations.`,
+              title: "Processing Complete",
+              description: data.message || `Processed missing translations for ${data.processedCount} articles.`,
+              variant: "success",
             });
           } else {
             toast({
@@ -359,8 +363,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         throw new Error(data.error || `Failed to process ${featureType} for article ${articleId}`);
       }
       toast({
-        title: "Success",
-        description: data.message || `Processed ${featureType} for article ${articleId}.`,
+        title: "Processing Complete",
+        description: data.message || `Successfully processed ${featureType} for article ${articleId}.`,
+        variant: "success",
       });
       // Optionally refetch articles after processing to show updated status/data
       fetchArticles();
@@ -420,8 +425,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       // Remove the deleted article from the state
       setArticles(articles.filter(article => article.id !== articleId));
       toast({
-        title: "Success",
-        description: `Article ${articleId} deleted successfully.`,
+        title: "Article Deleted",
+        description: `Article ${articleId} has been successfully deleted.`,
+        variant: "success",
       });
     } catch (err: unknown) {
       if (err instanceof Error) {
