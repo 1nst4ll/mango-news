@@ -186,6 +186,9 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
             ? getAttribute(selectors.date, 'content')
             : getText(selectors.date);
           const scrapedAuthor = getText(selectors.author)?.replace(/•/g, '');
+          if (content) {
+            content = content.replace(/Share this:.*$/, '').trim();
+          }
           let scrapedThumbnailUrl = null;
 
           // Handle thumbnail extraction based on selector format

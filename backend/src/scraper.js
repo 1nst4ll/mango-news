@@ -243,7 +243,7 @@ const processScrapedData = async (data) => { // Accept a single data object
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       const title = metadata?.title || 'No Title'; // Get title from metadata
       const sanitizedContent = DOMPurify.sanitize(processedContent);
-      const raw_content = sanitizedContent; // Use processedContent
+      const raw_content = sanitizedContent.replace(/Share this:.*$/, '').trim(); // Use processedContent and remove sharing text
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
       let publication_date = metadata?.publication_date || metadata?.published_date;
