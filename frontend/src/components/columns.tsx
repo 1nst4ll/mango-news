@@ -54,8 +54,8 @@ export type Article = {
             aria-label="Select row"
           />
         ),
-        enableSorting: false,
-        enableHiding: false,
+        enableSorting: true,
+        enableHiding: true,
       },
   {
     accessorKey: "id",
@@ -66,7 +66,7 @@ export type Article = {
     header: "Title",
     cell: ({ row }) => {
         const article = row.original
-        return <div className="max-w-[200px] break-words whitespace-pre-wrap">{article.title}</div>
+        return <div className="min-w-[200px] break-words whitespace-pre-wrap">{article.title}</div>
     }
   },
   {
@@ -74,7 +74,7 @@ export type Article = {
     header: "URL",
     cell: ({ row }) => {
         const article = row.original
-        return <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline max-w-[200px] break-words whitespace-pre-wrap block">{article.source_url}</a>
+        return <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline min-w-[200px] whitespace-pre-wrap block">{article.source_url}</a>
     }
   },
   {
@@ -98,7 +98,7 @@ export type Article = {
     header: "AI Summary",
     cell: ({ row }) => {
         const article = row.original
-        return <div className="max-w-[200px] break-words whitespace-pre-wrap">{article.ai_summary}</div>
+        return <div className="min-w-[200px] whitespace-pre-wrap">{article.ai_summary}</div>
     }
   },
   {
