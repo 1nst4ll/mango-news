@@ -379,7 +379,7 @@ function NewsFeed({
                       <CardContent className="flex-grow px-6 pb-4">
                           <p className="text-foreground" dangerouslySetInnerHTML={{ __html: (displaySummary || (currentLocale !== 'en' ? `${article.summary} (${getFallbackMessage(currentLocale)})` : article.summary))?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                       </CardContent>
-                      <div className="px-6 pb-4 grid grid-cols-2 gap-2"> {/* Added flex-wrap and adjusted gap */}
+                      <div className="px-6 pb-2 grid grid-cols-2 gap-2"> {/* Added flex-wrap and adjusted gap */}
                         <Button
                           variant="outline"
                           size="sm"
