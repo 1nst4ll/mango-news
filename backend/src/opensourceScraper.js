@@ -73,6 +73,19 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
             }
           };
 
+          const getHtml = (selector) => {
+            try {
+              const element = document.querySelector(selector);
+              console.log(`Attempting to get HTML for selector: ${selector}`);
+              const html = element ? element.innerHTML : null;
+              console.log(`HTML for selector ${selector}: ${html ? html.substring(0, 100) + '...' : 'null'}`);
+              return html;
+            } catch (e) {
+              console.error(`Error getting HTML for selector ${selector}:`, e);
+              return null;
+            }
+          };
+
           const getAttribute = (selector, attribute) => {
             try {
               const element = document.querySelector(selector);
@@ -108,7 +121,7 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
             includeSelectors.forEach(includeSelector => {
               try {
                 document.querySelectorAll(includeSelector).forEach(el => {
-                  content += el.innerText.trim() + '\n'; // Concatenate text from included elements
+                  content += el.innerHTML; // Concatenate HTML from included elements
                 });
               } catch (e) {
                  console.error(`Error processing include selector ${includeSelector}:`, e);
@@ -118,7 +131,7 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
           } else if (selectors.content) {
              // If no include selectors, use the main content selector
              console.log(`Processing main content selector: ${selectors.content}`);
-             content = getText(selectors.content);
+             content = getHtml(selectors.content);
              console.log(`Content from main selector: ${content ? content.substring(0, 200) + '...' : 'null'}`);
           }
 
@@ -143,7 +156,7 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
                 }
               });
               // Get the cleaned content from the temporary element
-              content = tempDiv.innerText.trim(); // Use innerText to get the text content
+              content = tempDiv.innerHTML; // Use innerHTML to get the text content
               console.log(`Content after exclude selectors: ${content ? content.substring(0, 200) + '...' : 'empty'}`);
           }
 
@@ -292,242 +305,6 @@ function buildTemplateRegex(template) {
   return new RegExp(regexString);
 }
 
-async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3, delay = 1000) {
-  console.log(`Starting article scraping for: ${url} (Attempt ${4 - retries})`);
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      headless: true, // Use headless mode
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    });
-    const page = await browser.newPage();
-
-    // Set a reasonable timeout for page navigation
-    await page.setDefaultNavigationTimeout(30000); // 30 seconds
-
-    console.log(`Attempting to navigate to ${url}`);
-    try {
-      await page.goto(url, { waitUntil: 'domcontentloaded' });
-      console.log(`Successfully navigated to ${url}`);
-    } catch (navError) {
-      console.error(`Navigation failed for ${url}:`, navError);
-      if (retries > 0) {
-        console.log(`Retrying navigation for ${url} in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return scrapeArticle(url, selectors, retries - 1, delay * 2); // Exponential backoff
-      }
-      return null; // Return null if navigation fails after retries
-    }
-
-    try {
-        // Extract data using the provided selectors
-        const articleData = await page.evaluate((selectors) => {
-          const getText = (selector) => {
-            try {
-              const element = document.querySelector(selector);
-              console.log(`Attempting to get text for selector: ${selector}`);
-              const text = element ? element.innerText.trim() : null;
-              console.log(`Text for selector ${selector}: ${text ? text.substring(0, 100) + '...' : 'null'}`);
-              return text;
-            } catch (e) {
-              console.error(`Error getting text for selector ${selector}:`, e);
-              return null;
-            }
-          };
-
-          const getAttribute = (selector, attribute) => {
-            try {
-              const element = document.querySelector(selector);
-              console.log(`Attempting to get attribute "${attribute}" for selector: ${selector}`);
-              const attr = element ? element.getAttribute(attribute) : null;
-              console.log(`Attribute "${attribute}" for selector ${selector}: ${attr ? attr.substring(0, 100) + '...' : 'null'}`);
-              return attr;
-            } catch (e) {
-              console.error(`Error getting attribute ${attribute} for selector ${selector}:`, e);
-              return null;
-            }
-          };
-
-          const getMultipleText = (selector) => {
-            try {
-              const elements = document.querySelectorAll(selector);
-              console.log(`Attempting to get multiple text for selector: ${selector}`);
-              const texts = Array.from(elements).map(el => el.innerText.trim()).filter(text => text);
-              console.log(`Multiple text for selector ${selector}: Found ${texts.length} elements`);
-              return texts;
-            } catch (e) {
-              console.error(`Error getting multiple text for selector ${selector}:`, e);
-              return [];
-            }
-          };
-
-          let content = '';
-
-          // Handle include selectors first
-          if (selectors.include) {
-            const includeSelectors = selectors.include.split(',').map(s => s.trim()).filter(s => s);
-            console.log(`Processing include selectors: ${includeSelectors.join(', ')}`);
-            includeSelectors.forEach(includeSelector => {
-              try {
-                document.querySelectorAll(includeSelector).forEach(el => {
-                  content += el.innerText.trim() + '\n'; // Concatenate text from included elements
-                });
-              } catch (e) {
-                 console.error(`Error processing include selector ${includeSelector}:`, e);
-              }
-            });
-             console.log(`Content after include selectors: ${content ? content.substring(0, 200) + '...' : 'empty'}`);
-          } else if (selectors.content) {
-             // If no include selectors, use the main content selector
-             console.log(`Processing main content selector: ${selectors.content}`);
-             content = getText(selectors.content);
-             console.log(`Content from main selector: ${content ? content.substring(0, 200) + '...' : 'null'}`);
-          }
-
-
-          // Handle exclude selectors
-          if (content && selectors.exclude) {
-              const excludeSelectors = selectors.exclude ? selectors.exclude.split(',').map(s => s.trim()) : [];
-              console.log(`Processing exclude selectors: ${excludeSelectors.join(', ')}`);
-              // Create a temporary DOM element to perform exclusions without affecting the actual page structure
-              const tempDiv = document.createElement('div');
-              tempDiv.innerHTML = content; // Use innerHTML to parse the content as HTML
-
-              excludeSelectors.forEach(excludeSelector => {
-                try {
-                  tempDiv.querySelectorAll(excludeSelector).forEach(el => {
-                      if (el.parentElement) {
-                          el.parentElement.removeChild(el);
-                      }
-                  });
-                } catch (e) {
-                   console.error(`Error processing exclude selector ${excludeSelector}:`, e);
-                }
-              });
-              // Get the cleaned content from the temporary element
-              content = tempDiv.innerText.trim(); // Use innerText to get the text content
-              console.log(`Content after exclude selectors: ${content ? content.substring(0, 200) + '...' : 'empty'}`);
-          }
-
-
-          const scrapedTitle = getText(selectors.title);
-          // Check if the date selector targets a meta tag
-          const scrapedDate = selectors.date?.startsWith('meta[')
-            ? getAttribute(selectors.date, 'content')
-            : getText(selectors.date);
-          const scrapedAuthor = getText(selectors.author);
-          let scrapedThumbnailUrl = null;
-
-          // Handle thumbnail extraction based on selector format
-          if (selectors.thumbnail) {
-            const parts = selectors.thumbnail.split('::');
-            const selector = parts[0];
-            const attribute = parts[1];
-            const jsonKey = parts[2] || null; // Optional JSON key
-
-            if (attribute) {
-              scrapedThumbnailUrl = getAttribute(selector, attribute, jsonKey);
-              // For Wix images, construct the full URL
-              if (jsonKey === 'uri' && scrapedThumbnailUrl) {
-                 scrapedThumbnailUrl = `https://static.wixstatic.com/media/${scrapedThumbnailUrl}`;
-              }
-            } else {
-               // Default to getting the src attribute if only a selector is provided
-               scrapedThumbnailUrl = getAttribute(selector, 'src');
-            }
-          }
-
-
-          const scrapedTopics = getMultipleText(selectors.topics);
-
-          // Log missing optional fields
-          if (!scrapedDate) console.warn(`Missing publication date for ${window.location.href}`);
-          if (!scrapedAuthor) console.warn(`Missing author for ${window.location.href}`);
-          if (!scrapedThumbnailUrl) console.warn(`Missing thumbnail URL for ${window.location.href}`);
-          if (scrapedTopics.length === 0) console.warn(`Missing topics for ${window.location.href}`);
-
-
-          console.log('Scraped Title:', scrapedTitle); // Log scraped title
-          console.log('Scraped Content (first 200 chars):', content ? content.substring(0, 200) + '...' : 'empty'); // Log scraped content
-
-          return {
-            title: scrapedTitle,
-            content: content,
-            publication_date: scrapedDate,
-            author: scrapedAuthor,
-            thumbnail_url: scrapedThumbnailUrl,
-            topics: scrapedTopics,
-            url: window.location.href // Get the final URL after redirects
-          };
-        }, selectors);
-
-        // Basic validation of scraped data
-        if (!articleData || !articleData.title || !articleData.content) {
-            console.warn(`Scraped data incomplete for ${url}:`, articleData);
-             if (retries > 0) {
-                console.log(`Retrying scraping for ${url} in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return scrapeArticle(url, selectors, retries - 1, delay * 2); // Exponential backoff
-            }
-            return null; // Return null if essential data is missing after retries
-        }
-
-        // --- Date Filtering Logic ---
-        if (scrapeAfterDate && articleData.publication_date) {
-          const articleDate = new Date(articleData.publication_date);
-          const filterDate = new Date(scrapeAfterDate);
-
-          // Set time to midnight for comparison to compare only dates
-          articleDate.setHours(0, 0, 0, 0);
-          filterDate.setHours(0, 0, 0, 0);
-
-          if (articleDate < filterDate) {
-            console.log(`Article "${articleData.title}" (${url}) is older than the scrape after date (${scrapeAfterDate}). Skipping.`);
-            return null; // Return null if the article is older than the filter date
-          }
-           console.log(`Article "${articleData.title}" (${url}) is on or after the scrape after date (${scrapeAfterDate}). Including.`);
-        } else if (scrapeAfterDate && !articleData.publication_date) {
-           console.warn(`Scrape after date is set (${scrapeAfterDate}), but no publication date found for article "${articleData.title}" (${url}). Including as date cannot be verified.`);
-        }
-        // --- End Date Filtering Logic ---
-
-
-        console.log(`Successfully scraped article from ${url}`);
-        return articleData;
-    } catch (evalError) {
-        console.error(`Error during page evaluation for ${url}:`, evalError);
-         if (retries > 0) {
-            console.log(`Retrying scraping for ${url} in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
-        }
-        return null;
-    }
-
-
-      } catch (error) {
-        console.error(`Error scraping article from ${url}:`, error);
-         if (retries > 0) {
-            console.log(`Retrying scraping for ${url} in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
-        }
-        return null;
-      } finally {
-        if (browser) {
-          await browser.close();
-          console.log(`Browser closed for ${url}`);
-        }
-      }
-    }
 
 /**
  * Discovers potential article URLs from a given source URL using a provided template.

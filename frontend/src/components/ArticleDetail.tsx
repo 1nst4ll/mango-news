@@ -291,15 +291,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg" />
           </div>
         )}
-        <div className="article-content">
-          {displayContent?.split('\n').map((paragraph: string, index: number) => {
-            const trimmedParagraph = paragraph.trim();
-            if (trimmedParagraph) {
-              return <p key={index}>{trimmedParagraph}</p>;
-            }
-            return null;
-          })}
-        </div>
+        <div className="article-content" dangerouslySetInnerHTML={{ __html: displayContent }} />
         <div className="mt-6 flex flex-wrap gap-2"> {/* Added flex-wrap and adjusted gap */}
           {displayTopics.map(topic => (
             <a href={`/${currentLocale}/news/topic/${topic.toLowerCase().replace(/\s+/g, '-')}`} key={topic}>

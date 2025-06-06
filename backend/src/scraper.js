@@ -13,6 +13,11 @@ const FormData = require('form-data'); // Import the form-data library
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3'); // Import S3Client and PutObjectCommand from v3
 const { v4: uuidv4 } = require('uuid'); // Import uuid for unique filenames
 const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import from configLoader
+const createDOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
+
+const window = new JSDOM('').window;
+const DOMPurify = createDOMPurify(window);
 
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
 const topicsList = [
@@ -237,7 +242,8 @@ const processScrapedData = async (data) => { // Accept a single data object
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       const title = metadata?.title || 'No Title'; // Get title from metadata
-      const raw_content = processedContent; // Use processedContent
+      const sanitizedContent = DOMPurify.sanitize(processedContent);
+      const raw_content = sanitizedContent; // Use processedContent
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
       let publication_date = metadata?.publication_date || metadata?.published_date;
