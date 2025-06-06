@@ -268,7 +268,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         </Button>
       </div>
 
-      <article className="prose lg:prose-xl article-content">
+      <article className="prose lg:prose-xl">
         <h1>{displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}</h1>
         <div className="text-sm text-muted-foreground mb-4">
         {t.source}: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{article.source_url}</a>
@@ -286,24 +286,23 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
                : new Date(article.created_at).toLocaleDateString(currentLocale)
            }</span></div>
         </div>
-         {article.thumbnail_url && (
-          <div className="mb-4">
+        <div className="relative mb-4">
+          {article.thumbnail_url && (
             <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg" />
+          )}
+          <div className="absolute bottom-2 left-2 flex flex-wrap gap-2">
+            {displayTopics.map(topic => (
+              <a href={`/${currentLocale}/news/topic/${topic.toLowerCase().replace(/\s+/g, '-')}`} key={topic}>
+                <Badge variant="secondary" className="text-white bg-black bg-opacity-50 hover:bg-opacity-75 cursor-pointer">
+                  {topic}
+                </Badge>
+              </a>
+            ))}
           </div>
-        )}
-        <div className="article-content" dangerouslySetInnerHTML={{ __html: displayContent }} />
-        <div className="mt-6 flex flex-wrap gap-2"> {/* Added flex-wrap and adjusted gap */}
-          {displayTopics.map(topic => (
-            <a href={`/${currentLocale}/news/topic/${topic.toLowerCase().replace(/\s+/g, '-')}`} key={topic}>
-              <Badge variant="secondary" className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer">
-                {topic}
-              </Badge>
-            </a>
-          ))}
         </div>
-        <div className="mt-6 flex flex-wrap gap-2"> {/* Added flex-wrap and adjusted gap */}
+        <div className="article-content" dangerouslySetInnerHTML={{ __html: displayContent }} />
+        <div className="mt-6 flex flex-wrap gap-2">
           <Button
-            variant="outline"
             size="sm"
             onClick={() => {
               const articleUrl = window.location.href;
@@ -311,17 +310,18 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
               window.open(whatsappUrl, '_blank');
             }}
+            className="bg-green-500 hover:bg-green-600 text-white"
           >
             <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
           </Button>
           <Button
-            variant="outline"
             size="sm"
             onClick={() => {
               const articleUrl = window.location.href;
               const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
               window.open(facebookUrl, '_blank');
             }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
           </Button>

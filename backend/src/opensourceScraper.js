@@ -180,7 +180,6 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
             content = tempDiv.innerHTML;
           }
 
-
           const scrapedTitle = getText(selectors.title);
           // Check if the date selector targets a meta tag
           const scrapedDate = selectors.date?.startsWith('meta[')
@@ -206,6 +205,22 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
                // Default to getting the src attribute if only a selector is provided
                scrapedThumbnailUrl = getAttribute(selector, 'src');
             }
+          }
+
+          // Remove the thumbnail image from the content to avoid duplication
+          if (content && scrapedThumbnailUrl) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            const images = tempDiv.querySelectorAll('img');
+            images.forEach(img => {
+              // Resolve the image src to an absolute URL to compare with the thumbnail URL
+              const absoluteSrc = new URL(img.getAttribute('src'), window.location.href).href;
+              if (absoluteSrc === scrapedThumbnailUrl) {
+                img.remove();
+                console.log(`Removed thumbnail image from content: ${absoluteSrc}`);
+              }
+            });
+            content = tempDiv.innerHTML;
           }
 
 
