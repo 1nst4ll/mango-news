@@ -185,7 +185,7 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
           const scrapedDate = selectors.date?.startsWith('meta[')
             ? getAttribute(selectors.date, 'content')
             : getText(selectors.date);
-          const scrapedAuthor = getText(selectors.author);
+          const scrapedAuthor = getText(selectors.author)?.replace(/•/g, '');
           let scrapedThumbnailUrl = null;
 
           // Handle thumbnail extraction based on selector format
