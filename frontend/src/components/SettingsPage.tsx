@@ -91,9 +91,7 @@ const SettingsPage: React.FC = () => {
 
 
   // State from admin/page.tsx
-  const [scrapingStatus, setScrapingStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [purgeStatus, setPurgeStatus] = useState<string | null>(null);
   const [purgeLoading, setPurgeLoading] = useState<boolean>(false);
   const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(true);
   const [enableGlobalAiTags, setEnableGlobalAiTags] = useState<boolean>(true);
@@ -210,11 +208,13 @@ const SettingsPage: React.FC = () => {
         const data: ArticleStats = await response.json();
         setStats(data);
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          setStatsError(`Error fetching stats: ${err.message}`);
-        } else {
-          setStatsError('An unknown error occurred while fetching stats.');
-        }
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching stats.';
+        setStatsError(errorMessage);
+        toast({
+          title: "Error Fetching Stats",
+          description: errorMessage,
+          variant: "destructive",
+        });
       } finally {
         setStatsLoading(false);
       }
@@ -292,7 +292,13 @@ const SettingsPage: React.FC = () => {
           exclude_patterns: source.exclude_patterns !== undefined ? source.exclude_patterns : null, // Include new field
         })));
       } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while fetching sources.';
         setSourcesError(error);
+        toast({
+          title: "Error Fetching Sources",
+          description: errorMessage,
+          variant: "destructive",
+        });
       } finally {
         setSourcesLoading(false);
       }
@@ -304,7 +310,6 @@ const SettingsPage: React.FC = () => {
   // Handlers from admin/page.tsx
   const handleTriggerScraper = async () => {
     setLoading(true);
-    setScrapingStatus(null);
     try {
       const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
       const headers: HeadersInit = {
@@ -323,7 +328,6 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to trigger scraper');
       }
-      setScrapingStatus(data.message || 'Scraper triggered successfully. Check backend logs for progress.');
       toast({
         title: "Scraper Triggered",
         description: data.message || 'Scraper triggered successfully. Check backend logs for progress.',
@@ -331,7 +335,6 @@ const SettingsPage: React.FC = () => {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
-      setScrapingStatus(`Error: ${errorMessage}`);
       toast({
         title: "Scraper Error",
         description: errorMessage,
@@ -350,7 +353,6 @@ const SettingsPage: React.FC = () => {
   const handleConfirmPurgeArticles = async () => {
     setIsConfirmDialogOpen(false);
     setPurgeLoading(true);
-    setPurgeStatus(null);
     try {
       const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
       const headers: HeadersInit = {
@@ -368,7 +370,6 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to purge articles');
       }
-      setPurgeStatus(data.message || 'All articles purged successfully.');
       toast({
         title: "Articles Purged",
         description: data.message || 'All articles purged successfully.',
@@ -376,7 +377,6 @@ const SettingsPage: React.FC = () => {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during purging.';
-      setPurgeStatus(`Error: ${errorMessage}`);
       toast({
         title: "Purge Error",
         description: errorMessage,
@@ -978,21 +978,6 @@ const SettingsPage: React.FC = () => {
             </ul>
           </div>
 
-            {/* Status Messages */}
-            {scrapingStatus && (
-              <Alert className="mt-4">
-                <Info className="h-4 w-4" />
-                <AlertTitle>Scraper Status</AlertTitle>
-                <AlertDescription>{scrapingStatus}</AlertDescription>
-              </Alert>
-            )}
-            {purgeStatus && (
-              <Alert className="mt-4">
-                <Info className="h-4 w-4" />
-                <AlertTitle>Purge Status</AlertTitle>
-                <AlertDescription>{purgeStatus}</AlertDescription>
-              </Alert>
-            )}
           </CardContent>
         </Card>
       </TabsContent>

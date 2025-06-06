@@ -105,7 +105,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     return paginationItems;
   };
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [processingLoading, setProcessingLoading] = useState<{ [articleId: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean; deleting?: boolean } }>({});
 
   // Pagination states
@@ -142,8 +141,13 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         const data: Source = await response.json();
         setSourceSettings(data);
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching source settings.';
         console.error("Error fetching source settings:", err);
-        // Handle error appropriately
+        toast({
+          title: "Error Fetching Source Settings",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     };
     fetchSourceSettings();
@@ -152,7 +156,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   const fetchArticles = async () => {
     setLoading(true);
-    setError(null);
     try {
       const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles?page=${currentPage}&limit=${articlesPerPage}&sortBy=${sortBy}&sortOrder=${sortOrder}&filterByAiStatus=${filterByAiStatus}`;
       console.log(`[Frontend] Fetching articles from: ${fetchUrl}`);
@@ -169,13 +172,13 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       console.log(`[Frontend] Received ${data.length} articles.`);
       setArticles(data);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(`Error fetching articles: ${err.message}`);
-        console.error(`[Frontend] Error fetching articles:`, err);
-      } else {
-        setError('An unknown error occurred while fetching articles.');
-        console.error(`[Frontend] An unknown error occurred while fetching articles.`);
-      }
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching articles.';
+      console.error(`[Frontend] Error fetching articles:`, err);
+      toast({
+        title: "Error Fetching Articles",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -494,8 +497,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       <CardContent>
         {loading ? (
           <div>Loading articles...</div>
-        ) : error ? (
-          <div className="text-red-500">Error loading articles: {error}</div>
         ) : (
           <>
             {/* Filter and Sort Controls */}
@@ -562,7 +563,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
             </div>
             
             {/* Display "No articles found" message if articles.length is 0 AFTER loading */}
-            {articles.length === 0 && !loading && !error && (
+            {articles.length === 0 && !loading && (
               <div className="text-gray-600 p-4">No articles found for this source with the current filters.</div>
             )}
 
