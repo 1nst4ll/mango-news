@@ -303,7 +303,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           </div>
         </div>
         <div dangerouslySetInnerHTML={{ __html: displayContent }} />
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-6 grid grid-cols-2 gap-2">
           <Button
             size="sm"
             onClick={() => {
