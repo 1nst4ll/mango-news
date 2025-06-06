@@ -160,6 +160,26 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
               console.log(`Content after exclude selectors: ${content ? content.substring(0, 200) + '...' : 'empty'}`);
           }
 
+          // Absolutize relative links within the content
+          if (content) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            const links = tempDiv.querySelectorAll('a');
+            links.forEach(link => {
+              const href = link.getAttribute('href');
+              if (href && !href.startsWith('http') && !href.startsWith('#')) {
+                try {
+                  const absoluteUrl = new URL(href, window.location.href).href;
+                  link.setAttribute('href', absoluteUrl);
+                  console.log(`Transformed relative link "${href}" to absolute: "${absoluteUrl}"`);
+                } catch (e) {
+                  console.error(`Could not transform relative link "${href}":`, e);
+                }
+              }
+            });
+            content = tempDiv.innerHTML;
+          }
+
 
           const scrapedTitle = getText(selectors.title);
           // Check if the date selector targets a meta tag
