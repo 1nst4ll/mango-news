@@ -1,43 +1,30 @@
-"use client"
+"use client";
 
-import {
-  Toast,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from "@/components/ui/toast"
-import { useToast } from "@/components/ui/use-toast"
-import { CheckCircle, Info, AlertTriangle, XCircle } from 'lucide-react'; // Import icons
+import { Toaster as Sonner } from "sonner";
+import { CheckCircle, Info, AlertTriangle, XCircle } from 'lucide-react';
 
-export function Toaster() {
-  const { toasts } = useToast()
+type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+const Toaster = ({ ...props }: ToasterProps) => {
   return (
-    <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
-        return (
-          <Toast key={id} variant={variant} {...props}>
-            <div className="flex items-start gap-3">
-              {variant === 'destructive' && <XCircle className="h-6 w-6 text-destructive-foreground" />}
-              {variant === 'success' && <CheckCircle className="h-6 w-6 text-green-500" />}
-              {variant === 'warning' && <AlertTriangle className="h-6 w-6 text-yellow-500" />}
-              {variant === 'info' && <Info className="h-6 w-6 text-blue-500" />}
-              {variant === 'default' && <Info className="h-6 w-6 text-gray-500" />} {/* Default info icon */}
-              <div className="grid gap-1">
-                {title && <ToastTitle>{title}</ToastTitle>}
-                {description && (
-                  <ToastDescription>{description}</ToastDescription>
-                )}
-              </div>
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
-      })}
-      <ToastViewport />
-    </ToastProvider>
-  )
-}
+    <Sonner
+      theme="system"
+      className="toaster group"
+      toastOptions={{
+        classNames: {
+          toast:
+            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+          description: "group-[.toast]:text-muted-foreground",
+          actionButton:
+            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+          cancelButton:
+            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+        },
+      }}
+      richColors
+      {...props}
+    />
+  );
+};
+
+export { Toaster };

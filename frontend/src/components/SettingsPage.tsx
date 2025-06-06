@@ -11,8 +11,7 @@ import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "./ui/dialog";
 import { Switch } from "./ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"; // Import Tabs components
-import { Toaster } from "./ui/toaster"; // Import Toaster
-import { useToast } from "./ui/use-toast"; // Import useToast hook
+import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"; // Import Alert components
 import { Info, MoreHorizontal } from 'lucide-react'; // Import icons
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu"; // Import DropdownMenu components
@@ -77,7 +76,6 @@ interface ModalFormData {
 
 
 const SettingsPage: React.FC = () => {
-  const { toast } = useToast(); // Initialize toast
   const [jwtToken, setJwtToken] = useState<string | null>(null);
 
   // State for Scheduled Tasks
@@ -163,16 +161,14 @@ const SettingsPage: React.FC = () => {
         setEnableScheduledMissingTranslations(data.enable_scheduled_missing_translations);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-        toast({
-          title: "Error Loading Schedule Settings",
+        toast.error("Error Loading Schedule Settings", {
           description: errorMessage,
-          variant: "destructive",
         });
       }
     };
 
     fetchSchedulerSettings();
-  }, [jwtToken, toast]); // Depend on jwtToken and toast
+  }, [jwtToken]);
 
   // Effects from admin/page.tsx
   useEffect(() => {
@@ -210,10 +206,8 @@ const SettingsPage: React.FC = () => {
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching stats.';
         setStatsError(errorMessage);
-        toast({
-          title: "Error Fetching Stats",
+        toast.error("Error Fetching Stats", {
           description: errorMessage,
-          variant: "destructive",
         });
       } finally {
         setStatsLoading(false);
@@ -294,10 +288,8 @@ const SettingsPage: React.FC = () => {
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while fetching sources.';
         setSourcesError(error);
-        toast({
-          title: "Error Fetching Sources",
+        toast.error("Error Fetching Sources", {
           description: errorMessage,
-          variant: "destructive",
         });
       } finally {
         setSourcesLoading(false);
@@ -328,17 +320,13 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to trigger scraper');
       }
-      toast({
-        title: "Scraper Triggered",
+      toast.success("Scraper Triggered", {
         description: data.message || 'Scraper triggered successfully. Check backend logs for progress.',
-        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
-      toast({
-        title: "Scraper Error",
+      toast.error("Scraper Error", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -370,17 +358,13 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to purge articles');
       }
-      toast({
-        title: "Articles Purged",
+      toast.success("Articles Purged", {
         description: data.message || 'All articles purged successfully.',
-        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during purging.';
-      toast({
-        title: "Purge Error",
+      toast.error("Purge Error", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setPurgeLoading(false);
@@ -408,17 +392,13 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || `Failed to trigger scraper for source ${sourceId}`);
       }
-      toast({
-        title: "Source Scrape Triggered",
+      toast.success("Source Scrape Triggered", {
         description: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles.`,
-        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during scraping.';
-      toast({
-        title: "Source Scrape Error",
+      toast.error("Source Scrape Error", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setSourceScrapingLoading(prev => ({ ...prev, [sourceId]: false }));
@@ -491,17 +471,13 @@ const SettingsPage: React.FC = () => {
       };
       fetchSources();
 
-      toast({
-        title: "Source Blocked",
+      toast.success("Source Blocked", {
         description: `Source ${sourceId} blocked successfully.`,
-        variant: "success",
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-      toast({
-        title: "Error Blocking Source",
+      toast.error("Error Blocking Source", {
         description: errorMessage,
-        variant: "destructive",
       });
     }
   };
@@ -532,17 +508,13 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(res.error || 'Failed to save schedule settings');
       }
-      toast({
-        title: "Schedule Settings Saved",
+      toast.success("Schedule Settings Saved", {
         description: res.message || 'Scheduler settings updated successfully.',
-        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while saving schedule settings.';
-      toast({
-        title: "Error Saving Schedule Settings",
+      toast.error("Error Saving Schedule Settings", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setSavingSchedule(false);
@@ -575,19 +547,15 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || `Failed to delete articles for source ${sourceId}`);
       }
-      toast({
-        title: "Articles Purged for Source",
+      toast.success("Articles Purged for Source", {
         description: data.message || `All articles for source ${sourceId} purged successfully.`,
-        variant: "success",
       });
       // Optionally refetch stats after deletion
       // fetchStats();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during article deletion.';
-      toast({
-        title: "Article Deletion Error",
+      toast.error("Article Deletion Error", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setSourceArticleDeletionLoading(prev => ({ ...prev, [sourceId]: false }));
@@ -607,10 +575,8 @@ const SettingsPage: React.FC = () => {
 
   const handleAddSource = async () => {
     if (!modalFormData.name || !modalFormData.url) {
-      toast({
-        title: "Missing Information",
+      toast.error("Missing Information", {
         description: "Please enter both source name and URL.",
-        variant: "destructive",
       });
       return;
     }
@@ -634,17 +600,13 @@ const SettingsPage: React.FC = () => {
       const addedSource = await response.json();
       setSources([...sources, addedSource]);
       closeAddEditModal();
-      toast({
-        title: "Source Added",
+      toast.success("Source Added", {
         description: `Source "${addedSource.name}" added successfully.`,
-        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      toast({
-        title: "Error Adding Source",
+      toast.error("Error Adding Source", {
         description: errorMessage,
-        variant: "destructive",
       });
     }
   };
@@ -653,10 +615,8 @@ const SettingsPage: React.FC = () => {
     if (!editingSource) return;
 
     if (!modalFormData.name || !modalFormData.url) {
-      toast({
-        title: "Missing Information",
+      toast.error("Missing Information", {
         description: "Please enter both source name and URL.",
-        variant: "destructive",
       });
       return;
     }
@@ -681,17 +641,13 @@ const SettingsPage: React.FC = () => {
       const updatedSource = await response.json();
       setSources(sources.map(source => source.id === updatedSource.id ? updatedSource : source));
       closeAddEditModal();
-      toast({
-        title: "Source Updated",
+      toast.success("Source Updated", {
         description: `Source "${updatedSource.name}" updated successfully.`,
-        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      toast({
-        title: "Error Updating Source",
+      toast.error("Error Updating Source", {
         description: errorMessage,
-        variant: "destructive",
       });
     }
   };
@@ -719,17 +675,13 @@ const SettingsPage: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       setSources(sources.filter(source => source.id !== id));
-      toast({
-        title: "Source Deleted",
+      toast.success("Source Deleted", {
         description: `Source ${id} deleted successfully.`,
-        variant: "success",
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while deleting the source.';
-      toast({
-        title: "Error Deletion Source",
+      toast.error("Error Deletion Source", {
         description: errorMessage,
-        variant: "destructive",
       });
     }
   };
