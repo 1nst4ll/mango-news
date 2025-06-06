@@ -153,7 +153,7 @@ const generateAISummary = async (content) => {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence. Return only the summary text, without any introductory phrases or conversational filler." // Changed summary word limit and added instruction to avoid filler
+          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence. Do not include any links or URLs in the summary. Return only the summary text, without any introductory phrases or conversational filler."
         },
         {
           role: "user",
