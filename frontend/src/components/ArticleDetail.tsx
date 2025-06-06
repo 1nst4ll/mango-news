@@ -235,7 +235,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
 
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -268,7 +268,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         </Button>
       </div>
 
-      <article className="prose lg:prose-xl">
+      <article className="prose prose-lg lg:prose-xl dark:prose-invert max-w-4xl mx-auto">
         <h1>{displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}</h1>
         <div className="text-sm text-muted-foreground mb-4">
         {t.source}: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{article.source_url}</a>
@@ -286,11 +286,11 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
                : new Date(article.created_at).toLocaleDateString(currentLocale)
            }</span></div>
         </div>
-        <div className="relative mb-4">
+        <div className="relative mb-6">
           {article.thumbnail_url && (
-            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg" />
+            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg shadow-lg" />
           )}
-          <div className="absolute bottom-2 left-2 flex flex-wrap gap-2">
+          <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
             {displayTopics.map(topic => (
               <a href={`/${currentLocale}/news/topic/${topic.toLowerCase().replace(/\s+/g, '-')}`} key={topic}>
                 <Badge variant="secondary" className="text-white bg-black bg-opacity-50 hover:bg-opacity-75 cursor-pointer">
@@ -300,7 +300,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             ))}
           </div>
         </div>
-        <div className="article-content" dangerouslySetInnerHTML={{ __html: displayContent }} />
+        <div dangerouslySetInnerHTML={{ __html: displayContent }} />
         <div className="mt-6 flex flex-wrap gap-2">
           <Button
             size="sm"

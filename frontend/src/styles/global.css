@@ -119,50 +119,6 @@
     @apply bg-background text-foreground;
   }
 
-  /* Basic article styling for readability and responsiveness */
-  .article-content {
-    @apply text-base leading-relaxed mx-auto max-w-prose; /* Base text, line height, horizontal margin, max width */
-  }
-
-  .article-content img {
-    @apply max-w-full h-auto; /* Responsive images */
-  }
-
-  .article-content p {
-    @apply mb-4 text-foreground; /* Margin after paragraphs and ensure foreground color */
-  }
-
-  .article-content h1,
-  .article-content h2,
-  .article-content h3,
-  .article-content h4,
-  .article-content h5,
-  .article-content h6 {
-    @apply mt-6 mb-3 font-bold; /* Margin and font weight for headings */
-  }
-
-  .article-content h1 { @apply text-2xl; }
-  .article-content h2 { @apply text-xl; }
-  .article-content h3 { @apply text-lg; }
-  /* Add more heading sizes if needed */
-
-  .article-content ul,
-  .article-content ol {
-    @apply list-disc list-inside mb-4; /* Basic list styling */
-  }
-
-  .article-content li {
-    @apply mb-2; /* Margin after list items */
-  }
-
-  .prose .article-content a {
-    @apply !text-blue-600 !underline;
-  }
-
-  .prose .article-content a:hover {
-    @apply !text-blue-800;
-  }
-
   /* Custom scrollbar styling for dialogs */
   /* Custom scrollbar styling for dialogs */
   .dialog-scrollable-content::-webkit-scrollbar {
