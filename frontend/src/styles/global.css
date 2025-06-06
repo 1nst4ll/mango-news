@@ -156,11 +156,11 @@
   }
 
   .prose .article-content a {
-    @apply text-blue-600 underline !important;
+    @apply !text-blue-600 !underline;
   }
 
   .prose .article-content a:hover {
-    @apply text-blue-800 !important;
+    @apply !text-blue-800;
   }
 
   /* Custom scrollbar styling for dialogs */
