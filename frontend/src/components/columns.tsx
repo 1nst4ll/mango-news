@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, ArrowUpDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -59,11 +59,31 @@ export type Article = {
       },
   {
     accessorKey: "id",
-    header: "ID",
+    header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            ID
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
   },
   {
     accessorKey: "title",
-    header: "Title",
+    header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Title
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
     cell: ({ row }) => {
         const article = row.original
         return <div className="min-w-[200px] break-words whitespace-pre-wrap">{article.title}</div>
@@ -87,7 +107,17 @@ export type Article = {
   },
   {
     accessorKey: "publication_date",
-    header: "Date",
+    header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Date
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
     cell: ({ row }) => {
         const article = row.original
         return article.publication_date ? new Date(article.publication_date).toLocaleDateString() : 'N/A'
@@ -104,6 +134,7 @@ export type Article = {
   {
     accessorKey: "ai_tags",
     header: "AI Tags",
+    accessorFn: (row) => row.ai_tags?.join(', ') || '',
     cell: ({ row }) => {
         const article = row.original
         return article.ai_tags ? article.ai_tags.join(', ') : ''

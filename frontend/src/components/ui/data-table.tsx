@@ -75,6 +75,16 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    globalFilterFn: (row, columnId, filterValue) => {
+        const title = row.getValue('title') as string;
+        const id = row.getValue('id') as number;
+        const tags = row.getValue('ai_tags') as string[];
+        const search = filterValue.toLowerCase();
+
+        return title?.toLowerCase().includes(search) ||
+               id?.toString().toLowerCase().includes(search) ||
+               tags?.join(' ').toLowerCase().includes(search);
+    },
     initialState: {
         pagination: {
             pageSize: 5,
@@ -175,8 +185,10 @@ export function DataTable<TData, TValue>({
         </div>
         <div className="flex flex-col md:flex-row items-center justify-between px-2 py-4 space-y-4 md:space-y-0">
             <div className="flex-1 text-sm text-muted-foreground">
-                {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                {table.getFilteredRowModel().rows.length} row(s) selected.
+                {table.getFilteredSelectedRowModel().rows.length > 0 &&
+                    `${table.getFilteredSelectedRowModel().rows.length} of ${
+                    table.getFilteredRowModel().rows.length
+                    } row(s) selected.`}
             </div>
             <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 lg:space-x-8">
                 <div className="flex items-center space-x-2">
