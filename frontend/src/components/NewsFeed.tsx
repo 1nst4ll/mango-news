@@ -362,7 +362,7 @@ function NewsFeed({
                             {getDomainFromUrl(article.source_url)}
                           </span>
                           {article.author && (
-                            <span> | {t.author}: {article.author}</span>
+                            <span> | {t.author}: {article.author.replace(/•/g, '')}</span>
                           )}
                            <span> | {t.published}: {
                             new Date(article.publication_date).getFullYear() === 2001
