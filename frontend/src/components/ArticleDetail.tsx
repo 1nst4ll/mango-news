@@ -312,7 +312,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
               window.open(whatsappUrl, '_blank');
             }}
-            className="bg-green-500 hover:bg-green-600 text-white"
+            className="bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
           >
             <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
           </Button>
@@ -323,7 +323,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
               window.open(facebookUrl, '_blank');
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
           >
             <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
           </Button>
