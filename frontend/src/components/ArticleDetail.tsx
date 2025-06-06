@@ -275,7 +275,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         <div className="text-sm text-muted-foreground mb-4">
         {t.source}: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{article.source_url}</a>
         <div> {article.author && (
-            <span> {t.author}: {article.author} </span>
+            <span> {t.author}: {article.author.replace(/•/g, '')} </span>
           )}
            | {t.published}: {
              new Date(article.publication_date).getFullYear() === 2001
