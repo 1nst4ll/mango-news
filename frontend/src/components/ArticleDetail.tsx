@@ -295,7 +295,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
             {displayTopics.map(topic => (
               <a href={`/${currentLocale}/news/topic/${topic.toLowerCase().replace(/\s+/g, '-')}`} key={topic}>
-                <Badge variant="secondary" className="text-white bg-black bg-opacity-50 hover:bg-opacity-75 cursor-pointer">
+                <Badge variant="secondary" className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer">
                   {topic}
                 </Badge>
               </a>
