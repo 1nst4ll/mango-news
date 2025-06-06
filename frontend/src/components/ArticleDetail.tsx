@@ -269,7 +269,9 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
       </div>
 
       <article className="prose prose-lg lg:prose-xl dark:prose-invert max-w-4xl mx-auto">
-        <h1>{displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}</h1>
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold !leading-tight">
+          {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
+        </h1>
         <div className="text-sm text-muted-foreground mb-4">
         {t.source}: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{article.source_url}</a>
         <div> {article.author && (
@@ -286,7 +288,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
                : new Date(article.created_at).toLocaleDateString(currentLocale)
            }</span></div>
         </div>
-        <div className="relative mb-6">
+        <div className="relative md:float-right md:w-1/2 md:ml-6 mb-4 clear-both">
           {article.thumbnail_url && (
             <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg shadow-lg" />
           )}

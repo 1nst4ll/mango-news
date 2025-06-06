@@ -4,7 +4,15 @@ export default {
     './src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      typography: ({ theme }) => ({
+        DEFAULT: {
+          css: {
+            fontFamily: theme('fontFamily.serif'),
+          },
+        },
+      }),
+    },
   },
   plugins: [
     require('@tailwindcss/typography'),
