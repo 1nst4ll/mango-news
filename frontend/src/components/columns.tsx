@@ -64,13 +64,17 @@ export type Article = {
   {
     accessorKey: "title",
     header: "Title",
+    cell: ({ row }) => {
+        const article = row.original
+        return <div className="max-w-[200px] break-words whitespace-pre-wrap">{article.title}</div>
+    }
   },
   {
     accessorKey: "source_url",
     header: "URL",
     cell: ({ row }) => {
         const article = row.original
-        return <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{article.source_url}</a>
+        return <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline max-w-[200px] break-words whitespace-pre-wrap block">{article.source_url}</a>
     }
   },
   {
@@ -92,6 +96,10 @@ export type Article = {
   {
     accessorKey: "ai_summary",
     header: "AI Summary",
+    cell: ({ row }) => {
+        const article = row.original
+        return <div className="max-w-[200px] break-words whitespace-pre-wrap">{article.ai_summary}</div>
+    }
   },
   {
     accessorKey: "ai_tags",

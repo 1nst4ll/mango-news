@@ -22,6 +22,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         },
       }}
       richColors
+      duration={10000}
       {...props}
     />
   );
