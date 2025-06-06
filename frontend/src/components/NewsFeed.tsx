@@ -383,7 +383,7 @@ function NewsFeed({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-xs sm:text-sm whitespace-normal h-auto"
+                          className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
                           onClick={(e) => {
                             e.stopPropagation();
                             const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
@@ -397,7 +397,7 @@ function NewsFeed({
                          <Button
                           variant="outline"
                           size="sm"
-                          className="text-xs sm:text-sm whitespace-normal h-auto"
+                          className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
                           onClick={(e) => {
                             e.stopPropagation();
                             const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
