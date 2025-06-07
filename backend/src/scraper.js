@@ -68,6 +68,7 @@ const sanitizeHtml = (htmlString) => {
   // Remove <tbody> and <table> tags, keeping their inner content
   sanitizedContent = sanitizedContent.replace(/<\/?tbody[^>]*>/gi, '');
   sanitizedContent = sanitizedContent.replace(/<\/?table[^>]*>/gi, '');
+  sanitizedContent = sanitizedContent.replace(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi, ''); // Remove <tr> tags and their content
 
   // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
   sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
