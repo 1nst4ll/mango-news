@@ -89,7 +89,7 @@ const sanitizeHtml = (htmlString) => {
 
   // Split content by newlines and wrap each non-empty line in <p> tags
   let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
-  sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('');
+  sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('\n');
 
   // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
   sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');
@@ -740,9 +740,9 @@ const generateAITranslation = async (text, targetLanguageCode, type = 'general')
 
 
 // Function to scrape a single article page based on source method
-const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true, scrapeAfterDate = null) => { // Accept scrape type, global toggle states, and scrapeAfterDate
-  console.log(`Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
-  console.log(`scrapeArticlePage received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, enableGlobalAiTranslations: ${enableGlobalAiTranslations}, scrapeAfterDate: ${scrapeAfterDate}`); // Log received values
+const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryToggle = undefined, enableGlobalAiTags = true, enableGlobalAiImage = true, enableGlobalAiTranslations = true, scrapeAfterDate = null) => {
+  console.log(`[scrapeArticlePage] Scraping individual article page: ${articleUrl} using method: ${source.scraping_method || 'firecrawl'}`);
+  console.log(`[scrapeArticlePage] Received scrapeType: ${scrapeType}, globalSummaryToggle: ${globalSummaryToggle}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, enableGlobalAiTranslations: ${enableGlobalAiTranslations}, scrapeAfterDate: ${scrapeAfterDate}`);
   let scrapedResult = null;
   let metadata = null;
   let content = null;
@@ -1424,8 +1424,8 @@ const processMissingAiForSource = async (sourceId, featureType) => {
 };
 
 // Function to re-scrape all articles for a specific source
-const rescrapeSourceArticles = async (sourceId, res) => { // Add 'res' for SSE
-  console.log(`Starting re-scraping of all articles for source ID: ${sourceId}`);
+const rescrapeSourceArticles = async (sourceId) => {
+  console.log(`[rescrapeSourceArticles] Starting re-scraping of all articles for source ID: ${sourceId}`);
   let articlesRescraped = 0;
   let errorCount = 0;
   let totalArticles = 0;
@@ -1436,8 +1436,7 @@ const rescrapeSourceArticles = async (sourceId, res) => { // Add 'res' for SSE
 
     if (!source) {
       const message = `Source with ID ${sourceId} not found or not active.`;
-      console.log(message);
-      if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: message })}\n\n`);
+      console.log(`[rescrapeSourceArticles] ${message}`);
       return { success: false, message: message };
     }
 
@@ -1446,11 +1445,11 @@ const rescrapeSourceArticles = async (sourceId, res) => { // Add 'res' for SSE
     const articlesToRescrape = articlesToRescrapeResult.rows;
     totalArticles = articlesToRescrape.length;
 
-    console.log(`Found ${totalArticles} articles for source ID ${sourceId} to re-scrape.`);
-    if (res) res.write(`data: ${JSON.stringify({ status: 'info', message: `Found ${totalArticles} articles to re-scrape for source ${source.name}.` })}\n\n`);
+    console.log(`[rescrapeSourceArticles] Found ${totalArticles} articles for source ID ${sourceId} to re-scrape.`);
 
     for (const article of articlesToRescrape) {
       try {
+        console.log(`[rescrapeSourceArticles] Re-scraping article: "${article.title}" (ID: ${article.id}) from URL: ${article.source_url}`);
         const processed = await scrapeArticlePage(
           source,
           article.source_url,
@@ -1464,31 +1463,26 @@ const rescrapeSourceArticles = async (sourceId, res) => { // Add 'res' for SSE
         if (processed) {
           articlesRescraped++;
           const message = `Successfully re-scraped article: "${article.title}" (ID: ${article.id}).`;
-          console.log(message);
-          if (res) res.write(`data: ${JSON.stringify({ status: 'success', message: message, articleId: article.id, title: article.title })}\n\n`);
+          console.log(`[rescrapeSourceArticles] ${message}`);
         } else {
           errorCount++;
           const message = `Failed to re-scrape article: "${article.title}" (ID: ${article.id}).`;
-          console.error(message);
-          if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: message, articleId: article.id, title: article.title })}\n\n`);
+          console.error(`[rescrapeSourceArticles] ${message}`);
         }
       } catch (articleErr) {
         errorCount++;
         const message = `Error re-scraping article ID ${article.id} from URL ${article.source_url}: ${articleErr.message}`;
-        console.error(message, articleErr);
-        if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: message, articleId: article.id, title: article.title })}\n\n`);
+        console.error(`[rescrapeSourceArticles] ${message}`, articleErr);
       }
     }
 
     const finalMessage = `Finished re-scraping for source ID ${sourceId}. Articles re-scraped: ${articlesRescraped}, Errors: ${errorCount}.`;
-    console.log(finalMessage);
-    if (res) res.write(`data: ${JSON.stringify({ status: 'complete', message: finalMessage, articlesRescraped, errorCount, totalArticles })}\n\n`);
+    console.log(`[rescrapeSourceArticles] ${finalMessage}`);
     return { success: true, message: finalMessage, articlesRescraped, errorCount };
 
   } catch (err) {
     const errorMessage = `Error during re-scraping for source ID ${sourceId}: ${err.message}`;
-    console.error(errorMessage, err);
-    if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: errorMessage })}\n\n`);
+    console.error(`[rescrapeSourceArticles] ${errorMessage}`, err);
     return { success: false, message: errorMessage };
   }
 };

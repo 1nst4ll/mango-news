@@ -45,6 +45,19 @@ const main = async () => {
       }
       const source = sourceResult.rows[0];
 
+      // Create a dummy response object for logging
+      const dummyRes = {
+        write: (data) => {
+          try {
+            const parsedData = JSON.parse(data.replace('data: ', ''));
+            console.log(`[Scraper Log] ${parsedData.message}`);
+          } catch (e) {
+            console.log(`[Scraper Raw Log] ${data.trim()}`);
+          }
+        }
+      };
+
+      console.log(`Starting detailed re-scrape for article ID: ${articleId} from source ID: ${source_id}`);
       const result = await scrapeArticlePage(
         source,
         source_url,
@@ -53,13 +66,14 @@ const main = async () => {
         source.enable_ai_tags,
         source.enable_ai_image,
         source.enable_ai_translations,
-        source.scrape_after_date
+        source.scrape_after_date,
+        dummyRes // Pass the dummy response object
       );
 
-      if (result) {
+      if (result && result.success) {
         console.log(`Successfully re-scraped article ID ${articleId}.`);
       } else {
-        console.error(`Failed to re-scrape article ID ${articleId}.`);
+        console.error(`Failed to re-scrape article ID ${articleId}. Message: ${result ? result.message : 'Unknown error'}`);
       }
 
     } else if (sourceIdIndex !== -1) {
@@ -69,21 +83,46 @@ const main = async () => {
         process.exit(1);
       }
       console.log(`Attempting to re-scrape articles for source ID: ${sourceId}`);
-      const result = await rescrapeSourceArticles(sourceId);
-      console.log(result.message);
+
+      // Create a dummy response object for logging
+      const dummyRes = {
+        write: (data) => {
+          try {
+            const parsedData = JSON.parse(data.replace('data: ', ''));
+            console.log(`[Scraper Log] ${parsedData.message}`);
+          } catch (e) {
+            console.log(`[Scraper Raw Log] ${data.trim()}`);
+          }
+        }
+      };
+
+      const result = await rescrapeSourceArticles(sourceId, dummyRes);
+      console.log(`Re-scraping for source ID ${sourceId} completed. ${result.message}`);
 
     } else if (allFlagIndex !== -1) {
       console.log('Attempting to re-scrape all articles from all active sources.');
       const activeSourcesResult = await pool.query('SELECT id FROM sources WHERE is_active = TRUE');
       const activeSourceIds = activeSourcesResult.rows.map(row => row.id);
 
+      // Create a dummy response object for logging
+      const dummyRes = {
+        write: (data) => {
+          try {
+            const parsedData = JSON.parse(data.replace('data: ', ''));
+            console.log(`[Scraper Log] ${parsedData.message}`);
+          } catch (e) {
+            console.log(`[Scraper Raw Log] ${data.trim()}`);
+          }
+        }
+      };
+
       for (const sourceId of activeSourceIds) {
-        console.log(`--- Re-scraping articles for source ID: ${sourceId} ---`);
-        const result = await rescrapeSourceArticles(sourceId);
-        console.log(result.message);
+        console.log(`\n--- Starting re-scraping for source ID: ${sourceId} ---`);
+        const result = await rescrapeSourceArticles(sourceId, dummyRes);
+        console.log(`Re-scraping for source ID ${sourceId} completed. ${result.message}`);
         console.log('--------------------------------------------------');
       }
-      console.log('Finished re-scraping all active sources.');
+      console.log('\nFinished re-scraping all active sources.');
 
     } else {
       console.error('Error: Invalid arguments provided.');
