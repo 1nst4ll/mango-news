@@ -34,20 +34,8 @@ const sanitizeHtml = (htmlString) => {
   // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
   sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
 
-  // Remove empty tags (e.g., <p></p>)
-  // This loop will run multiple times to catch nested empty tags.
-  let oldContent;
-  do {
-    oldContent = sanitizedContent;
-    // Regex to match any empty HTML tag, including those with whitespace/newlines between opening and closing tags
-    sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
-  } while (sanitizedContent !== oldContent);
-
-  // Replace &nbsp;</p><p> with a single space
-  sanitizedContent = sanitizedContent.replace(/&nbsp;<\/p>\n<p>/g, ' ');
-
-  // Remove multiple consecutive &nbsp;
-  sanitizedContent = sanitizedContent.replace(/(?:&nbsp; ){2,}/g, '');
+  // Remove all &nbsp;
+  sanitizedContent = sanitizedContent.replace(/&nbsp;/g, '');
 
   // Split content by newlines and wrap each non-empty line in <p> tags
   let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
@@ -56,6 +44,15 @@ const sanitizeHtml = (htmlString) => {
   // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
   sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');
   sanitizedContent = sanitizedContent.replace(/<\/p>\s*<\/p>/g, '</p>');
+
+  // Remove empty tags (e.g., <p></p>)
+  // This loop will run multiple times to catch nested empty tags.
+  let oldContent;
+  do {
+    oldContent = sanitizedContent;
+    // Regex to match any empty HTML tag, including those with whitespace/newlines between opening and closing tags
+    sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
+  } while (sanitizedContent !== oldContent);
 
   return sanitizedContent;
 };
