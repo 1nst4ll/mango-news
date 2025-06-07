@@ -51,20 +51,20 @@ const sanitizeHtml = (htmlString) => {
   });
 
   // Remove <span> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?span[^>]*>/gi, '');
+  //sanitizedContent = sanitizedContent.replace(/<\/?span[^>]*>/gi, '');
 
   // Remove <strong> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?strong[^>]*>/gi, '');
+  sanitizedContent = sanitizedContent.replace(/<\/?link[^>]*>/gi, '');
 
   // Remove all <div> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?div[^>]*>/gi, '');
+  //sanitizedContent = sanitizedContent.replace(/<\/?div[^>]*>/gi, '');
 
   // Remove <tbody> and <table> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?tbody[^>]*>/gi, '');
-  sanitizedContent = sanitizedContent.replace(/<\/?table[^>]*>/gi, '');
+  //sanitizedContent = sanitizedContent.replace(/<\/?tbody[^>]*>/gi, '');
+  //sanitizedContent = sanitizedContent.replace(/<\/?table[^>]*>/gi, '');
 
   // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
-  sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
+  //sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
 
   // Remove empty tags (e.g., <p></p>)
   // This loop will run multiple times to catch nested empty tags.
@@ -76,14 +76,14 @@ const sanitizeHtml = (htmlString) => {
   } while (sanitizedContent !== oldContent);
 
   // Replace &nbsp;</p><p> with a single space
-  sanitizedContent = sanitizedContent.replace(/&nbsp;<\/p>\n<p>/g, ' ');
+  //sanitizedContent = sanitizedContent.replace(/&nbsp;<\/p>\n<p>/g, ' ');
 
   // Remove multiple consecutive &nbsp;
-  sanitizedContent = sanitizedContent.replace(/(?:&nbsp; ){2,}/g, '');
+  //sanitizedContent = sanitizedContent.replace(/(?:&nbsp; ){2,}/g, '');
 
   // Split content by newlines and wrap each non-empty line in <p> tags
-  let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
-  sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('\n');
+  //let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
+  //sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('\n');
 
   // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
   //sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');

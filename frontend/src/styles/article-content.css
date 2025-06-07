@@ -27,7 +27,7 @@
   p:first-of-type::first-letter {
     float: left;
     font-family: 'Playfair Display', serif; /* A more decorative font for drop cap */
-    font-size: 4.9em; /* Adjusted for three lines of text tall */
+    font-size: 5em; /* Adjusted for three lines of text tall */
     line-height: 0.8;
     margin-right: 0.1em;
     margin-top: 0.05em;
