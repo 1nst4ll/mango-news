@@ -17,41 +17,60 @@ const sanitizeContent = async () => {
     const client = await pool.connect();
     console.log('Connected to the database.');
 
-    console.log('Sanitizing content fields for source_id = 6...');
+    const targetSourceId = 1; // Change target source ID to 1
+    const linesToRemove = 13;
 
-    const phrasesToSanitize = [
-      'TwitterFacebook',
-      'Share this:',
-      'Comparte esto:',
-      'Pataje sa:'
-    ];
+    console.log(`Removing first ${linesToRemove} lines from article content for source_id = ${targetSourceId}...`);
 
     const contentFields = [
       'raw_content',
-      'title_es',
-      'summary_es',
       'raw_content_es',
-      'title_ht',
-      'summary_ht',
       'raw_content_ht'
     ];
 
-    let totalRecordsUpdated = 0;
+    let totalArticlesProcessed = 0;
+    let totalArticlesUpdated = 0;
 
-    for (const phrase of phrasesToSanitize) {
+    // Fetch articles for the target source
+    const articlesResult = await client.query(
+      `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles WHERE source_id = $1`,
+      [targetSourceId]
+    );
+    const articles = articlesResult.rows;
+
+    console.log(`Found ${articles.length} articles for source ID ${targetSourceId}.`);
+
+    for (const article of articles) {
+      let updated = false;
+      const updateValues = [];
+      const updateFields = [];
+      let paramIndex = 1;
+
       for (const field of contentFields) {
-        const regex = phrase.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'); // Escape special characters
-        const updateQuery = `
-          UPDATE articles
-          SET ${field} = regexp_replace(${field}, $1, '', 'g')
-          WHERE source_id = 6 AND ${field} LIKE $2
-        `;
-        const result = await client.query(updateQuery, [regex, `%${phrase}%`]);
-        totalRecordsUpdated += result.rowCount;
-        console.log(`  Updated ${result.rowCount} records for field '${field}' with phrase '${phrase}'.`);
+        if (article[field]) {
+          const lines = article[field].split('\n');
+          if (lines.length > linesToRemove) {
+            const newContent = lines.slice(linesToRemove).join('\n');
+            if (newContent !== article[field]) { // Only update if content actually changed
+              updateFields.push(`${field} = $${paramIndex++}`);
+              updateValues.push(newContent);
+              updated = true;
+            }
+          }
+        }
       }
+
+      if (updated) {
+        updateValues.push(article.id); // Add article ID for WHERE clause
+        const updateQuery = `UPDATE articles SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`;
+        await client.query(updateQuery, updateValues);
+        totalArticlesUpdated++;
+        console.log(`  Updated article ID: ${article.id}`);
+      }
+      totalArticlesProcessed++;
     }
-    console.log(`Total records updated: ${totalRecordsUpdated}.`);
+
+    console.log(`Processed ${totalArticlesProcessed} articles. Updated ${totalArticlesUpdated} articles.`);
 
     client.release();
     console.log('Database connection closed.');

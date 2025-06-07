@@ -249,6 +249,15 @@ const processScrapedData = async (data) => { // Accept a single data object
         sanitizedContent = sanitizedContent.replace(/TwitterFacebook/g, '').replace(/Share this:/g, '').trim();
       }
 
+      // Apply source-specific sanitization for source_id = 1 (remove first 13 lines)
+      if (source.id === 1) {
+        const lines = sanitizedContent.split('\n');
+        if (lines.length > 13) {
+          sanitizedContent = lines.slice(13).join('\n');
+          console.log(`Removed first 13 lines from content for source ID 1.`);
+        }
+      }
+
       const raw_content = sanitizedContent.replace(/Share this:.*$/, '').trim(); // Use processedContent and remove sharing text
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date

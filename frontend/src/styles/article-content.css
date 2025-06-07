@@ -3,6 +3,7 @@
 .article-content {
   /* Ensure proper line height for readability */
   line-height: 1.75; /* Default prose line-height is 1.625, slightly increasing for better readability */
+  font-family: 'Lora', serif; /* Use Lora for article body */
   
   /* Adjust paragraph spacing */
   p {
@@ -11,7 +12,8 @@
 
   /* Headings within the article content */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Georgia', serif; /* Use a serif font for headings within the article */
+    font-family: 'Inter', sans-serif; /* Use Inter for headings within the article */
+    font-weight: 700; /* Bold weight for headings */
     margin-top: 1.5em;
     margin-bottom: 0.75em;
     line-height: 1.2;
