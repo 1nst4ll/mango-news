@@ -17,28 +17,31 @@ const checkArticle = async (articleId) => {
 
     console.log(`Fetching content for article_id = ${articleId}...`);
     const result = await client.query(
-      "SELECT raw_content, title_es, summary_es, title_ht, summary_ht, raw_content_es, raw_content_ht, source_id FROM articles WHERE id = $1",
+      "SELECT id, title, source_url, thumbnail_url, publication_date, author, summary, raw_content, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, source_id, created_at, updated_at FROM articles WHERE id = $1",
       [articleId]
     );
     
     if (result.rows.length > 0) {
       const article = result.rows[0];
-      console.log('Article Content (Original):');
-      console.log(article.raw_content);
-      console.log('\nArticle Title (Spanish):');
-      console.log(article.title_es);
-      console.log('\nArticle Summary (Spanish):');
-      console.log(article.summary_es);
-      console.log('\nArticle Content (Spanish):');
-      console.log(article.raw_content_es);
-      console.log('\nArticle Title (Haitian Creole):');
-      console.log(article.title_ht);
-      console.log('\nArticle Summary (Haitian Creole):');
-      console.log(article.summary_ht);
-      console.log('\nArticle Content (Haitian Creole):');
-      console.log(article.raw_content_ht);
-      console.log('\nSource ID:');
-      console.log(article.source_id);
+      console.log('--- Article Details ---');
+      console.log('ID:', article.id);
+      console.log('Title:', article.title);
+      console.log('Source URL:', article.source_url);
+      console.log('Thumbnail URL:', article.thumbnail_url);
+      console.log('Publication Date:', article.publication_date);
+      console.log('Author:', article.author);
+      console.log('Summary:', article.summary);
+      console.log('Raw Content (Original):', article.raw_content);
+      console.log('Title (Spanish):', article.title_es);
+      console.log('Summary (Spanish):', article.summary_es);
+      console.log('Raw Content (Spanish):', article.raw_content_es);
+      console.log('Title (Haitian Creole):', article.title_ht);
+      console.log('Summary (Haitian Creole):', article.summary_ht);
+      console.log('Raw Content (Haitian Creole):', article.raw_content_ht);
+      console.log('Source ID:', article.source_id);
+      console.log('Created At:', article.created_at);
+      console.log('Updated At:', article.updated_at);
+      console.log('-----------------------');
     } else {
       console.log(`Article with id ${articleId} not found.`);
     }

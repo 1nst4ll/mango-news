@@ -5,6 +5,7 @@ import { DataTable } from "./ui/data-table";
 import { getColumns, Article } from "./columns";
 import { toast } from "sonner";
 import { Loader2 } from 'lucide-react';
+import ArticleEditDialog from './ArticleEditDialog'; // Import the new dialog component
 
 // Interface for Source data (matching the backend endpoint response)
 interface Source {
@@ -47,6 +48,10 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev
   const [jwtToken, setJwtToken] = useState<string | null>(null);
+
+  // State for ArticleEditDialog
+  const [isArticleEditDialogOpen, setIsArticleEditDialogOpen] = useState(false);
+  const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
 
   useEffect(() => {
     // Retrieve the token from localStorage when the component mounts
@@ -178,7 +183,21 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     }
   };
 
-  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle });
+  const handleEditArticle = (articleId: number) => {
+    setSelectedArticleId(articleId);
+    setIsArticleEditDialogOpen(true);
+  };
+
+  const handleCloseArticleEditDialog = () => {
+    setIsArticleEditDialogOpen(false);
+    setSelectedArticleId(null);
+  };
+
+  const handleArticleSaveSuccess = () => {
+    fetchArticles(); // Refresh articles after a successful save
+  };
+
+  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle });
 
   // Fetch source settings
   useEffect(() => {
@@ -466,6 +485,12 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
             <DataTable columns={columns} data={articles} />
         )}
       </CardContent>
+      <ArticleEditDialog
+        isOpen={isArticleEditDialogOpen}
+        onClose={handleCloseArticleEditDialog}
+        articleId={selectedArticleId}
+        onSaveSuccess={handleArticleSaveSuccess}
+      />
     </Card>
   );
 };

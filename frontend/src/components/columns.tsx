@@ -32,10 +32,11 @@ export type Article = {
   type ActionHandlers = {
     handleProcessAi: (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => void;
     handleDeleteArticle: (articleId: number) => void;
-    handleRescrapeArticle: (articleId: number) => void; // New handler for rescraping single article
+    handleRescrapeArticle: (articleId: number) => void;
+    handleEditArticle: (articleId: number) => void; // New handler for editing an article
   };
   
-  export const getColumns = ({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle }: ActionHandlers): ColumnDef<Article>[] => [
+  export const getColumns = ({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle }: ActionHandlers): ColumnDef<Article>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -175,7 +176,8 @@ export type Article = {
             <DropdownMenuItem onClick={() => handleProcessAi(article.id, 'image')}>Rerun Image</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleProcessAi(article.id, 'translations')}>Rerun Translations</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleRescrapeArticle(article.id)}>Rescrape Article</DropdownMenuItem> {/* New menu item */}
+            <DropdownMenuItem onClick={() => handleRescrapeArticle(article.id)}>Rescrape Article</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEditArticle(article.id)}>Edit Article</DropdownMenuItem> {/* New menu item for editing */}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleDeleteArticle(article.id)} className="text-red-600">Delete</DropdownMenuItem>
           </DropdownMenuContent>

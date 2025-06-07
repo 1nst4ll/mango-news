@@ -834,6 +834,29 @@ const SettingsPage: React.FC = () => {
               {/* Articles per Source Chart */}
               <div className="lg:col-span-2">
                 <ArticlesPerSourceBarChart data={stats.articlesPerSource || []} />
+                {/* New: Dropdown for selecting a source to view/edit articles */}
+                <div className="mt-4">
+                  <Label htmlFor="selectSourceArticles">View Articles per Source:</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      // Handle selection, e.g., open a new dialog or navigate
+                      if (value) {
+                        window.location.href = `/settings/source/${value}`;
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="selectSourceArticles">
+                      <SelectValue placeholder="Select a source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stats.articlesPerSource.map((sourceStat) => (
+                        <SelectItem key={sourceStat.source_name} value={sourceStat.source_name}>
+                          {sourceStat.source_name} ({sourceStat.article_count})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               {/* Articles per Year Chart */}
               <div className="lg:col-span-2">
