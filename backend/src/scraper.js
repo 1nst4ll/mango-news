@@ -1360,27 +1360,32 @@ const processMissingAiForSource = async (sourceId, featureType) => {
 };
 
 // Function to re-scrape all articles for a specific source
-const rescrapeSourceArticles = async (sourceId) => {
+const rescrapeSourceArticles = async (sourceId, res) => { // Add 'res' for SSE
   console.log(`Starting re-scraping of all articles for source ID: ${sourceId}`);
   let articlesRescraped = 0;
   let errorCount = 0;
+  let totalArticles = 0;
 
   try {
     const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1 AND is_active = TRUE', [sourceId]);
     const source = sourceResult.rows[0];
 
     if (!source) {
-      console.log(`Source with ID ${sourceId} not found or not active.`);
-      return { success: false, message: `Source with ID ${sourceId} not found or not active.` };
+      const message = `Source with ID ${sourceId} not found or not active.`;
+      console.log(message);
+      if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: message })}\n\n`);
+      return { success: false, message: message };
     }
 
     // Fetch all articles associated with this source
-    const articlesToRescrapeResult = await pool.query('SELECT id, source_url FROM articles WHERE source_id = $1', [sourceId]);
+    const articlesToRescrapeResult = await pool.query('SELECT id, title, source_url FROM articles WHERE source_id = $1', [sourceId]);
     const articlesToRescrape = articlesToRescrapeResult.rows;
+    totalArticles = articlesToRescrape.length;
 
-    console.log(`Found ${articlesToRescrape.length} articles for source ID ${sourceId} to re-scrape.`);
+    console.log(`Found ${totalArticles} articles for source ID ${sourceId} to re-scrape.`);
+    if (res) res.write(`data: ${JSON.stringify({ status: 'info', message: `Found ${totalArticles} articles to re-scrape for source ${source.name}.` })}\n\n`);
 
-    const rescrapePromises = articlesToRescrape.map(async (article) => {
+    for (const article of articlesToRescrape) {
       try {
         const processed = await scrapeArticlePage(
           source,
@@ -1393,34 +1398,34 @@ const rescrapeSourceArticles = async (sourceId) => {
           source.scrape_after_date
         );
         if (processed) {
-          return { status: 'fulfilled', value: article.id };
+          articlesRescraped++;
+          const message = `Successfully re-scraped article: "${article.title}" (ID: ${article.id}).`;
+          console.log(message);
+          if (res) res.write(`data: ${JSON.stringify({ status: 'success', message: message, articleId: article.id, title: article.title })}\n\n`);
         } else {
-          return { status: 'rejected', reason: `Failed to process article ${article.id}` };
+          errorCount++;
+          const message = `Failed to re-scrape article: "${article.title}" (ID: ${article.id}).`;
+          console.error(message);
+          if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: message, articleId: article.id, title: article.title })}\n\n`);
         }
       } catch (articleErr) {
-        console.error(`Error re-scraping article ID ${article.id} from URL ${article.source_url}:`, articleErr);
-        return { status: 'rejected', reason: articleErr.message };
-      }
-    });
-
-    const results = await Promise.allSettled(rescrapePromises);
-
-    results.forEach(result => {
-      if (result.status === 'fulfilled') {
-        articlesRescraped++;
-      } else {
         errorCount++;
-        console.error(`Rescrape failed for an article: ${result.reason}`);
+        const message = `Error re-scraping article ID ${article.id} from URL ${article.source_url}: ${articleErr.message}`;
+        console.error(message, articleErr);
+        if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: message, articleId: article.id, title: article.title })}\n\n`);
       }
-    });
+    }
 
-    const message = `Finished re-scraping for source ID ${sourceId}. Articles re-scraped: ${articlesRescraped}, Errors: ${errorCount}.`;
-    console.log(message);
-    return { success: true, message: message, articlesRescraped, errorCount };
+    const finalMessage = `Finished re-scraping for source ID ${sourceId}. Articles re-scraped: ${articlesRescraped}, Errors: ${errorCount}.`;
+    console.log(finalMessage);
+    if (res) res.write(`data: ${JSON.stringify({ status: 'complete', message: finalMessage, articlesRescraped, errorCount, totalArticles })}\n\n`);
+    return { success: true, message: finalMessage, articlesRescraped, errorCount };
 
   } catch (err) {
-    console.error(`Error during re-scraping for source ID ${sourceId}:`, err);
-    return { success: false, message: `Error re-scraping source ${sourceId}: ${err.message}` };
+    const errorMessage = `Error during re-scraping for source ID ${sourceId}: ${err.message}`;
+    console.error(errorMessage, err);
+    if (res) res.write(`data: ${JSON.stringify({ status: 'error', message: errorMessage })}\n\n`);
+    return { success: false, message: errorMessage };
   }
 };
 

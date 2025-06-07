@@ -348,14 +348,40 @@ app.delete('/api/sources/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Rescrape all articles for a specific source
+// Rescrape all articles for a specific source (SSE endpoint)
+app.get('/api/sources/:sourceId/rescrape-stream', authenticateToken, async (req, res) => {
+  const sourceId = req.params.sourceId;
+  const endpoint = `/api/sources/${sourceId}/rescrape-stream`;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders(); // Flush headers to establish SSE connection immediately
+
+  console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - SSE connection established for rescrape of source ID: ${sourceId}`);
+
+  try {
+    const { rescrapeSourceArticles } = require('./scraper');
+    await rescrapeSourceArticles(sourceId, res); // Pass the response object for SSE
+
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Rescrape process completed for source ID: ${sourceId}. Closing SSE connection.`);
+    res.end(); // End the SSE connection
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error during rescrape SSE for source ${sourceId}:`, error);
+    res.write(`data: ${JSON.stringify({ status: 'error', message: `Failed to trigger rescrape: ${error.message}` })}\n\n`);
+    res.end(); // End the SSE connection on error
+  }
+});
+
+// Keep the original POST endpoint for backward compatibility or if needed for non-streaming calls
 app.post('/api/sources/:sourceId/rescrape', authenticateToken, async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/sources/${sourceId}/rescrape`;
   try {
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering rescrape for source ID: ${sourceId}`);
 
-    const { rescrapeSourceArticles } = require('./scraper'); // Import the new function
+    const { rescrapeSourceArticles } = require('./scraper');
+    // For the POST endpoint, we don't pass 'res' for streaming, it will just return the final result
     const result = await rescrapeSourceArticles(sourceId);
 
     if (result.success) {

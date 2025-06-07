@@ -363,37 +363,47 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     fetchArticles(); // Refetch articles after all processing is done
   };
 
-  const handleRescrapeAllArticles = async () => {
+  const handleRescrapeAllArticles = () => {
     setIsRescraping(true);
-    try {
-      const response = await fetch(`${apiUrl}/api/sources/${sourceId}/rescrape`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `Failed to rescrape articles for source ${sourceId}`);
-      }
-      toast.success("Rescrape Complete", {
-        description: data.message || `Successfully rescraped ${data.articlesRescraped} articles.`,
-      });
-      fetchArticles(); // Refetch articles after rescraping
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        toast.error("Error", {
-          description: `Error: ${err.message}`,
+    const eventSource = new EventSource(`${apiUrl}/api/sources/${sourceId}/rescrape-stream?token=${jwtToken}`); // Pass token as query param for SSE
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.status === 'success') {
+        toast.success("Article Rescraped", {
+          description: data.message,
+          duration: 3000,
         });
-      } else {
-        toast.error("Error", {
-          description: `An unknown error occurred during rescraping.`,
+      } else if (data.status === 'error') {
+        toast.error("Rescrape Error", {
+          description: data.message,
+          duration: 5000,
         });
+      } else if (data.status === 'info') {
+        toast.info("Rescrape Info", {
+          description: data.message,
+          duration: 3000,
+        });
+      } else if (data.status === 'complete') {
+        toast.success("Rescrape Complete", {
+          description: data.message,
+          duration: 5000,
+        });
+        setIsRescraping(false);
+        eventSource.close();
+        fetchArticles(); // Refetch articles after rescraping is complete
       }
-    } finally {
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('EventSource failed:', err);
+      toast.error("Rescrape Connection Error", {
+        description: "Failed to connect to rescrape stream or an error occurred during streaming.",
+        duration: 5000,
+      });
       setIsRescraping(false);
-    }
+      eventSource.close();
+    };
   };
 
   return (
