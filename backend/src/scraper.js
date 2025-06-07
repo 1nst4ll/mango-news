@@ -24,6 +24,9 @@ const sanitizeHtml = (htmlString) => {
   // Remove entire <figure> tags and their content first.
   let sanitizedContent = htmlString.replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, '');
 
+  // Remove <link> tags and their content
+  sanitizedContent = sanitizedContent.replace(/<link\b[^>]*>[\s\S]*?<\/link>/gi, '');
+
   // Remove <br> tags
   sanitizedContent = sanitizedContent.replace(/<br\b[^>]*>/gi, '');
 
