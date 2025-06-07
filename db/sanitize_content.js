@@ -11,16 +11,68 @@ const pool = new Pool({
   port: process.env.DB_PORT
 });
 
-const sanitizeContent = async () => {
+const sanitizeHtml = (htmlString) => {
+  // Remove entire <figure> tags and their content first.
+  let sanitizedContent = htmlString.replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, '');
+
+  // Remove <br> tags
+  sanitizedContent = sanitizedContent.replace(/<br\b[^>]*>/gi, '');
+
+  // Remove all attributes from all tags, except for href and rel in <a> tags, and src in <img> tags.
+  sanitizedContent = sanitizedContent.replace(/<(\w+)(?:\s+([^>]*))?>/gi, (match, tagName, attributes) => {
+    if (tagName.toLowerCase() === 'a' && attributes) {
+      // For <a> tags, keep href and rel attributes
+      const hrefMatch = attributes.match(/href="([^"]*)"/i);
+      const relMatch = attributes.match(/rel="([^"]*)"/i);
+      let cleanedAttributes = '';
+      if (hrefMatch) {
+        cleanedAttributes += ` href="${hrefMatch[1]}"`;
+      }
+      if (relMatch) {
+        cleanedAttributes += ` rel="${relMatch[1]}"`;
+      }
+      return `<${tagName}${cleanedAttributes}>`;
+    } else if (tagName.toLowerCase() === 'img' && attributes) {
+      // For <img> tags, keep src attribute
+      const srcMatch = attributes.match(/src="([^"]*)"/i);
+      let cleanedAttributes = '';
+      if (srcMatch) {
+        cleanedAttributes += ` src="${srcMatch[1]}"`;
+      }
+      return `<${tagName}${cleanedAttributes}>`;
+    }
+    else {
+      // For all other tags, remove all attributes
+      return `<${tagName}>`;
+    }
+  });
+
+  // Remove <span> tags, keeping their inner content
+  sanitizedContent = sanitizedContent.replace(/<\/?span[^>]*>/gi, '');
+
+  // Remove <strong> tags, keeping their inner content
+  sanitizedContent = sanitizedContent.replace(/<\/?strong[^>]*>/gi, '');
+
+  // Remove all <div> tags, keeping their inner content
+  sanitizedContent = sanitizedContent.replace(/<\/?div[^>]*>/gi, '');
+
+  // Remove empty tags (e.g., <p></p>)
+  // This loop will run multiple times to catch nested empty tags.
+  let oldContent;
+  do {
+    oldContent = sanitizedContent;
+    // Regex to match any empty HTML tag, including those with whitespace/newlines between opening and closing tags
+    sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
+  } while (sanitizedContent !== oldContent);
+
+  return sanitizedContent;
+};
+
+const sanitizeContent = async () => { // Removed articleId parameter
   try {
     console.log('Connecting to the database...');
     const client = await pool.connect();
     console.log('Connected to the database.');
-
-    const targetSourceId = 1; // Change target source ID to 1
-    const linesToRemove = 13;
-
-    console.log(`Removing first ${linesToRemove} lines from article content for source_id = ${targetSourceId}...`);
 
     const contentFields = [
       'raw_content',
@@ -31,14 +83,13 @@ const sanitizeContent = async () => {
     let totalArticlesProcessed = 0;
     let totalArticlesUpdated = 0;
 
-    // Fetch articles for the target source
+    // Fetch all articles (removed WHERE clause)
     const articlesResult = await client.query(
-      `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles WHERE source_id = $1`,
-      [targetSourceId]
+      `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles`
     );
     const articles = articlesResult.rows;
 
-    console.log(`Found ${articles.length} articles for source ID ${targetSourceId}.`);
+    console.log(`Found ${articles.length} articles in total.`);
 
     for (const article of articles) {
       let updated = false;
@@ -48,14 +99,13 @@ const sanitizeContent = async () => {
 
       for (const field of contentFields) {
         if (article[field]) {
-          const lines = article[field].split('\n');
-          if (lines.length > linesToRemove) {
-            const newContent = lines.slice(linesToRemove).join('\n');
-            if (newContent !== article[field]) { // Only update if content actually changed
-              updateFields.push(`${field} = $${paramIndex++}`);
-              updateValues.push(newContent);
-              updated = true;
-            }
+          const originalContent = article[field];
+          const newContent = sanitizeHtml(originalContent);
+
+          if (newContent !== originalContent) { // Only update if content actually changed
+            updateFields.push(`${field} = $${paramIndex++}`);
+            updateValues.push(newContent);
+            updated = true;
           }
         }
       }
@@ -79,4 +129,5 @@ const sanitizeContent = async () => {
   }
 };
 
+// Removed command line argument parsing
 sanitizeContent();
