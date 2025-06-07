@@ -2,46 +2,74 @@
 
 .article-content {
   /* Ensure proper line height for readability */
-  line-height: 1.75; /* Default prose line-height is 1.625, slightly increasing for better readability */
+  line-height: 1.8; /* Slightly increased for better readability */
   font-family: 'Lora', serif; /* Use Lora for article body */
+  font-size: 1.125rem; /* Slightly larger base font size */
+  text-align: justify; /* Justify text for newspaper feel */
+  hyphens: auto; /* Enable hyphenation */
   
   /* Adjust paragraph spacing */
   p {
-    margin-bottom: 1.25em; /* Default prose p margin-bottom is 1.25em, keeping it consistent or slightly increasing */
+    margin-bottom: 1.5em; /* More generous spacing between paragraphs */
+  }
+
+  /* First paragraph styling */
+  p:first-of-type {
+    font-size: 1.25em; /* Larger first paragraph */
+    font-weight: 500; /* Slightly bolder */
+    line-height: 1.6;
+    margin-bottom: 1.5em;
+  }
+
+  /* Drop cap for the first letter of the article */
+  p:first-of-type::first-letter {
+    float: left;
+    font-family: 'Playfair Display', serif; /* A more decorative font for drop cap */
+    font-size: 4em; /* Large size for drop cap */
+    line-height: 0.8;
+    margin-right: 0.1em;
+    margin-top: 0.05em;
+    font-weight: bold;
+    color: var(--foreground); /* Use foreground color */
   }
 
   /* Headings within the article content */
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', sans-serif; /* Use Inter for headings within the article */
     font-weight: 700; /* Bold weight for headings */
-    margin-top: 1.5em;
-    margin-bottom: 0.75em;
+    margin-top: 2em; /* More space above headings */
+    margin-bottom: 1em;
     line-height: 1.2;
+    color: var(--foreground); /* Ensure headings use foreground color */
   }
 
-  h1 { font-size: 2.25em; } /* Equivalent to Tailwind text-4xl */
-  h2 { font-size: 1.875em; } /* Equivalent to Tailwind text-3xl */
-  h3 { font-size: 1.5em; }    /* Equivalent to Tailwind text-2xl */
-  h4 { font-size: 1.25em; }   /* Equivalent to Tailwind text-xl */
+  h1 { font-size: 2.5em; } /* Slightly larger headings */
+  h2 { font-size: 2em; }
+  h3 { font-size: 1.75em; }
+  h4 { font-size: 1.5em; }
 
   /* Lists */
   ul, ol {
-    margin-top: 1em;
-    margin-bottom: 1em;
-    padding-left: 1.5em;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+    padding-left: 1.8em; /* Slightly more padding */
   }
 
   li {
-    margin-bottom: 0.5em;
+    margin-bottom: 0.75em; /* More space between list items */
   }
 
   /* Blockquotes */
   blockquote {
-    border-left: 0.25em solid #ccc;
-    padding-left: 1em;
-    margin-left: 0;
+    border-left: 0.3em solid var(--primary); /* Use primary color for border */
+    padding-left: 1.5em;
+    margin: 2em 0; /* More vertical margin */
     font-style: italic;
-    color: #555;
+    color: var(--muted-foreground); /* Muted color for blockquote text */
+    background-color: var(--background); /* Use background color for subtle contrast */
+    padding-top: 1em;
+    padding-bottom: 1em;
+    border-radius: 0.25rem;
   }
 
   /* Images within content */
@@ -49,73 +77,79 @@
     max-width: 100%;
     height: auto;
     display: block;
-    margin-top: 1.5em;
-    margin-bottom: 1.5em;
+    margin-top: 2em; /* More space around images */
+    margin-bottom: 2em;
     border-radius: 0.5rem; /* Slightly rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
   }
 
   /* Links within content */
   a {
-    color: #007bff; /* A standard blue for links */
-    text-decoration: underline;
+    color: inherit; /* Inherit text color */
+    text-decoration: none; /* No underline by default */
   }
 
   a:hover {
-    color: #0056b3;
+    text-decoration: underline; /* Underline on hover */
+    color: var(--primary); /* Primary color on hover */
   }
 
   /* Strong/Bold text */
   strong {
     font-weight: 700;
+    color: var(--foreground); /* Ensure bold text is prominent */
   }
 
   /* Table styling */
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1.5em;
-    margin-bottom: 1.5em;
+    margin-top: 2em;
+    margin-bottom: 2em;
+    font-size: 0.9em; /* Slightly smaller font for tables */
   }
 
   th, td {
-    border: 1px solid #ddd;
-    padding: 0.75em;
+    border: 1px solid var(--border); /* Use border color */
+    padding: 0.8em;
     text-align: left;
   }
 
   th {
-    background-color: #f2f2f2;
+    background-color: var(--muted); /* Muted background for table headers */
     font-weight: bold;
+    color: var(--muted-foreground);
   }
 
   /* Dark mode adjustments */
   .dark & {
-    color: #d1d5db; /* Light gray for dark mode text */
+    color: var(--ink-dark); /* Use ink-dark for dark mode text */
 
     h1, h2, h3, h4, h5, h6 {
-      color: #f9fafb; /* Lighter headings in dark mode */
+      color: var(--ink-dark); /* Use ink-dark for headings in dark mode */
     }
 
     blockquote {
-      border-left-color: #555;
-      color: #bbb;
+      border-left-color: var(--primary);
+      color: var(--muted-foreground);
+      background-color: var(--background);
     }
 
     a {
-      color: #63b3ed; /* Lighter blue for links in dark mode */
+      color: inherit;
     }
 
     a:hover {
-      color: #90cdf4;
+      color: var(--primary);
     }
 
     th {
-      background-color: #374151; /* Darker background for table headers */
-      color: #f9fafb;
+      background-color: var(--muted);
+      color: var(--muted-foreground);
     }
 
     td {
-      border-color: #4b5563;
+      border-color: var(--border);
     }
   }
 }

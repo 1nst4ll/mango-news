@@ -304,7 +304,7 @@ function NewsFeed({
             </div>
           )}
           <h2 className="text-2xl font-bold mb-4">{dateKey}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {groupedArticles[dateKey].map(article => {
               try {
                 const displayTitle = getTranslatedText(article, 'title', currentLocale);
@@ -348,10 +348,10 @@ function NewsFeed({
                         </div>
                       )}
                       <CardHeader className={article.thumbnail_url ? "px-6 pt-4" : "px-6 pt-4"}>
-                        <CardTitle>
+                        <CardTitle className="font-serif">
                           {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground mt-1">
                           <span
                             className="hover:underline cursor-pointer"
                             onClick={(e) => {

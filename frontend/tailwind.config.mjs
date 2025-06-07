@@ -8,6 +8,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         serif: ['Lora', 'serif'],
+        display: ['Playfair Display', 'serif'], // Added for drop cap
       },
       typography: ({ theme }) => ({
         DEFAULT: {

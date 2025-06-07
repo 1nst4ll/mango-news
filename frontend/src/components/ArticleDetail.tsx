@@ -268,7 +268,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         </Button>
       </div>
 
-      <article className="prose prose-base sm:prose-lg dark:prose-invert max-w-4xl mx-auto font-serif text-gray-800 dark:text-gray-200">
+      <article className="prose prose-base sm:prose-lg dark:prose-invert max-w-3xl mx-auto font-serif text-gray-800 dark:text-gray-200">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold !leading-tight mb-4 font-sans">
           {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
         </h1>
