@@ -140,7 +140,7 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] md:max-w-xl lg:max-w-2xl overflow-y-scroll max-h-[90vh]">
+      <DialogContent className="sm:max-w-[900px] md:max-w-[1000px] lg:max-w-[1200px] overflow-y-scroll max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{articleData ? `Edit Article: ${articleData.title}` : 'Edit Article'}</DialogTitle>
         </DialogHeader>
@@ -149,76 +149,80 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
         ) : error ? (
           <div className="text-red-500 text-center py-8">{error}</div>
         ) : articleData ? (
-          <form className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Title</Label>
-              <Input id="title" name="title" value={articleData.title || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="author" className="text-right">Author</Label>
-              <Input id="author" name="author" value={articleData.author || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="publication_date" className="text-right">Publication Date</Label>
-              <Input id="publication_date" name="publication_date" type="datetime-local" value={articleData.publication_date ? new Date(articleData.publication_date).toISOString().slice(0, 16) : ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="source_url" className="text-right">Source URL</Label>
-              <Input id="source_url" name="source_url" value={articleData.source_url || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="thumbnail_url" className="text-right">Thumbnail URL</Label>
-              <Input id="thumbnail_url" name="thumbnail_url" value={articleData.thumbnail_url || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="topics" className="text-right">Topics (comma-separated)</Label>
-              <Input id="topics" name="topics" value={articleData.topics?.join(', ') || ''} onChange={(e) => setArticleData(prev => prev ? { ...prev, topics: e.target.value.split(',').map(t => t.trim()) } : null)} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="summary" className="text-right">Summary</Label>
-              <Textarea id="summary" name="summary" value={articleData.summary || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="raw_content" className="text-right">Raw Content (HTML)</Label>
-              <Textarea id="raw_content" name="raw_content" value={articleData.raw_content || ''} onChange={handleInputChange} className="col-span-3 min-h-[150px]" />
-            </div>
-
-            {/* Translated Fields */}
-            <h3 className="text-lg font-semibold mt-4 col-span-4">Translated Fields</h3>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title_es" className="text-right">Title (Spanish)</Label>
-              <Input id="title_es" name="title_es" value={articleData.title_es || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="summary_es" className="text-right">Summary (Spanish)</Label>
-              <Textarea id="summary_es" name="summary_es" value={articleData.summary_es || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="raw_content_es" className="text-right">Raw Content (Spanish)</Label>
-              <Textarea id="raw_content_es" name="raw_content_es" value={articleData.raw_content_es || ''} onChange={handleInputChange} className="col-span-3 min-h-[150px]" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="topics_es" className="text-right">Topics (Spanish, comma-separated)</Label>
-              <Input id="topics_es" name="topics_es" value={articleData.topics_es?.join(', ') || ''} onChange={(e) => setArticleData(prev => prev ? { ...prev, topics_es: e.target.value.split(',').map(t => t.trim()) } : null)} className="col-span-3" />
+          <form className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
+            {/* Column 1 */}
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title" className="text-right">Title</Label>
+                <Input id="title" name="title" value={articleData.title || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="author" className="text-right">Author</Label>
+                <Input id="author" name="author" value={articleData.author || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="publication_date" className="text-right">Publication Date</Label>
+                <Input id="publication_date" name="publication_date" type="datetime-local" value={articleData.publication_date ? new Date(articleData.publication_date).toISOString().slice(0, 16) : ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="source_url" className="text-right">Source URL</Label>
+                <Input id="source_url" name="source_url" value={articleData.source_url || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="thumbnail_url" className="text-right">Thumbnail URL</Label>
+                <Input id="thumbnail_url" name="thumbnail_url" value={articleData.thumbnail_url || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="topics" className="text-right">Topics (comma-separated)</Label>
+                <Input id="topics" name="topics" value={articleData.topics?.join(', ') || ''} onChange={(e) => setArticleData(prev => prev ? { ...prev, topics: e.target.value.split(',').map(t => t.trim()) } : null)} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="summary" className="text-right">Summary</Label>
+                <Textarea id="summary" name="summary" value={articleData.summary || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="raw_content" className="text-right">Raw Content (HTML)</Label>
+                <Textarea id="raw_content" name="raw_content" value={articleData.raw_content || ''} onChange={handleInputChange} className="col-span-3 min-h-[150px]" />
+              </div>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title_ht" className="text-right">Title (Haitian Creole)</Label>
-              <Input id="title_ht" name="title_ht" value={articleData.title_ht || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="summary_ht" className="text-right">Summary (Haitian Creole)</Label>
-              <Textarea id="summary_ht" name="summary_ht" value={articleData.summary_ht || ''} onChange={handleInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="raw_content_ht" className="text-right">Raw Content (Haitian Creole)</Label>
-              <Textarea id="raw_content_ht" name="raw_content_ht" value={articleData.raw_content_ht || ''} onChange={handleInputChange} className="col-span-3 min-h-[150px]" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="topics_ht" className="text-right">Topics (Haitian Creole, comma-separated)</Label>
-              <Input id="topics_ht" name="topics_ht" value={articleData.topics_ht?.join(', ') || ''} onChange={(e) => setArticleData(prev => prev ? { ...prev, topics_ht: e.target.value.split(',').map(t => t.trim()) } : null)} className="col-span-3" />
-            </div>
+            {/* Column 2 - Translated Fields */}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-lg font-semibold mt-4 col-span-full">Translated Fields</h3>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title_es" className="text-right">Title (Spanish)</Label>
+                <Input id="title_es" name="title_es" value={articleData.title_es || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="summary_es" className="text-right">Summary (Spanish)</Label>
+                <Textarea id="summary_es" name="summary_es" value={articleData.summary_es || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="raw_content_es" className="text-right">Raw Content (Spanish)</Label>
+                <Textarea id="raw_content_es" name="raw_content_es" value={articleData.raw_content_es || ''} onChange={handleInputChange} className="col-span-3 min-h-[150px]" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="topics_es" className="text-right">Topics (Spanish, comma-separated)</Label>
+                <Input id="topics_es" name="topics_es" value={articleData.topics_es?.join(', ') || ''} onChange={(e) => setArticleData(prev => prev ? { ...prev, topics_es: e.target.value.split(',').map(t => t.trim()) } : null)} className="col-span-3" />
+              </div>
 
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title_ht" className="text-right">Title (Haitian Creole)</Label>
+                <Input id="title_ht" name="title_ht" value={articleData.title_ht || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="summary_ht" className="text-right">Summary (Haitian Creole)</Label>
+                <Textarea id="summary_ht" name="summary_ht" value={articleData.summary_ht || ''} onChange={handleInputChange} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="raw_content_ht" className="text-right">Raw Content (Haitian Creole)</Label>
+                <Textarea id="raw_content_ht" name="raw_content_ht" value={articleData.raw_content_ht || ''} onChange={handleInputChange} className="col-span-3 min-h-[150px]" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="topics_ht" className="text-right">Topics (Haitian Creole, comma-separated)</Label>
+                <Input id="topics_ht" name="topics_ht" value={articleData.topics_ht?.join(', ') || ''} onChange={(e) => setArticleData(prev => prev ? { ...prev, topics_ht: e.target.value.split(',').map(t => t.trim()) } : null)} className="col-span-3" />
+              </div>
+            </div>
           </form>
         ) : (
           <div className="text-center py-8">No article data available.</div>
