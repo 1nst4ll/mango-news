@@ -765,6 +765,9 @@ const runScraper = async (enableGlobalAiSummary = true, enableGlobalAiTags = tru
   await loadUrlBlacklist(); // Ensure blacklist is loaded before scraping
   const activeSources = await getActiveSources();
 
+  let articlesAdded = 0; // Declare and initialize articlesAdded
+  let linksFound = 0;     // Declare and initialize linksFound
+
   for (const source of activeSources) {
     console.log(`Discovering articles from source: ${source.name} (${source.url}) using method: ${source.scraping_method || 'firecrawl'}`);
     let articleUrls = [];
