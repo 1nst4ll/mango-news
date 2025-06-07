@@ -11,6 +11,7 @@
   /* Adjust paragraph spacing */
   p {
     margin-bottom: 1.5em; /* More generous spacing between paragraphs */
+    text-indent: 2em; /* Add first line indent to all paragraphs */
   }
 
   /* First paragraph styling */
@@ -19,13 +20,14 @@
     font-weight: 500; /* Slightly bolder */
     line-height: 1.6;
     margin-bottom: 1.5em;
+    text-indent: 0; /* Remove indent for the first paragraph */
   }
 
   /* Drop cap for the first letter of the article */
   p:first-of-type::first-letter {
     float: left;
     font-family: 'Playfair Display', serif; /* A more decorative font for drop cap */
-    font-size: 4.8em; /* Adjusted for three lines of text tall */
+    font-size: 4.9em; /* Adjusted for three lines of text tall */
     line-height: 0.8;
     margin-right: 0.1em;
     margin-top: 0.05em;
