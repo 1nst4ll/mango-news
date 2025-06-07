@@ -618,6 +618,163 @@ app.delete('/api/articles/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Update a single article by ID
+app.put('/api/articles/:id', authenticateToken, async (req, res) => {
+  const articleId = req.params.id;
+  const endpoint = `/api/articles/${articleId}`;
+  const {
+    title,
+    source_url,
+    author,
+    publication_date,
+    raw_content,
+    summary,
+    thumbnail_url,
+    topics, // Array of strings
+    category,
+    title_es,
+    summary_es,
+    raw_content_es,
+    topics_es, // Array of strings
+    title_ht,
+    summary_ht,
+    raw_content_ht,
+    topics_ht // Array of strings
+  } = req.body;
+
+  const updates = {};
+  const updateValues = [];
+  let querySet = [];
+  let paramIndex = 1;
+
+  // Helper to add fields to updates
+  const addField = (field, value) => {
+    if (value !== undefined) {
+      updates[field] = value;
+      querySet.push(`${field} = $${paramIndex++}`);
+      updateValues.push(value);
+    }
+  };
+
+  addField('title', title);
+  addField('source_url', source_url);
+  addField('author', author);
+  addField('raw_content', raw_content);
+  addField('summary', summary);
+  addField('thumbnail_url', thumbnail_url);
+  addField('category', category);
+  addField('title_es', title_es);
+  addField('summary_es', summary_es);
+  addField('raw_content_es', raw_content_es);
+  addField('title_ht', title_ht);
+  addField('summary_ht', summary_ht);
+  addField('raw_content_ht', raw_content_ht);
+
+  // Handle publication_date separately for date conversion
+  if (publication_date !== undefined) {
+    updates.publication_date = publication_date ? new Date(publication_date) : null;
+    querySet.push(`publication_date = $${paramIndex++}`);
+    updateValues.push(updates.publication_date);
+  }
+
+  if (querySet.length === 0 && topics === undefined && topics_es === undefined && topics_ht === undefined) {
+    console.warn(`[WARN] ${new Date().toISOString()} - PUT ${endpoint} - No update fields provided`);
+    return res.status(400).json({ error: 'No update fields provided.' });
+  }
+
+  try {
+    await pool.query('BEGIN'); // Start transaction
+
+    if (querySet.length > 0) {
+      const updateArticleQuery = `UPDATE articles SET ${querySet.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+      updateValues.push(articleId);
+      const result = await pool.query(updateArticleQuery, updateValues);
+
+      if (result.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        console.warn(`[WARN] ${new Date().toISOString()} - PUT ${endpoint} - Article with ID ${articleId} not found`);
+        return res.status(404).json({ error: 'Article not found.' });
+      }
+    }
+
+    // Handle topics (English)
+    if (topics !== undefined) {
+      await pool.query('DELETE FROM article_topics WHERE article_id = $1', [articleId]);
+      if (topics && topics.length > 0) {
+        for (const topicName of topics) {
+          let topicId;
+          const existingTopic = await pool.query('SELECT id FROM topics WHERE name = $1', [topicName]);
+          if (existingTopic.rows.length > 0) {
+            topicId = existingTopic.rows[0].id;
+          } else {
+            const newTopic = await pool.query('INSERT INTO topics (name) VALUES ($1) RETURNING id', [topicName]);
+            topicId = newTopic.rows[0].id;
+          }
+          await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [articleId, topicId]);
+        }
+      }
+    }
+
+    // Handle topics_es (Spanish)
+    if (topics_es !== undefined) {
+      // Assuming topics_es are stored as a comma-separated string in the articles table
+      // If they are linked via article_topics, a similar logic to 'topics' would be needed
+      // For now, we'll assume they are directly updated in the articles table.
+      // If topics_es is an array, convert it to a comma-separated string for DB storage
+      const topicsEsString = Array.isArray(topics_es) ? topics_es.join(',') : topics_es;
+      await pool.query('UPDATE articles SET topics_es = $1 WHERE id = $2', [topicsEsString, articleId]);
+    }
+
+    // Handle topics_ht (Haitian Creole)
+    if (topics_ht !== undefined) {
+      // Assuming topics_ht are stored as a comma-separated string in the articles table
+      const topicsHtString = Array.isArray(topics_ht) ? topics_ht.join(',') : topics_ht;
+      await pool.query('UPDATE articles SET topics_ht = $1 WHERE id = $2', [topicsHtString, articleId]);
+    }
+
+    await pool.query('COMMIT'); // Commit transaction
+
+    console.log(`[INFO] ${new Date().toISOString()} - PUT ${endpoint} - Successfully updated article with ID ${articleId}.`);
+    // Fetch the updated article to return the complete, current state
+    const updatedArticleResult = await pool.query(`
+      SELECT
+          a.*,
+          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics,
+          ARRAY_REMOVE(ARRAY_AGG(t_es.name), NULL) AS topics_es_array,
+          ARRAY_REMOVE(ARRAY_AGG(t_ht.name), NULL) AS topics_ht_array
+      FROM
+          articles a
+      LEFT JOIN
+          article_topics at ON a.id = at.article_id
+      LEFT JOIN
+          topics t ON at.topic_id = t.id
+      LEFT JOIN
+          topics t_es ON a.topics_es LIKE '%' || t_es.name || '%' -- This join might be problematic if topics_es is just a string
+      LEFT JOIN
+          topics t_ht ON a.topics_ht LIKE '%' || t_ht.name || '%' -- This join might be problematic if topics_ht is just a string
+      WHERE
+          a.id = $1
+      GROUP BY
+          a.id
+    `, [articleId]);
+
+    const updatedArticle = updatedArticleResult.rows[0];
+    // Re-format topics_es and topics_ht back to arrays if they were stored as strings
+    if (updatedArticle.topics_es && typeof updatedArticle.topics_es === 'string') {
+      updatedArticle.topics_es = updatedArticle.topics_es.split(',').map(t => t.trim()).filter(t => t);
+    }
+    if (updatedArticle.topics_ht && typeof updatedArticle.topics_ht === 'string') {
+      updatedArticle.topics_ht = updatedArticle.topics_ht.split(',').map(t => t.trim()).filter(t => t);
+    }
+
+    res.json(updatedArticle);
+  } catch (err) {
+    await pool.query('ROLLBACK'); // Rollback transaction on error
+    console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error updating article with ID ${articleId}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Block a single article by ID
 app.put('/api/articles/:id/block', authenticateToken, async (req, res) => {
   const articleId = req.params.id;
