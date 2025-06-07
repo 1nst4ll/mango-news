@@ -54,7 +54,7 @@ const topicTranslations = {
   "Agriculture": { "es": "Agricultura", "ht": "Agrikilti" },
   "Fishing": { "es": "Pesca", "ht": "Lapèch" },
   "History": { "es": "Historia", "ht": "Istwa" },
-  "Arts": { "es": "Artes", "ht": "Atizay" },
+  "Arts": { "es": "Atizay", "ht": "Atizay" },
   "Religion": { "es": "Religión", "ht": "Relijyon" },
   "Opinion": { "es": "Opinión", "ht": "Opinyon" },
   "Editorial": { "es": "Editorial", "ht": "Editoryal" },
@@ -776,7 +776,7 @@ const runScraper = async (enableGlobalAiSummary = true, enableGlobalAiTags = tru
       if (source.scraping_method === 'opensource') {
         // Use open-source discovery (scheduled scrape limit)
         console.log(`Using open-source discovery for source: ${source.name}`);
-        const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns, 10); // Limit to 10 for scheduled scrape
+        const discovered = await opensourceDiscoverSources(source.url, source.article_link_template, source.exclude_patterns);
         articleUrls = discovered;
         console.log(`Discovered ${articleUrls.length} potential article URLs with opensource:`, articleUrls);
 
@@ -979,7 +979,6 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
                 topicId = topicResult.rows[0].id;
               } else {
                 topicId = topicResult.rows[0].id;
-                // If topic exists, check if translations are missing or different, then update.
                 // Prioritize pre-translated values, otherwise generate with AI if missing.
                 let updatedEs = preTranslatedEs || currentTopicEs;
                 let updatedHt = preTranslatedHt || currentTopicHt;
@@ -1106,8 +1105,8 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
     return { success: processed, message: message };
 
   } catch (err) {
-    console.error(`Error during AI processing for article ID ${articleId}, feature ${featureType}:`, err);
-    return { success: false, message: `Error processing article ${articleId}: ${err.message}` };
+    console.error(`Error during AI processing for article ID ${article.id}, feature ${featureType}:`, err);
+    return { success: false, message: `Error processing article ${article.id}: ${err.message}` };
   }
 };
 
