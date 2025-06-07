@@ -300,25 +300,6 @@ const processScrapedData = async (data) => { // Accept a single data object
       const topics = metadata?.keywords ? metadata.keywords.split(',').map(topic => topic.trim()) : []; // Get topics from metadata
 
 
-      // Check if article with the same URL from the same source already exists
-      const existingArticle = await pool.query('SELECT id FROM articles WHERE source_id = $1 AND source_url = $2', [source.id, source_url]);
-
-      if (existingArticle.rows.length > 0) {
-      console.log(`Article with URL ${source_url} from source ${source.name} already exists. Skipping.`);
-      return false; // Skip saving if article already exists
-      }
-
-      // Check if the article's publication date is older than the scrape_after_date setting
-      if (source.scrape_after_date && publication_date) {
-        const scrapeAfterDate = new Date(source.scrape_after_date);
-        const articlePublicationDate = new Date(publication_date);
-
-        if (articlePublicationDate < scrapeAfterDate) {
-          console.log(`Article "${title}" (${source_url}) is older than the scrape_after_date setting for source ${source.name}. Skipping.`);
-          return false; // Skip saving if the article is older than the specified date
-        }
-      }
-
       // Determine if AI features should be enabled based on scrape type and toggles
       let shouldGenerateSummary = false;
       let shouldAssignTags = false;
@@ -330,7 +311,7 @@ const processScrapedData = async (data) => { // Accept a single data object
         shouldAssignTags = source.enable_ai_tags;
         shouldGenerateImage = source.enable_ai_image;
         shouldGenerateTranslations = source.enable_ai_translations; // Use source-specific toggle
-      } else if (scrapeType === 'global') { // Includes scheduled scrapes
+      } else if (scrapeType === 'global' || scrapeType === 'rescrape') { // Includes scheduled scrapes and rescrape
         shouldGenerateSummary = enableGlobalAiSummary && source.enable_ai_summary;
         shouldAssignTags = enableGlobalAiTags && source.enable_ai_tags;
         shouldGenerateImage = enableGlobalAiImage && source.enable_ai_image;
@@ -440,17 +421,52 @@ const processScrapedData = async (data) => { // Accept a single data object
       const topics_es = translatedTopicsEs.join(', ');
       const topics_ht = translatedTopicsHt.join(', ');
 
-      const articleResult = await pool.query(
-        'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id',
-        [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht]
-      );
-      const articleId = articleResult.rows[0].id;
+      // Check if article with the same URL from the same source already exists
+      const existingArticle = await pool.query('SELECT id FROM articles WHERE source_id = $1 AND source_url = $2', [source.id, source_url]);
+
+      let articleId;
+      if (existingArticle.rows.length > 0) {
+        // Article exists, update it
+        articleId = existingArticle.rows[0].id;
+        console.log(`Article with URL ${source_url} from source ${source.name} already exists. Updating.`);
+        await pool.query(
+          `UPDATE articles SET
+            title = $1,
+            author = $2,
+            publication_date = $3,
+            raw_content = $4,
+            summary = $5,
+            thumbnail_url = $6,
+            ai_image_path = $7,
+            title_es = $8,
+            summary_es = $9,
+            raw_content_es = $10,
+            title_ht = $11,
+            summary_ht = $12,
+            raw_content_ht = $13,
+            topics_es = $14,
+            topics_ht = $15,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $16`,
+          [title, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht, articleId]
+        );
+        // Remove existing topic associations and re-add them
+        await pool.query('DELETE FROM article_topics WHERE article_id = $1', [articleId]);
+      } else {
+        // Article does not exist, insert it
+        console.log(`Article with URL ${source_url} from source ${source.name} is new. Inserting.`);
+        const articleResult = await pool.query(
+          'INSERT INTO articles (title, source_id, source_url, author, publication_date, raw_content, summary, thumbnail_url, ai_image_path, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id',
+          [title, source.id, source_url, author, publication_date, raw_content, summary, finalThumbnailUrl, aiImagePath, title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht, topics_es, topics_ht]
+        );
+        articleId = articleResult.rows[0].id;
+      }
 
       for (const topicId of collectedTopicIds) {
         await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
       }
 
-      console.log(`Article "${title}" saved to database with ID: ${articleId}. Assigned topics: ${assignedTopics.join(', ')}. Translated topics (ES): ${topics_es}, (HT): ${topics_ht}.`);
+      console.log(`Article "${title}" processed (ID: ${articleId}). Assigned topics: ${assignedTopics.join(', ')}. Translated topics (ES): ${topics_es}, (HT): ${topics_ht}.`);
       return true; // Indicate success
     } else {
       console.error(`Failed to process scraped data for source: ${source.name}`, content ? 'Missing content' : 'No data received');
