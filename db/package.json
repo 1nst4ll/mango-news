@@ -1,0 +1,15 @@
+{
+  "name": "db-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for managing the database.",
+  "main": "sanitize_authors.js",
+  "scripts": {
+    "sanitize:author": "node sanitize_authors.js",
+    "sanitize:content": "node sanitize_content.js",
+    "check:article": "node check_article.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3"
+  }
+}

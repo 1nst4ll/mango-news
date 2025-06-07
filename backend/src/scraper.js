@@ -242,7 +242,13 @@ const processScrapedData = async (data) => { // Accept a single data object
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       const title = metadata?.title || 'No Title'; // Get title from metadata
-      const sanitizedContent = DOMPurify.sanitize(processedContent);
+      let sanitizedContent = DOMPurify.sanitize(processedContent);
+
+      // Apply source-specific sanitization for source_id = 6
+      if (source.id === 6) {
+        sanitizedContent = sanitizedContent.replace(/TwitterFacebook/g, '').replace(/Share this:/g, '').trim();
+      }
+
       const raw_content = sanitizedContent.replace(/Share this:.*$/, '').trim(); // Use processedContent and remove sharing text
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
