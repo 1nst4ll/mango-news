@@ -18,9 +18,6 @@ const sanitizeHtml = (htmlString) => {
   // Remove <br> tags
   sanitizedContent = sanitizedContent.replace(/<br\b[^>]*>/gi, '');
 
-  // Remove any existing <p> tags to prevent double wrapping
-  // sanitizedContent = sanitizedContent.replace(/<\/?p[^>]*>/gi, '');
-
   // Remove all attributes from all tags, except for href and rel in <a> tags, and src in <img> tags.
   sanitizedContent = sanitizedContent.replace(/<(\w+)(?:\s+([^>]*))?>/gi, (match, tagName, attributes) => {
     if (tagName.toLowerCase() === 'a' && attributes) {
@@ -59,13 +56,6 @@ const sanitizeHtml = (htmlString) => {
   // Remove all <div> tags, keeping their inner content
   sanitizedContent = sanitizedContent.replace(/<\/?div[^>]*>/gi, '');
 
-  // Remove <tbody> and <table> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?tbody[^>]*>/gi, '');
-  sanitizedContent = sanitizedContent.replace(/<\/?table[^>]*>/gi, '');
-
-  // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
-  sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
-
   // Remove empty tags (e.g., <p></p>)
   // This loop will run multiple times to catch nested empty tags.
   let oldContent;
@@ -75,24 +65,10 @@ const sanitizeHtml = (htmlString) => {
     sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
   } while (sanitizedContent !== oldContent);
 
-  // Replace &nbsp;</p><p> with a single space
-  sanitizedContent = sanitizedContent.replace(/&nbsp;<\/p>\n<p>/g, ' ');
-
-  // Remove multiple consecutive &nbsp;
-  sanitizedContent = sanitizedContent.replace(/(?:&nbsp; ){2,}/g, '');
-
-  // Split content by newlines and wrap each non-empty line in <p> tags
-  let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
-  sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join(''); // Changed join('\n') to join('')
-
-  // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
-  sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');
-  sanitizedContent = sanitizedContent.replace(/<\/p>\s*<\/p>/g, '</p>');
-
   return sanitizedContent;
 };
 
-const sanitizeContent = async (articleId = null) => {
+const sanitizeContent = async () => { // Removed articleId parameter
   try {
     console.log('Connecting to the database...');
     const client = await pool.connect();
@@ -107,21 +83,13 @@ const sanitizeContent = async (articleId = null) => {
     let totalArticlesProcessed = 0;
     let totalArticlesUpdated = 0;
 
-    let articlesResult;
-    if (articleId) {
-      articlesResult = await client.query(
-        `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles WHERE id = $1`,
-        [articleId]
-      );
-      console.log(`Found ${articlesResult.rows.length} article(s) for ID: ${articleId}.`);
-    } else {
-      articlesResult = await client.query(
-        `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles`
-      );
-      console.log(`Found ${articlesResult.rows.length} articles in total.`);
-    }
-
+    // Fetch all articles (removed WHERE clause)
+    const articlesResult = await client.query(
+      `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles`
+    );
     const articles = articlesResult.rows;
+
+    console.log(`Found ${articles.length} articles in total.`);
 
     for (const article of articles) {
       let updated = false;
@@ -161,19 +129,5 @@ const sanitizeContent = async (articleId = null) => {
   }
 };
 
-const arg = process.argv[2];
-
-if (arg === '--all') {
-  sanitizeContent(); // Process all articles
-} else if (arg) {
-  const articleId = parseInt(arg, 10);
-  if (!isNaN(articleId)) {
-    sanitizeContent(articleId); // Process a specific article ID
-  } else {
-    console.error('Invalid argument. Please provide an article ID or "--all".');
-    process.exit(1);
-  }
-} else {
-  console.error('Please provide an article ID or "--all" to run the script.');
-  process.exit(1);
-}
+// Removed command line argument parsing
+sanitizeContent();

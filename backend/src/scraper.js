@@ -19,6 +19,85 @@ const { JSDOM } = require('jsdom');
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 
+// Function to sanitize HTML content
+const sanitizeHtml = (htmlString) => {
+  // Remove entire <figure> tags and their content first.
+  let sanitizedContent = htmlString.replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, '');
+
+  // Remove <br> tags
+  sanitizedContent = sanitizedContent.replace(/<br\b[^>]*>/gi, '');
+
+  // Remove all attributes from all tags, except for href and rel in <a> tags, and src in <img> tags.
+  sanitizedContent = sanitizedContent.replace(/<(\w+)(?:\s+([^>]*))?>/gi, (match, tagName, attributes) => {
+    if (tagName.toLowerCase() === 'a' && attributes) {
+      // For <a> tags, keep href and rel attributes
+      const hrefMatch = attributes.match(/href="([^"]*)"/i);
+      const relMatch = attributes.match(/rel="([^"]*)"/i);
+      let cleanedAttributes = '';
+      if (hrefMatch) {
+        cleanedAttributes += ` href="${hrefMatch[1]}"`;
+      }
+      if (relMatch) {
+        cleanedAttributes += ` rel="${relMatch[1]}"`;
+      }
+      return `<${tagName}${cleanedAttributes}>`;
+    } else if (tagName.toLowerCase() === 'img' && attributes) {
+      // For <img> tags, keep src attribute
+      const srcMatch = attributes.match(/src="([^"]*)"/i);
+      let cleanedAttributes = '';
+      if (srcMatch) {
+        cleanedAttributes += ` src="${srcMatch[1]}"`;
+      }
+      return `<${tagName}${cleanedAttributes}>`;
+    }
+    else {
+      // For all other tags, remove all attributes
+      return `<${tagName}>`;
+    }
+  });
+
+  // Remove <span> tags, keeping their inner content
+  sanitizedContent = sanitizedContent.replace(/<\/?span[^>]*>/gi, '');
+
+  // Remove <strong> tags, keeping their inner content
+  sanitizedContent = sanitizedContent.replace(/<\/?strong[^>]*>/gi, '');
+
+  // Remove all <div> tags, keeping their inner content
+  sanitizedContent = sanitizedContent.replace(/<\/?div[^>]*>/gi, '');
+
+  // Remove <tbody> and <table> tags, keeping their inner content
+  sanitizedContent = sanitizedContent.replace(/<\/?tbody[^>]*>/gi, '');
+  sanitizedContent = sanitizedContent.replace(/<\/?table[^>]*>/gi, '');
+
+  // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
+  sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
+
+  // Remove empty tags (e.g., <p></p>)
+  // This loop will run multiple times to catch nested empty tags.
+  let oldContent;
+  do {
+    oldContent = sanitizedContent;
+    // Regex to match any empty HTML tag, including those with whitespace/newlines between opening and closing tags
+    sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
+  } while (sanitizedContent !== oldContent);
+
+  // Replace &nbsp;</p><p> with a single space
+  sanitizedContent = sanitizedContent.replace(/&nbsp;<\/p>\n<p>/g, ' ');
+
+  // Remove multiple consecutive &nbsp;
+  sanitizedContent = sanitizedContent.replace(/(?:&nbsp; ){2,}/g, '');
+
+  // Split content by newlines and wrap each non-empty line in <p> tags
+  let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
+  sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('');
+
+  // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
+  sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');
+  sanitizedContent = sanitizedContent.replace(/<\/p>\s*<\/p>/g, '</p>');
+
+  return sanitizedContent;
+};
+
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
 const topicsList = [
   "Politics", "Economy", "Business", "Technology", "Health", "Science",
@@ -232,44 +311,9 @@ const processScrapedData = async (data) => { // Accept a single data object
     if (content) {
       console.log(`Successfully processed data for ${metadata?.title || 'No Title'}`);
 
-      let processedContent = content;
-
-      // Add a text cleaning step to remove lines containing only "Search"
-      // const lines = processedContent.split('\n');
-      // const linesWithoutSearch = lines.filter(line => line.trim() !== 'Search');
-      // processedContent = linesWithoutSearch.join('\n');
-
-      // Extract data from arguments (assuming metadata structure is similar for both scrapers)
-      // Extract data from arguments (assuming metadata structure is similar for both scrapers)
       const title = metadata?.title || 'No Title'; // Get title from metadata
-      let sanitizedContent = DOMPurify.sanitize(processedContent);
-
-      // Apply source-specific sanitization for source_id = 6
-      if (source.id === 6) {
-        sanitizedContent = sanitizedContent.replace(/TwitterFacebook/g, '').replace(/Share this:/g, '').trim();
-      }
-
-      // Apply source-specific sanitization for source_id = 1 (remove first 14 lines, replace div with p, remove br, remove empty p)
-      if (source.id === 1) {
-        // Replace <div> with <p> and </div> with </p>
-        sanitizedContent = sanitizedContent.replace(/<div/g, '<p').replace(/<\/div/g, '</p');
-        // Remove all <br> tags
-        sanitizedContent = sanitizedContent.replace(/<br>/g, '');
-
-        // Remove span tags with class "pagesourceline"
-        sanitizedContent = sanitizedContent.replace(/<span[^>]*class="[^"]*pagesourceline[^"]*"[^>]*>.*?<\/span>/g, '');
-
-        // Remove empty <p> tags, including those that might have contained only the removed spans or whitespace
-        sanitizedContent = sanitizedContent.replace(/<p>\s*<\/p>/g, '');
-
-        const lines = sanitizedContent.split('\n');
-        if (lines.length > 14) {
-          sanitizedContent = lines.slice(14).join('\n');
-          console.log(`Removed first 14 lines from content for source ID 1.`);
-        }
-      }
-
-      const raw_content = sanitizedContent.replace(/Share this:.*$/, '').trim(); // Use processedContent and remove sharing text
+      // Apply the new sanitizeHtml function to the content
+      const raw_content = sanitizeHtml(content).replace(/Share this:.*$/, '').trim(); // Use processedContent and remove sharing text
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
       let publication_date = metadata?.publication_date || metadata?.published_date;
