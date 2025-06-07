@@ -139,7 +139,46 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     }
   };
 
-  const columns = getColumns({ handleProcessAi, handleDeleteArticle });
+  const handleRescrapeArticle = async (articleId: number) => {
+    setProcessingLoading(prev => ({
+      ...prev,
+      [articleId]: { ...prev[articleId], rescraping: true } // Add a rescraping state for individual articles
+    }));
+    try {
+      const response = await fetch(`${apiUrl}/api/articles/${articleId}/rescrape`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to rescrape article ${articleId}`);
+      }
+      toast.success("Rescrape Complete", {
+        description: data.message || `Successfully rescraped article ${articleId}.`,
+      });
+      fetchArticles(); // Refetch articles after rescraping
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error("Error", {
+          description: `Error: ${err.message}`,
+        });
+      } else {
+        toast.error("Error", {
+          description: `An unknown error occurred during rescraping article ${articleId}.`,
+        });
+      }
+    } finally {
+      setProcessingLoading(prev => ({
+        ...prev,
+        [articleId]: { ...prev[articleId], rescraping: false }
+      }));
+    }
+  };
+
+  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle });
 
   // Fetch source settings
   useEffect(() => {

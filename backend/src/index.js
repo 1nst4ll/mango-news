@@ -649,6 +649,57 @@ app.post('/api/articles/:articleId/process-ai', authenticateToken, async (req, r
 });
 
 
+// Rescrape a single article by ID
+app.post('/api/articles/:articleId/rescrape', authenticateToken, async (req, res) => {
+  const articleId = req.params.articleId;
+  const endpoint = `/api/articles/${articleId}/rescrape`;
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering rescrape for article ID: ${articleId}`);
+
+    // Fetch article details to get source_id and source_url
+    const articleResult = await pool.query('SELECT source_id, source_url FROM articles WHERE id = $1', [articleId]);
+    const article = articleResult.rows[0];
+
+    if (!article) {
+      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Article with ID ${articleId} not found`);
+      return res.status(404).json({ error: 'Article not found.' });
+    }
+
+    // Fetch source configuration
+    const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1', [article.source_id]);
+    const source = sourceResult.rows[0];
+
+    if (!source) {
+      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Source with ID ${article.source_id} not found for article ${articleId}`);
+      return res.status(404).json({ error: `Source with ID ${article.source_id} not found.` });
+    }
+
+    // Import scrapeArticlePage from scraper.js
+    const { scrapeArticlePage } = require('./scraper');
+    const processed = await scrapeArticlePage(
+      source,
+      article.source_url,
+      'rescrape', // Indicate this is a rescrape operation
+      source.enable_ai_summary,
+      source.enable_ai_tags,
+      source.enable_ai_image,
+      source.enable_ai_translations,
+      source.scrape_after_date
+    );
+
+    if (processed) {
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Rescrape completed for article ID ${articleId}.`);
+      res.json({ message: `Article ${articleId} rescraped successfully.` });
+    } else {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Rescrape failed for article ID ${articleId}.`);
+      res.status(500).json({ error: `Failed to rescrape article ${articleId}.` });
+    }
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering rescrape for article ${articleId}:`, error);
+    res.status(500).json({ error: 'Failed to trigger rescrape.' });
+  }
+});
+
 // Trigger scraper for a specific source
 app.post('/api/scrape/run/:id', authenticateToken, async (req, res) => {
   const sourceId = req.params.id;

@@ -32,9 +32,10 @@ export type Article = {
   type ActionHandlers = {
     handleProcessAi: (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => void;
     handleDeleteArticle: (articleId: number) => void;
+    handleRescrapeArticle: (articleId: number) => void; // New handler for rescraping single article
   };
   
-  export const getColumns = ({ handleProcessAi, handleDeleteArticle }: ActionHandlers): ColumnDef<Article>[] => [
+  export const getColumns = ({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle }: ActionHandlers): ColumnDef<Article>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -173,6 +174,8 @@ export type Article = {
             <DropdownMenuItem onClick={() => handleProcessAi(article.id, 'tags')}>Rerun Tags</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleProcessAi(article.id, 'image')}>Rerun Image</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleProcessAi(article.id, 'translations')}>Rerun Translations</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleRescrapeArticle(article.id)}>Rescrape Article</DropdownMenuItem> {/* New menu item */}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleDeleteArticle(article.id)} className="text-red-600">Delete</DropdownMenuItem>
           </DropdownMenuContent>

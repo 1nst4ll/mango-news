@@ -530,6 +530,25 @@ Triggers AI processing for a single article for a specific feature (summary, tag
     *   `401 Unauthorized`: Invalid or missing authentication token.
     *   `500 Internal Server Error`: Failed to trigger AI processing or an error occurred during processing.
 
+#### `POST /api/articles/:articleId/rescrape`
+
+Triggers the re-scraping of a single article by its ID. This will re-fetch the content for the specified article and update it in the database.
+
+*   **Authentication:** Required.
+*   **Path Parameters:**
+    *   `articleId` (number, required): The ID of the article to rescrape.
+*   **Request Body:** None.
+*   **Success Response (`200 OK`):**
+    ```json
+    {
+      "message": "Article {articleId} rescraped successfully."
+    }
+    ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Invalid or missing authentication token.
+    *   `404 Not Found`: Article or its associated source not found.
+    *   `500 Internal Server Error`: Failed to trigger rescrape or an error occurred during processing.
+
 #### `POST /api/articles/purge`
 
 Deletes all articles, topics, and article links from the database.
