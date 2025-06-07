@@ -2,7 +2,11 @@ const jwt = require('jsonwebtoken');
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Extract token from "Bearer TOKEN"
+  let token = authHeader && authHeader.split(' ')[1]; // Extract token from "Bearer TOKEN"
+
+  if (!token && req.query.token) {
+    token = req.query.token; // Fallback to query parameter for SSE
+  }
 
   if (token == null) {
     // If no token, return 401 Unauthorized
