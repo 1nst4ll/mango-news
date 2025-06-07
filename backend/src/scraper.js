@@ -249,17 +249,23 @@ const processScrapedData = async (data) => { // Accept a single data object
         sanitizedContent = sanitizedContent.replace(/TwitterFacebook/g, '').replace(/Share this:/g, '').trim();
       }
 
-      // Apply source-specific sanitization for source_id = 1 (remove first 13 lines, replace div with p, remove br)
+      // Apply source-specific sanitization for source_id = 1 (remove first 14 lines, replace div with p, remove br, remove empty p)
       if (source.id === 1) {
         // Replace <div> with <p> and </div> with </p>
         sanitizedContent = sanitizedContent.replace(/<div/g, '<p').replace(/<\/div/g, '</p');
         // Remove all <br> tags
         sanitizedContent = sanitizedContent.replace(/<br>/g, '');
 
+        // Remove span tags with class "pagesourceline"
+        sanitizedContent = sanitizedContent.replace(/<span[^>]*class="[^"]*pagesourceline[^"]*"[^>]*>.*?<\/span>/g, '');
+
+        // Remove empty <p> tags, including those that might have contained only the removed spans or whitespace
+        sanitizedContent = sanitizedContent.replace(/<p>\s*<\/p>/g, '');
+
         const lines = sanitizedContent.split('\n');
-        if (lines.length > 13) {
-          sanitizedContent = lines.slice(13).join('\n');
-          console.log(`Removed first 13 lines from content for source ID 1.`);
+        if (lines.length > 14) {
+          sanitizedContent = lines.slice(14).join('\n');
+          console.log(`Removed first 14 lines from content for source ID 1.`);
         }
       }
 
