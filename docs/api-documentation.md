@@ -116,7 +116,7 @@ Retrieves a list of all news sources.
         "include_selectors": "string | null",
         "exclude_selectors": "string | null",
         "article_link_template": "string | null",
-        "exclude_patterns": "string[] | null",
+        "exclude_patterns": "string | null",
         "scraping_method": "string",
         "scrape_after_date": "string | null"
       }
@@ -152,7 +152,7 @@ Retrieves details for a single news source by its ID.
       "include_selectors": "string | null",
       "exclude_selectors": "string | null",
       "article_link_template": "string | null",
-      "exclude_patterns": "string[] | null",
+      "exclude_patterns": "string | null",
       "scraping_method": "string",
       "scrape_after_date": "string | null"
     }
@@ -196,8 +196,8 @@ Retrieves articles associated with a specific news source, with pagination, sort
             "ai_summary": "string | null",
             "ai_image_url": "string | null",
             "ai_tags": "string[]",
-            "topics_es": "string[] | null",
-            "topics_ht": "string[] | null",
+            "topics_es": "string | null",
+            "topics_ht": "string | null",
             "publication_date": "string"
           }
         ]
@@ -223,6 +223,8 @@ Adds a new news source.
       "include_selectors": "string | null", // optional
       "exclude_selectors": "string | null", // optional
       "scraping_method": "string", // optional, default: "opensource"
+      "article_link_template": "string | null", // optional
+      "exclude_patterns": "string | null", // optional, comma-separated query parameter names
       "scrape_after_date": "string | null" // optional, ISO 8601 date string
     }
     ```
@@ -240,6 +242,8 @@ Adds a new news source.
       "include_selectors": "string | null",
       "exclude_selectors": "string | null",
       "scraping_method": "string",
+      "article_link_template": "string | null",
+      "exclude_patterns": "string | null",
       "scrape_after_date": "string | null"
     }
     ```
@@ -274,7 +278,7 @@ Updates an existing news source by its ID.
       "include_selectors": "string | null",
       "exclude_selectors": "string | null",
       "article_link_template": "string | null",
-      "exclude_patterns": "string[] | null",
+      "exclude_patterns": "string | null",
       "scraping_method": "string",
       "scrape_after_date": "string | null" // ISO 8601 date string
     }
@@ -299,7 +303,7 @@ Updates an existing news source by its ID.
       "include_selectors": "string | null",
       "exclude_selectors": "string | null",
       "article_link_template": "string | null",
-      "exclude_patterns": "string[] | null",
+      "exclude_patterns": "string | null",
       "scraping_method": "string",
       "scrape_after_date": "string | null"
     }
@@ -330,9 +334,29 @@ Triggers the re-processing of translated topics for articles belonging to a spec
     *   `401 Unauthorized`: Invalid or missing authentication token.
     *   `500 Internal Server Error`: Failed to trigger re-processing or an error occurred during processing.
 
+#### `GET /api/sources/:sourceId/rescrape-stream`
+
+Triggers the re-scraping of all articles for a specific source and streams progress via Server-Sent Events (SSE).
+
+*   **Authentication:** Required.
+*   **Path Parameters:**
+    *   `sourceId` (number, required): The ID of the source.
+*   **Request Body:** None.
+*   **Success Response (`200 OK` - SSE Stream):**
+    *   **Content-Type:** `text/event-stream`
+    *   **Events:**
+        *   `data: {"status": "info", "message": "..."}`: Information messages during the process.
+        *   `data: {"status": "success", "message": "..."}`: Success message for individual article rescrapes.
+        *   `data: {"status": "error", "message": "..."}`: Error message for individual article rescrapes.
+        *   `data: {"status": "complete", "message": "Finished re-scraping for source ID {sourceId}. Articles re-scraped: {articlesRescraped}, Errors: {errorCount}."}`: Final completion message.
+*   **Error Responses:**
+    *   `401 Unauthorized`: Invalid or missing authentication token.
+    *   `404 Not Found`: Source with the specified ID not found or not active.
+    *   `500 Internal Server Error`: Failed to establish SSE connection or an error occurred during processing.
+
 #### `POST /api/sources/:sourceId/rescrape`
 
-Triggers the re-scraping of all articles for a specific source. This will re-fetch the content for existing articles and update them in the database.
+Triggers the re-scraping of all articles for a specific source. This will re-fetch the content for existing articles and update them in the database. This is a non-streaming endpoint.
 
 *   **Authentication:** Required.
 *   **Path Parameters:**
@@ -430,8 +454,8 @@ Retrieves a list of all articles, with pagination and filtering.
             "summary_ht": "string | null",
             "raw_content_ht": "string | null",
             "topics": "string[]",
-            "topics_es": "string[] | null",
-            "topics_ht": "string[] | null"
+            "topics_es": "string | null",
+            "topics_ht": "string | null"
           }
         ]
         ```
@@ -465,8 +489,8 @@ Retrieves details for a single article by its ID.
       "summary_ht": "string | null",
       "raw_content_ht": "string | null",
       "topics": "string[]",
-      "topics_es": "string[] | null",
-      "topics_ht": "string[] | null"
+      "topics_es": "string | null",
+      "topics_ht": "string | null"
     }
     ```
 *   **Error Responses:**
@@ -599,7 +623,8 @@ Triggers the scraper for a specific news source.
     {
       "enableGlobalAiSummary": "boolean", // optional, default: false
       "enableGlobalAiTags": "boolean",    // optional, default: false
-      "enableGlobalAiImage": "boolean"    // optional, default: false
+      "enableGlobalAiImage": "boolean",   // optional, default: false
+      "enableGlobalAiTranslations": "boolean" // optional, default: false
     }
     ```
 *   **Success Response (`200 OK`):**
@@ -625,7 +650,8 @@ Triggers a full scraper run for all active news sources.
     {
       "enableGlobalAiSummary": "boolean", // optional, default: false
       "enableGlobalAiTags": "boolean",    // optional, default: false
-      "enableGlobalAiImage": "boolean"    // optional, default: false
+      "enableGlobalAiImage": "boolean",   // optional, default: false
+      "enableGlobalAiTranslations": "boolean" // optional, default: false
     }
     ```
 *   **Success Response (`200 OK`):**
@@ -664,25 +690,6 @@ Triggers processing of missing AI data (summary, tags, image, or translations) f
     *   `401 Unauthorized`: Invalid or missing authentication token.
     *   `500 Internal Server Error`: Failed to trigger missing AI processing or an error occurred during processing.
 
-#### `GET /api/discover-sources`
-
-Discovers article URLs from a given base URL (currently hardcoded to `https://example.com` in the backend implementation). This endpoint is intended for identifying potential new sources.
-
-*   **Authentication:** Required.
-*   **Query Parameters:** None (though the backend code currently uses a hardcoded URL).
-*   **Success Response (`200 OK`):**
-    ```json
-    [
-      {
-        "url": "string",
-        "title": "string"
-      }
-      // ... other discovered URLs
-    ]
-    ```
-*   **Error Responses:**
-    *   `401 Unauthorized`: Invalid or missing authentication token.
-    *   `500 Internal Server Error`: Failed to discover sources.
 
 ### Database Management
 

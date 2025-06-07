@@ -26,7 +26,7 @@ The backend connects to a PostgreSQL database.
     **Important:** If you are upgrading an existing database, you will also need to run the migration script located at [`../db/migrations/add_translation_columns.sql`](../db/migrations/add_translation_columns.sql) to add the new translation columns to your `articles` and `topics` tables.
 
 3.  **New Database Columns for Translations:**
-    *   **`articles` table:** Now includes `title_es`, `summary_es`, `title_ht`, and `summary_ht` for Spanish and Haitian Creole translations of article titles and summaries.
+*   **`articles` table:** Now includes `title_es`, `summary_es`, `raw_content_es`, `title_ht`, `summary_ht`, and `raw_content_ht` for Spanish and Haitian Creole translations of article titles, summaries, and raw content.
     *   **`topics` table:** Now includes `name_es` and `name_ht` for Spanish and Haitian Creole translations of topic names.
 
 4.  **`sources` Table:** The `sources` table stores information about each news source. A new column, `scrape_after_date`, has been added to this table.
@@ -41,9 +41,9 @@ The backend connects to a PostgreSQL database.
 
 2.  **Install Dependencies:** Install the required Node.js packages:
     ```bash
-    npm install aws-sdk uuid rss marked
+    npm install pg aws-sdk uuid rss marked
     ```
-    This installs the core backend dependencies, plus `aws-sdk` for S3 integration, `uuid` for generating unique filenames, `rss` for generating RSS feeds, and `marked` for converting Markdown to HTML.
+    This installs the core backend dependencies, including `pg` for PostgreSQL, plus `aws-sdk` for S3 integration, `uuid` for generating unique filenames, `rss` for generating RSS feeds, and `marked` for converting Markdown to HTML.
 
 3.  **Environment Variables:** Environment variables are used to configure the backend, especially for sensitive information like database credentials and API keys. An example file, `.env.example`, is provided in the `backend` directory.
     *   Copy the example file:
@@ -69,12 +69,12 @@ The backend connects to a PostgreSQL database.
         S3_BUCKET_NAME=your_s3_bucket_name # The name of your S3 bucket
 
         # Firecrawl API Key (if needed directly by backend, otherwise handled by MCP)
-        # FIRECRAWL_API_KEY=your_firecrawl_api_key
+        FIRECRAWL_API_KEY=your_firecrawl_api_key # Required for Firecrawl scraping method
 
         # Authentication
         JWT_SECRET=your_jwt_secret_key
         ```
-    Replace the placeholder values with your actual credentials, keys, S3 bucket details, and a strong, unique secret key for `JWT_SECRET`.
+    Replace the placeholder values with your actual credentials, keys, S3 bucket details, and a strong, unique secret key for `JWT_SECRET`. Note that `FIRECRAWL_API_KEY` is now explicitly required if you intend to use the Firecrawl scraping method.
 
 4.  **Database Connection, AWS, and Authentication Configuration in Code:** The database connection details, AWS S3 configuration, and JWT secret are handled in `backend/src/index.js`, `backend/src/scraper.js`, and `backend/src/middleware/auth.js`. These files are configured to read sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.AWS_ACCESS_KEY_ID`, `process.env.JWT_SECRET`).
 
@@ -187,8 +187,8 @@ curl -X POST http://localhost:3000/api/process-missing-ai/123 \
 
 ## AI Summary Prompt
 
-The system prompt used for AI summary generation is located in the `backend/src/scraper.js` file within the `generateAISummary` function. The prompt has been updated to explicitly request only the summary text without any introductory phrases or conversational filler.
+The system prompt used for AI summary generation is located in the `backend/src/scraper.js` file within the `generateAISummary` function. The prompt has been updated to explicitly request only the summary text without any introductory phrases or conversational filler. The model used for summary generation is `meta-llama/llama-4-scout-17b-16e-instruct`.
 
 ## AI Image Prompt
 
-The system prompt used for AI image generation is located in the `backend/src/scraper.js` file within the `generateAIImage` function. The prompt has been updated to be more specific about the desired image content, focusing on imagery relevant to the Turks and Caicos Islands and reinforcing the instruction to avoid identifiable faces of residents while still reflecting the local context.
+The system prompt used for AI image generation is located in the `backend/src/scraper.js` file within the `generateAIImage` function. The prompt has been updated to be more specific about the desired image content, focusing on imagery relevant to the Turks and Caicos Islands and reinforcing the instruction to avoid identifiable faces of residents while still reflecting the local context. The image generation process now uses Groq to optimize the prompt before sending it to the Ideogram API, ensuring better adherence to instructions and incorporation of article context. The Ideogram API is called with `rendering_speed: 'TURBO'`, `aspect_ratio: '16x9'`, `magic_prompt: 'OFF'`, and `style_type: 'REALISTIC'`.

@@ -9,7 +9,7 @@ The frontend of the mango.tc news application is being migrated to a new stack f
 *   **Styling:** Tailwind CSS
 *   **Component Library:** shadcn/ui (built with Radix UI and Tailwind CSS)
 *   **State Management:** React's built-in hooks (useState, useEffect) are currently used within React components (Astro Islands). Integration with TanStack Query is a potential future enhancement.
-*   **Content Fetching:** Data is fetched from the backend API. The API URL is configured using environment variables.
+*   **Content Fetching:** Data is fetched from the backend API. The API URL is configured using environment variables. The frontend uses `PUBLIC_API_URL` from `import.meta.env`. If this variable is not set, it defaults to `http://localhost:3000`.
 *   **Environment Variables:** The backend API URL is configured using environment variables. An example file, `.env.example`, is provided in the `frontend` directory.
     *   Copy the example file:
         ```bash
@@ -18,11 +18,11 @@ The frontend of the mango.tc news application is being migrated to a new stack f
     *   Edit the newly created `.env` file and fill in the required value:
         ```env
         # Backend API URL
-        PUBLIC_BACKEND_API_URL=http://localhost:3000/api
+        PUBLIC_API_URL=http://localhost:3000
         ```
-    Replace `http://localhost:3000/api` with the actual URL of your backend API.
+    Replace `http://localhost:3000` with the actual URL of your backend API.
 *   **Routing:** Astro's file-based routing, now configured for internationalization (i18n).
-*   **Internationalization (i18n):** Multilingual support is implemented using Astro's i18n features. Static UI text is managed via JSON locale files located in `frontend/src/locales/`. Dynamic content from the backend (article titles, summaries, topics) is translated via AI and displayed based on the active locale.
+*   **Internationalization (i18n):** Multilingual support is implemented using Astro's i18n features and the `useTranslations` hook. Static UI text is managed via JSON locale files located in `frontend/src/locales/`. Dynamic content from the backend (article titles, summaries, topics) is translated via AI and displayed based on the active locale. Helper functions (`getTranslatedText`, `getTranslatedTopics`) are used in `NewsFeed.tsx` to display translated content with a fallback to English if translations are not available, providing a clear message to the user.
 
 **Current Styling State:**
 
@@ -31,7 +31,7 @@ The migration to Tailwind CSS and shadcn/ui is in progress. Basic styling has be
 The application is now styled using Tailwind CSS and leverages shadcn/ui components for a modern look and feel. Styling for article content readability and responsiveness has been added using the `article-content` class in `global.css`, with left and right padding removed for a wider content area. Text colors, including paragraph text within `.article-content` using `text-foreground` and article metadata using `text-muted-foreground`, have been reviewed and adjusted in `global.css` to ensure optimal color contrast for improved readability and accessibility in both light and dark modes. Specifically, the `--muted-foreground` color in dark mode was adjusted to improve contrast against the muted background. Additionally, the `ArticleDetail.tsx` component now processes the raw article content to split it into individual paragraphs for better structure and readability.
 
 **News Feed Performance:**
-The main news feed (`NewsFeed.tsx`) has been optimized to use **infinite scrolling** with backend pagination. This significantly improves initial load times and overall performance by fetching articles in smaller chunks as the user scrolls, rather than loading all articles at once. The backend API is now expected to support `page` and `limit` parameters for this functionality.
+The main news feed (`NewsFeed.tsx`) has been optimized to use **infinite scrolling** with backend pagination. This significantly improves initial load times and overall performance by fetching articles in smaller chunks as the user scrolls, rather than loading all articles at once. The backend API is now expected to support `page` and `limit` parameters for this functionality. Additionally, a `fetchInProgressRef` has been implemented to prevent multiple concurrent API calls, and a 10-second timeout is applied to article fetch requests to improve user experience during network issues.
 
 The source add/edit dialog in `frontend/src/components/SettingsPage.tsx` has been styled using shadcn/ui components and Tailwind CSS grid and gap utilities for improved form layout and readability. Functionality to trigger scraping for individual sources directly from the settings page has also been added. Toggles for enabling/disabling AI summary, tag, and image generation per source have been added to this modal.
 
@@ -39,7 +39,7 @@ A new "View Posts" button has been added to each source entry on the Settings pa
 
 New toggles have been added to the Settings page (`frontend/src/components/SettingsPage.tsx`) to globally enable or disable AI summary, tag, and image generation during the scraping process. These settings are saved to and loaded from `localStorage`.
 
-Further styling refinements and component integrations will continue as the migration progresses. Conditional top padding has been implemented on the newsfeed cards in `NewsFeed.tsx` to ensure no gap above the image when present, while providing padding when no image exists. The top padding was previously removed from the `Card` component to allow images to be positioned at the very top. "Share on WhatsApp" and "Share on Facebook" buttons have been added to each news feed card and at the bottom of the article detail page (`ArticleDetail.tsx`) to allow users to easily share articles.
+Further styling refinements and component integrations will continue as the migration progresses. Conditional top padding has been implemented on the newsfeed cards in `NewsFeed.tsx` to ensure no gap above the image when present, while providing padding when no image exists. The top padding was previously removed from the `Card` component to allow images to be positioned at the very top. "Share on WhatsApp" and "Share on Facebook" buttons have been added to each news feed card and at the bottom of the article detail page (`ArticleDetail.tsx`) to allow users to easily share articles. These buttons are responsive, adjusting their size and layout on smaller screens.
 
 Additionally, to prevent potential conflicts with component-level focus management, especially on mobile browsers like iOS Safari, the global `outline-ring/50` style previously applied to all elements (`*`) in `global.css` has been removed.
 
@@ -49,7 +49,7 @@ The Google AdSense script (`https://pagead2.googic.com/pagead/js/adsbygoogle.js`
 
 An audit of the shadcn/ui components in `frontend/src/components/ui/` has been completed. The audited components include `button`, `card`, `chart`, `checkbox`, `dialog`, `dropdown-menu`, `input`, `label`, `popover`, `select`, `switch`, and `textarea`. A minor correction was made to `frontend/src/components/ui/chart.tsx` to use a path alias (`@/lib/utils`) for the `cn` utility function instead of a relative import.
 
-The `ModeToggle.tsx` component handles the theme switch. It is implemented as a simple button that toggles between light and dark mode on click. The icon displayed on the button indicates the theme that will be applied when clicked: a Moon icon is shown in light mode (to switch to dark mode), and a Sun icon is shown in dark mode (to switch to light mode). This implementation was chosen to address compatibility issues with the previous dropdown menu approach on iOS Safari. Similarly, the user login button (`LoginButton.tsx`) was updated from `DropdownMenu` to `Popover` to resolve similar iOS Safari compatibility issues, ensuring consistent functionality across devices.
+The `ModeToggle.tsx` component handles the theme switch. It is implemented as a simple button that toggles between light and dark mode on click. The icon displayed on the button indicates the theme that will be applied when clicked: a Moon icon is shown in light mode (to switch to dark mode), and a Sun icon is shown in dark mode (to switch to light mode). This implementation was chosen to address compatibility issues with the previous dropdown menu approach on iOS Safari. Similarly, the user login button (`LoginButton.tsx`) was updated from `DropdownMenu` to `Popover` to resolve similar iOS Safari compatibility issues, ensuring consistent functionality across devices. The `LanguageSwitcher.tsx` component also uses a `Popover` for language selection, displaying flag icons for each language and dynamically updating the URL to reflect the selected locale, ensuring a consistent and mobile-friendly experience.
 
 **Responsiveness:**
 
@@ -61,25 +61,30 @@ The application is designed to be responsive across various screen sizes using T
 *   **General Layout:** The main layout and card components utilize responsive grid and flexbox classes (`grid-cols-1 md:grid-cols-2`, `flex-col md:flex-row`, etc.) to adapt to different breakpoints.
 *   **Settings Pages:** The `SettingsPage.tsx` component, including the main dashboard, scheduled tasks, and sources sections, employs responsive design principles. The add/edit source modal form layout has been specifically adjusted to stack form elements vertically on small screens (`grid grid-cols-1`) and transition to a multi-column grid on medium screens and above (`md:grid-cols-4`) for improved usability on mobile devices.
 *   **Article Content:** The `.article-content` class in `global.css` ensures readability and responsiveness for article content, including responsive images.
-*   **Source Filter Dropdown:** The source filter dropdown on the main news feed page (`frontend/src/components/IndexPage.tsx`) has been made more mobile and touch-friendly by adjusting the Popover content width to be full width on small screens and increasing the touch target area for each source item within the dropdown.
+*   **Source Filter Dropdown:** The source filter dropdown on the main news feed page (`frontend/src/components/IndexPage.tsx`) has been made more mobile and touch-friendly by adjusting the Popover content width to be full width on small screens and increasing the touch target area for each source item within the dropdown. It also includes a search input within the popover for easier source discovery.
 *   **Source Articles Page:** The table displaying articles on the source-specific settings page (`frontend/src/pages/settings/source/[sourceId].astro`, using the `SourceArticles.tsx` component) is made responsive using `overflow-x-auto` to enable horizontal scrolling on smaller screens. Table cell content is truncated (`max-w-xs truncate`) to manage width. The layout within the AI Summary, AI Tags, and AI Image URL cells has been adjusted to stack the input/textarea and associated button vertically on small screens (`flex flex-col`) for improved readability and usability, transitioning to a horizontal layout on medium screens and above (`md:flex-row`). Action buttons in the last column are also stacked vertically on smaller screens (`flex flex-col`) for better usability.
-*   **Rescrape All Articles Button:** A "Rescrape All Articles" button has been added to the Source Articles page. This button allows users to trigger a re-scraping process for all articles associated with the current source, updating their content in the database.
+*   **Rescrape All Articles Button:** A "Rescrape All Articles" button has been added to the Source Articles page. This button allows users to trigger a re-scraping process for all articles associated with the current source, updating their content in the database. This process now uses Server-Sent Events (SSE) to provide real-time updates on the rescraping progress.
+*   **Process Missing AI Data Button:** A "Missing AI Data" button has been added to the Source Articles page, allowing users to trigger the processing of missing AI summaries, tags, images, and translations for all articles within that specific source.
+*   **Article Editing:** Individual articles can now be edited directly from the Source Articles page by clicking the "Edit Article" option in the article's action dropdown, which opens the `ArticleEditDialog.tsx`.
+*   **Server-Side Pagination:** The data table on the Source Articles page now implements server-side pagination, improving performance by fetching articles in chunks rather than loading all articles at once.
 
 ---
 
 ### Article Detail Page
 
-The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article. The page title is dynamically set to "mangonews - [Article Title]" by fetching the article data server-side.
+The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article. The page title is dynamically set to "mangonews - [Article Title]" by fetching the article data server-side. It now supports displaying translated article content (title, summary, raw content, and topics) based on the active locale, with fallbacks to English if translations are not available.
 
 **Enhanced Article Navigation:**
 The single article page now offers multiple navigation options to improve user experience and content discovery:
 
 *   **Previous/Next Article Buttons:** Located at the bottom of the article, these buttons allow users to navigate sequentially through articles from the list they were viewing on the main news feed. The functionality relies on the list of article IDs stored in `localStorage` by the news feed component.
+*   **Social Sharing Buttons:** WhatsApp and Facebook share buttons are included at the bottom of the article content for easy sharing.
 *   **Breadcrumbs:** A breadcrumb trail is displayed at the top of the page, providing clear hierarchical navigation. The structure is typically `News Feed > [Primary Topic (if available)] > Article Title`. The "News Feed" and "Primary Topic" (if present) are clickable links.
 *   **"Back to News Feed" Link:** A prominent link with a back arrow icon is provided near the top of the article, offering a quick return to the main news feed.
 *   **Clickable Topic Badges:** Topics associated with the article are displayed as clickable badges. Clicking a badge navigates the user to a dedicated topic feed page (`frontend/src/pages/[lang]/news/topic/[topicSlug].astro`) listing all articles related to that specific topic.
 *   **Clickable Source Link:** The article's source URL is displayed and is clickable, linking directly to the original source website.
 *   **"Related Articles" Section:** A section titled "Related Articles" is displayed at the bottom of the page. This section dynamically fetches and presents a list of articles that share the same primary topic as the current article, encouraging further content exploration.
+*   **Styling:** The article content utilizes `prose` classes for enhanced readability, and images within the content are responsive.
 
 ---
 
@@ -121,6 +126,7 @@ The dropdown menu (toggled by the hamburger icon):
 *   Slides down from the header (`absolute top-full left-0 right-0`).
 *   Lists navigation links vertically.
 *   Tapping a navigation link or the close icon (`lucide-react` X icon) closes the mobile menu.
+*   The Login button and Mode Toggle are now displayed directly in the mobile header bar, not within this dropdown menu.
 
 The "Settings" link (if applicable based on login status) is part of both desktop and mobile navigation (within the dropdown for mobile). The user login/logout functionality and theme toggling are handled by the `LoginButton.tsx` and `ModeToggle.tsx` components respectively. The `LoginButton` uses a `Popover` for its dropdown menu to ensure better compatibility on iOS Safari, including an `onTouchStart` handler and corrected styling (`outline-none`) to resolve interaction issues.
 
@@ -139,11 +145,20 @@ The Admin Dashboard and Source Management features have been combined into a sin
 *   **Tabbed Interface:** The page now uses a tabbed layout (`shadcn/ui Tabs`) to organize settings into "Overview & Stats", "Global Settings & Actions", "Scheduled Tasks", and "Source Management" for improved navigation and reduced clutter.
 *   **Removed "Discover New Sources":** The "Discover New Sources" functionality has been removed to streamline source management.
 *   **Streamlined AI Data Processing:** The "Process Missing AI Data" section for individual sources has been simplified to a single button that triggers processing for all enabled AI features (summary, tags, image, translations) for that source.
+*   **Tooltips:** The "Run Scraper" button now includes a tooltip providing a brief description of its function.
 *   **Save Schedule Settings:** Functionality to save scheduled task settings (cron frequencies and AI processing toggles) has been implemented.
 *   **Toast Notifications:** User feedback for various actions (e.g., triggering scrapes, purging data, adding/editing/deleting sources, saving settings) is now provided via non-intrusive toast notifications (`shadcn/ui toast`).
 *   **Full shadcn/ui Utilization:** All UI elements within the Settings page are consistently built using shadcn/ui components for a cohesive and accessible design.
 *   **Improved Mobile Responsiveness for Tabs:** The tab navigation on the Settings page now adapts better to smaller screens, stacking vertically on small viewports and transitioning to a multi-column grid on larger screens, ensuring usability across devices.
 *   **Scheduled Translations Setting Fix:** The "Process Missing Translations" toggle in the Scheduled Tasks section can now be correctly saved and loaded from the database, ensuring its state persists across sessions.
+*   **Article Management:** The "Source Articles" page (`frontend/src/pages/settings/source/[sourceId].astro`) displays articles in a data table (`shadcn/ui data-table`) defined by `frontend/src/components/columns.tsx`. This table includes sortable columns for `ID`, `Title`, `URL`, `Thumbnail`, `Publication Date`, `AI Summary`, `AI Tags`, and `AI Image`. Actions available for each article via a dropdown menu include:
+    *   Copy article ID
+    *   Rerun AI processing (Summary, Tags, Image, Translations)
+    *   Rescrape Article
+    *   Edit Article (opens `ArticleEditDialog.tsx`)
+    *   Delete Article
+*   **Article Edit Dialog:** The `ArticleEditDialog.tsx` component provides a form for editing individual article details, including translated fields for title, summary, raw content, and topics in Spanish and Haitian Creole.
+*   **Source Configuration Enhancements:** The add/edit source modal now includes an `Accordion` for "Open Source Selectors" to better organize scraping configuration. New fields have been added for `article_link_template`, `exclude_patterns`, and `scrape_after_date` to provide more granular control over source scraping. Additionally, a toggle for `enable_ai_translations` has been added to control AI translation generation per source.
 
 ---
 
