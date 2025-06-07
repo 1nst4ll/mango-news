@@ -92,7 +92,8 @@ const sanitizeHtml = (htmlString) => {
   return sanitizedContent;
 };
 
-const sanitizeContent = async (articleId = null) => {
+const sanitizeContent = async (options = {}) => {
+  const { articleId = null, sourceId = null } = options;
   try {
     console.log('Connecting to the database...');
     const client = await pool.connect();
@@ -108,18 +109,23 @@ const sanitizeContent = async (articleId = null) => {
     let totalArticlesUpdated = 0;
 
     let articlesResult;
+    let query = `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles`;
+    const queryParams = [];
+
     if (articleId) {
-      articlesResult = await client.query(
-        `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles WHERE id = $1`,
-        [articleId]
-      );
-      console.log(`Found ${articlesResult.rows.length} article(s) for ID: ${articleId}.`);
+      query += ` WHERE id = $1`;
+      queryParams.push(articleId);
+      console.log(`Sanitizing content for article ID: ${articleId}.`);
+    } else if (sourceId) {
+      query += ` WHERE source_id = $1`;
+      queryParams.push(sourceId);
+      console.log(`Sanitizing content for all articles from source ID: ${sourceId}.`);
     } else {
-      articlesResult = await client.query(
-        `SELECT id, raw_content, raw_content_es, raw_content_ht FROM articles`
-      );
-      console.log(`Found ${articlesResult.rows.length} articles in total.`);
+      console.log(`Sanitizing content for all articles.`);
     }
+
+    articlesResult = await client.query(query, queryParams);
+    console.log(`Found ${articlesResult.rows.length} article(s).`);
 
     const articles = articlesResult.rows;
 
@@ -162,18 +168,28 @@ const sanitizeContent = async (articleId = null) => {
 };
 
 const arg = process.argv[2];
+const value = process.argv[3];
 
 if (arg === '--all') {
   sanitizeContent(); // Process all articles
-} else if (arg) {
-  const articleId = parseInt(arg, 10);
+} else if (arg === '--article' && value) {
+  const articleId = parseInt(value, 10);
   if (!isNaN(articleId)) {
-    sanitizeContent(articleId); // Process a specific article ID
+    sanitizeContent({ articleId }); // Process a specific article ID
   } else {
-    console.error('Invalid argument. Please provide an article ID or "--all".');
+    console.error('Invalid article ID. Please provide a valid number after "--article".');
+    process.exit(1);
+  }
+} else if (arg === '--source' && value) {
+  const sourceId = parseInt(value, 10);
+  if (!isNaN(sourceId)) {
+    sanitizeContent({ sourceId }); // Process all articles from a specific source ID
+  } else {
+    console.error('Invalid source ID. Please provide a valid number after "--source".');
     process.exit(1);
   }
 } else {
-  console.error('Please provide an article ID or "--all" to run the script.');
+  console.error('Please provide an argument: "--all", "--article <ID>", or "--source <ID>".');
   process.exit(1);
+}
 }
