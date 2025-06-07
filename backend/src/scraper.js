@@ -21,58 +21,16 @@ const DOMPurify = createDOMPurify(window);
 
 // Function to sanitize HTML content
 const sanitizeHtml = (htmlString) => {
-  // Remove entire <figure> tags and their content first.
-  let sanitizedContent = htmlString.replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, '');
-
-  // Remove <link> tags and their content
-  sanitizedContent = sanitizedContent.replace(/<link\b[^>]*>[\s\S]*?<\/link>/gi, '');
-
-  // Remove <br> tags
-  sanitizedContent = sanitizedContent.replace(/<br\b[^>]*>/gi, '');
-
-  // Remove all attributes from all tags, except for href and rel in <a> tags, and src in <img> tags.
-  sanitizedContent = sanitizedContent.replace(/<(\w+)(?:\s+([^>]*))?>/gi, (match, tagName, attributes) => {
-    if (tagName.toLowerCase() === 'a' && attributes) {
-      // For <a> tags, keep href and rel attributes
-      const hrefMatch = attributes.match(/href="([^"]*)"/i);
-      const relMatch = attributes.match(/rel="([^"]*)"/i);
-      let cleanedAttributes = '';
-      if (hrefMatch) {
-        cleanedAttributes += ` href="${hrefMatch[1]}"`;
-      }
-      if (relMatch) {
-        cleanedAttributes += ` rel="${relMatch[1]}"`;
-      }
-      return `<${tagName}${cleanedAttributes}>`;
-    } else if (tagName.toLowerCase() === 'img' && attributes) {
-      // For <img> tags, keep src attribute
-      const srcMatch = attributes.match(/src="([^"]*)"/i);
-      let cleanedAttributes = '';
-      if (srcMatch) {
-        cleanedAttributes += ` src="${srcMatch[1]}"`;
-      }
-      return `<${tagName}${cleanedAttributes}>`;
-    }
-    else {
-      // For all other tags, remove all attributes
-      return `<${tagName}>`;
-    }
+  // Use DOMPurify for initial sanitization
+  let sanitizedContent = DOMPurify.sanitize(htmlString, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['figure', 'link', 'br', 'span', 'div', 'tbody', 'table', 'tr'], // Forbid tags that were previously removed or flattened
+    ALLOW_TAGS: ['p', 'a', 'img'], // Explicitly allow only these tags
+    ALLOW_ATTR: ['href', 'rel', 'src'], // Explicitly allow only these attributes
+    KEEP_CONTENT: true // Keep content of forbidden tags
   });
 
-  // Remove <span> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?span[^>]*>/gi, '');
-
-  // Remove <strong> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?strong[^>]*>/gi, '');
-
-  // Remove all <div> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?div[^>]*>/gi, '');
-
-  // Remove <tbody> and <table> tags, keeping their inner content
-  sanitizedContent = sanitizedContent.replace(/<\/?tbody[^>]*>/gi, '');
-  sanitizedContent = sanitizedContent.replace(/<\/?table[^>]*>/gi, '');
-  sanitizedContent = sanitizedContent.replace(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi, ''); // Remove <tr> tags and their content
-
+  // After DOMPurify, apply the whitespace normalization and paragraph creation logic
   // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
   sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
 

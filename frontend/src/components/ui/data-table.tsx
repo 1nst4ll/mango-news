@@ -44,11 +44,19 @@ import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRigh
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  pageCount: number;
+  pageIndex: number;
+  pageSize: number;
+  onPaginationChange: (pagination: { pageIndex: number; pageSize: number }) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  pageCount: controlledPageCount,
+  pageIndex: controlledPageIndex,
+  pageSize: controlledPageSize,
+  onPaginationChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -77,17 +85,24 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     getFacetedRowModel: getFacetedRowModel(),
-    initialState: {
-        pagination: {
-            pageSize: 5,
-        },
-    },
+    manualPagination: true, // Enable manual pagination
+    pageCount: controlledPageCount, // Pass controlled page count
     state: {
       sorting,
       columnFilters,
       globalFilter,
       columnVisibility,
       rowSelection,
+      pagination: {
+        pageIndex: controlledPageIndex,
+        pageSize: controlledPageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      const newPagination = typeof updater === 'function'
+        ? updater({ pageIndex: controlledPageIndex, pageSize: controlledPageSize })
+        : updater;
+      onPaginationChange(newPagination);
     },
   })
 

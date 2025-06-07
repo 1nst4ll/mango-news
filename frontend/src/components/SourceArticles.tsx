@@ -53,6 +53,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [isArticleEditDialogOpen, setIsArticleEditDialogOpen] = useState(false);
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
 
+  // Pagination state for server-side pagination
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(5); // Default page size
+  const [pageCount, setPageCount] = useState(0); // Total number of pages
+
   useEffect(() => {
     // Retrieve the token from localStorage when the component mounts
     const token = localStorage.getItem('jwtToken');
@@ -82,7 +87,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         description: data.message || `Successfully processed ${featureType} for article ${articleId}.`,
       });
       // Optionally refetch articles after processing to show updated status/data
-      fetchArticles();
+      fetchArticles(pageIndex, pageSize);
     } catch (err: unknown) {
       if (err instanceof Error) {
         toast.error("Error", {
@@ -126,6 +131,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       toast.success("Article Deleted", {
         description: `Article ${articleId} has been successfully deleted.`,
       });
+      fetchArticles(pageIndex, pageSize); // Refetch articles to update pagination if needed
     } catch (err: unknown) {
       if (err instanceof Error) {
         toast.error("Error", {
@@ -164,7 +170,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       toast.success("Rescrape Complete", {
         description: data.message || `Successfully rescraped article ${articleId}.`,
       });
-      fetchArticles(); // Refetch articles after rescraping
+      fetchArticles(pageIndex, pageSize); // Refetch articles after rescraping
     } catch (err: unknown) {
       if (err instanceof Error) {
         toast.error("Error", {
@@ -194,7 +200,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   };
 
   const handleArticleSaveSuccess = () => {
-    fetchArticles(); // Refresh articles after a successful save
+    fetchArticles(pageIndex, pageSize); // Refresh articles after a successful save
   };
 
   const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle });
@@ -221,18 +227,20 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   }, [sourceId, apiUrl]);
 
 
-  const fetchArticles = async () => {
+  const fetchArticles = async (page: number, limit: number) => {
     setLoading(true);
     try {
-      const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles`;
+      const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles?page=${page + 1}&limit=${limit}`;
       console.log(`[Frontend] Fetching articles from: ${fetchUrl}`);
       const response = await fetch(fetchUrl);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      const totalCount = parseInt(response.headers.get('X-Total-Count') || '0', 10);
       const data: Article[] = await response.json();
-      console.log(`[Frontend] Received ${data.length} articles.`);
+      console.log(`[Frontend] Received ${data.length} articles. Total count: ${totalCount}`);
       setArticles(data);
+      setPageCount(Math.ceil(totalCount / limit));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching articles.';
       console.error(`[Frontend] Error fetching articles:`, err);
@@ -245,8 +253,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   };
 
   useEffect(() => {
-    fetchArticles();
-  }, [sourceId]);
+    fetchArticles(pageIndex, pageSize);
+  }, [sourceId, pageIndex, pageSize]);
 
   // New handler function to process all missing AI data for a source
   const handleProcessAllMissingAi = async () => {
@@ -379,7 +387,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     }
 
     await Promise.all(processingPromises);
-    fetchArticles(); // Refetch articles after all processing is done
+    fetchArticles(pageIndex, pageSize); // Refetch articles after all processing is done
   };
 
   const handleRescrapeAllArticles = () => {
@@ -410,7 +418,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         });
         setIsRescraping(false);
         eventSource.close();
-        fetchArticles(); // Refetch articles after rescraping is complete
+        fetchArticles(pageIndex, pageSize); // Refetch articles after rescraping is complete
       }
     };
 
@@ -482,7 +490,17 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         {loading ? (
           <div>Loading articles...</div>
         ) : (
-            <DataTable columns={columns} data={articles} />
+            <DataTable
+              columns={columns}
+              data={articles}
+              pageCount={pageCount}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              onPaginationChange={({ pageIndex, pageSize }) => {
+                setPageIndex(pageIndex);
+                setPageSize(pageSize);
+              }}
+            />
         )}
       </CardContent>
       <ArticleEditDialog
