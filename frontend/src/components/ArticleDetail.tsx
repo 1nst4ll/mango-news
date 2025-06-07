@@ -268,29 +268,33 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         </Button>
       </div>
 
-      <article className="prose prose-lg lg:prose-xl dark:prose-invert max-w-4xl mx-auto">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold !leading-tight">
+      <article className="prose prose-base sm:prose-lg dark:prose-invert max-w-4xl mx-auto font-serif text-gray-800 dark:text-gray-200">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold !leading-tight mb-4 font-sans">
           {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
         </h1>
-        <div className="text-sm text-muted-foreground mb-4">
-        {t.source}: <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{article.source_url}</a>
-        <div> {article.author && (
-            <span> {t.author}: {article.author} </span>
-          )}
-           | {t.published}: {
-             new Date(article.publication_date).getFullYear() === 2001
-               ? new Date(article.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
-               : new Date(article.publication_date).toLocaleDateString(currentLocale)
-           }
-           <span> | {t.added}: {
-             new Date(article.created_at).getFullYear() === 2001
-               ? new Date(article.created_at).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
-               : new Date(article.created_at).toLocaleDateString(currentLocale)
-           }</span></div>
+        <div className="text-sm text-gray-600 dark:text-gray-400 mb-6 border-b border-t border-gray-300 dark:border-gray-700 py-2">
+          <p className="mb-1">
+            <span className="font-semibold">{t.source}:</span> <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600 dark:text-blue-400">{article.source_url}</a>
+          </p>
+          <p className="mb-1">
+            {article.author && (
+              <span className="mr-4"><span className="font-semibold">{t.author}:</span> {article.author}</span>
+            )}
+            <span className="mr-4"><span className="font-semibold">{t.published}:</span> {
+              new Date(article.publication_date).getFullYear() === 2001
+                ? new Date(article.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
+                : new Date(article.publication_date).toLocaleDateString(currentLocale)
+            }</span>
+            <span><span className="font-semibold">{t.added}:</span> {
+              new Date(article.created_at).getFullYear() === 2001
+                ? new Date(article.created_at).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
+                : new Date(article.created_at).toLocaleDateString(currentLocale)
+            }</span>
+          </p>
         </div>
-        <div className="relative md:float-right md:w-1/2 md:ml-6 mb-4 clear-both">
+        <div className="relative md:float-right md:w-1/2 md:ml-8 mb-6 clear-both">
           {article.thumbnail_url && (
-            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg shadow-lg" />
+            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg shadow-lg object-cover" />
           )}
           <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
             {displayTopics.map(topic => (
@@ -302,8 +306,8 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             ))}
           </div>
         </div>
-        <div dangerouslySetInnerHTML={{ __html: displayContent }} />
-        <div className="mt-6 grid grid-cols-2 gap-2">
+        <div className="article-content" dangerouslySetInnerHTML={{ __html: displayContent }} />
+        <div className="mt-8 pt-4 border-t border-gray-300 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             size="sm"
             onClick={() => {

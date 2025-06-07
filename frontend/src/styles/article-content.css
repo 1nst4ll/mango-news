@@ -1,0 +1,119 @@
+/* Custom styles for article content to enhance readability and newspaper-like typography */
+
+.article-content {
+  /* Ensure proper line height for readability */
+  line-height: 1.75; /* Default prose line-height is 1.625, slightly increasing for better readability */
+  
+  /* Adjust paragraph spacing */
+  p {
+    margin-bottom: 1.25em; /* Default prose p margin-bottom is 1.25em, keeping it consistent or slightly increasing */
+  }
+
+  /* Headings within the article content */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Georgia', serif; /* Use a serif font for headings within the article */
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    line-height: 1.2;
+  }
+
+  h1 { font-size: 2.25em; } /* Equivalent to Tailwind text-4xl */
+  h2 { font-size: 1.875em; } /* Equivalent to Tailwind text-3xl */
+  h3 { font-size: 1.5em; }    /* Equivalent to Tailwind text-2xl */
+  h4 { font-size: 1.25em; }   /* Equivalent to Tailwind text-xl */
+
+  /* Lists */
+  ul, ol {
+    margin-top: 1em;
+    margin-bottom: 1em;
+    padding-left: 1.5em;
+  }
+
+  li {
+    margin-bottom: 0.5em;
+  }
+
+  /* Blockquotes */
+  blockquote {
+    border-left: 0.25em solid #ccc;
+    padding-left: 1em;
+    margin-left: 0;
+    font-style: italic;
+    color: #555;
+  }
+
+  /* Images within content */
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+    border-radius: 0.5rem; /* Slightly rounded corners */
+  }
+
+  /* Links within content */
+  a {
+    color: #007bff; /* A standard blue for links */
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: #0056b3;
+  }
+
+  /* Strong/Bold text */
+  strong {
+    font-weight: 700;
+  }
+
+  /* Table styling */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+  }
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 0.75em;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+
+  /* Dark mode adjustments */
+  .dark & {
+    color: #d1d5db; /* Light gray for dark mode text */
+
+    h1, h2, h3, h4, h5, h6 {
+      color: #f9fafb; /* Lighter headings in dark mode */
+    }
+
+    blockquote {
+      border-left-color: #555;
+      color: #bbb;
+    }
+
+    a {
+      color: #63b3ed; /* Lighter blue for links in dark mode */
+    }
+
+    a:hover {
+      color: #90cdf4;
+    }
+
+    th {
+      background-color: #374151; /* Darker background for table headers */
+      color: #f9fafb;
+    }
+
+    td {
+      border-color: #4b5563;
+    }
+  }
+}
