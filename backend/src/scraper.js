@@ -1378,14 +1378,12 @@ const rescrapeSourceArticles = async (sourceId) => {
 
     console.log(`Found ${articlesToRescrape.length} articles for source ID ${sourceId} to re-scrape.`);
 
-    for (const article of articlesToRescrape) {
+    const rescrapePromises = articlesToRescrape.map(async (article) => {
       try {
-        // Call scrapeArticlePage to re-scrape the content of each article
-        // We pass 'per-source' as scrapeType and use the source's AI toggles
         const processed = await scrapeArticlePage(
           source,
           article.source_url,
-          'per-source',
+          'rescrape', // Use 'rescrape' type to ensure update logic is triggered
           source.enable_ai_summary,
           source.enable_ai_tags,
           source.enable_ai_image,
@@ -1393,16 +1391,26 @@ const rescrapeSourceArticles = async (sourceId) => {
           source.scrape_after_date
         );
         if (processed) {
-          articlesRescraped++;
+          return { status: 'fulfilled', value: article.id };
         } else {
-          errorCount++;
-          console.error(`Failed to re-scrape article ID ${article.id} from URL: ${article.source_url}`);
+          return { status: 'rejected', reason: `Failed to process article ${article.id}` };
         }
       } catch (articleErr) {
         console.error(`Error re-scraping article ID ${article.id} from URL ${article.source_url}:`, articleErr);
-        errorCount++;
+        return { status: 'rejected', reason: articleErr.message };
       }
-    }
+    });
+
+    const results = await Promise.allSettled(rescrapePromises);
+
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        articlesRescraped++;
+      } else {
+        errorCount++;
+        console.error(`Rescrape failed for an article: ${result.reason}`);
+      }
+    });
 
     const message = `Finished re-scraping for source ID ${sourceId}. Articles re-scraped: ${articlesRescraped}, Errors: ${errorCount}.`;
     console.log(message);
