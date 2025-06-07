@@ -123,6 +123,15 @@
     color: var(--muted-foreground);
   }
 
+  /* Mobile adjustments for justified text */
+  @media (max-width: 768px) {
+    .article-content {
+      text-align: left; /* Align left on smaller screens to avoid large gaps */
+      word-wrap: break-word; /* Ensure long words break to prevent overflow */
+      hyphens: auto; /* Keep hyphenation for better flow */
+    }
+  }
+
   /* Dark mode adjustments */
   .dark & {
     color: var(--ink-dark); /* Use ink-dark for dark mode text */

@@ -192,4 +192,3 @@ if (arg === '--all') {
   console.error('Please provide an argument: "--all", "--article <ID>", or "--source <ID>".');
   process.exit(1);
 }
-}
