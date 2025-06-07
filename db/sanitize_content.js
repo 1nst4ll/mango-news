@@ -78,8 +78,8 @@ const sanitizeHtml = (htmlString) => {
   // Replace &nbsp;</p><p> with a single space
   //sanitizedContent = sanitizedContent.replace(/&nbsp;<\/p>\n<p>/g, ' ');
 
-  // Remove multiple consecutive &nbsp;
-  //sanitizedContent = sanitizedContent.replace(/(?:&nbsp; ){2,}/g, '');
+  // Remove all &nbsp;
+  sanitizedContent = sanitizedContent.replace(/&nbsp;/g, '');
 
   // Split content by newlines and wrap each non-empty line in <p> tags
   //let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
