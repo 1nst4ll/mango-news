@@ -30,7 +30,7 @@ export default function IndexPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sources, setSources] = useState<Source[]>([]);
-  const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [selectedSources, setSelectedSources] = useState<number[]>([]);
   const { t, currentLocale } = useTranslations(); // Use the translation hook
 
   // Fetch sources only once on mount
@@ -108,22 +108,22 @@ export default function IndexPage() {
                       <CommandItem
                         key={source.id}
                         onSelect={() => {
-                          const isSelected = selectedSources.includes(source.name);
+                          const isSelected = selectedSources.includes(source.id);
                           if (isSelected) {
-                            setSelectedSources(selectedSources.filter(name => name !== source.name));
+                            setSelectedSources(selectedSources.filter(id => id !== source.id));
                           } else {
-                            setSelectedSources([...selectedSources, source.name]);
+                            setSelectedSources([...selectedSources, source.id]);
                           }
                         }}
                       >
                         <Checkbox
                           id={`source-${source.id}`}
-                          checked={selectedSources.includes(source.name)}
+                          checked={selectedSources.includes(source.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              setSelectedSources([...selectedSources, source.name]);
+                              setSelectedSources([...selectedSources, source.id]);
                             } else {
-                              setSelectedSources(selectedSources.filter(name => name !== source.name));
+                              setSelectedSources(selectedSources.filter(id => id !== source.id));
                             }
                           }}
                           className="mr-2"

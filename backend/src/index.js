@@ -459,7 +459,7 @@ app.get('/api/topics', async (req, res) => {
 // Get all articles with pagination
 app.get('/api/articles', async (req, res) => {
   const endpoint = '/api/articles';
-  const { topic, startDate, endDate, searchTerm, sources, page = 1, limit = 15 } = req.query; // Add page and limit with defaults
+  const { topic, startDate, endDate, searchTerm, source_ids, page = 1, limit = 15 } = req.query; // Add page and limit with defaults
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
   let countQuery = `
@@ -517,10 +517,10 @@ app.get('/api/articles', async (req, res) => {
     valueIndex++;
   }
 
-  if (sources) {
-    const sourceNames = sources.split(',').map(name => name.toLowerCase());
-    conditions.push(`LOWER(s.name) = ANY($${valueIndex++})`);
-    values.push(sourceNames);
+  if (source_ids) {
+    const sourceIdsArray = source_ids.split(',').map(id => parseInt(id, 10));
+    conditions.push(`s.id = ANY($${valueIndex++})`);
+    values.push(sourceIdsArray);
   }
 
   if (conditions.length > 0) {

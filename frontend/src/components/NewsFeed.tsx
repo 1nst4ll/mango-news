@@ -35,7 +35,7 @@ interface Article {
 
 interface NewsFeedProps {
   searchTerm: string;
-  selectedSources: string[];
+  selectedSources: number[];
   activeCategory: string;
 }
 
@@ -104,7 +104,7 @@ function NewsFeed({
         const params = new URLSearchParams();
 
         if (selectedSources.length > 0) {
-            params.append('sources', selectedSources.join(','));
+            params.append('source_ids', selectedSources.join(','));
         }
 
         if (searchTerm) {
