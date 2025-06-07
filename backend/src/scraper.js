@@ -1422,4 +1422,5 @@ module.exports = {
   reprocessTranslatedTopicsForSource, // Export the new function for re-processing translated topics
   processAiForArticle, // Export the function to process AI data for a single article
   rescrapeSourceArticles, // Export the new rescrape function
+  scrapeArticlePage, // Export scrapeArticlePage
 };

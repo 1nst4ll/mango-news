@@ -10,7 +10,7 @@ const { marked } = require('marked'); // Import marked
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
-const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTranslatedTopicsForSource } = require('./scraper'); // Import scraper functions including processMissingAiForSource and the new function
+const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTranslatedTopicsForSource, scrapeArticlePage } = require('./scraper'); // Import scraper functions including processMissingAiForSource and the new function
 const { registerUser, loginUser } = require('./user'); // Import user management functions
 const authenticateToken = require('./middleware/auth'); // Import authentication middleware
 
