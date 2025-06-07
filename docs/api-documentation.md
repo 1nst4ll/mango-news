@@ -330,6 +330,27 @@ Triggers the re-processing of translated topics for articles belonging to a spec
     *   `401 Unauthorized`: Invalid or missing authentication token.
     *   `500 Internal Server Error`: Failed to trigger re-processing or an error occurred during processing.
 
+#### `POST /api/sources/:sourceId/rescrape`
+
+Triggers the re-scraping of all articles for a specific source. This will re-fetch the content for existing articles and update them in the database.
+
+*   **Authentication:** Required.
+*   **Path Parameters:**
+    *   `sourceId` (number, required): The ID of the source.
+*   **Request Body:** None.
+*   **Success Response (`200 OK`):**
+    ```json
+    {
+      "message": "Finished re-scraping for source ID {sourceId}. Articles re-scraped: {articlesRescraped}, Errors: {errorCount}.",
+      "articlesRescraped": "number",
+      "errorCount": "number"
+    }
+    ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Invalid or missing authentication token.
+    *   `404 Not Found`: Source with the specified ID not found or not active.
+    *   `500 Internal Server Error`: Failed to trigger re-scraping or an error occurred during processing.
+
 #### `DELETE /api/sources/:id`
 
 Deletes a news source by its ID.

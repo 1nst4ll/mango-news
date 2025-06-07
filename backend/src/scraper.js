@@ -1341,6 +1341,63 @@ const processMissingAiForSource = async (sourceId, featureType) => {
   }
 };
 
+// Function to re-scrape all articles for a specific source
+const rescrapeSourceArticles = async (sourceId) => {
+  console.log(`Starting re-scraping of all articles for source ID: ${sourceId}`);
+  let articlesRescraped = 0;
+  let errorCount = 0;
+
+  try {
+    const sourceResult = await pool.query('SELECT * FROM sources WHERE id = $1 AND is_active = TRUE', [sourceId]);
+    const source = sourceResult.rows[0];
+
+    if (!source) {
+      console.log(`Source with ID ${sourceId} not found or not active.`);
+      return { success: false, message: `Source with ID ${sourceId} not found or not active.` };
+    }
+
+    // Fetch all articles associated with this source
+    const articlesToRescrapeResult = await pool.query('SELECT id, source_url FROM articles WHERE source_id = $1', [sourceId]);
+    const articlesToRescrape = articlesToRescrapeResult.rows;
+
+    console.log(`Found ${articlesToRescrape.length} articles for source ID ${sourceId} to re-scrape.`);
+
+    for (const article of articlesToRescrape) {
+      try {
+        // Call scrapeArticlePage to re-scrape the content of each article
+        // We pass 'per-source' as scrapeType and use the source's AI toggles
+        const processed = await scrapeArticlePage(
+          source,
+          article.source_url,
+          'per-source',
+          source.enable_ai_summary,
+          source.enable_ai_tags,
+          source.enable_ai_image,
+          source.enable_ai_translations,
+          source.scrape_after_date
+        );
+        if (processed) {
+          articlesRescraped++;
+        } else {
+          errorCount++;
+          console.error(`Failed to re-scrape article ID ${article.id} from URL: ${article.source_url}`);
+        }
+      } catch (articleErr) {
+        console.error(`Error re-scraping article ID ${article.id} from URL ${article.source_url}:`, articleErr);
+        errorCount++;
+      }
+    }
+
+    const message = `Finished re-scraping for source ID ${sourceId}. Articles re-scraped: ${articlesRescraped}, Errors: ${errorCount}.`;
+    console.log(message);
+    return { success: true, message: message, articlesRescraped, errorCount };
+
+  } catch (err) {
+    console.error(`Error during re-scraping for source ID ${sourceId}:`, err);
+    return { success: false, message: `Error re-scraping source ${sourceId}: ${err.message}` };
+  }
+};
+
 // Export the runScraper function if you want to trigger it manually or from another script
 module.exports = {
   runScraper,
@@ -1348,4 +1405,5 @@ module.exports = {
   processMissingAiForSource, // Export the new function for processing missing AI data
   reprocessTranslatedTopicsForSource, // Export the new function for re-processing translated topics
   processAiForArticle, // Export the function to process AI data for a single article
+  rescrapeSourceArticles, // Export the new rescrape function
 };

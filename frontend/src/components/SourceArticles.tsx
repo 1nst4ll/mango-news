@@ -43,6 +43,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [processingLoading, setProcessingLoading] = useState<{ [articleId: number]: { summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean; deleting?: boolean } }>({});
+  const [isRescraping, setIsRescraping] = useState<boolean>(false); // New state for rescraping loading
 
   const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev
   const [jwtToken, setJwtToken] = useState<string | null>(null);
@@ -323,6 +324,39 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     fetchArticles(); // Refetch articles after all processing is done
   };
 
+  const handleRescrapeAllArticles = async () => {
+    setIsRescraping(true);
+    try {
+      const response = await fetch(`${apiUrl}/api/sources/${sourceId}/rescrape`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to rescrape articles for source ${sourceId}`);
+      }
+      toast.success("Rescrape Complete", {
+        description: data.message || `Successfully rescraped ${data.articlesRescraped} articles.`,
+      });
+      fetchArticles(); // Refetch articles after rescraping
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error("Error", {
+          description: `Error: ${err.message}`,
+        });
+      } else {
+        toast.error("Error", {
+          description: `An unknown error occurred during rescraping.`,
+        });
+      }
+    } finally {
+      setIsRescraping(false);
+    }
+  };
+
   return (
     <Card className="mb-6 pt-4">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -337,6 +371,21 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
           </Button>
         </div>
         <div className="flex flex-col items-end space-y-2">
+          <Button
+            onClick={handleRescrapeAllArticles}
+            disabled={isRescraping}
+            size="sm"
+            variant="outline"
+            className="mb-2" // Add some margin to separate buttons
+          >
+            {isRescraping ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Rescraping...
+              </>
+            ) : (
+              'Rescrape All Articles'
+            )}
+          </Button>
           <Button
             onClick={handleProcessAllMissingAi}
             disabled={

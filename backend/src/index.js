@@ -348,6 +348,29 @@ app.delete('/api/sources/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Rescrape all articles for a specific source
+app.post('/api/sources/:sourceId/rescrape', authenticateToken, async (req, res) => {
+  const sourceId = req.params.sourceId;
+  const endpoint = `/api/sources/${sourceId}/rescrape`;
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Triggering rescrape for source ID: ${sourceId}`);
+
+    const { rescrapeSourceArticles } = require('./scraper'); // Import the new function
+    const result = await rescrapeSourceArticles(sourceId);
+
+    if (result.success) {
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Rescrape completed for source ID ${sourceId}. Articles rescraped: ${result.articlesRescraped}, Errors: ${result.errorCount}`);
+      res.json({ message: result.message, articlesRescraped: result.articlesRescraped, errorCount: result.errorCount });
+    } else {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Rescrape failed for source ID ${sourceId}: ${result.message}`);
+      res.status(500).json({ error: result.message });
+    }
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error triggering rescrape for source ${sourceId}:`, error);
+    res.status(500).json({ error: 'Failed to trigger rescrape.' });
+  }
+});
+
 // Get topics based on applied filters
 app.get('/api/topics', async (req, res) => {
   const endpoint = '/api/topics';
