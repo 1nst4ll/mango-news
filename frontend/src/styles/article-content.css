@@ -15,7 +15,7 @@
 
   /* First paragraph styling */
   p:first-of-type {
-    font-size: 1.25em; /* Larger first paragraph */
+    font-size: 1.1em; /* Slightly decreased for better integration with drop cap */
     font-weight: 500; /* Slightly bolder */
     line-height: 1.6;
     margin-bottom: 1.5em;
@@ -25,7 +25,7 @@
   p:first-of-type::first-letter {
     float: left;
     font-family: 'Playfair Display', serif; /* A more decorative font for drop cap */
-    font-size: 4em; /* Large size for drop cap */
+    font-size: 4.8em; /* Adjusted for three lines of text tall */
     line-height: 0.8;
     margin-right: 0.1em;
     margin-top: 0.05em;
