@@ -85,7 +85,8 @@ async function generateSundayEditionSummary(articles) {
         });
         return response.data.choices[0].message.content;
     } catch (error) {
-        console.error('Error generating Sunday Edition summary with Groq:', error.response ? (error.response.data ? JSON.stringify(error.response.data) : error.response.status) : error.message);
+        const errorMessage = error.response ? (error.response.data ? JSON.stringify(error.response.data) : `Status: ${error.response.status}`) : error.message;
+        console.error(`[ERROR] Error generating Sunday Edition summary with Groq: ${errorMessage}`);
         return "Summary generation failed.";
     }
 }
@@ -106,7 +107,7 @@ async function uploadAudioToS3(audioBuffer, filename) {
         const s3Url = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
         return s3Url;
     } catch (error) {
-        console.error('Error uploading audio to S3:', error);
+        console.error(`[ERROR] Error uploading audio to S3: ${error.message}`);
         return null;
     }
 }
@@ -138,7 +139,8 @@ async function generateNarration(summary) {
         return s3Url;
 
     } catch (error) {
-        console.error('Error generating narration with Unreal Speech:', error.response ? (error.response.data ? JSON.stringify(error.response.data) : error.response.status) : error.message);
+        const errorMessage = error.response ? (error.response.data ? JSON.stringify(error.response.data) : `Status: ${error.response.status}`) : error.message;
+        console.error(`[ERROR] Error generating narration with Unreal Speech: ${errorMessage}`);
         return null;
     }
 }
@@ -199,8 +201,9 @@ async function createSundayEdition() {
 
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error creating Sunday Edition:', error);
-        return { success: false, message: 'Error creating Sunday Edition.', error: error.message };
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        console.error(`[ERROR] Error creating Sunday Edition: ${errorMessage}`, error);
+        return { success: false, message: `Error creating Sunday Edition: ${errorMessage}`, error: errorMessage };
     } finally {
         client.release();
     }
