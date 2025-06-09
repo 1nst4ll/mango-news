@@ -184,6 +184,19 @@ async function generateNarration(summary) {
         console.log(`[INFO] Unreal Speech API response data length: ${response.data ? response.data.length : 0} bytes`);
         console.log(`[INFO] Unreal Speech API response headers: ${JSON.stringify(response.headers)}`);
 
+        const contentTypeHeader = response.headers['content-type'];
+        if (!contentTypeHeader || !contentTypeHeader.startsWith('audio/')) {
+            let errorDetails = 'Unknown error';
+            try {
+                // Attempt to parse as JSON if it's not an audio content type
+                errorDetails = JSON.parse(response.data.toString('utf8'));
+            } catch (e) {
+                errorDetails = response.data.toString('utf8'); // Fallback to raw text
+            }
+            console.error(`[ERROR] Unreal Speech API returned non-audio content type: ${contentTypeHeader}. Details: ${JSON.stringify(errorDetails)}`);
+            return null;
+        }
+
         const audioBuffer = Buffer.from(response.data);
         const filename = `sunday-edition-${uuidv4()}.mp3`;
         const contentType = 'audio/mpeg'; // Explicitly define content type
@@ -192,7 +205,7 @@ async function generateNarration(summary) {
         return s3Url;
 
     } catch (error) {
-        const errorMessage = error.response ? (error.response.data ? JSON.stringify(error.response.data) : `Status: ${error.response.status}`) : error.message;
+        const errorMessage = error.response ? (error.response.data ? JSON.stringify(error.response.data.toString('utf8')) : `Status: ${error.response.status}`) : error.message;
         console.error(`[ERROR] Error generating narration with Unreal Speech: ${errorMessage}`);
         return null;
     }
