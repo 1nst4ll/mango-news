@@ -1,14 +1,16 @@
 const { Pool } = require('pg');
-const AWS = require('aws-sdk');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const axios = require('axios');
 const scraper = require('./scraper'); // Import the entire scraper module
 const { v4 } = require('uuid'); // For unique filenames
 
 // Configure AWS S3
-const s3 = new AWS.S3({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
 });
 
 // Configure PostgreSQL
@@ -83,8 +85,11 @@ async function uploadAudioToS3(audioBuffer, filename) {
     };
 
     try {
-        const data = await s3.upload(params).promise();
-        return data.Location; // URL of the uploaded file
+        const command = new PutObjectCommand(params);
+        const data = await s3Client.send(command);
+        // Construct the public URL manually as Location is not always returned in v3
+        const s3Url = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+        return s3Url;
     } catch (error) {
         console.error('Error uploading audio to S3:', error);
         return null;

@@ -594,9 +594,9 @@ const generateAIImage = async (title, summary) => { // Changed signature to acce
       console.log('Uploading image to S3...');
 
       // Initialize S3 client (can be done outside the function for efficiency if preferred)
-      const s3Client = new S3Client({ // Use S3Client from v3
+      const s3Client = new S3Client({
         region: process.env.AWS_REGION,
-        credentials: { // Use credentials object for v3
+        credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID,
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         },
