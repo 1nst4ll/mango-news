@@ -371,12 +371,14 @@ async function createSundayEdition() {
             return { success: false, message: 'Failed to generate summary.' };
         }
 
+        console.log('[INFO] Attempting to generate narration...');
         const narrationUrl = await generateNarration(summary);
         if (!narrationUrl) {
-            console.error('Failed to generate narration. Aborting Sunday Edition generation.');
+            console.error('Failed to generate narration (narrationUrl is null). Aborting Sunday Edition generation.');
             await client.query('ROLLBACK');
             return { success: false, message: 'Failed to generate narration.' };
         }
+        console.log(`[INFO] Narration generated successfully: ${narrationUrl}`);
 
         const title = `Mango News Sunday Edition - ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
 
