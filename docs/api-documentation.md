@@ -763,7 +763,7 @@ Retrieves various database statistics.
 
 #### `POST /api/sunday-editions/generate`
 
-Manually triggers the generation of a new Sunday Edition post. This endpoint is protected and requires authentication.
+Manually triggers the generation of a new Sunday Edition post. This endpoint is protected and requires authentication. It can be triggered from the frontend settings page.
 
 *   **Authentication:** Required.
 *   **Request Body:** None.

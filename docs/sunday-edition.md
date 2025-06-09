@@ -111,4 +111,4 @@ The `sunday_edition` key has been added to the translation files (`en.json`, `es
 
 ## Usage
 
-Once configured, Sunday Editions will be automatically generated and added to your news feed every Sunday. You can also manually trigger the generation via the `POST /api/sunday-editions/generate` API endpoint (requires authentication).
+Once configured, Sunday Editions will be automatically generated and added to your news feed every Sunday. You can also manually trigger the generation via the `POST /api/sunday-editions/generate` API endpoint or by clicking the "Generate Sunday Edition" button in the settings page (requires authentication).

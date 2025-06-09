@@ -91,6 +91,7 @@ const SettingsPage: React.FC = () => {
   // State from admin/page.tsx
   const [loading, setLoading] = useState<boolean>(false);
   const [purgeLoading, setPurgeLoading] = useState<boolean>(false);
+  const [sundayEditionLoading, setSundayEditionLoading] = useState<boolean>(false); // New state for Sunday edition generation
   const [enableGlobalAiSummary, setEnableGlobalAiSummary] = useState<boolean>(true);
   const [enableGlobalAiTags, setEnableGlobalAiTags] = useState<boolean>(true);
   const [enableGlobalAiImage, setEnableGlobalAiImage] = useState<boolean>(true);
@@ -368,6 +369,38 @@ const SettingsPage: React.FC = () => {
       });
     } finally {
       setPurgeLoading(false);
+    }
+  };
+
+  const handleGenerateSundayEdition = async () => {
+    setSundayEditionLoading(true);
+    try {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+
+      const response = await fetch(`${apiUrl}/api/sunday-edition/generate`, {
+        method: 'POST',
+        headers: headers,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate Sunday edition');
+      }
+      toast.success("Sunday Edition Generated", {
+        description: data.message || 'Sunday edition generated successfully.',
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during Sunday edition generation.';
+      toast.error("Sunday Edition Error", {
+        description: errorMessage,
+      });
+    } finally {
+      setSundayEditionLoading(false);
     }
   };
 
@@ -862,20 +895,28 @@ const SettingsPage: React.FC = () => {
                     />
                     <Label htmlFor="enableGlobalAiSummary">
                       For next manual scrape: Generate AI Summaries
-                    </Label>
-                  </div>
-                </li>
-                <li>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="enableGlobalAiTags"
-                      checked={enableGlobalAiTags}
-                      onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)}
-                    />
-                    <Label htmlFor="enableGlobalAiTags">
-                      For next manual scrape: Generate AI Tags
-                    </Label>
-                  </div>
+                  </Label>
+                </div>
+              </li>
+              <li>
+                <Button
+                  onClick={handlePurgeArticles}
+                  disabled={purgeLoading}
+                  variant="destructive"
+                >
+                  {purgeLoading ? 'Purging...' : 'Purge All Articles'}
+                </Button>
+              </li>
+              <li>
+                <Button
+                  onClick={handleGenerateSundayEdition}
+                  disabled={sundayEditionLoading}
+                >
+                  {sundayEditionLoading ? 'Generating...' : 'Generate Sunday Edition'}
+                </Button>
+              </li>
+            </ul>
+          </div>
                 </li>
                 <li>
                 <div className="flex items-center space-x-2">
