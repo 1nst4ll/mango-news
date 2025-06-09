@@ -39,12 +39,12 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
             <img src={edition.image_url} alt={edition.title} className="w-full h-auto rounded-lg shadow-lg object-cover" />
           )}
         </div>
-        <div className="article-content" dangerouslySetInnerHTML={{ __html: displaySummary }}></div>
         {edition.narration_url && (
-          <div className="mt-6">
+          <div className="mb-6">
             <AudioPlayer src={edition.narration_url} />
           </div>
         )}
+        <div className="article-content" dangerouslySetInnerHTML={{ __html: displaySummary }}></div>
         <div className="mt-8 pt-4 border-t border-gray-300 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             size="sm"
