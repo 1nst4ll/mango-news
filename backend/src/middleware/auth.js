@@ -11,14 +11,14 @@ const authenticateToken = (req, res, next) => {
   if (token == null) {
     // If no token, return 401 Unauthorized
     console.warn(`[WARN] ${new Date().toISOString()} - Authentication failed: No token provided for ${req.method} ${req.url}`);
-    return res.sendStatus(401);
+    return res.status(401).json({ error: 'Unauthorized: No token provided.' });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
       // If token is invalid, return 403 Forbidden
       console.warn(`[WARN] ${new Date().toISOString()} - Authentication failed: Invalid token for ${req.method} ${req.url}`, err.message);
-      return res.sendStatus(403);
+      return res.status(403).json({ error: 'Forbidden: Invalid token.' });
     }
     // If token is valid, attach user information to the request and proceed
     req.user = user;

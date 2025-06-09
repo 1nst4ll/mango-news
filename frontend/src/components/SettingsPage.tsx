@@ -85,6 +85,7 @@ const SettingsPage: React.FC = () => {
   const [enableScheduledMissingTags, setEnableScheduledMissingTags] = useState<boolean>(true);
   const [enableScheduledMissingImage, setEnableScheduledMissingImage] = useState<boolean>(true);
   const [enableScheduledMissingTranslations, setEnableScheduledMissingTranslations] = useState<boolean>(true);
+  const [sundayEditionFrequency, setSundayEditionFrequency] = useState<string>('0 0 * * 0'); // New state for Sunday Edition frequency
   const [savingSchedule, setSavingSchedule] = useState<boolean>(false);
 
 
@@ -160,6 +161,7 @@ const SettingsPage: React.FC = () => {
         setEnableScheduledMissingTags(data.enable_scheduled_missing_tags);
         setEnableScheduledMissingImage(data.enable_scheduled_missing_image);
         setEnableScheduledMissingTranslations(data.enable_scheduled_missing_translations);
+        setSundayEditionFrequency(data.sunday_edition_frequency); // Fetch Sunday Edition frequency
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
         toast.error("Error Loading Schedule Settings", {
@@ -534,6 +536,7 @@ const SettingsPage: React.FC = () => {
           enable_scheduled_missing_tags: enableScheduledMissingTags,
           enable_scheduled_missing_image: enableScheduledMissingImage,
           enable_scheduled_missing_translations: enableScheduledMissingTranslations,
+          sunday_edition_frequency: sundayEditionFrequency, // Add this line
         }),
       });
 
@@ -1012,6 +1015,19 @@ const SettingsPage: React.FC = () => {
                   <p className="text-sm text-gray-500">Current: Runs every 20 minutes. <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
                 </div>
                 <div className="mt-4 space-y-2">
+                  {/* Sunday Edition Schedule */}
+                  <h5 className="text-md font-semibold mb-2">Sunday Edition Schedule</h5>
+                  <div className="grid gap-2">
+                    <Label htmlFor="sundayEditionFrequency">Cron Schedule:</Label>
+                    <Input
+                      id="sundayEditionFrequency"
+                      name="sundayEditionFrequency"
+                      value={sundayEditionFrequency}
+                      onChange={(e) => setSundayEditionFrequency(e.target.value)}
+                      placeholder="e.g., 0 0 * * 0"
+                    />
+                    <p className="text-sm text-gray-500">Current: Runs every Sunday at midnight. <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="enableScheduledMissingSummary"
