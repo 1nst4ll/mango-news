@@ -26,6 +26,16 @@ const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
 const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/speech';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+if (!UNREAL_SPEECH_API_KEY) {
+    console.error('[ERROR] UNREAL_SPEECH_API_KEY is not set in environment variables.');
+}
+if (!GROQ_API_KEY) {
+    console.error('[ERROR] GROQ_API_KEY is not set in environment variables.');
+}
+if (!process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.S3_BUCKET_NAME) {
+    console.error('[ERROR] AWS S3 environment variables (AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME) are not fully set.');
+}
+
 async function fetchWeeklyArticles() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -56,6 +66,11 @@ async function generateSundayEditionSummary(articles) {
         ${articleContents}
     `;
 
+    if (!GROQ_API_KEY) {
+        console.error('[ERROR] Groq API key is missing. Cannot generate summary.');
+        return "Summary generation failed.";
+    }
+
     try {
         const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
             model: "llama3-8b-8192", // Using a suitable Groq model
@@ -70,7 +85,7 @@ async function generateSundayEditionSummary(articles) {
         });
         return response.data.choices[0].message.content;
     } catch (error) {
-        console.error('Error generating Sunday Edition summary with Groq:', error.response ? error.response.data : error.message);
+        console.error('Error generating Sunday Edition summary with Groq:', error.response ? (error.response.data ? JSON.stringify(error.response.data) : error.response.status) : error.message);
         return "Summary generation failed.";
     }
 }
@@ -97,6 +112,11 @@ async function uploadAudioToS3(audioBuffer, filename) {
 }
 
 async function generateNarration(summary) {
+    if (!UNREAL_SPEECH_API_KEY) {
+        console.error('[ERROR] Unreal Speech API key is missing. Cannot generate narration.');
+        return null;
+    }
+
     try {
         const response = await axios.post(UNREAL_SPEECH_API_URL, {
             Text: summary,
@@ -113,12 +133,12 @@ async function generateNarration(summary) {
         });
 
         const audioBuffer = Buffer.from(response.data);
-const filename = `sunday-edition-${v4()}.mp3`;
+        const filename = `sunday-edition-${v4()}.mp3`;
         const s3Url = await uploadAudioToS3(audioBuffer, filename);
         return s3Url;
 
     } catch (error) {
-        console.error('Error generating narration with Unreal Speech:', error.response ? error.response.data : error.message);
+        console.error('Error generating narration with Unreal Speech:', error.response ? (error.response.data ? JSON.stringify(error.response.data) : error.response.status) : error.message);
         return null;
     }
 }
@@ -152,7 +172,16 @@ async function createSundayEdition() {
 
         // Generate an image for the Sunday Edition
         const imagePrompt = `A news report summary of the week's events in Turks and Caicos, suitable for a CNN news anchor style. Focus on general news imagery, avoiding specific faces or sensitive topics.`;
-const imageUrl = await scraper.generateAIImage(imagePrompt); // Reusing existing function
+        let imageUrl = null;
+        try {
+            imageUrl = await scraper.generateAIImage(imagePrompt); // Reusing existing function
+            if (!imageUrl) {
+                console.warn('Failed to generate AI image for Sunday Edition. Proceeding without image.');
+            }
+        } catch (imageError) {
+            console.error('Error generating AI image for Sunday Edition:', imageError.message);
+            // Continue without image if generation fails
+        }
 
         const title = `Mango News Sunday Edition - ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
 
