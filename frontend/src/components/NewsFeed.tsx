@@ -361,7 +361,7 @@ function NewsFeed({
                   const formattedEndDate = endDate.toLocaleDateString(currentLocale, { month: 'short', day: 'numeric', year: 'numeric' });
 
                   const weekPeriodText = `${formattedStartDate} - ${formattedEndDate}`;
-                  const sundayEditionInfo = `${t.sunday_edition_summary_for_week || 'Weekly summary of news from'} ${weekPeriodText}. Source: mango.tc news.`;
+                  const sundayEditionInfo = `${t.sunday_edition_summary_for_week} ${weekPeriodText}.`;
 
                   return (
                     <a
@@ -391,11 +391,10 @@ function NewsFeed({
                           </p>
                         </CardHeader>
                         <CardContent className="flex-grow px-6 pb-4">
-                          <p className="text-foreground mb-2">{sundayEditionInfo}</p> {/* New paragraph */}
+                          <p className="text-foreground mb-2">{sundayEditionInfo}</p>
                           <p className="text-foreground" dangerouslySetInnerHTML={{ __html: edition.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                           {edition.narration_url && (
                             <div className="mt-4">
-                              {/* AudioPlayer will be replaced by MusicCard */}
                               <AudioPlayer src={edition.narration_url} />
                             </div>
                           )}
