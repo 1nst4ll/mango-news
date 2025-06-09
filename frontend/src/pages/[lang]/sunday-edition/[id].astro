@@ -9,11 +9,11 @@ export async function getStaticPaths() {
   const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
   let sundayEditions = [];
   try {
-    const response = await fetch(`${apiUrl}/api/sunday-editions`);
-    if (response.ok) {
-      const data = await response.json();
-      sundayEditions = data.data; // Assuming the API returns { data: [...], total: ... }
-    }
+      const response = await fetch(`${apiUrl}/api/sunday-editions`);
+      if (response.ok) {
+        const data = await response.json();
+        sundayEditions = data; // Assuming the API returns the array directly
+      }
   } catch (error) {
     console.error('Error fetching Sunday Editions for static paths:', error);
   }
