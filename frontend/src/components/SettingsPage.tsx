@@ -386,11 +386,11 @@ const SettingsPage: React.FC = () => {
         headers['Authorization'] = `Bearer ${jwtToken}`;
       }
 
-      const response = await fetch(`${apiUrl}/api/sunday-edition/generate`, {
+      const response = await fetch(`${apiUrl}/api/sunday-editions/generate`, {
         method: 'POST',
         headers: headers,
         // Ensure an empty body is sent if no data is required, to explicitly set Content-Type
-        body: JSON.stringify({}), 
+        body: JSON.stringify({}),
       });
       const data = await response.json();
       if (!response.ok) {
