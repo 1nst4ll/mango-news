@@ -1,0 +1,56 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import AudioPlayer from '../../../../frontend/src/components/ui/AudioPlayer.tsx';
+import { marked } from 'marked';
+
+export async function getStaticPaths() {
+  // In a real application, you would fetch Sunday Edition IDs from your backend
+  // For now, we'll return an empty array or a placeholder if needed for build.
+  // The page will fetch data dynamically on the client side.
+  return [];
+}
+
+const { lang, id } = Astro.params;
+
+let edition = null;
+try {
+  const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+  const response = await fetch(`${apiUrl}/api/sunday-editions/${id}`);
+  if (response.ok) {
+    edition = await response.json();
+  }
+} catch (error) {
+  console.error(`Error fetching Sunday Edition ${id}:`, error);
+}
+
+const displaySummary = edition ? marked.parse(edition.summary) : '';
+---
+
+<Layout title={edition ? edition.title : 'Sunday Edition'}>
+  <div class="container mx-auto p-4">
+    {edition ? (
+      <div class="max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
+        {edition.image_url && (
+          <img src={edition.image_url} alt={edition.title} class="w-full h-64 object-cover" />
+        )}
+        <div class="p-6">
+          <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">{edition.title}</h1>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Published: {new Date(edition.publication_date).toLocaleDateString(lang)}
+          </p>
+          {edition.narration_url && (
+            <div class="mb-6">
+              <AudioPlayer src={edition.narration_url} client:load />
+            </div>
+          )}
+          <div class="prose dark:prose-invert max-w-none" set:html={displaySummary}></div>
+        </div>
+      </div>
+    ) : (
+      <div class="text-center py-10">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Sunday Edition Not Found</h1>
+        <p class="text-gray-600 dark:text-gray-400">The requested Sunday Edition could not be found.</p>
+      </div>
+    )}
+  </div>
+</Layout>

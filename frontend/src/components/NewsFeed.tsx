@@ -6,6 +6,7 @@ import { MessageCircleMore, Facebook, Loader2, XCircle, Info } from 'lucide-reac
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
+import AudioPlayer from './ui/AudioPlayer'; // Import AudioPlayer component
 
 interface Article {
   id: number;
@@ -31,6 +32,18 @@ interface Article {
   summary_ht?: string;
   topics_es?: string[]; // Ensure this is string[]
   topics_ht?: string[]; // Ensure this is string[]
+  type?: 'article'; // Explicitly define the type
+}
+
+interface SundayEdition {
+  id: number;
+  title: string;
+  summary: string;
+  narration_url: string;
+  image_url: string;
+  publication_date: string;
+  created_at: string;
+  type: 'sundayEdition'; // Explicitly define the type
 }
 
 interface NewsFeedProps {
@@ -57,6 +70,7 @@ function NewsFeed({
   activeCategory = 'all'
 }: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [sundayEditions, setSundayEditions] = useState<SundayEdition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -76,6 +90,23 @@ function NewsFeed({
     setError(null); // Clear previous errors
     fetchInProgressRef.current = false; // Reset the flag
   }, [searchTerm, JSON.stringify(selectedSources), activeCategory]); // Add activeCategory to dependency array
+
+  useEffect(() => {
+    const fetchSundayEditions = async () => {
+      try {
+        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/sunday-editions`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: SundayEdition[] = await response.json();
+        setSundayEditions(data);
+      } catch (err) {
+        console.error('Error fetching Sunday Editions:', err);
+      }
+    };
+    fetchSundayEditions();
+  }, []); // Fetch Sunday Editions once on component mount
 
   useEffect(() => {
     console.count('[NewsFeed] fetch effect evaluated'); // Diagnostic log
@@ -202,10 +233,18 @@ function NewsFeed({
 
   console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
-  // Group articles by date (Day, Month, Year)
-  // Use 'articles' directly as filtering is now handled by the backend API
-  const groupedArticles = articles.reduce((acc, article) => {
-    const date = new Date(article.publication_date);
+  // Combine articles and Sunday Editions, then sort by publication_date
+  const combinedFeed = [...articles, ...sundayEditions.map(edition => ({
+    ...edition,
+    type: 'sundayEdition' as const, // Explicitly set type as a literal
+    publication_date: edition.publication_date, // Ensure consistent date field
+  }))].sort((a, b) => {
+    return new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime();
+  });
+
+  // Group combined feed by date (Day, Month, Year)
+  const groupedFeed = combinedFeed.reduce((acc, item) => {
+    const date = new Date(item.publication_date);
     const year = date.getFullYear();
     const monthIndex = date.getMonth(); // Get month as 0-11 index
     const monthName = t.months[monthIndex.toString() as keyof typeof t.months]; // Get translated month name from locale
@@ -215,12 +254,12 @@ function NewsFeed({
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
-    acc[dateKey].push(article);
+    acc[dateKey].push(item);
     return acc;
-  }, {} as Record<string, Article[]>);
+  }, {} as Record<string, (Article | (SundayEdition & { type: 'sundayEdition' }))[]>);
 
   // Sort dates in descending order
-  const sortedDates = Object.keys(groupedArticles).sort((a, b) => {
+  const sortedDates = Object.keys(groupedFeed).sort((a, b) => {
     return new Date(b).getTime() - new Date(a).getTime();
   });
 
@@ -305,114 +344,186 @@ function NewsFeed({
           )}
           <h2 className="text-2xl font-bold mb-4">{dateKey}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {groupedArticles[dateKey].map(article => {
+            {groupedFeed[dateKey].map(item => {
               try {
-                const displayTitle = getTranslatedText(article, 'title', currentLocale);
-                const displaySummary = getTranslatedText(article, 'summary', currentLocale);
-                const displayTopics = getTranslatedTopics(article, currentLocale);
-
-                return (
-                  <a
-                    href={`/${currentLocale}/article/${article.id}`}
-                    key={article.id}
-                    className="block"
-                    onClick={() => {
-                      const articleIds = articles.map(a => a.id); // Use 'articles' directly
-                      localStorage.setItem('articleList', JSON.stringify(articleIds));
-                    }}
-                  >
-                    <Card className="flex flex-col h-full">
-                      {article.thumbnail_url && (
-                        <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
-                          <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-full object-cover" />
-                          {displayTopics && displayTopics.length > 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-                              <div className="flex flex-wrap gap-1">
-                                {displayTopics.map(topic => (
-                                  <Badge
-                                    key={topic}
-                                    variant="secondary"
-                                    className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation(); // Prevent click from propagating to the parent article link
-                                      e.preventDefault(); // Prevent the default action of the parent <a> tag
-                                      window.location.href = `/${currentLocale}/news/topic/${encodeURIComponent(topic)}`;
-                                    }}
-                                  >
-                                    {topic}
-                                  </Badge>
-                                ))}
-                              </div>
+                if (item.type === 'sundayEdition') {
+                  const edition = item as SundayEdition; // Cast to SundayEdition
+                  return (
+                    <a
+                      href={`/${currentLocale}/sunday-edition/${edition.id}`}
+                      key={`sunday-${edition.id}`}
+                      className="block"
+                    >
+                      <Card className="flex flex-col h-full border-2 border-blue-500">
+                        {edition.image_url && (
+                          <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
+                            <img src={edition.image_url} alt={edition.title} className="w-full h-full object-cover" />
+                            <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
+                              {t.sunday_edition}
+                            </div>
+                          </div>
+                        )}
+                        <CardHeader className={edition.image_url ? "px-6 pt-4" : "px-6 pt-4"}>
+                          <CardTitle className="font-serif">
+                            {edition.title}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <span> | {t.published}: {
+                              new Date(edition.publication_date).getFullYear() === 2001
+                                ? new Date(edition.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
+                                : new Date(edition.publication_date).toLocaleDateString(currentLocale)
+                            }</span>
+                          </p>
+                        </CardHeader>
+                        <CardContent className="flex-grow px-6 pb-4">
+                          <p className="text-foreground" dangerouslySetInnerHTML={{ __html: edition.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
+                          {edition.narration_url && (
+                            <div className="mt-4">
+                              <AudioPlayer src={edition.narration_url} />
                             </div>
                           )}
-                        </div>
-                      )}
-                      <CardHeader className={article.thumbnail_url ? "px-6 pt-4" : "px-6 pt-4"}>
-                        <CardTitle className="font-serif">
-                          {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <span
-                            className="hover:underline cursor-pointer"
+                        </CardContent>
+                        <div className="px-6 pb-2 grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
                             onClick={(e) => {
                               e.stopPropagation();
-                              window.open(article.source_url, '_blank', 'noopener,noreferrer');
+                              const editionUrl = `${window.location.origin}/${currentLocale}/sunday-edition/${edition.id}`;
+                              const shareText = `Listen to the Mango News Sunday Edition: ${edition.title} - ${editionUrl}`;
+                              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                              window.open(whatsappUrl, '_blank');
                             }}
                           >
-                            {getDomainFromUrl(article.source_url)}
-                          </span>
-                          {article.author && (
-                            <span> | {t.author}: {article.author}</span>
-                          )}
-                           <span> | {t.published}: {
-                            new Date(article.publication_date).getFullYear() === 2001
-                              ? new Date(article.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
-                              : new Date(article.publication_date).toLocaleDateString(currentLocale)
-                          }</span>
-                          <span> | {t.added}: {
-                            new Date(article.created_at).getFullYear() === 2001
-                              ? new Date(article.created_at).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
-                              : new Date(article.created_at).toLocaleDateString(currentLocale)
-                          }</span>
-                        </p>
-                      </CardHeader>
-                      <CardContent className="flex-grow px-6 pb-4">
+                            <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const editionUrl = `${window.location.origin}/${currentLocale}/sunday-edition/${edition.id}`;
+                              const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(editionUrl)}`;
+                              window.open(facebookUrl, '_blank');
+                            }}
+                          >
+                            <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
+                          </Button>
+                        </div>
+                      </Card>
+                    </a>
+                  );
+                } else {
+                  const article = item as Article; // Cast to Article
+                  const displayTitle = getTranslatedText(article, 'title', currentLocale);
+                  const displaySummary = getTranslatedText(article, 'summary', currentLocale);
+                  const displayTopics = getTranslatedTopics(article, currentLocale);
+
+                  return (
+                    <a
+                      href={`/${currentLocale}/article/${article.id}`}
+                      key={article.id}
+                      className="block"
+                      onClick={() => {
+                        const articleIds = articles.map(a => a.id); // Use 'articles' directly
+                        localStorage.setItem('articleList', JSON.stringify(articleIds));
+                      }}
+                    >
+                      <Card className="flex flex-col h-full">
+                        {article.thumbnail_url && (
+                          <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
+                            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-full object-cover" />
+                            {displayTopics && displayTopics.length > 0 && (
+                              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                                <div className="flex flex-wrap gap-1">
+                                  {displayTopics.map(topic => (
+                                    <Badge
+                                      key={topic}
+                                      variant="secondary"
+                                      className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Prevent click from propagating to the parent article link
+                                        e.preventDefault(); // Prevent the default action of the parent <a> tag
+                                        window.location.href = `/${currentLocale}/news/topic/${encodeURIComponent(topic)}`;
+                                      }}
+                                    >
+                                      {topic}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <CardHeader className={article.thumbnail_url ? "px-6 pt-4" : "px-6 pt-4"}>
+                          <CardTitle className="font-serif">
+                            {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <span
+                              className="hover:underline cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(article.source_url, '_blank', 'noopener,noreferrer');
+                              }}
+                            >
+                              {getDomainFromUrl(article.source_url)}
+                            </span>
+                            {article.author && (
+                              <span> | {t.author}: {article.author}</span>
+                            )}
+                            <span> | {t.published}: {
+                              new Date(article.publication_date).getFullYear() === 2001
+                                ? new Date(article.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
+                                : new Date(article.publication_date).toLocaleDateString(currentLocale)
+                            }</span>
+                            <span> | {t.added}: {
+                              new Date(article.created_at).getFullYear() === 2001
+                                ? new Date(article.created_at).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
+                                : new Date(article.created_at).toLocaleDateString(currentLocale)
+                            }</span>
+                          </p>
+                        </CardHeader>
+                        <CardContent className="flex-grow px-6 pb-4">
                           <p className="text-foreground" dangerouslySetInnerHTML={{ __html: (displaySummary || (currentLocale !== 'en' ? `${article.summary} (${getFallbackMessage(currentLocale)})` : article.summary))?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
-                      </CardContent>
-                      <div className="px-6 pb-2 grid grid-cols-2 gap-2"> {/* Added flex-wrap and adjusted gap */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
-                            const shareText = `Check out this article: ${displayTitle || article.title} - ${articleUrl}`;
-                            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-                            window.open(whatsappUrl, '_blank');
-                          }}
-                        >
-                          <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
-                        </Button>
-                         <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
-                            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
-                            window.open(facebookUrl, '_blank');
-                          }}
-                        >
-                          <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
-                        </Button>
-                      </div>
-                    </Card>
-                  </a>
-                );
+                        </CardContent>
+                        <div className="px-6 pb-2 grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
+                              const shareText = `Check out this article: ${displayTitle || article.title} - ${articleUrl}`;
+                              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                              window.open(whatsappUrl, '_blank');
+                            }}
+                          >
+                            <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const articleUrl = `${window.location.origin}/${currentLocale}/article/${article.id}`;
+                              const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
+                              window.open(facebookUrl, '_blank');
+                            }}
+                          >
+                            <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
+                          </Button>
+                        </div>
+                      </Card>
+                    </a>
+                  );
+                }
               } catch (error) {
-                console.error(`Error rendering article ${article.id}:`, error, article);
+                console.error(`Error rendering item:`, item, error);
                 return null;
               }
             })}

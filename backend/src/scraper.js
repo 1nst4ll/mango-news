@@ -15,6 +15,7 @@ const { v4: uuidv4 } = require('uuid'); // Import uuid for unique filenames
 const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import from configLoader
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
+const { createSundayEdition } = require('./sundayEditionGenerator'); // Import Sunday Edition generator
 
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
@@ -870,6 +871,25 @@ cron.schedule('0 * * * *', () => {
 });
 
 console.log('News scraper scheduled to run.');
+
+// Schedule Sunday Edition generation (every Sunday at 00:00)
+// This schedule will be configurable via application_settings
+cron.schedule('0 0 * * 0', async () => { // Default to every Sunday at midnight
+  console.log('Running scheduled Sunday Edition generation job...');
+  // Fetch the Sunday Edition schedule from application_settings
+  const settingsResult = await pool.query(
+    `SELECT setting_value FROM application_settings WHERE setting_name = 'sunday_edition_frequency'`
+  );
+  const sundayEditionFrequency = settingsResult.rows[0]?.setting_value || '0 0 * * 0'; // Default if not set
+
+  // If the current cron job is not the one from settings, we might need to reschedule.
+  // For simplicity, we'll just run it if this default schedule triggers.
+  // A more robust solution would involve dynamically managing cron jobs.
+  console.log(`Sunday Edition scheduled frequency: ${sundayEditionFrequency}`);
+  await createSundayEdition();
+});
+
+console.log('Sunday Edition generation scheduled to run.');
 
 // Schedule processing of missing AI data (summary, tags, image, and translations) for all active sources every 20 minutes
 cron.schedule('*/20 * * * *', async () => {

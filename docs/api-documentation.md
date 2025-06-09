@@ -759,6 +759,76 @@ Retrieves various database statistics.
     *   `401 Unauthorized`: Invalid or missing authentication token.
     *   `500 Internal Server Error`: General server error.
 
+### Sunday Editions
+
+#### `POST /api/sunday-editions/generate`
+
+Manually triggers the generation of a new Sunday Edition post. This endpoint is protected and requires authentication.
+
+*   **Authentication:** Required.
+*   **Request Body:** None.
+*   **Success Response (`200 OK`):**
+    ```json
+    {
+      "message": "Sunday Edition created successfully.",
+      "id": "number"
+    }
+    ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Invalid or missing authentication token.
+    *   `500 Internal Server Error`: General server error, or an error occurred during generation (e.g., no articles found, AI summary/narration failed).
+
+#### `GET /api/sunday-editions`
+
+Retrieves a list of all Sunday Edition posts, with pagination.
+
+*   **Authentication:** None required.
+*   **Query Parameters:**
+    *   `page` (number, optional): The page number to retrieve (default: `1`).
+    *   `limit` (number, optional): The number of editions per page (default: `15`).
+*   **Success Response (`200 OK`):**
+    *   **Headers:**
+        *   `X-Total-Count`: Total number of Sunday Editions matching the criteria (string).
+    *   **Body:**
+        ```json
+        [
+          {
+            "id": "number",
+            "title": "string",
+            "summary": "string",
+            "narration_url": "string",
+            "image_url": "string",
+            "publication_date": "string",
+            "created_at": "string"
+          }
+        ]
+        ```
+*   **Error Responses:**
+    *   `500 Internal Server Error`: General server error.
+
+#### `GET /api/sunday-editions/:id`
+
+Retrieves details for a single Sunday Edition post by its ID.
+
+*   **Authentication:** None required.
+*   **Path Parameters:**
+    *   `id` (number, required): The ID of the Sunday Edition.
+*   **Success Response (`200 OK`):**
+    ```json
+    {
+      "id": "number",
+      "title": "string",
+      "summary": "string",
+      "narration_url": "string",
+      "image_url": "string",
+      "publication_date": "string",
+      "created_at": "string"
+    }
+    ```
+*   **Error Responses:**
+    *   `404 Not Found`: Sunday Edition with the specified ID not found.
+    *   `500 Internal Server Error`: General server error.
+
 ### RSS Feed
 
 #### `GET /api/rss`
