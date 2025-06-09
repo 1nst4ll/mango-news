@@ -180,9 +180,15 @@ async function generateNarration(summary) {
             responseType: 'arraybuffer' // To handle binary audio data
         });
 
+        console.log(`[INFO] Unreal Speech API response status: ${response.status}`);
+        console.log(`[INFO] Unreal Speech API response data length: ${response.data ? response.data.length : 0} bytes`);
+        console.log(`[INFO] Unreal Speech API response headers: ${JSON.stringify(response.headers)}`);
+
         const audioBuffer = Buffer.from(response.data);
         const filename = `sunday-edition-${uuidv4()}.mp3`;
-        const s3Url = await uploadToS3(audioBuffer, 'sunday-editions/audio', filename, 'audio/mpeg');
+        const contentType = 'audio/mpeg'; // Explicitly define content type
+        const s3Url = await uploadToS3(audioBuffer, 'sunday-editions/audio', filename, contentType);
+        console.log(`[INFO] Uploading to S3 with Content-Type: ${contentType}`);
         return s3Url;
 
     } catch (error) {
