@@ -1381,4 +1381,13 @@ app.listen(port, () => {
 // updateNewslineSource();
 // runScraperForSource(5);
 
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error(`[ERROR] ${new Date().toISOString()} - Unhandled error:`, err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
+});
+
 module.exports = { pool };
