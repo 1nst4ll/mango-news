@@ -180,27 +180,29 @@ async function generateNarration(summary) {
                 'Authorization': `Bearer ${UNREAL_SPEECH_API_KEY}`,
                 'Content-Type': 'application/json'
             },
-            responseType: 'arraybuffer' // To handle binary audio data
+            responseType: 'json' // Expect JSON response from Unreal Speech API
         });
 
         console.log(`[INFO] Unreal Speech API response status: ${response.status}`);
-        console.log(`[INFO] Unreal Speech API response data length: ${response.data ? response.data.length : 0} bytes`);
+        console.log(`[INFO] Unreal Speech API response data: ${JSON.stringify(response.data)}`);
         console.log(`[INFO] Unreal Speech API response headers: ${JSON.stringify(response.headers)}`);
 
-        const contentTypeHeader = response.headers['content-type'];
-        if (!contentTypeHeader || !contentTypeHeader.startsWith('audio/')) {
-            let errorDetails = 'Unknown error';
-            try {
-                // Attempt to parse as JSON if it's not an audio content type
-                errorDetails = JSON.parse(response.data.toString('utf8'));
-            } catch (e) {
-                errorDetails = response.data.toString('utf8'); // Fallback to raw text
-            }
-            console.error(`[ERROR] Unreal Speech API returned non-audio content type: ${contentTypeHeader}. Details: ${JSON.stringify(errorDetails)}`);
+        const unrealSpeechOutputUri = response.data.OutputUri;
+        if (!unrealSpeechOutputUri) {
+            console.error(`[ERROR] Unreal Speech API response did not contain OutputUri. Details: ${JSON.stringify(response.data)}`);
             return null;
         }
 
-        const audioBuffer = Buffer.from(response.data);
+        console.log(`[INFO] Downloading audio from Unreal Speech OutputUri: ${unrealSpeechOutputUri}`);
+        const audioResponse = await axios.get(unrealSpeechOutputUri, {
+            responseType: 'arraybuffer' // Expect binary audio data from this URL
+        });
+
+        console.log(`[INFO] Downloaded audio response status: ${audioResponse.status}`);
+        console.log(`[INFO] Downloaded audio response data length: ${audioResponse.data ? audioResponse.data.length : 0} bytes`);
+        console.log(`[INFO] Downloaded audio response headers: ${JSON.stringify(audioResponse.headers)}`);
+
+        const audioBuffer = Buffer.from(audioResponse.data);
         const filename = `sunday-edition-${uuidv4()}.mp3`;
         const contentType = 'audio/mpeg'; // Explicitly define content type
         const s3Url = await uploadToS3(audioBuffer, 'sunday-editions/audio', filename, contentType);
@@ -209,7 +211,7 @@ async function generateNarration(summary) {
 
     } catch (error) {
         const errorMessage = error.response ? (error.response.data ? JSON.stringify(error.response.data.toString('utf8')) : `Status: ${error.response.status}`) : error.message;
-        console.error(`[ERROR] Error generating narration with Unreal Speech: ${errorMessage}`);
+        console.error(`[ERROR] Error generating narration or downloading audio from Unreal Speech: ${errorMessage}`);
         return null;
     }
 }
