@@ -113,7 +113,7 @@ async function generateSundayEditionSummary(articles) {
             ],
             model: "llama3-8b-8192", // Using a suitable Groq model
             temperature: 0.7,
-            max_tokens: 725, // Max tokens for ~2900 characters (1 token ~ 4 characters)
+            max_tokens: 700, // Slightly reduced max tokens to encourage shorter summaries
         });
         return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
     } catch (error) {
@@ -147,9 +147,15 @@ async function generateNarration(summary) {
         return null;
     }
 
+    // Truncate summary to ensure it does not exceed Unreal Speech API's 3000 character limit
+    const truncatedSummary = summary.length > 2999 ? summary.substring(0, 2999) : summary;
+    if (summary.length > 2999) {
+        console.warn(`[WARNING] Truncating summary for Unreal Speech API from ${summary.length} to ${truncatedSummary.length} characters.`);
+    }
+
     try {
         const response = await axios.post(UNREAL_SPEECH_API_URL, {
-            Text: summary,
+            Text: truncatedSummary, // Use truncated summary
             VoiceId: "Daniel", // As requested
             Bitrate: "192k",
             Speed: 0,
