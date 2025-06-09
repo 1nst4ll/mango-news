@@ -392,7 +392,6 @@ function NewsFeed({
                         </CardHeader>
                         <CardContent className="flex-grow px-6 pb-4">
                           <p className="text-foreground mb-2">{sundayEditionInfo}</p>
-                          <p className="text-foreground" dangerouslySetInnerHTML={{ __html: edition.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                           {edition.narration_url && (
                             <div className="mt-4">
                               <AudioPlayer src={edition.narration_url} />
