@@ -89,10 +89,10 @@ async function generateSundayEditionSummary(articles) {
 
     const prompt = `
         You are a CNN news anchor. Your task is to summarize the following news articles from the past week into a cohesive, engaging, and informative news report.
-        The summary should be up to 2900 characters long. Focus on the most important and interesting developments.
+        The summary must be a maximum of 2900 characters long and finish with a complete sentence. Focus on the most important and interesting developments.
         Maintain a professional, objective, and authoritative tone, similar to a CNN news anchor.
         Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
-        Just provide the news report.
+        Just provide the news report. Start with: "This is brought to you by mango.tc - everything TCI."
 
         Weekly Articles (summaries or truncated content):
         ${articleContents}
@@ -111,9 +111,9 @@ async function generateSundayEditionSummary(articles) {
                     content: prompt
                 }
             ],
-            model: "llama3-8b-8192", // Using a suitable Groq model
+            model: "meta-llama/llama-4-scout-17b-16e-instruct", // Using a more capable Groq model for better summary generation
             temperature: 0.7,
-            max_tokens: 700, // Slightly reduced max tokens to encourage shorter summaries
+            max_tokens: 750, // Adjusted to allow for summaries up to ~2900 characters
         });
         return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
     } catch (error) {
