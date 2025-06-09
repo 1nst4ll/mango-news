@@ -1,6 +1,6 @@
 import React from 'react';
 import { marked } from 'marked';
-import { MusicCard } from './ui/MusicCard'; // Import the new MusicCard component
+import AudioPlayer from './ui/AudioPlayer'; // Assuming AudioPlayer is in ui folder
 
 interface SundayEdition {
   id: number;
@@ -32,13 +32,7 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
           </p>
           {edition.narration_url && (
             <div className="mb-6">
-              <MusicCard
-                src={edition.narration_url}
-                poster={edition.image_url || '/logo.png'} // Use edition image or a default logo
-                title={edition.title}
-                artist="Mango News" // Generic artist name
-                mainColor="#eab308" // Example color, can be dynamic
-              />
+              <AudioPlayer src={edition.narration_url} />
             </div>
           )}
           <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: displaySummary }}></div>

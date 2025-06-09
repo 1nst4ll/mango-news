@@ -22,13 +22,10 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
-    optimizeDeps: {
-      include: ['howler'], // Explicitly include howler for optimization
-    },
+    // Removed optimizeDeps and external as howler is no longer used
     build: {
       rollupOptions: {
-        // Ensure howler is NOT externalized if it needs to be bundled
-        // external: ['framer-motion'], // framer-motion is removed, so this line is no longer needed
+        // No external modules needed now
       },
     },
   },
