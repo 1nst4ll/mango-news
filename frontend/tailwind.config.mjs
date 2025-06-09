@@ -17,6 +17,11 @@ export default {
           },
         },
       }),
+      colors: {
+        accent: {
+          DEFAULT: '#FF7F50', // Custom accent color
+        },
+      },
     },
   },
   plugins: [
