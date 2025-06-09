@@ -380,6 +380,7 @@ const SettingsPage: React.FC = () => {
       const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        'Accept': 'application/json', // Explicitly request JSON response
       };
       if (jwtToken) {
         headers['Authorization'] = `Bearer ${jwtToken}`;
@@ -388,6 +389,8 @@ const SettingsPage: React.FC = () => {
       const response = await fetch(`${apiUrl}/api/sunday-edition/generate`, {
         method: 'POST',
         headers: headers,
+        // Ensure an empty body is sent if no data is required, to explicitly set Content-Type
+        body: JSON.stringify({}), 
       });
       const data = await response.json();
       if (!response.ok) {

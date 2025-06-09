@@ -209,10 +209,16 @@ async function createSundayEdition() {
     }
 }
 
-module.exports = {
-    createSundayEdition,
-    fetchWeeklyArticles,
-    generateSundayEditionSummary,
-    generateNarration,
-    uploadAudioToS3
-};
+try {
+    module.exports = {
+        createSundayEdition,
+        fetchWeeklyArticles,
+        generateSundayEditionSummary,
+        generateNarration,
+        uploadAudioToS3
+    };
+} catch (error) {
+    console.error(`[CRITICAL ERROR] Synchronous error during sundayEditionGenerator module export: ${error.message}`, error);
+    // Depending on the severity, you might want to re-throw or handle differently
+    // For now, just logging to ensure it's caught.
+}
