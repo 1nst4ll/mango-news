@@ -76,7 +76,7 @@ async function generateSundayEditionSummary(articles) {
             model: "llama3-8b-8192", // Using a suitable Groq model
             messages: [{ role: "user", content: prompt }],
             temperature: 0.7,
-            max_tokens: 2900, // Max tokens for 2900 characters
+            max_tokens: 725, // Max tokens for ~2900 characters (1 token ~ 4 characters)
         }, {
             headers: {
                 'Authorization': `Bearer ${GROQ_API_KEY}`,
@@ -96,8 +96,7 @@ async function uploadAudioToS3(audioBuffer, filename) {
         Bucket: process.env.S3_BUCKET_NAME,
         Key: `sunday-editions/audio/${filename}`,
         Body: audioBuffer,
-        ContentType: 'audio/mpeg', // Assuming MP3 format from Unreal Speech
-        ACL: 'public-read' // Make the file publicly accessible
+        ContentType: 'audio/mpeg' // Assuming MP3 format from Unreal Speech
     };
 
     try {
