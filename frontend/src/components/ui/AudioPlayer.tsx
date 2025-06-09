@@ -68,7 +68,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
       <audio ref={audioRef} src={src} preload="metadata" />
       <button
         onClick={playPause}
-        className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+        className="p-2 rounded-full bg-accent text-white hover:bg-accent-darker focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
       >
         {isPlaying ? (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,7 +91,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
           onChange={handleSeek}
           className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
           style={{
-            background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(currentTime / duration) * 100}%, #D1D5DB ${(currentTime / duration) * 100}%, #D1D5DB 100%)`
+            background: `linear-gradient(to right, #FF7F50 0%, #FF7F50 ${(currentTime / duration) * 100}%, #D1D5DB ${(currentTime / duration) * 100}%, #D1D5DB 100%)`
           }}
         />
         <span className="text-sm text-gray-600 dark:text-gray-300">{formatTime(duration)}</span>

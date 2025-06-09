@@ -369,7 +369,7 @@ function NewsFeed({
                       key={`sunday-${edition.id}`}
                       className="block"
                     >
-                      <Card className="flex flex-col h-full border-2 border-blue-500">
+                      <Card className="flex flex-col h-full border-2 border-accent">
                         {edition.image_url && (
                           <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
                             <img src={edition.image_url} alt={edition.title} className="w-full h-full object-cover" />
