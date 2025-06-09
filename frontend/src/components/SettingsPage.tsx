@@ -899,26 +899,18 @@ const SettingsPage: React.FC = () => {
                 </div>
               </li>
               <li>
-                <Button
-                  onClick={handlePurgeArticles}
-                  disabled={purgeLoading}
-                  variant="destructive"
-                >
-                  {purgeLoading ? 'Purging...' : 'Purge All Articles'}
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableGlobalAiTags"
+                    checked={enableGlobalAiTags}
+                    onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)}
+                  />
+                  <Label htmlFor="enableGlobalAiTags">
+                    For next manual scrape: Generate AI Tags
+                  </Label>
+                </div>
               </li>
               <li>
-                <Button
-                  onClick={handleGenerateSundayEdition}
-                  disabled={sundayEditionLoading}
-                >
-                  {sundayEditionLoading ? 'Generating...' : 'Generate Sunday Edition'}
-                </Button>
-              </li>
-            </ul>
-          </div>
-                </li>
-                <li>
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="enableGlobalAiImage"
@@ -939,10 +931,10 @@ const SettingsPage: React.FC = () => {
                   />
                   <Label htmlFor="enableGlobalAiTranslations">
                     For next manual scrape: Generate AI Translations
-                    </Label>
-                  </div>
-                </li>
-                <li>
+                  </Label>
+                </div>
+              </li>
+              <li>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -968,9 +960,16 @@ const SettingsPage: React.FC = () => {
                   {purgeLoading ? 'Purging...' : 'Purge All Articles'}
                 </Button>
               </li>
+              <li>
+                <Button
+                  onClick={handleGenerateSundayEdition}
+                  disabled={sundayEditionLoading}
+                >
+                  {sundayEditionLoading ? 'Generating...' : 'Generate Sunday Edition'}
+                </Button>
+              </li>
             </ul>
           </div>
-
           </CardContent>
         </Card>
       </TabsContent>
