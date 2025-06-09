@@ -62,9 +62,30 @@ async function fetchWeeklyArticles() {
 }
 
 async function generateSundayEditionSummary(articles) {
-    const articleContents = articles.map(article => {
-        return `Title: ${article.title}\nSummary: ${article.summary || 'No summary available.'}\nContent: ${article.raw_content}\n\n`;
-    }).join('');
+    let articleContents = '';
+    const maxInputLength = 10000; // Max characters to send to Groq for input (adjust based on model context window)
+
+    for (const article of articles) {
+        let contentToAdd = '';
+        if (article.summary && article.summary.length > 50) { // Prefer summary if substantial
+            contentToAdd = `Title: ${article.title}\nSummary: ${article.summary}\n\n`;
+        } else if (article.raw_content) { // Otherwise, use truncated raw content
+            contentToAdd = `Title: ${article.title}\nContent: ${article.raw_content.substring(0, 1000)}...\n\n`; // Truncate raw_content
+        } else {
+            continue; // Skip if no useful content
+        }
+
+        if ((articleContents + contentToAdd).length > maxInputLength) {
+            console.warn(`[WARNING] Exceeded max input length for Groq summary. Truncating article list.`);
+            break; // Stop adding articles if max length is reached
+        }
+        articleContents += contentToAdd;
+    }
+
+    if (articleContents.length === 0) {
+        console.warn('[WARNING] No sufficient article content to generate Sunday Edition summary.');
+        return "No sufficient article content.";
+    }
 
     const prompt = `
         You are a CNN news anchor. Your task is to summarize the following news articles from the past week into a cohesive, engaging, and informative news report.
@@ -73,7 +94,7 @@ async function generateSundayEditionSummary(articles) {
         Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
         Just provide the news report.
 
-        Weekly Articles:
+        Weekly Articles (summaries or truncated content):
         ${articleContents}
     `;
 
