@@ -6,10 +6,25 @@ import { marked } from 'marked';
 export const prerender = true;
 
 export async function getStaticPaths() {
-  // In a real application, you would fetch Sunday Edition IDs from your backend
-  // For now, we'll return an empty array or a placeholder if needed for build.
-  // The page will fetch data dynamically on the client side.
-  return [];
+  const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+  let sundayEditions = [];
+  try {
+    const response = await fetch(`${apiUrl}/api/sunday-editions`);
+    if (response.ok) {
+      const data = await response.json();
+      sundayEditions = data.data; // Assuming the API returns { data: [...], total: ... }
+    }
+  } catch (error) {
+    console.error('Error fetching Sunday Editions for static paths:', error);
+  }
+
+  const languages = ['en', 'es', 'ht']; // Define supported languages
+
+  return sundayEditions.flatMap(edition => {
+    return languages.map(lang => ({
+      params: { lang, id: edition.id.toString() },
+    }));
+  });
 }
 
 const { lang, id } = Astro.params;
