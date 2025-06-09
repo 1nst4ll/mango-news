@@ -25,6 +25,11 @@ export default defineConfig({
     optimizeDeps: {
       include: ['framer-motion'],
     },
+    build: {
+      rollupOptions: {
+        external: ['framer-motion'],
+      },
+    },
   },
 
   adapter: node({
