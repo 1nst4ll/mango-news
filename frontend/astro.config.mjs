@@ -22,8 +22,15 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
-    // Removed optimizeDeps and external as framer-motion is no longer used
-    // and howler is a direct dependency.
+    optimizeDeps: {
+      include: ['howler'], // Explicitly include howler for optimization
+    },
+    build: {
+      rollupOptions: {
+        // Ensure howler is NOT externalized if it needs to be bundled
+        // external: ['framer-motion'], // framer-motion is removed, so this line is no longer needed
+      },
+    },
   },
 
   adapter: node({
