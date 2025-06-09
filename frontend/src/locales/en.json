@@ -57,5 +57,6 @@
   "loading_related_articles": "Loading related articles...",
   "error_loading_related_articles": "Error loading related articles.",
   "related_articles": "Related Articles",
-  "sunday_edition": "Sunday Edition"
+  "sunday_edition": "Sunday Edition",
+  "sunday_edition_summary_for_week": "Weekly summary of news from"
 }

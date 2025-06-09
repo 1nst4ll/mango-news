@@ -57,5 +57,6 @@
   "loading_related_articles": "Cargando artículos relacionados...",
   "error_loading_related_articles": "Error al cargar artículos relacionados.",
   "related_articles": "Artículos Relacionados",
-  "sunday_edition": "Edición Dominical"
+  "sunday_edition": "Edición Dominical",
+  "sunday_edition_summary_for_week": "Resumen semanal de noticias de"
 }

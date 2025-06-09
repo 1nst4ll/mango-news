@@ -348,6 +348,21 @@ function NewsFeed({
               try {
                 if (item.type === 'sundayEdition') {
                   const edition = item as SundayEdition; // Cast to SundayEdition
+
+                  // Calculate the date range for the week
+                  const publicationDate = new Date(edition.publication_date);
+                  const dayOfWeek = publicationDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+                  const startDate = new Date(publicationDate);
+                  startDate.setDate(publicationDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // Go back to previous Monday
+                  const endDate = new Date(startDate);
+                  endDate.setDate(startDate.getDate() + 6); // End on Sunday
+
+                  const formattedStartDate = startDate.toLocaleDateString(currentLocale, { month: 'short', day: 'numeric' });
+                  const formattedEndDate = endDate.toLocaleDateString(currentLocale, { month: 'short', day: 'numeric', year: 'numeric' });
+
+                  const weekPeriodText = `${formattedStartDate} - ${formattedEndDate}`;
+                  const sundayEditionInfo = `${t.sunday_edition_summary_for_week || 'Weekly summary of news from'} ${weekPeriodText}. Source: mango.tc news.`;
+
                   return (
                     <a
                       href={`/${currentLocale}/sunday-edition/${edition.id}`}
@@ -376,9 +391,11 @@ function NewsFeed({
                           </p>
                         </CardHeader>
                         <CardContent className="flex-grow px-6 pb-4">
+                          <p className="text-foreground mb-2">{sundayEditionInfo}</p> {/* New paragraph */}
                           <p className="text-foreground" dangerouslySetInnerHTML={{ __html: edition.summary?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
                           {edition.narration_url && (
                             <div className="mt-4">
+                              {/* AudioPlayer will be replaced by MusicCard */}
                               <AudioPlayer src={edition.narration_url} />
                             </div>
                           )}
