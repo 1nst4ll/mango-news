@@ -165,14 +165,17 @@ async function generateNarration(summary) {
         console.warn(`[WARNING] Truncating summary for Unreal Speech API from ${summary.length} to ${truncatedSummary.length} characters.`);
     }
 
+    const requestBody = {
+        Text: truncatedSummary, // Use truncated summary
+        VoiceId: "Daniel", // As requested
+        Bitrate: "192k",
+        Speed: 0,
+        Pitch: 1,
+    };
+    console.log(`[INFO] Sending to Unreal Speech API: ${JSON.stringify(requestBody)}`);
+
     try {
-        const response = await axios.post(UNREAL_SPEECH_API_URL, {
-            Text: truncatedSummary, // Use truncated summary
-            VoiceId: "Daniel", // As requested
-            Bitrate: "192k",
-            Speed: 0,
-            Pitch: 1,
-        }, {
+        const response = await axios.post(UNREAL_SPEECH_API_URL, requestBody, {
             headers: {
                 'Authorization': `Bearer ${UNREAL_SPEECH_API_KEY}`,
                 'Content-Type': 'application/json'
