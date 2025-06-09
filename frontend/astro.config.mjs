@@ -21,7 +21,10 @@ export default defineConfig({
   output: 'server',
 
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: ['framer-motion'],
+    },
   },
 
   adapter: node({
