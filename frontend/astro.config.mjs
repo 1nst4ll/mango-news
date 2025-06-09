@@ -27,7 +27,7 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        external: ['framer-motion'],
+        external: ['framer-motion', 'howler'],
       },
     },
   },
