@@ -393,7 +393,7 @@ function NewsFeed({
                         <CardContent className="flex-grow px-6 pb-4">
                           <p className="text-foreground mb-2">{sundayEditionInfo}</p>
                           {edition.narration_url && (
-                            <div className="mt-4">
+                            <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                               <AudioPlayer src={edition.narration_url} />
                             </div>
                           )}

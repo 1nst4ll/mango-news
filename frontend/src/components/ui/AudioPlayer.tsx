@@ -64,11 +64,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
   };
 
   return (
-    <div className="flex items-center space-x-4 p-4 bg-gray-100 rounded-lg shadow-md dark:bg-gray-800">
+    <div className="flex items-center space-x-2 sm:space-x-4 p-2 sm:p-4 bg-muted/50 rounded-lg shadow-inner dark:bg-muted/30">
       <audio ref={audioRef} src={src} preload="metadata" />
       <button
         onClick={playPause}
-        className="p-2 rounded-full bg-accent text-white hover:bg-accent-darker focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
+        className="p-2 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50 transition-colors duration-200"
       >
         {isPlaying ? (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
@@ -80,20 +80,20 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
           </svg>
         )}
       </button>
-      <div className="flex-1 flex items-center space-x-2">
-        <span className="text-sm text-gray-600 dark:text-gray-300">{formatTime(currentTime)}</span>
+      <div className="flex-1 flex items-center space-x-1 sm:space-x-2">
+        <span className="text-sm text-muted-foreground font-sans">{formatTime(currentTime)}</span>
         <input
           type="range"
           min="0"
           max={duration}
           value={currentTime}
           onChange={handleSeek}
-          className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+          className="flex-1 h-2 bg-border rounded-lg appearance-none cursor-pointer"
           style={{
-            background: `linear-gradient(to right, #FF7F50 0%, #FF7F50 ${(currentTime / duration) * 100}%, #D1D5DB ${(currentTime / duration) * 100}%, #D1D5DB 100%)`
+            background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / duration) * 100}%, var(--border) ${(currentTime / duration) * 100}%, var(--border) 100%)`
           }}
         />
-        <span className="text-sm text-gray-600 dark:text-gray-300">{formatTime(duration)}</span>
+        <span className="text-sm text-muted-foreground font-sans">{formatTime(duration)}</span>
       </div>
     </div>
   );
