@@ -480,15 +480,15 @@ function NewsFeed({
                             {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground mt-1">
-                            <span
+                            <a
+                              href={article.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="hover:underline cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(article.source_url, '_blank', 'noopener,noreferrer');
-                              }}
+                              onClick={(e) => e.stopPropagation()}
                             >
                               {getDomainFromUrl(article.source_url)}
-                            </span>
+                            </a>
                             {article.author && (
                               <span> | {t.author}: {article.author}</span>
                             )}
