@@ -98,7 +98,7 @@ async function generateSundayEditionSummary(articles) {
 
     const prompt = `
         You are a CNN news anchor. Your task is to summarize the following news articles from the past week into a cohesive, engaging, and informative news report.
-        The summary must be a maximum of 4250 characters long and finish with a complete sentence. Focus on the most important and interesting developments.
+        The summary must be a maximum of 4250 characters long and finish with a complete sentence. It is absolutely critical that the summary is comprehensive, highly detailed, and fully utilizes the entire 4250-character limit to provide an exhaustive report. Elaborate extensively on each important and interesting development, providing as much context and depth as possible.
         Maintain a professional, objective, and authoritative tone, similar to a CNN news anchor.
         Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
         Just provide the news report. Start with: "This is brought to you by mango.tc - everything TCI."
