@@ -43,7 +43,15 @@ try {
 const displaySummary = edition ? marked.parse(edition.summary) : '';
 ---
 
-<BaseLayout title={edition ? edition.title : 'Sunday Edition'} ogImageUrl={edition?.image_url}>
+<BaseLayout
+  title={edition ? edition.title : 'Sunday Edition'}
+  description={edition ? edition.summary || 'Read the Sunday Edition on mango.tc news' : 'Read the Sunday Edition on mango.tc news'}
+  ogImageUrl={edition?.image_url ? (edition.image_url.startsWith('http') ? edition.image_url : `${Astro.url.origin}${edition.image_url.startsWith('/') ? '' : '/'}${edition.image_url}`) : null}
+  ogImageWidth={edition?.image_url ? (edition.image_url.match(/w_(\d+)/) ? parseInt(edition.image_url.match(/w_(\d+)/)[1], 10) : undefined) : undefined}
+  ogImageHeight={edition?.image_url ? (edition.image_url.match(/h_(\d+)/) ? parseInt(edition.image_url.match(/h_(\d+)/)[1], 10) : undefined) : undefined}
+  ogUrl={Astro.url.href}
+  ogType="article"
+>
   {edition ? (
     <SundayEditionDetail edition={edition} lang={lang} client:load />
   ) : (
