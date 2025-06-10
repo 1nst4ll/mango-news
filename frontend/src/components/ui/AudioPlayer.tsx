@@ -68,7 +68,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, onClick }) => {
     <div className="flex items-center space-x-2 sm:space-x-4 p-2 sm:p-4 bg-muted/50 rounded-lg shadow-inner dark:bg-muted/30" onClick={onClick}>
       <audio ref={audioRef} src={src} preload="metadata" />
       <button
-        onClick={playPause}
+        onClick={(e) => { e.stopPropagation(); playPause(); }}
         className="p-2 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50 transition-colors duration-200"
       >
         {isPlaying ? (
@@ -88,7 +88,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, onClick }) => {
           min="0"
           max={duration}
           value={currentTime}
-          onChange={handleSeek}
+          onChange={(e) => { e.stopPropagation(); handleSeek(e); }}
           className="flex-1 h-2 bg-border rounded-lg appearance-none cursor-pointer"
           style={{
             background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / duration) * 100}%, var(--border) ${(currentTime / duration) * 100}%, var(--border) 100%)`

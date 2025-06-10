@@ -394,7 +394,7 @@ function NewsFeed({
                           <p className="text-foreground mb-2">{sundayEditionInfo}</p>
                           {edition.narration_url && (
                             <div className="mt-4">
-                              <AudioPlayer src={edition.narration_url} onClick={(e) => e.stopPropagation()} />
+                              <AudioPlayer src={edition.narration_url} onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} />
                             </div>
                           )}
                         </CardContent>
