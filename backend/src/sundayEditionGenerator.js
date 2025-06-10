@@ -63,8 +63,8 @@ async function fetchWeeklyArticles() {
 
 async function generateSundayEditionSummary(articles) {
     let articleContents = '';
-    const maxInputLength = 25000; // Max characters to send to Groq for input (closer to 8192 tokens)
-    const maxArticlesToSummarize = 10; // Further limit the number of articles to process
+    const maxInputLength = 50000; // Max characters to send to Groq for input (closer to 8192 tokens)
+    const maxArticlesToSummarize = 20; // Further limit the number of articles to process
 
     // Sort articles by publication_date in descending order to prioritize recent articles
     const sortedArticles = [...articles].sort((a, b) => new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime());
@@ -77,13 +77,10 @@ async function generateSundayEditionSummary(articles) {
         }
 
         let contentToAdd = '';
-        if (article.summary && article.summary.length > 50) { // Prefer summary if substantial
+        if (article.summary && article.summary.length > 50) { // Only use summary if substantial
             contentToAdd = `Title: ${article.title}\nSummary: ${article.summary}\n\n`;
-        } else if (article.raw_content) { // Otherwise, use truncated raw content
-            // Truncate raw_content more aggressively if needed
-            contentToAdd = `Title: ${article.title}\nContent: ${article.raw_content.substring(0, Math.min(article.raw_content.length, 500))}...\n\n`;
         } else {
-            continue; // Skip if no useful content
+            continue; // Skip if no substantial summary
         }
 
         if ((articleContents + contentToAdd).length > maxInputLength) {
