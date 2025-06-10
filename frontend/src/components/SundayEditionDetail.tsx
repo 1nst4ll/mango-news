@@ -31,7 +31,7 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
         </h1>
         <div className="text-sm text-gray-600 dark:text-gray-400 mb-6 border-b border-t border-gray-300 dark:border-gray-700 py-2">
           <p className="mb-1">
-            <span className="font-semibold">{t.published}:</span> {new Date(edition.publication_date).toLocaleDateString(lang)}
+            <span className="font-semibold"><a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="hover:underline">Mango.tc News</a> | {t.published}:</span> {new Date(edition.publication_date).toLocaleDateString(lang)}
           </p>
         </div>
         <div className="relative md:float-right md:w-1/2 md:ml-8 mb-6 clear-both">

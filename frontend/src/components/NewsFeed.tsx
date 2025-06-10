@@ -364,7 +364,7 @@ function NewsFeed({
                   const sundayEditionInfo = `${t.sunday_edition_summary_for_week} ${weekPeriodText}.`;
 
                   return (
-                    <Card key={`sunday-${edition.id}`} className="flex flex-col h-full border-2 border-accent">
+                    <Card key={`sunday-${edition.id}`} className="flex flex-col h-full border-2 border-[#FF7F50]">
                       <div
                         className="block cursor-pointer"
                         onClick={() => {
@@ -384,11 +384,11 @@ function NewsFeed({
                             {edition.title}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground mt-1">
-                            <span> | {t.published}: {
+                            <a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="hover:underline">Mango.tc News</a> | {t.published}: {
                               new Date(edition.publication_date).getFullYear() === 2001
                                 ? new Date(edition.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
                                 : new Date(edition.publication_date).toLocaleDateString(currentLocale)
-                            }</span>
+                            }
                           </p>
                         </CardHeader>
                         <CardContent className="flex-grow px-6 pb-4">
