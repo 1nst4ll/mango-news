@@ -63,8 +63,8 @@ async function fetchWeeklyArticles() {
 
 async function generateSundayEditionSummary(articles) {
     let articleContents = '';
-    const maxInputLength = 50000; // Max characters to send to Groq for input (closer to 8192 tokens)
-    const maxArticlesToSummarize = 20; // Further limit the number of articles to process
+    const maxInputLength = 80000; // Increased to allow more input for longer summaries
+    const maxArticlesToSummarize = 30; // Increased to allow more articles for summary
 
     // Sort articles by publication_date in descending order to prioritize recent articles
     const sortedArticles = [...articles].sort((a, b) => new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime());
@@ -112,6 +112,8 @@ async function generateSundayEditionSummary(articles) {
         return "Summary generation failed.";
     }
 
+    console.log('[INFO] Full content sent to Groq for Sunday Edition summary generation:\n', prompt);
+
     try {
         const chatCompletion = await groq.chat.completions.create({
             messages: [
@@ -122,7 +124,7 @@ async function generateSundayEditionSummary(articles) {
             ],
             model: "meta-llama/llama-4-scout-17b-16e-instruct", // Using a more capable Groq model for better summary generation
             temperature: 0.7,
-            max_tokens: 750, // Adjusted to allow for summaries up to ~2900 characters
+            max_tokens: 1000, // Increased to allow for longer summaries up to ~2900 characters
         });
         return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
     } catch (error) {
