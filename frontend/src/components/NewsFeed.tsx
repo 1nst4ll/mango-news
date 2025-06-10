@@ -364,12 +364,13 @@ function NewsFeed({
                   const sundayEditionInfo = `${t.sunday_edition_summary_for_week} ${weekPeriodText}.`;
 
                   return (
-                    <a
-                      href={`/${currentLocale}/sunday-edition/${edition.id}`}
-                      key={`sunday-${edition.id}`}
-                      className="block"
-                    >
-                      <Card className="flex flex-col h-full border-2 border-accent">
+                    <Card key={`sunday-${edition.id}`} className="flex flex-col h-full border-2 border-accent">
+                      <div
+                        className="block cursor-pointer"
+                        onClick={() => {
+                          window.location.href = `/${currentLocale}/sunday-edition/${edition.id}`;
+                        }}
+                      >
                         {edition.image_url && (
                           <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
                             <img src={edition.image_url} alt={edition.title} className="w-full h-full object-cover" />
@@ -392,43 +393,45 @@ function NewsFeed({
                         </CardHeader>
                         <CardContent className="flex-grow px-6 pb-4">
                           <p className="text-foreground mb-2">{sundayEditionInfo}</p>
-                          {edition.narration_url && (
-                            <div className="mt-4">
-                              <AudioPlayer src={edition.narration_url} onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} />
-                            </div>
-                          )}
                         </CardContent>
-                        <div className="px-6 pb-2 grid grid-cols-2 gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const editionUrl = `${window.location.origin}/${currentLocale}/sunday-edition/${edition.id}`;
-                              const shareText = `Listen to the Mango News Sunday Edition: ${edition.title} - ${editionUrl}`;
-                              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-                              window.open(whatsappUrl, '_blank');
-                            }}
-                          >
-                            <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const editionUrl = `${window.location.origin}/${currentLocale}/sunday-edition/${edition.id}`;
-                              const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(editionUrl)}`;
-                              window.open(facebookUrl, '_blank');
-                            }}
-                          >
-                            <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
-                          </Button>
-                        </div>
-                      </Card>
-                    </a>
+                      </div>
+                      {edition.narration_url && (
+                        <CardContent className="px-6 pb-4 pt-0"> {/* Added pt-0 to reduce extra padding */}
+                          <div className="mt-4">
+                            <AudioPlayer src={edition.narration_url} />
+                          </div>
+                        </CardContent>
+                      )}
+                      <div className="px-6 pb-2 grid grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const editionUrl = `${window.location.origin}/${currentLocale}/sunday-edition/${edition.id}`;
+                            const shareText = `Listen to the Mango News Sunday Edition: ${edition.title} - ${editionUrl}`;
+                            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                            window.open(whatsappUrl, '_blank');
+                          }}
+                        >
+                          <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const editionUrl = `${window.location.origin}/${currentLocale}/sunday-edition/${edition.id}`;
+                            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(editionUrl)}`;
+                            window.open(facebookUrl, '_blank');
+                          }}
+                        >
+                          <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
+                        </Button>
+                      </div>
+                    </Card>
                   );
                 } else {
                   const article = item as Article; // Cast to Article
