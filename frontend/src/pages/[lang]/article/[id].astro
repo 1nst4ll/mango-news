@@ -8,12 +8,20 @@ export const prerender = false; // Mark this page for dynamic rendering
 const { id } = Astro.params;
 
 // Fetch article data server-side
-const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL;
-const articleResponse = await fetch(`${backendApiUrl}/articles/${id}`);
-const article = await articleResponse.json();
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+const articleResponse = await fetch(`${apiUrl}/api/articles/${id}`);
+
+let article = null;
+if (articleResponse.ok) {
+  article = await articleResponse.json();
+} else {
+  console.error(`Failed to fetch article with ID ${id}: ${articleResponse.status} ${articleResponse.statusText}`);
+  // Redirect to a 404 page or display an error
+  return Astro.redirect('/404'); // Assuming a /404 page exists
+}
 
 // Construct the page title
-const pageTitle = `${article.title}`;
+const pageTitle = article.title;
 const pageDescription = article.summary || (article.raw_content ? article.raw_content.substring(0, 160) + '...' : 'Read this article on mango.tc news');
 const thumbnailUrl = article.thumbnail_url;
 const ogImageUrl = thumbnailUrl ? (thumbnailUrl.startsWith('http') ? thumbnailUrl : `${Astro.url.origin}${thumbnailUrl.startsWith('/') ? '' : '/'}${thumbnailUrl}`) : null;
