@@ -25,7 +25,7 @@ const pool = new Pool({
 });
 
 const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
-const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/speech';
+const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/synthesisTasks';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const IDEOGRAM_API_KEY = process.env.IDEOGRAM_API_KEY;
 
@@ -98,7 +98,7 @@ async function generateSundayEditionSummary(articles) {
 
     const prompt = `
         You are a CNN news anchor. Your task is to summarize the following news articles from the past week into a cohesive, engaging, and informative news report.
-        The summary must be a maximum of 2900 characters long and finish with a complete sentence. Focus on the most important and interesting developments.
+        The summary must be a maximum of 4250 characters long and finish with a complete sentence. Focus on the most important and interesting developments.
         Maintain a professional, objective, and authoritative tone, similar to a CNN news anchor.
         Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
         Just provide the news report. Start with: "This is brought to you by mango.tc - everything TCI."
@@ -124,7 +124,7 @@ async function generateSundayEditionSummary(articles) {
             ],
             model: "meta-llama/llama-4-scout-17b-16e-instruct", // Using a more capable Groq model for better summary generation
             temperature: 0.7,
-            max_tokens: 1000, // Increased to allow for longer summaries up to ~2900 characters
+            max_tokens: 1200, // Increased to allow for longer summaries up to ~4250 characters
         });
         return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
     } catch (error) {
@@ -158,9 +158,9 @@ async function generateNarration(summary) {
         return null;
     }
 
-    // Truncate summary to ensure it does not exceed Unreal Speech API's 3000 character limit
-    const truncatedSummary = summary.length > 2999 ? summary.substring(0, 2999) : summary;
-    if (summary.length > 2999) {
+    // Truncate summary to ensure it does not exceed Unreal Speech API's 4250 character limit
+    const truncatedSummary = summary.length > 4250 ? summary.substring(0, 4250) : summary;
+    if (summary.length > 4250) {
         console.warn(`[WARNING] Truncating summary for Unreal Speech API from ${summary.length} to ${truncatedSummary.length} characters.`);
     }
 
@@ -178,20 +178,21 @@ async function generateNarration(summary) {
             headers: {
                 'Authorization': `Bearer ${UNREAL_SPEECH_API_KEY}`,
                 'Content-Type': 'application/json'
-            },
-            responseType: 'json' // Expect JSON response from Unreal Speech API
+            }
+            // responseType is not set here, axios defaults to JSON for application/json content type
         });
 
         console.log(`[INFO] Unreal Speech API response status: ${response.status}`);
         console.log(`[INFO] Unreal Speech API response data: ${JSON.stringify(response.data)}`);
         console.log(`[INFO] Unreal Speech API response headers: ${JSON.stringify(response.headers)}`);
 
-        const unrealSpeechOutputUri = response.data.OutputUri;
-        if (!unrealSpeechOutputUri) {
-            console.error(`[ERROR] Unreal Speech API response did not contain OutputUri. Details: ${JSON.stringify(response.data)}`);
+        const synthesisTask = response.data.SynthesisTask;
+        if (!synthesisTask || !synthesisTask.OutputUri) {
+            console.error(`[ERROR] Unreal Speech API response did not contain SynthesisTask or OutputUri. Details: ${JSON.stringify(response.data)}`);
             return null;
         }
 
+        const unrealSpeechOutputUri = synthesisTask.OutputUri;
         console.log(`[INFO] Downloading audio from Unreal Speech OutputUri: ${unrealSpeechOutputUri}`);
         const audioResponse = await axios.get(unrealSpeechOutputUri, {
             responseType: 'arraybuffer' // Expect binary audio data from this URL
