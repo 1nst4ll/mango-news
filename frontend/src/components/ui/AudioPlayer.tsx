@@ -2,9 +2,10 @@ import React, { useRef, useState, useEffect } from 'react';
 
 interface AudioPlayerProps {
   src: string;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, onClick }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -64,7 +65,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
   };
 
   return (
-    <div className="flex items-center space-x-2 sm:space-x-4 p-2 sm:p-4 bg-muted/50 rounded-lg shadow-inner dark:bg-muted/30">
+    <div className="flex items-center space-x-2 sm:space-x-4 p-2 sm:p-4 bg-muted/50 rounded-lg shadow-inner dark:bg-muted/30" onClick={onClick}>
       <audio ref={audioRef} src={src} preload="metadata" />
       <button
         onClick={playPause}
