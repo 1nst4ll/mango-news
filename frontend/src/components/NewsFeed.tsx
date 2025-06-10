@@ -384,7 +384,7 @@ function NewsFeed({
                             {edition.title}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground mt-1">
-                            <a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="hover:underline">Mango.tc News</a> | {t.published}: {
+                            <a href="https://mango.tc" target="_blank" rel="noopener noreferrer" className="hover:underline" onClick={(e) => e.stopPropagation()}>Mango.tc News</a> | {t.published}: {
                               new Date(edition.publication_date).getFullYear() === 2001
                                 ? new Date(edition.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
                                 : new Date(edition.publication_date).toLocaleDateString(currentLocale)
