@@ -20,7 +20,7 @@
     font-weight: 500; /* Slightly bolder */
     line-height: 1.6;
     margin-bottom: 1.5em;
-    /* text-indent: 0; Removed to ensure first paragraph is also indented */
+    text-indent: 0; /* Remove indent for the first paragraph */
   }
 
   /* Drop cap for the first letter of the article */

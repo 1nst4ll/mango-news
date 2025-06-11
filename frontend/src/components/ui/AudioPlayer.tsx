@@ -14,6 +14,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, onClick }) => {
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
+      // Autoplay on component mount
+      audio.play().catch(error => {
+        console.error("Autoplay prevented:", error);
+        // Handle cases where autoplay is blocked (e.g., by browser policies)
+        // You might want to show a play button to the user in such cases
+      });
+
       const setAudioData = () => {
         setDuration(audio.duration);
         setCurrentTime(audio.currentTime);
