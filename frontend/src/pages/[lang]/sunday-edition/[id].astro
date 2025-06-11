@@ -3,30 +3,6 @@ import BaseLayout from '/src/layouts/BaseLayout.astro';
 import SundayEditionDetail from '/src/components/SundayEditionDetail.tsx';
 import { marked } from 'marked';
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-  let sundayEditions = [];
-  try {
-      const response = await fetch(`${apiUrl}/api/sunday-editions`);
-      if (response.ok) {
-        const data = await response.json();
-        sundayEditions = data; // Assuming the API returns the array directly
-      }
-  } catch (error) {
-    console.error('Error fetching Sunday Editions for static paths:', error);
-  }
-
-  const languages = ['en', 'es', 'ht']; // Define supported languages
-
-  return sundayEditions.flatMap(edition => {
-    return languages.map(lang => ({
-      params: { lang, id: edition.id.toString() },
-    }));
-  });
-}
-
 const { lang, id } = Astro.params;
 
 let edition = null;
