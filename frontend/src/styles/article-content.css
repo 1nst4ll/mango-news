@@ -5,7 +5,7 @@
   line-height: 1.8; /* Slightly increased for better readability */
   font-family: 'Lora', serif; /* Use Lora for article body */
   font-size: 1.125rem; /* Slightly larger base font size */
-  text-align: justify; /* Justify text for newspaper feel */
+  text-align: left; /* Align left instead of justify */
   hyphens: auto; /* Enable hyphenation */
   
   /* Adjust paragraph spacing */
@@ -20,7 +20,7 @@
     font-weight: 500; /* Slightly bolder */
     line-height: 1.6;
     margin-bottom: 1.5em;
-    text-indent: 0; /* Remove indent for the first paragraph */
+    /* text-indent: 0; Removed to ensure first paragraph is also indented */
   }
 
   /* Drop cap for the first letter of the article */
@@ -37,12 +37,13 @@
 
   /* Headings within the article content */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', sans-serif; /* Use Inter for headings within the article */
+    font-family: 'Lora', serif; /* Use Lora for headings within the article to match body */
     font-weight: 700; /* Bold weight for headings */
     margin-top: 2em; /* More space above headings */
     margin-bottom: 1em;
     line-height: 1.2;
     color: var(--foreground); /* Ensure headings use foreground color */
+    text-align: left; /* Ensure headings are left-aligned */
   }
 
   h1 { font-size: 2.5em; } /* Slightly larger headings */
@@ -123,14 +124,14 @@
     color: var(--muted-foreground);
   }
 
-  /* Mobile adjustments for justified text */
-  @media (max-width: 768px) {
+  /* Removed mobile adjustments for justified text as default is now left-aligned */
+  /* @media (max-width: 768px) {
     .article-content {
-      text-align: left !important; /* Align left on smaller screens to avoid large gaps */
-      word-wrap: break-word; /* Ensure long words break to prevent overflow */
-      hyphens: auto; /* Keep hyphenation for better flow */
+      text-align: left !important;
+      word-wrap: break-word;
+      hyphens: auto;
     }
-  }
+  } */
 
   /* Dark mode adjustments */
   .dark & {
