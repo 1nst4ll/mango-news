@@ -7,6 +7,7 @@ const cors = require('cors');
 const { Pool } = require('pg'); // Import Pool from pg
 const RSS = require('rss'); // Import RSS
 const { marked } = require('marked'); // Import marked
+const { v4: uuidv4 } = require('uuid'); // For unique filenames
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
@@ -1148,16 +1149,38 @@ app.get('/api/sunday-editions/:id', async (req, res) => {
 // New endpoint for Unreal Speech API callbacks
 app.post('/api/unreal-speech-callback', async (req, res) => {
   const endpoint = '/api/unreal-speech-callback';
-  const { TaskId, TaskStatus, OutputUri } = req.body;
+  const { TaskId, TaskStatus } = req.body; // OutputUri is not in the callback body
 
   console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Received callback for TaskId: ${TaskId}, Status: ${TaskStatus}`);
 
-  if (TaskStatus === 'completed' && OutputUri) {
+  if (TaskStatus === 'completed') { // Only check for completed status here
     try {
+      // Fetch the task details from Unreal Speech API to get the OutputUri
+      const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
+      const UNREAL_SPEECH_API_URL_TASK = `https://api.v8.unrealspeech.com/synthesisTasks/${TaskId}`; // Endpoint to get task details
+
+      if (!UNREAL_SPEECH_API_KEY) {
+        console.error('[ERROR] Unreal Speech API key is missing. Cannot fetch task details.');
+        return res.status(500).json({ error: 'Unreal Speech API key is missing.' });
+      }
+
+      const taskDetailsResponse = await axios.get(UNREAL_SPEECH_API_URL_TASK, {
+        headers: {
+          'Authorization': `Bearer ${UNREAL_SPEECH_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const { SynthesisTask } = taskDetailsResponse.data;
+      const OutputUri = SynthesisTask ? SynthesisTask.OutputUri : null;
+
+      if (!OutputUri) {
+        console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Task ${TaskId} completed but OutputUri not found in task details.`);
+        return res.status(500).json({ error: 'OutputUri not found in task details.' });
+      }
+
       // Import necessary functions from sundayEditionGenerator.js
       const { uploadToS3 } = require('./sundayEditionGenerator');
-      const axios = require('axios');
-      const { v4: uuidv4 } = require('uuid');
 
       console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Task ${TaskId} completed. Downloading audio from: ${OutputUri}`);
 
