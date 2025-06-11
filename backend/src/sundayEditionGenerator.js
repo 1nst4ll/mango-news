@@ -101,7 +101,7 @@ async function generateSundayEditionSummary(articles) {
         The summary must be exactly 4250 characters long, or as close as possible to this maximum, and finish with a complete sentence. It is absolutely critical that the summary is comprehensive, highly detailed, and fully utilizes the entire 4250-character limit to provide an exhaustive report. Elaborate extensively on each important and interesting development, providing as much context and depth as possible, ensuring the output reaches the specified length.
         Maintain a professional, objective, and authoritative tone, similar to a CNN news anchor.
         Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
-        Just provide the news report. Start with: "This is brought to you by mango.tc - everything TCI."
+        Just provide the news report. Start with: "Welcom to this week Sunday Edition. It is brought to you by mango dot tc - your one stop shop foreverything TCI."
 
         Weekly Articles (summaries or truncated content):
         ${articleContents}
