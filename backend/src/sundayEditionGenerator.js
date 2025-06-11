@@ -100,8 +100,9 @@ async function generateSundayEditionSummary(articles) {
         You are a BBC news anchor. Your task is to summarize the following news articles from the past week into a cohesive, engaging, and informative news report.
         The summary must be exactly 4250 characters long, or as close as possible to this maximum, and finish with a complete sentence. It is absolutely critical that the summary is comprehensive, highly detailed, and fully utilizes the entire 4250-character limit to provide an exhaustive report. Elaborate extensively on each important and interesting development, providing as much context and depth as possible, ensuring the output reaches the specified length.
         Maintain a professional, objective, and authoritative tone, similar to a BBC news anchor.
+        Format the summary using Markdown for readability. Use paragraphs for distinct ideas, bullet points for lists, and bold text for emphasis on key phrases or names. Ensure clear sentence and paragraph breaks.
         Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
-        Just provide the news report. Start with: "Welcom to this week Sunday Edition. It is brought to you by mango dot tc. Your one-stop shop for everything TCI!"
+        Just provide the news report. Start with: "Welcome to this week's Sunday Edition. It is brought to you by mango.tc. Your one-stop shop for everything TCI!"
 
         Weekly Articles (summaries or truncated content):
         ${articleContents}
@@ -122,7 +123,7 @@ async function generateSundayEditionSummary(articles) {
                     content: prompt
                 }
             ],
-            model: "meta-llama/llama-4-scout-17b-16e-instruct", // Using a more capable Groq model for better summary generation
+            model: "llama-3.3-70b-versatile", // Using a more capable Groq model for better summary generation
             temperature: 0.7,
             max_tokens: 1200, // Increased to allow for longer summaries up to ~4250 characters
         });
@@ -152,22 +153,58 @@ async function uploadToS3(buffer, folder, filename, contentType) {
     }
 }
 
+// Helper function to strip Markdown from text
+function stripMarkdown(markdownText) {
+    // Remove bold, italics, strikethrough, etc.
+    let plainText = markdownText.replace(/(\*\*|__)(.*?)\1/g, '$2'); // Bold
+    plainText = plainText.replace(/(\*|_)(.*?)\1/g, '$2');   // Italics
+    plainText = plainText.replace(/~~(.*?)~~/g, '$1');       // Strikethrough
+    plainText = plainText.replace(/`([^`]+)`/g, '$1');       // Inline code
+
+    // Remove headers
+    plainText = plainText.replace(/^#+\s*(.*)$/gm, '$1');
+
+    // Remove blockquotes
+    plainText = plainText.replace(/^>\s*(.*)$/gm, '$1');
+
+    // Remove list markers
+    plainText = plainText.replace(/^\s*[-*+]\s+/gm, ''); // Unordered lists
+    plainText = plainText.replace(/^\s*\d+\.\s+/gm, ''); // Ordered lists
+
+    // Remove links (keep only the text)
+    plainText = plainText.replace(/\[(.*?)\]\((.*?)\)/g, '$1');
+
+    // Remove images (keep alt text if present)
+    plainText = plainText.replace(/!\[(.*?)\]\((.*?)\)/g, '$1');
+
+    // Replace multiple newlines with single newlines
+    plainText = plainText.replace(/\n\s*\n/g, '\n\n');
+
+    // Trim whitespace from each line and overall
+    plainText = plainText.split('\n').map(line => line.trim()).join('\n').trim();
+
+    return plainText;
+}
+
 async function generateNarration(summary) {
     if (!UNREAL_SPEECH_API_KEY) {
         console.error('[ERROR] Unreal Speech API key is missing. Cannot generate narration.');
         return null;
     }
 
+    // Strip Markdown for narration
+    const plainTextSummary = stripMarkdown(summary);
+
     // Truncate summary to ensure it does not exceed Unreal Speech API's 4250 character limit
-    const truncatedSummary = summary.length > 4250 ? summary.substring(0, 4250) : summary;
-    if (summary.length > 4250) {
-        console.warn(`[WARNING] Truncating summary for Unreal Speech API from ${summary.length} to ${truncatedSummary.length} characters.`);
+    const truncatedSummary = plainTextSummary.length > 4250 ? plainTextSummary.substring(0, 4250) : plainTextSummary;
+    if (plainTextSummary.length > 4250) {
+        console.warn(`[WARNING] Truncating summary for Unreal Speech API from ${plainTextSummary.length} to ${truncatedSummary.length} characters.`);
     }
 
     const callbackUrl = `${process.env.PUBLIC_API_URL || 'https://mango-news.onrender.com'}/api/unreal-speech-callback`;
 
     const requestBody = {
-        Text: truncatedSummary, // Use truncated summary
+        Text: truncatedSummary, // Use truncated and plain text summary
         VoiceId: "Charlotte", // As requested
         Bitrate: "192k",
         Speed: 0,
@@ -246,7 +283,7 @@ const generateAITranslation = async (text, targetLanguageCode, type = 'general')
                     content: text,
                 }
             ],
-            model: "llama3-8b-8192", // Using a suitable Groq model for text generation
+            model: "llama-3.3-70b-versatile", // Using a suitable Groq model for text generation
             temperature: 0.3, // Keep temperature low for accurate translation
             max_tokens: currentMaxTokens, // Dynamically set max tokens
         });
@@ -281,14 +318,14 @@ const generateAIImage = async (title, summary) => {
             messages: [
                 {
                     role: "system",
-                    content: `Combine the following image generation instructions with the provided article summary to create a single, optimized prompt for an image generation AI. The optimized prompt should be concise, descriptive, and adhere to the instructions while incorporating key elements from the summary. Return only the optimized prompt string, no other text.`
+                    content: `Combine the following image generation instructions with the provided article summary to create a single, optimized prompt for an image generation AI. The optimized prompt should be concise, descriptive, and adhere to the instructions while incorporating key elements from the summary. Extract up to 5 most relevant keywords from the summary to include in the prompt. Return only the optimized prompt string, no other text.`
                 },
                 {
                     role: "user",
                     content: `Instructions: ${imagePromptInstructions}\nSummary: ${summary}`
                 }
             ],
-            model: "llama3-8b-8192", // Using a suitable Groq model for text generation
+            model: "llama-3.3-70b-versatile", // Using a suitable Groq model for text generation
             temperature: 0.7,
             max_tokens: 200,
         });
@@ -303,12 +340,14 @@ const generateAIImage = async (title, summary) => {
         formData.append('aspect_ratio', '16x9');
         formData.append('magic_prompt', 'OFF');
         formData.append('style_type', 'REALISTIC');
+        formData.append('negative_prompt', 'text, words, blurry, distorted, ugly, deformed, disfigured, low quality, bad anatomy, bad hands, missing fingers, extra fingers, fewer fingers, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, artist name, error, out of frame, duplicate, tiling, cartoon, anime, sketch, painting, drawing, illustration, 3D render, digital art, abstract, monochrome, grayscale, oversaturated, underexposed, overexposed, too dark, too bright, too colorful, too dull, too much contrast, too little contrast, too much detail, too little detail, messy, cluttered, noisy, grainy, pixelated, blurry background, distorted background, ugly background, deformed background, disfigured background, low quality background, bad anatomy background, bad hands background, missing fingers background, extra fingers background, fewer fingers background, cropped background, worst quality background, low quality background, normal quality background, jpeg artifacts background, signature background, watermark background, username background, artist name background, error background, out of frame background, duplicate background, tiling background, cartoon background, anime background, sketch background, painting background, drawing background, illustration background, 3D render background, digital art background, abstract background, monochrome background, grayscale background, oversaturated background, underexposed background, overexposed background, too dark background, too bright background, too colorful background, too dull background, too much contrast background, too little contrast background, too much detail background, too little detail background, messy background, cluttered background, noisy background, grainy background, pixelated background'); // Added negative prompts
         console.log('Ideogram API request parameters:', {
             prompt: optimizedPrompt,
             rendering_speed: 'TURBO',
             aspect_ratio: '16x9',
             magic_prompt: 'OFF',
-            style_type: 'REALISTIC'
+            style_type: 'REALISTIC',
+            negative_prompt: 'text, words, blurry, distorted, ugly, deformed, disfigured, low quality, bad anatomy, bad hands, missing fingers, extra fingers, fewer fingers, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, artist name, error, out of frame, duplicate, tiling, cartoon, anime, sketch, painting, drawing, illustration, 3D render, digital art, abstract, monochrome, grayscale, oversaturated, underexposed, overexposed, too dark, too bright, too colorful, too dull, too much contrast, too little contrast, too much detail, too little detail, messy, cluttered, noisy, grainy, pixelated, blurry background, distorted background, ugly background, deformed background, disfigured background, low quality background, bad anatomy background, bad hands background, missing fingers background, extra fingers background, fewer fingers background, cropped background, worst quality background, low quality background, normal quality background, jpeg artifacts background, signature background, watermark background, username background, artist name background, error background, out of frame background, duplicate background, tiling background, cartoon background, anime background, sketch background, painting background, drawing background, illustration background, 3D render background, digital art background, abstract background, monochrome background, grayscale background, oversaturated background, underexposed background, overexposed background, too dark background, too bright background, too colorful background, too dull background, too much contrast background, too little contrast background, too much detail background, too little detail background, messy background, cluttered background, noisy background, grainy background, pixelated background'
         });
 
         const headers = formData.getHeaders();
