@@ -4,6 +4,7 @@ require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const axios = require('axios'); // Import axios
 const { Pool } = require('pg'); // Import Pool from pg
 const RSS = require('rss'); // Import RSS
 const { marked } = require('marked'); // Import marked
