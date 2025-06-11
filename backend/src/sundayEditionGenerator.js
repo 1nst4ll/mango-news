@@ -164,12 +164,15 @@ async function generateNarration(summary) {
         console.warn(`[WARNING] Truncating summary for Unreal Speech API from ${summary.length} to ${truncatedSummary.length} characters.`);
     }
 
+    const callbackUrl = `${process.env.PUBLIC_API_URL || 'https://mango-news.onrender.com'}/api/unreal-speech-callback`;
+
     const requestBody = {
         Text: truncatedSummary, // Use truncated summary
         VoiceId: "Daniel", // As requested
         Bitrate: "192k",
         Speed: 0,
         Pitch: 1,
+        CallbackUrl: callbackUrl, // Add callback URL
     };
     console.log(`[INFO] Sending to Unreal Speech API: ${JSON.stringify(requestBody)}`);
 
@@ -179,7 +182,6 @@ async function generateNarration(summary) {
                 'Authorization': `Bearer ${UNREAL_SPEECH_API_KEY}`,
                 'Content-Type': 'application/json'
             }
-            // responseType is not set here, axios defaults to JSON for application/json content type
         });
 
         console.log(`[INFO] Unreal Speech API response status: ${response.status}`);
@@ -187,27 +189,13 @@ async function generateNarration(summary) {
         console.log(`[INFO] Unreal Speech API response headers: ${JSON.stringify(response.headers)}`);
 
         const synthesisTask = response.data.SynthesisTask;
-        if (!synthesisTask || !synthesisTask.OutputUri) {
-            console.error(`[ERROR] Unreal Speech API response did not contain SynthesisTask or OutputUri. Details: ${JSON.stringify(response.data)}`);
+        if (!synthesisTask || !synthesisTask.TaskId) {
+            console.error(`[ERROR] Unreal Speech API response did not contain SynthesisTask or TaskId. Details: ${JSON.stringify(response.data)}`);
             return null;
         }
 
-        const unrealSpeechOutputUri = synthesisTask.OutputUri;
-        console.log(`[INFO] Downloading audio from Unreal Speech OutputUri: ${unrealSpeechOutputUri}`);
-        const audioResponse = await axios.get(unrealSpeechOutputUri, {
-            responseType: 'arraybuffer' // Expect binary audio data from this URL
-        });
-
-        console.log(`[INFO] Downloaded audio response status: ${audioResponse.status}`);
-        console.log(`[INFO] Downloaded audio response data length: ${audioResponse.data ? audioResponse.data.length : 0} bytes`);
-        console.log(`[INFO] Downloaded audio response headers: ${JSON.stringify(audioResponse.headers)}`);
-
-        const audioBuffer = Buffer.from(audioResponse.data);
-        const filename = `sunday-edition-${uuidv4()}.mp3`;
-        const contentType = 'audio/mpeg'; // Explicitly define content type
-        const s3Url = await uploadToS3(audioBuffer, 'sunday-editions/audio', filename, contentType);
-        console.log(`[INFO] Uploading to S3 with Content-Type: ${contentType}`);
-        return s3Url;
+        // Return the TaskId. The actual audio URL will be handled by the callback.
+        return synthesisTask.TaskId;
 
     } catch (error) {
         const errorMessage = error.response ? (error.response.data ? JSON.stringify(error.response.data.toString('utf8')) : `Status: ${error.response.status}`) : error.message;
@@ -396,13 +384,13 @@ async function createSundayEdition() {
         }
 
         console.log('[INFO] Attempting to generate narration...');
-        const narrationUrl = await generateNarration(summary);
-        if (!narrationUrl) {
-            console.error('Failed to generate narration (narrationUrl is null). Aborting Sunday Edition generation.');
+        const unrealSpeechTaskId = await generateNarration(summary);
+        if (!unrealSpeechTaskId) {
+            console.error('Failed to initiate narration generation with Unreal Speech. Aborting Sunday Edition generation.');
             await client.query('ROLLBACK');
-            return { success: false, message: 'Failed to generate narration.' };
+            return { success: false, message: 'Failed to initiate narration generation.' };
         }
-        console.log(`[INFO] Narration generated successfully: ${narrationUrl}`);
+        console.log(`[INFO] Narration generation initiated with TaskId: ${unrealSpeechTaskId}`);
 
         const title = `Mango News Sunday Edition - ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
 
@@ -433,21 +421,21 @@ async function createSundayEdition() {
             console.log(`Sunday Edition for today already exists (ID: ${editionId}). Updating.`);
             const updateQuery = `
                 UPDATE sunday_editions
-                SET title = $1, summary = $2, narration_url = $3, image_url = $4, updated_at = CURRENT_TIMESTAMP
+                SET title = $1, summary = $2, narration_url = NULL, image_url = $3, unreal_speech_task_id = $4, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $5
                 RETURNING id;
             `;
-            const result = await client.query(updateQuery, [title, summary, narrationUrl, imageUrl, editionId]);
+            const result = await client.query(updateQuery, [title, summary, imageUrl, unrealSpeechTaskId, editionId]);
             newEditionId = result.rows[0].id;
         } else {
             // Edition does not exist, insert new one
             console.log('No Sunday Edition for today found. Inserting new one.');
             const insertQuery = `
-                INSERT INTO sunday_editions (title, summary, narration_url, image_url, publication_date)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO sunday_editions (title, summary, narration_url, image_url, publication_date, unreal_speech_task_id)
+                VALUES ($1, $2, NULL, $3, $4, $5)
                 RETURNING id;
             `;
-            const result = await client.query(insertQuery, [title, summary, narrationUrl, imageUrl, today]);
+            const result = await client.query(insertQuery, [title, summary, imageUrl, today, unrealSpeechTaskId]);
             newEditionId = result.rows[0].id;
         }
 

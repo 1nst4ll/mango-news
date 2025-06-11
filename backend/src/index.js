@@ -1145,6 +1145,61 @@ app.get('/api/sunday-editions/:id', async (req, res) => {
   }
 });
 
+// New endpoint for Unreal Speech API callbacks
+app.post('/api/unreal-speech-callback', async (req, res) => {
+  const endpoint = '/api/unreal-speech-callback';
+  const { TaskId, TaskStatus, OutputUri } = req.body;
+
+  console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Received callback for TaskId: ${TaskId}, Status: ${TaskStatus}`);
+
+  if (TaskStatus === 'completed' && OutputUri) {
+    try {
+      // Import necessary functions from sundayEditionGenerator.js
+      const { uploadToS3 } = require('./sundayEditionGenerator');
+      const axios = require('axios');
+      const { v4: uuidv4 } = require('uuid');
+
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Task ${TaskId} completed. Downloading audio from: ${OutputUri}`);
+
+      const audioResponse = await axios.get(OutputUri, {
+        responseType: 'arraybuffer' // Expect binary audio data
+      });
+
+      const audioBuffer = Buffer.from(audioResponse.data);
+      const filename = `sunday-edition-${uuidv4()}.mp3`;
+      const contentType = 'audio/mpeg';
+      const s3Url = await uploadToS3(audioBuffer, 'sunday-editions/audio', filename, contentType);
+
+      if (s3Url) {
+        // Update the sunday_editions table with the S3 URL
+        await pool.query(
+          'UPDATE sunday_editions SET narration_url = $1, updated_at = CURRENT_TIMESTAMP WHERE unreal_speech_task_id = $2',
+          [s3Url, TaskId]
+        );
+        console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Successfully processed and updated narration for TaskId: ${TaskId}`);
+        res.status(200).json({ message: 'Callback processed successfully.' });
+      } else {
+        console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Failed to upload audio to S3 for TaskId: ${TaskId}`);
+        res.status(500).json({ error: 'Failed to upload audio to S3.' });
+      }
+    } catch (error) {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error processing callback for TaskId ${TaskId}:`, error);
+      res.status(500).json({ error: 'Internal Server Error during callback processing.' });
+    }
+  } else if (TaskStatus === 'failed') {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Unreal Speech synthesis task ${TaskId} failed.`);
+    // Optionally update database to mark narration as failed
+    await pool.query(
+      'UPDATE sunday_editions SET narration_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE unreal_speech_task_id = $1',
+      [TaskId]
+    );
+    res.status(200).json({ message: 'Synthesis task failed, database updated.' });
+  } else {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Callback received for TaskId: ${TaskId}, Status: ${TaskStatus}. No action taken.`);
+    res.status(200).json({ message: 'Callback received, no action taken.' });
+  }
+});
+
 // RSS Feed Endpoint
 app.get('/api/rss', async (req, res) => {
   const endpoint = '/api/rss';
