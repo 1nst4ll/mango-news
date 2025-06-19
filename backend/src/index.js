@@ -469,17 +469,6 @@ app.get('/api/articles', async (req, res) => {
   const conditions = [];
   let valueIndex = 1;
 
-  // Build WHERE clause
-  if (topic) {
-    const topicNames = topic.split(',').map(name => name.toLowerCase());
-    conditions.push(`EXISTS (
-      SELECT 1
-      FROM article_topics at_filter
-      JOIN topics t_filter ON at_filter.topic_id = t_filter.id
-      WHERE at_filter.article_id = a.id AND LOWER(t_filter.name) = ANY($${valueIndex++})
-    )`);
-    values.push(topicNames);
-  }
   if (startDate) {
     conditions.push(`a.publication_date >= $${valueIndex++}`);
     values.push(new Date(startDate));
@@ -498,35 +487,39 @@ app.get('/api/articles', async (req, res) => {
     conditions.push(`a.source_id = ANY($${valueIndex++})`);
     values.push(sourceIdsArray);
   }
+  if (topic) {
+    const topicNames = topic.split(',').map(name => name.toLowerCase());
+    conditions.push(`EXISTS (
+      SELECT 1
+      FROM article_topics at_filter
+      JOIN topics t_filter ON at_filter.topic_id = t_filter.id
+      WHERE at_filter.article_id = a.id AND LOWER(t_filter.name) = ANY($${valueIndex++})
+    )`);
+    values.push(topicNames);
+  }
 
   const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-  // Count query
-  const countQuery = `
-    SELECT COUNT(DISTINCT a.id)
-    FROM articles a
-    ${whereClause}
-  `;
+  const countQuery = `SELECT COUNT(DISTINCT a.id) FROM articles a ${whereClause}`;
 
-  // Optimized articles query using a subquery for pagination
   const articlesQuery = `
+    WITH paged_articles AS (
+      SELECT a.id
+      FROM articles a
+      ${whereClause}
+      ORDER BY a.publication_date DESC
+      LIMIT $${valueIndex++} OFFSET $${valueIndex++}
+    )
     SELECT
         a.*,
         ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics,
         ARRAY_REMOVE(ARRAY_AGG(t.name_es), NULL) AS topics_es,
         ARRAY_REMOVE(ARRAY_AGG(t.name_ht), NULL) AS topics_ht
-    FROM (
-        SELECT *
-        FROM articles a
-        ${whereClause}
-        ORDER BY a.publication_date DESC
-        LIMIT $${valueIndex++} OFFSET $${valueIndex++}
-    ) a
-    LEFT JOIN
-        article_topics at ON a.id = at.article_id
-    LEFT JOIN
-        topics t ON at.topic_id = t.id
-    GROUP BY a.id, a.title, a.source_id, a.source_url, a.thumbnail_url, a.ai_image_path, a.author, a.publication_date, a.raw_content, a.summary, a.created_at, a.updated_at, a.is_blocked, a.title_es, a.summary_es, a.raw_content_es, a.title_ht, a.summary_ht, a.raw_content_ht, a.topics_es, a.topics_ht, a.category
+    FROM articles a
+    JOIN paged_articles pa ON a.id = pa.id
+    LEFT JOIN article_topics at ON a.id = at.article_id
+    LEFT JOIN topics t ON at.topic_id = t.id
+    GROUP BY a.id
     ORDER BY a.publication_date DESC;
   `;
 

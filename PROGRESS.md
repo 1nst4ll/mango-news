@@ -21,3 +21,11 @@
     - Added a `key` prop to the `NewsFeed` component in `frontend/src/components/IndexPage.tsx` to ensure it re-mounts with a clean state when filters change.
     - Refactored the `/api/articles` endpoint in `backend/src/index.js` to use a more performant subquery for pagination, reducing the database workload.
 - **Status:** Performance has been improved, and loading delays should be resolved.
+
+---
+- **Task:** Fix 500 Internal Server Error on `/api/articles` endpoint.
+- **Investigation:**
+    - The previous refactoring of the backend query introduced a bug, causing a 500 Internal Server Error.
+- **Resolution:**
+    - Refactored the `/api/articles` endpoint in `backend/src/index.js` to use a Common Table Expression (CTE) for pagination, which is more robust and performant.
+- **Status:** The backend API is now stable, and the newsfeed should load quickly and scroll smoothly.
