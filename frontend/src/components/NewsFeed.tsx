@@ -231,7 +231,7 @@ function NewsFeed({
         observer.unobserve(loadMoreRef);
       }
     };
-  }, []); // Setup observer once on mount
+  }, [hasMore, loading]); // Re-setup observer when hasMore or loading changes
 
   console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
