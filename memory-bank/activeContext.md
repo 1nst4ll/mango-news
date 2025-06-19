@@ -1,38 +1,49 @@
-# Active Context: Infinite Scroll Race Condition
+# Active Context: Infinite Scroll Implementation
 
 **Date:** 2025-06-19
 
 ## 1. Issue Identified
 
-A race condition was discovered in the `NewsFeed.tsx` component's infinite scroll implementation.
+A complex bug in the `NewsFeed.tsx` component's infinite scroll caused both race conditions and runaway fetching. The root cause was an incorrect implementation of the `IntersectionObserver` that was not robust enough for React's render lifecycle.
 
-### Scenario:
-- Initial load (page 1) works correctly.
-- When the user scrolls to trigger the load for page 2, the `loading` state is not set to `true`.
-- Because `loading` remains `false`, the `IntersectionObserver` can be triggered multiple times if the user scrolls, causing the in-progress fetch for page 2 to be aborted and a new fetch for page 3 to begin prematurely.
-- This results in skipped pages and unpredictable loading behavior.
+### Symptoms:
+- Skipped pages due to aborted fetches.
+- Uncontrolled, sequential fetching of all available pages without user interaction.
+- Observer failing to attach to the trigger element after the initial load.
 
 ## 2. Root Cause
 
-The `fetchArticles` async function within the primary data-fetching `useEffect` hook was not setting the `loading` state to `true` before initiating the API call for subsequent pages (pages 2+). The `loading` state was only being set for the initial component mount.
+The initial implementation attempted to manage the `IntersectionObserver` with `useEffect` and direct state dependencies, which led to stale closures and incorrect re-initialization logic. The observer was either firing when it shouldn't have or failing to attach to its target element at the correct time.
 
-## 3. Solution
+## 3. Solution: The Callback Ref Pattern
 
-The fix is to explicitly set the loading state at the beginning of every fetch operation.
+The final, correct solution was to refactor the observer logic to use the idiomatic React **callback ref** pattern.
 
 **File:** `frontend/src/components/NewsFeed.tsx`
 
-**Change:** Add `setLoading(true);` at the start of the `fetchArticles` function.
+**Change:** The `useEffect`-based observer was replaced with a `useCallback` hook that serves as the ref for the trigger element.
 
 ```javascript
-    const fetchArticles = async () => {
-      console.log('[NewsFeed] fetchArticles function invoked.');
-      setLoading(true); // <-- This line was added
-      fetchInProgressRef.current = true; // Set flag when fetch starts
-      try {
-        // ... rest of the fetch logic
+  const observer = useRef<IntersectionObserver>();
+  const loadMoreTriggerRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return; // Prevents re-attaching while a fetch is in progress.
+    if (observer.current) observer.current.disconnect(); // Disconnects the old observer.
+
+    // Creates a new observer with a fresh closure over `hasMore`.
+    observer.current = new IntersectionObserver(entries => {
+      // The check for `!loading` is crucial here to prevent race conditions.
+      if (entries[0].isIntersecting && hasMore && !loading) {
+        setCurrentPage(prevPage => prevPage + 1);
+      }
+    });
+
+    // If the trigger node exists, observe it.
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]); // The callback is re-created only when loading or hasMore changes.
 ```
+
+This pattern ensures the observer is always correctly attached/detached and always has access to the latest `loading` and `hasMore` states, preventing all previously observed bugs.
 
 ## 4. Best Practice Alignment
 
-This change improves the **Robustness** of the component by ensuring predictable and stable state management during asynchronous data fetching, preventing race conditions.
+This solution improves **Robustness** and **Performance** by using a standard, modern React pattern (`useCallback` refs) designed specifically for managing interactions with DOM nodes.
