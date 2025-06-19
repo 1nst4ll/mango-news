@@ -145,6 +145,7 @@ export default function IndexPage() {
         </div>
       </div>
       <NewsFeed
+        key={`${debouncedSearchTerm}-${JSON.stringify(selectedSources)}-all`}
         searchTerm={debouncedSearchTerm}
         selectedSources={selectedSources}
         activeCategory="all"

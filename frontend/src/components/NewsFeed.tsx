@@ -123,7 +123,7 @@ function NewsFeed({
       setTimeout(() => {
         controller.abort(); // Abort the fetch if timeout occurs
         reject(new DOMException('Request timed out.', 'TimeoutError'));
-      }, 10000) // 10 second timeout
+      }, 5000) // 5 second timeout
     );
 
     const fetchArticles = async () => {
