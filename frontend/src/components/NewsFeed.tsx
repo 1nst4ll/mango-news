@@ -216,7 +216,7 @@ function NewsFeed({
           setCurrentPage(prevPage => prevPage + 1);
         }
       },
-      { threshold: 1.0 } // Trigger when the target is fully visible
+      { threshold: 0.1 } // Trigger when the target is 10% visible
     );
 
     const loadMoreRef = document.getElementById('load-more-trigger');
