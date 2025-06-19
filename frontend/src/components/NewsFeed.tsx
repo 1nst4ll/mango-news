@@ -218,7 +218,10 @@ function NewsFeed({
           setCurrentPage(prevPage => prevPage + 1);
         }
       },
-      { threshold: 0.1 } // Trigger when the target is 10% visible
+      {
+        threshold: 0.1, // Trigger when the target is 10% visible
+        rootMargin: '200px' // Start loading 200px before the element is visible
+      }
     );
 
     const loadMoreRef = document.getElementById('load-more-trigger');

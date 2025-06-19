@@ -29,3 +29,12 @@
 - **Resolution:**
     - Refactored the `/api/articles` endpoint in `backend/src/index.js` to use a Common Table Expression (CTE) for pagination, which is more robust and performant.
 - **Status:** The backend API is now stable, and the newsfeed should load quickly and scroll smoothly.
+
+---
+- **Task:** Address delay in triggering infinite scroll.
+- **Investigation:**
+    - The `IntersectionObserver` was not being re-created with the latest `loading` state, causing a delay in fetching new articles.
+- **Resolution:**
+    - Re-added `loading` to the dependency array of the `IntersectionObserver`'s `useEffect` in `frontend/src/components/NewsFeed.tsx`.
+    - Added a `rootMargin` of `200px` to the `IntersectionObserver` to trigger loading earlier for a smoother user experience.
+- **Status:** The infinite scroll now triggers promptly and provides a seamless experience.
