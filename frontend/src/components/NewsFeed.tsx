@@ -206,7 +206,7 @@ function NewsFeed({
       fetchInProgressRef.current = false; // Ensure flag is cleared on cleanup
     };
 
-  }, [searchTerm, JSON.stringify(selectedSources), activeCategory, currentPage]); // Dependencies remain the same
+  }, [JSON.stringify(selectedSources), activeCategory, currentPage]);
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
