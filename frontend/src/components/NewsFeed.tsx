@@ -210,8 +210,10 @@ function NewsFeed({
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
+    console.log('[NewsFeed] Setting up IntersectionObserver.'); // Added log
     const observer = new IntersectionObserver(
       (entries) => {
+        console.log('[NewsFeed] IntersectionObserver callback triggered.', entries[0].isIntersecting, hasMore, loading); // Added log
         if (entries[0].isIntersecting && hasMore && !loading) {
           setCurrentPage(prevPage => prevPage + 1);
         }
@@ -229,7 +231,7 @@ function NewsFeed({
         observer.unobserve(loadMoreRef);
       }
     };
-  }, [hasMore, loading]); // Re-run observer setup if hasMore or loading state changes
+  }, []); // Setup observer once on mount
 
   console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
