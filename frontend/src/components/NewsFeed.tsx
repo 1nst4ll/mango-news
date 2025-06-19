@@ -128,6 +128,7 @@ function NewsFeed({
 
     const fetchArticles = async () => {
       console.log('[NewsFeed] fetchArticles function invoked.');
+      setLoading(true);
       fetchInProgressRef.current = true; // Set flag when fetch starts
       try {
         const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
