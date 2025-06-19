@@ -209,33 +209,48 @@ function NewsFeed({
 
   }, [JSON.stringify(selectedSources), activeCategory, currentPage]);
 
-  // Intersection Observer for infinite scrolling
+  const observer = useRef<IntersectionObserver | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+
+  // Refs to hold the current state for the observer callback to prevent stale closures
+  const loadingRef = useRef(loading);
+  const hasMoreRef = useRef(hasMore);
+
   useEffect(() => {
-    console.log('[NewsFeed] Setting up IntersectionObserver.'); // Added log
-    const observer = new IntersectionObserver(
-      (entries) => {
-        console.log('[NewsFeed] IntersectionObserver callback triggered.', entries[0].isIntersecting, hasMore, loading); // Added log
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          setCurrentPage(prevPage => prevPage + 1);
-        }
-      },
-      {
-        threshold: 0.1, // Trigger when the target is 10% visible
-        rootMargin: '200px' // Start loading 200px before the element is visible
-      }
-    );
+    loadingRef.current = loading;
+    hasMoreRef.current = hasMore;
+  }, [loading, hasMore]);
 
-    const loadMoreRef = document.getElementById('load-more-trigger');
-    if (loadMoreRef) {
-      observer.observe(loadMoreRef);
-    }
+  // Intersection Observer for infinite scrolling, set up only once
+  useEffect(() => {
+    console.log('[NewsFeed] Setting up IntersectionObserver.');
 
-    return () => {
-      if (loadMoreRef) {
-        observer.unobserve(loadMoreRef);
+    const handleObserver = (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0];
+      console.log('[NewsFeed] IntersectionObserver callback triggered.', { isIntersecting: target.isIntersecting, hasMore: hasMoreRef.current, loading: loadingRef.current });
+      if (target.isIntersecting && hasMoreRef.current && !loadingRef.current) {
+        setCurrentPage(prevPage => prevPage + 1);
       }
     };
-  }, [hasMore, loading]); // Re-setup observer when hasMore or loading changes
+
+    // Create the observer
+    observer.current = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+      rootMargin: '200px',
+    });
+
+    // If the trigger element exists, start observing it
+    if (loadMoreTriggerRef.current) {
+      observer.current.observe(loadMoreTriggerRef.current);
+    }
+
+    // Cleanup function to disconnect the observer
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+    };
+  }, []); // Empty dependency array ensures this effect runs only once
 
   console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
@@ -555,7 +570,7 @@ function NewsFeed({
         </div>
       ))}
       {/* Loading indicator or "No More Articles" message */}
-      <div id="load-more-trigger" className="py-4 text-center">
+      <div ref={loadMoreTriggerRef} id="load-more-trigger" className="py-4 text-center">
         {loading && articles.length > 0 && (
           <Alert className="text-center">
             <Loader2 className="h-4 w-4 animate-spin mx-auto" />
