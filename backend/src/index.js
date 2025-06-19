@@ -462,37 +462,14 @@ app.get('/api/topics', async (req, res) => {
 // Get all articles with pagination
 app.get('/api/articles', async (req, res) => {
   const endpoint = '/api/articles';
-  const { topic, startDate, endDate, searchTerm, source_ids, page = 1, limit = 15 } = req.query; // Add page and limit with defaults
+  const { topic, startDate, endDate, searchTerm, source_ids, page = 1, limit = 15 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
-
-  let countQuery = `
-    SELECT COUNT(DISTINCT a.id)
-    FROM articles a
-    LEFT JOIN article_topics at ON a.id = at.article_id
-    LEFT JOIN topics t ON at.topic_id = t.id
-    LEFT JOIN sources s ON a.source_id = s.id
-  `;
-
-  let articlesQuery = `
-    SELECT
-        a.*,
-        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics,
-        ARRAY_REMOVE(ARRAY_AGG(t.name_es), NULL) AS topics_es,
-        ARRAY_REMOVE(ARRAY_AGG(t.name_ht), NULL) AS topics_ht
-    FROM
-        articles a
-    LEFT JOIN
-        article_topics at ON a.id = at.article_id
-    LEFT JOIN
-        topics t ON at.topic_id = t.id
-    LEFT JOIN
-        sources s ON a.source_id = s.id
-  `;
 
   const values = [];
   const conditions = [];
   let valueIndex = 1;
 
+  // Build WHERE clause
   if (topic) {
     const topicNames = topic.split(',').map(name => name.toLowerCase());
     conditions.push(`EXISTS (
@@ -503,46 +480,65 @@ app.get('/api/articles', async (req, res) => {
     )`);
     values.push(topicNames);
   }
-
   if (startDate) {
     conditions.push(`a.publication_date >= $${valueIndex++}`);
     values.push(new Date(startDate));
   }
-
   if (endDate) {
     conditions.push(`a.publication_date <= $${valueIndex++}`);
     values.push(new Date(endDate));
   }
-
   if (searchTerm) {
     conditions.push(`(a.title ILIKE $${valueIndex} OR a.raw_content ILIKE $${valueIndex})`);
     values.push(`%${searchTerm}%`);
     valueIndex++;
   }
-
   if (source_ids) {
     const sourceIdsArray = source_ids.split(',').map(id => parseInt(id, 10));
-    conditions.push(`s.id = ANY($${valueIndex++})`);
+    conditions.push(`a.source_id = ANY($${valueIndex++})`);
     values.push(sourceIdsArray);
   }
 
-  if (conditions.length > 0) {
-    const whereClause = ' WHERE ' + conditions.join(' AND ');
-    countQuery += whereClause;
-    articlesQuery += whereClause;
-  }
+  const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-  articlesQuery += ' GROUP BY a.id ORDER BY a.publication_date DESC';
-  articlesQuery += ` LIMIT $${valueIndex++} OFFSET $${valueIndex++}`;
-  values.push(parseInt(limit), offset);
+  // Count query
+  const countQuery = `
+    SELECT COUNT(DISTINCT a.id)
+    FROM articles a
+    ${whereClause}
+  `;
+
+  // Optimized articles query using a subquery for pagination
+  const articlesQuery = `
+    SELECT
+        a.*,
+        ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics,
+        ARRAY_REMOVE(ARRAY_AGG(t.name_es), NULL) AS topics_es,
+        ARRAY_REMOVE(ARRAY_AGG(t.name_ht), NULL) AS topics_ht
+    FROM (
+        SELECT *
+        FROM articles a
+        ${whereClause}
+        ORDER BY a.publication_date DESC
+        LIMIT $${valueIndex++} OFFSET $${valueIndex++}
+    ) a
+    LEFT JOIN
+        article_topics at ON a.id = at.article_id
+    LEFT JOIN
+        topics t ON at.topic_id = t.id
+    GROUP BY a.id, a.title, a.source_id, a.source_url, a.thumbnail_url, a.ai_image_path, a.author, a.publication_date, a.raw_content, a.summary, a.created_at, a.updated_at, a.is_blocked, a.title_es, a.summary_es, a.raw_content_es, a.title_ht, a.summary_ht, a.raw_content_ht, a.topics_es, a.topics_ht, a.category
+    ORDER BY a.publication_date DESC;
+  `;
+
+  const queryValues = [...values, parseInt(limit), offset];
 
   try {
-    const countResult = await pool.query(countQuery, values.slice(0, values.length - 2)); // Exclude limit and offset for count query
+    const countResult = await pool.query(countQuery, values);
     const totalArticles = parseInt(countResult.rows[0].count, 10);
 
-    const articlesResult = await pool.query(articlesQuery, values);
+    const articlesResult = await pool.query(articlesQuery, queryValues);
 
-    res.set('X-Total-Count', totalArticles.toString()); // Set total count in header
+    res.set('X-Total-Count', totalArticles.toString());
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched ${articlesResult.rows.length} articles (Total: ${totalArticles}) with filters: ${JSON.stringify(req.query)}`);
     res.json(articlesResult.rows);
   } catch (err) {

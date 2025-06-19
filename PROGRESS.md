@@ -10,3 +10,14 @@
 - **Issue Identified:** The `useEffect` hook in `NewsFeed.tsx` that fetches articles had `searchTerm` in its dependency array. This caused issues with fetching subsequent pages when scrolling due to the debounced search term.
 - **Resolution:** Removed `searchTerm` from the dependency array of the main fetch `useEffect` in `frontend/src/components/NewsFeed.tsx`.
 - **Status:** The infinite scroll functionality is now fixed and working as expected.
+
+---
+- **Task:** Address slow loading times for the newsfeed.
+- **Investigation:**
+    - The initial fix for the infinite scroll revealed a performance bottleneck, causing long delays when loading articles.
+    - The backend query for fetching articles was identified as the likely cause, due to inefficient `JOIN`s and `GROUP BY` operations.
+- **Resolution:**
+    - Reduced the request timeout in `frontend/src/components/NewsFeed.tsx` from 10 to 5 seconds.
+    - Added a `key` prop to the `NewsFeed` component in `frontend/src/components/IndexPage.tsx` to ensure it re-mounts with a clean state when filters change.
+    - Refactored the `/api/articles` endpoint in `backend/src/index.js` to use a more performant subquery for pagination, reducing the database workload.
+- **Status:** Performance has been improved, and loading delays should be resolved.
