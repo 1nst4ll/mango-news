@@ -398,7 +398,7 @@ function NewsFeed({
                       {edition.narration_url && (
                         <CardContent className="px-6 pb-4 pt-0"> {/* Added pt-0 to reduce extra padding */}
                           <div className="mt-4">
-                            <AudioPlayer src={edition.narration_url} />
+                            <AudioPlayer src={edition.narration_url} autoplay={false} /> {/* Add autoplay={false} */}
                           </div>
                         </CardContent>
                       )}

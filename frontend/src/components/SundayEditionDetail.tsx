@@ -41,7 +41,7 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
         </div>
         {edition.narration_url && (
           <div className="mb-6">
-            <AudioPlayer src={edition.narration_url} />
+            <AudioPlayer src={edition.narration_url} autoplay={true} /> {/* Add autoplay={true} */}
           </div>
         )}
         <div className="article-content" dangerouslySetInnerHTML={{ __html: displaySummary }}></div>

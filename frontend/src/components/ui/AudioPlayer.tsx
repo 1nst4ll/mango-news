@@ -3,9 +3,10 @@ import React, { useRef, useState, useEffect } from 'react';
 interface AudioPlayerProps {
   src: string;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  autoplay?: boolean; // Add autoplay prop
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, onClick }) => {
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, onClick, autoplay = false }) => { // Default autoplay to false
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -14,12 +15,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, onClick }) => {
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
-      // Autoplay on component mount
-      audio.play().catch(error => {
-        console.error("Autoplay prevented:", error);
-        // Handle cases where autoplay is blocked (e.g., by browser policies)
-        // You might want to show a play button to the user in such cases
-      });
+      // Autoplay on component mount if autoplay prop is true
+      if (autoplay) {
+        audio.play().catch(error => {
+          console.error("Autoplay prevented:", error);
+          // Handle cases where autoplay is blocked (e.g., by browser policies)
+          // You might want to show a play button to the user in such cases
+        });
+      }
 
       const setAudioData = () => {
         setDuration(audio.duration);
