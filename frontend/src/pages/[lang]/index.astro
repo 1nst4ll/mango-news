@@ -3,6 +3,17 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import IndexPage from '../../components/IndexPage'; // Corrected import path for IndexPage
 
+let sources = [];
+try {
+  const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+  const response = await fetch(`${apiUrl}/api/sources`);
+  if (response.ok) {
+    sources = await response.json();
+  }
+} catch (error) {
+  console.error('Error fetching sources in [lang]/index.astro:', error);
+}
+
 const pageTitle = "Latest Headlines"; // BaseLayout prepends "mango.tc news - "
 const pageDescription = "Stay updated with the latest news and headlines from Turks and Caicos on mango.tc news.";
 const ogImageUrl = "/logo.png"; // Assuming logo.png is in public directory
@@ -17,5 +28,5 @@ const ogType = "website";
   ogUrl={ogUrl}
   ogType={ogType}
 >
-  <IndexPage client:load />
+  <IndexPage client:load sources={sources} />
 </BaseLayout>

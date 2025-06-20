@@ -40,6 +40,16 @@ const t = locales[currentLocale as keyof typeof locales]; // Type assertion for 
 const dynamicTitle = title.startsWith('mango.tc news - ') ? title : `mango.tc news - ${title}`;
 const dynamicDescription = description === "mango.tc news - Your source for news from Turks and Caicos." ? t.news : description;
 
+let sources = [];
+try {
+  const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+  const response = await fetch(`${apiUrl}/api/sources`);
+  if (response.ok) {
+    sources = await response.json();
+  }
+} catch (error) {
+  console.error('Error fetching sources in BaseLayout:', error);
+}
 ---
 
 <script is:inline>
@@ -102,7 +112,7 @@ const dynamicDescription = description === "mango.tc news - Your source for news
   <body>
     <Header client:load />
     <slot />
-    <Footer client:load />
+    <Footer client:load sources={sources} />
     <Toaster client:load />
   </body>
 </html>

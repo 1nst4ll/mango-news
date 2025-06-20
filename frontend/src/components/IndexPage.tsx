@@ -26,32 +26,15 @@ interface Source {
   url: string;
 }
 
-export default function IndexPage() {
+interface IndexPageProps {
+  sources: Source[];
+}
+
+export default function IndexPage({ sources }: IndexPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [sources, setSources] = useState<Source[]>([]);
   const [selectedSources, setSelectedSources] = useState<number[]>([]);
   const { t, currentLocale } = useTranslations(); // Use the translation hook
-
-  // Fetch sources only once on mount
-  useEffect(() => {
-    const fetchSources = async () => {
-      try {
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-        const sourcesResponse = await fetch(`${apiUrl}/api/sources`);
-        if (sourcesResponse.ok) {
-          const sourcesData: Source[] = await sourcesResponse.json();
-          setSources(sourcesData);
-        } else {
-          console.error('Error fetching sources:', sourcesResponse.status);
-        }
-      } catch (error) {
-        console.error('Error fetching sources:', error);
-        setSources([]);
-      }
-    };
-    fetchSources();
-  }, []); // Fetch sources only once on mount
 
 
   // Debounce effect for search term
