@@ -72,7 +72,8 @@ function NewsFeed({
 }: NewsFeedProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [sundayEditions, setSundayEditions] = useState<SundayEdition[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -85,7 +86,7 @@ function NewsFeed({
     setCurrentPage(1); // Reset to first page
     setArticles([]); // Clear existing articles
     setHasMore(true); // Assume there are more articles to fetch
-    setLoading(true); // Show loading indicator
+    setInitialLoading(true); // Show loading indicator
   };
 
   const fetchInProgressRef = useRef(false);
@@ -97,7 +98,9 @@ function NewsFeed({
     }
 
     console.log(`[NewsFeed] Fetching articles for page ${page}.`);
-    setLoading(true);
+    if (page > 1) {
+      setLoading(true);
+    }
     fetchInProgressRef.current = true;
 
     const controller = new AbortController();
@@ -165,6 +168,9 @@ function NewsFeed({
       }
     } finally {
       console.log('[NewsFeed] Setting loading to false in finally block.');
+      if (page === 1) {
+        setInitialLoading(false);
+      }
       setLoading(false);
       fetchInProgressRef.current = false;
     }
@@ -175,6 +181,7 @@ function NewsFeed({
     setCurrentPage(1);
     setHasMore(true);
     setError(null);
+    setInitialLoading(true);
     fetchArticles(1);
   }, [searchTerm, selectedSources, activeCategory, fetchArticles]);
 
@@ -247,7 +254,7 @@ function NewsFeed({
   });
 
 
-  if (loading && articles.length === 0) { // Show initial loader only if no articles are loaded yet
+  if (initialLoading) {
     return (
       <div className="container mx-auto p-4">
         <Alert className="text-center">
