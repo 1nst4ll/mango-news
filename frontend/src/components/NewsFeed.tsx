@@ -209,7 +209,7 @@ function NewsFeed({
 
   }, [JSON.stringify(selectedSources), activeCategory, currentPage]);
 
-  const observer = useRef<IntersectionObserver>();
+  const observer = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useCallback((node: HTMLDivElement | null) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
