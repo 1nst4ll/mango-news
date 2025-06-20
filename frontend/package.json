@@ -46,6 +46,7 @@
   "devDependencies": {
     "@astrojs/node": "^9.2.1",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/lodash": "^4.17.18",
     "tw-animate-css": "^1.2.8"
   }
 }

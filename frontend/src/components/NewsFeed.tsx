@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import useDeepCompareEffect from '../lib/hooks/useDeepCompareEffect';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button"; // Import Button component
 import { Badge } from "./ui/badge"; // Import Badge component
@@ -79,9 +80,17 @@ function NewsFeed({
 
   const articlesPerPage = 15; // Define how many articles to fetch per page
 
+  const handleRetry = () => {
+    setError(null);
+    setCurrentPage(1); // Reset to first page
+    setArticles([]); // Clear existing articles
+    setHasMore(true); // Assume there are more articles to fetch
+    setLoading(true); // Show loading indicator
+  };
+
   const fetchInProgressRef = useRef(false); // New ref to track if a fetch is in progress
 
-  useEffect(() => {
+  useDeepCompareEffect(() => {
     // Reset articles, page, and hasMore when filters change
     setArticles([]);
     setCurrentPage(1);
@@ -89,7 +98,7 @@ function NewsFeed({
     setLoading(true); // Set loading true to show initial loader
     setError(null); // Clear previous errors
     fetchInProgressRef.current = false; // Reset the flag
-  }, [searchTerm, JSON.stringify(selectedSources), activeCategory]); // Add activeCategory to dependency array
+  }, [searchTerm, selectedSources, activeCategory]); // Add activeCategory to dependency array
 
   useEffect(() => {
     const fetchSundayEditions = async () => {
@@ -207,7 +216,7 @@ function NewsFeed({
       fetchInProgressRef.current = false; // Ensure flag is cleared on cleanup
     };
 
-  }, [JSON.stringify(selectedSources), activeCategory, currentPage]);
+  }, [currentPage]);
 
   const observer = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useCallback((node: HTMLDivElement | null) => {
@@ -278,6 +287,9 @@ function NewsFeed({
           <AlertDescription>
             {error instanceof Error ? error.message : 'An unknown error occurred'}
           </AlertDescription>
+          <Button onClick={handleRetry} className="mt-4">
+            {t.retry || 'Retry'}
+          </Button>
         </Alert>
       </div>
     );
