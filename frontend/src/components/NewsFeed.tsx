@@ -88,17 +88,95 @@ function NewsFeed({
     setLoading(true); // Show loading indicator
   };
 
-  const fetchInProgressRef = useRef(false); // New ref to track if a fetch is in progress
+  const fetchInProgressRef = useRef(false);
+
+  const fetchArticles = useCallback(async (page: number) => {
+    if (fetchInProgressRef.current) {
+      console.log('[NewsFeed] Fetch attempt skipped: a fetch is already in progress.');
+      return;
+    }
+
+    console.log(`[NewsFeed] Fetching articles for page ${page}.`);
+    setLoading(true);
+    fetchInProgressRef.current = true;
+
+    const controller = new AbortController();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => {
+        controller.abort();
+        reject(new DOMException('Request timed out.', 'TimeoutError'));
+      }, 5000)
+    );
+
+    try {
+      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+      let url = `${apiUrl}/api/articles`;
+      const params = new URLSearchParams();
+
+      if (selectedSources.length > 0) {
+        params.append('source_ids', selectedSources.join(','));
+      }
+      if (searchTerm) {
+        params.append('searchTerm', searchTerm);
+      }
+      if (activeCategory && activeCategory !== 'all') {
+        params.append('topic', activeCategory);
+      }
+      params.append('page', page.toString());
+      params.append('limit', articlesPerPage.toString());
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      console.log('[NewsFeed] Fetching articles with URL:', url);
+
+      const response = await Promise.race([
+        fetch(url, { signal: controller.signal }),
+        timeoutPromise
+      ]) as Response;
+
+      console.log('[NewsFeed] API Response Status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: Article[] = await response.json();
+      console.log('[NewsFeed] Fetched articles data:', data);
+
+      setArticles(prevArticles => {
+        const newArticles = data.filter(
+          newArticle => !prevArticles.some(existingArticle => existingArticle.id === newArticle.id)
+        );
+        return page === 1 ? newArticles : [...prevArticles, ...newArticles];
+      });
+
+      setHasMore(data.length === articlesPerPage);
+    } catch (err: unknown) {
+      if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
+        console.error('[NewsFeed] Fetch request aborted or timed out:', err);
+        if (err.message !== 'The user aborted a request.') {
+          setError(new Error('Request timed out. Please try again.'));
+        }
+      } else {
+        console.error('[NewsFeed] Error fetching articles:', err);
+        setError(err);
+      }
+    } finally {
+      console.log('[NewsFeed] Setting loading to false in finally block.');
+      setLoading(false);
+      fetchInProgressRef.current = false;
+    }
+  }, [searchTerm, selectedSources, activeCategory, articlesPerPage]);
 
   useDeepCompareEffect(() => {
-    // Reset articles, page, and hasMore when filters change
     setArticles([]);
     setCurrentPage(1);
     setHasMore(true);
-    setLoading(true); // Set loading true to show initial loader
-    setError(null); // Clear previous errors
-    fetchInProgressRef.current = false; // Reset the flag
-  }, [searchTerm, selectedSources, activeCategory]); // Add activeCategory to dependency array
+    setError(null);
+    fetchArticles(1);
+  }, [searchTerm, selectedSources, activeCategory, fetchArticles]);
 
   useEffect(() => {
     const fetchSundayEditions = async () => {
@@ -115,108 +193,7 @@ function NewsFeed({
       }
     };
     fetchSundayEditions();
-  }, []); // Fetch Sunday Editions once on component mount
-
-  useEffect(() => {
-    console.count('[NewsFeed] fetch effect evaluated'); // Diagnostic log
-    if (!hasMore && currentPage > 1) return; // Don't fetch if no more articles and not initial load
-
-    // Only proceed if a fetch is not already in progress
-    if (fetchInProgressRef.current) {
-      console.log('[NewsFeed] Fetch attempt skipped: a fetch is already in progress.');
-      return;
-    }
-
-    const controller = new AbortController(); // Create controller inside effect
-    const timeoutPromise = new Promise<Response>((_, reject) => // Explicitly type as Promise<Response>
-      setTimeout(() => {
-        controller.abort(); // Abort the fetch if timeout occurs
-        reject(new DOMException('Request timed out.', 'TimeoutError'));
-      }, 5000) // 5 second timeout
-    );
-
-    const fetchArticles = async () => {
-      console.log('[NewsFeed] fetchArticles function invoked.');
-      setLoading(true);
-      fetchInProgressRef.current = true; // Set flag when fetch starts
-      try {
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-        let url = `${apiUrl}/api/articles`;
-        const params = new URLSearchParams();
-
-        if (selectedSources.length > 0) {
-            params.append('source_ids', selectedSources.join(','));
-        }
-
-        if (searchTerm) {
-            params.append('searchTerm', searchTerm);
-        }
-
-        if (activeCategory && activeCategory !== 'all') {
-            params.append('topic', activeCategory);
-        }
-
-        params.append('page', currentPage.toString());
-        params.append('limit', articlesPerPage.toString());
-
-        if (params.toString()) {
-          url += `?${params.toString()}`;
-        }
-
-        console.log('[NewsFeed] Fetching articles with URL:', url);
-
-        // Use Promise.race to race the fetch with the timeout
-        const response = await Promise.race([
-          fetch(url, { signal: controller.signal }),
-          timeoutPromise
-        ]);
-
-        console.log('[NewsFeed] API Response Status:', response.status);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: Article[] = await response.json();
-        console.log('[NewsFeed] Fetched articles data:', data);
-
-        setArticles(prevArticles => {
-          const newArticles = data.filter(
-            newArticle => !prevArticles.some(existingArticle => existingArticle.id === newArticle.id)
-          );
-          return [...prevArticles, ...newArticles];
-        });
-
-        setHasMore(data.length === articlesPerPage);
-
-      } catch (err: unknown) {
-        if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
-          console.error('[NewsFeed] Fetch request aborted or timed out:', err);
-          // Only set error if it's not a manual abort due to effect cleanup
-          if (err.message !== 'The user aborted a request.') {
-            setError(new Error('Request timed out. Please try again.'));
-          }
-        } else {
-          console.error('[NewsFeed] Error fetching articles:', err);
-          setError(err);
-        }
-      } finally {
-        console.log('[NewsFeed] Setting loading to false in finally block.');
-        setLoading(false);
-        fetchInProgressRef.current = false; // Clear flag when fetch completes/fails
-      }
-    };
-
-    fetchArticles();
-
-    // Cleanup function: abort the fetch if the component unmounts or effect re-runs
-    return () => {
-      console.log('[NewsFeed] Effect cleanup: Aborting ongoing fetch.');
-      controller.abort(); // Abort any ongoing fetch
-      fetchInProgressRef.current = false; // Ensure flag is cleared on cleanup
-    };
-
-  }, [currentPage]);
+  }, []);
 
   const observer = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useCallback((node: HTMLDivElement | null) => {
@@ -226,12 +203,16 @@ function NewsFeed({
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore && !loading) {
         console.log('[NewsFeed] IntersectionObserver triggered fetch.');
-        setCurrentPage(prevPage => prevPage + 1);
+        setCurrentPage(prevPage => {
+          const nextPage = prevPage + 1;
+          fetchArticles(nextPage);
+          return nextPage;
+        });
       }
     });
 
     if (node) observer.current.observe(node);
-  }, [loading, hasMore]);
+  }, [loading, hasMore, fetchArticles]);
 
   console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
