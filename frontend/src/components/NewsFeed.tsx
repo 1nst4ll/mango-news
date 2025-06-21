@@ -216,6 +216,8 @@ function NewsFeed({
           return nextPage;
         });
       }
+    }, {
+      rootMargin: '200px',
     });
 
     if (node) observer.current.observe(node);
