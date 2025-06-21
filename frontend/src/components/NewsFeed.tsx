@@ -217,7 +217,7 @@ function NewsFeed({
         });
       }
     }, {
-      rootMargin: '200px',
+      rootMargin: '600px',
     });
 
     if (node) observer.current.observe(node);
