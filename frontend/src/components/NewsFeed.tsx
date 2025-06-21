@@ -210,14 +210,19 @@ function NewsFeed({
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore && !loading) {
         console.log('[NewsFeed] IntersectionObserver triggered fetch.');
-        setCurrentPage(prevPage => {
-          const nextPage = prevPage + 1;
-          fetchArticles(nextPage);
-          return nextPage;
-        });
+        if (observer.current) {
+          observer.current.disconnect();
+        }
+        setTimeout(() => {
+          setCurrentPage(prevPage => {
+            const nextPage = prevPage + 1;
+            fetchArticles(nextPage);
+            return nextPage;
+          });
+        }, 500);
       }
     }, {
-      rootMargin: '600px',
+      rootMargin: '1500px',
     });
 
     if (node) observer.current.observe(node);
