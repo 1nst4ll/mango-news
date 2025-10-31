@@ -195,7 +195,7 @@ const generateAISummary = async (content) => {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b
+      model: "openai/gpt-oss-120b", // Changed to openai/gpt-oss120b
       temperature: 0.5, // Adjust temperature for more focused topic selection
       max_tokens: 300, // Adjusted max tokens for summary based on user feedback
     });
