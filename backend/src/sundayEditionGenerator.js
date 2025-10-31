@@ -338,7 +338,6 @@ const generateAIImage = async (title, summary) => {
         formData.append('prompt', optimizedPrompt);
         formData.append('rendering_speed', 'TURBO');
         formData.append('aspect_ratio', '16x9');
-        formData.append('resolution', '1344x768'); // Explicitly setting resolution for 16x9 aspect ratio
         formData.append('magic_prompt', 'OFF');
         formData.append('style_type', 'REALISTIC');
         formData.append('num_images', '1'); // Explicitly requesting 1 image
@@ -347,7 +346,6 @@ const generateAIImage = async (title, summary) => {
             prompt: optimizedPrompt,
             rendering_speed: 'TURBO',
             aspect_ratio: '16x9',
-            resolution: '1344x768',
             magic_prompt: 'OFF',
             style_type: 'REALISTIC',
             num_images: '1',
