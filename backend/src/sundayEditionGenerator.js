@@ -123,7 +123,7 @@ async function generateSundayEditionSummary(articles) {
                     content: prompt
                 }
             ],
-            model: "llama-3.3-70b-versatile", // Using a more capable Groq model for better summary generation
+            model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b for better summary generation
             temperature: 0.7,
             max_tokens: 1200, // Increased to allow for longer summaries up to ~4250 characters
         });
@@ -283,7 +283,7 @@ const generateAITranslation = async (text, targetLanguageCode, type = 'general')
                     content: text,
                 }
             ],
-            model: "llama-3.3-70b-versatile", // Using a suitable Groq model for text generation
+            model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b for text generation
             temperature: 0.3, // Keep temperature low for accurate translation
             max_tokens: currentMaxTokens, // Dynamically set max tokens
         });
@@ -325,7 +325,7 @@ const generateAIImage = async (title, summary) => {
                     content: `Instructions: ${imagePromptInstructions}\nSummary: ${summary}`
                 }
             ],
-            model: "llama-3.3-70b-versatile", // Using a suitable Groq model for text generation
+            model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b for text generation
             temperature: 0.7,
             max_tokens: 200,
         });

@@ -195,7 +195,7 @@ const generateAISummary = async (content) => {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "meta-llama/llama-4-scout-17b-16e-instruct", // Changed model based on user feedback
+      model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b
       temperature: 0.5, // Adjust temperature for more focused topic selection
       max_tokens: 300, // Adjusted max tokens for summary based on user feedback
     });
@@ -233,7 +233,7 @@ const assignTopicsWithAI = async (source, content) => {
           content: truncatedContent, // Use truncated content
         }
       ],
-      model: "meta-llama/llama-4-scout-17b-16e-instruct", // Changed model based on user feedback
+      model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b
       temperature: 0.5, // Adjust temperature for more focused topic selection
       max_tokens: 300, // Adjusted max tokens for topic list based on user feedback
     });
