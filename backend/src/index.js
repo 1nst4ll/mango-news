@@ -13,6 +13,7 @@ const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); /
 const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
 const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTranslatedTopicsForSource, scrapeArticlePage } = require('./scraper'); // Import scraper functions including processMissingAiForSource and the new function
 const { createSundayEdition } = require('./sundayEditionGenerator'); // Import createSundayEdition function
+const aiService = require('./services/aiService'); // Import centralized AI service for monitoring
 const { registerUser, loginUser } = require('./user'); // Import user management functions
 const authenticateToken = require('./middleware/auth'); // Import authentication middleware
 
@@ -1066,6 +1067,52 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
     res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear });
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching stats:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// AI Service Monitoring Endpoints
+app.get('/api/ai-service/stats', authenticateToken, async (req, res) => {
+  const endpoint = '/api/ai-service/stats';
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetching AI service statistics...`);
+    
+    const cacheStats = aiService.getCacheStats();
+    const rateLimitStatus = aiService.getRateLimitStatus();
+    
+    res.json({
+      cache: {
+        size: cacheStats.size,
+        sampleKeys: cacheStats.entries,
+      },
+      rateLimit: {
+        currentCount: rateLimitStatus.requestCount,
+        limit: rateLimitStatus.limit,
+        resetInMs: rateLimitStatus.resetIn,
+      },
+      config: {
+        models: aiService.CONFIG.MODELS,
+        maxRetries: aiService.CONFIG.MAX_RETRIES,
+        cacheTtlMs: aiService.CONFIG.CACHE_TTL_MS,
+        rateLimitPerMinute: aiService.CONFIG.RATE_LIMIT_PER_MINUTE,
+      }
+    });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching AI service stats:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Clear AI service cache (admin action)
+app.post('/api/ai-service/clear-cache', authenticateToken, async (req, res) => {
+  const endpoint = '/api/ai-service/clear-cache';
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Clearing AI service cache...`);
+    aiService.clearCache();
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - AI service cache cleared successfully.`);
+    res.json({ message: 'AI service cache cleared successfully.' });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error clearing AI service cache:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

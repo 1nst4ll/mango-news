@@ -691,6 +691,58 @@ Triggers processing of missing AI data (summary, tags, image, or translations) f
     *   `500 Internal Server Error`: Failed to trigger missing AI processing or an error occurred during processing.
 
 
+### AI Service Monitoring
+
+#### `GET /api/ai-service/stats`
+
+Retrieves statistics about the AI service including cache usage, rate limiting, and request counts.
+
+*   **Authentication:** Required.
+*   **Success Response (`200 OK`):**
+    ```json
+    {
+      "cache": {
+        "translations": "number",
+        "topics": "number"
+      },
+      "rateLimit": {
+        "requestsThisMinute": "number",
+        "limitPerMinute": "number",
+        "remainingRequests": "number"
+      },
+      "config": {
+        "maxRetries": "number",
+        "retryDelay": "number",
+        "cacheTTL": "number",
+        "summaryModel": "string",
+        "translationModel": "string"
+      }
+    }
+    ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Invalid or missing authentication token.
+    *   `500 Internal Server Error`: General server error.
+
+#### `POST /api/ai-service/clear-cache`
+
+Clears the AI service translation cache. Useful when translations need to be regenerated.
+
+*   **Authentication:** Required.
+*   **Request Body:** None.
+*   **Success Response (`200 OK`):**
+    ```json
+    {
+      "message": "AI service cache cleared successfully",
+      "clearedEntries": {
+        "translations": "number",
+        "topics": "number"
+      }
+    }
+    ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Invalid or missing authentication token.
+    *   `500 Internal Server Error`: General server error.
+
 ### Database Management
 
 #### `POST /api/articles/purge`

@@ -127,6 +127,49 @@ Prevent scraping specific URLs by editing `backend/config/blacklist.json`:
 
 The scraper checks URLs against this list using prefix matching.
 
+## AI Service Architecture
+
+The backend includes a centralized AI service (`src/services/aiService.js`) that consolidates all AI operations with built-in optimizations:
+
+### Features
+
+- **Caching**: In-memory cache with configurable TTL for translations
+- **Retry Logic**: Exponential backoff for API failures (configurable max retries)
+- **Rate Limiting**: Request counting with per-minute limits to prevent API throttling
+- **Parallel Processing**: Batch translation using `Promise.all()` for improved throughput
+
+### Optional AI Environment Variables
+
+Add these to `backend/.env` to customize AI behavior (all have sensible defaults):
+
+```env
+# AI Model Configuration
+AI_SUMMARY_MODEL=openai/gpt-oss-20b     # Model for summaries
+AI_TRANSLATION_MODEL=openai/gpt-oss-20b # Model for translations
+
+# Retry Configuration
+AI_MAX_RETRIES=3                        # Max retry attempts
+AI_RETRY_DELAY=1000                     # Initial retry delay (ms)
+
+# Cache Configuration
+AI_CACHE_TTL=86400000                   # Cache TTL (default: 24 hours)
+
+# Rate Limiting
+AI_RATE_LIMIT_PER_MINUTE=60             # Max requests per minute
+```
+
+### AI Service Methods
+
+| Method | Description |
+|--------|-------------|
+| `generateSummary(content)` | Generate article summary |
+| `assignTopics(content)` | Assign topics to article |
+| `translateText(text, targetLang)` | Translate single text |
+| `translateBatch(items, targetLang)` | Translate multiple items in parallel |
+| `getTopicTranslation(topicName, targetLang)` | Translate topic name (cached) |
+| `optimizeImagePrompt(content, title)` | Optimize prompt for image generation |
+| `generateWeeklySummary(articles)` | Generate Sunday Edition summary |
+
 ## Architecture
 
 ### Key Files
@@ -135,6 +178,7 @@ The scraper checks URLs against this list using prefix matching.
 |------|---------|
 | `src/index.js` | Express server, API routes, graceful shutdown |
 | `src/scraper.js` | Article scraping, AI processing, cron jobs |
+| `src/services/aiService.js` | Centralized AI service with caching, retry, rate limiting |
 | `src/opensourceScraper.js` | Puppeteer-based web scraping |
 | `src/browserPool.js` | Shared Puppeteer browser instance |
 | `src/db.js` | PostgreSQL connection pool |
@@ -153,6 +197,7 @@ The backend runs three cron jobs (configured in Settings):
 ## Related Documentation
 
 - [API Documentation](api-documentation.md) - Complete endpoint reference
+- [AI Optimization Analysis](ai-optimization-analysis.md) - AI tasks, optimizations, and monitoring
 - [Scraping Methods](scraping-methods.md) - Open-source vs Firecrawl
 - [CSS Selectors](css-selectors.md) - Configuring source selectors
 - [Deployment](deployment.md) - Production deployment guide

@@ -3,14 +3,16 @@ require('dotenv').config({ path: './backend/.env' }); // Load environment variab
 
 const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting .default)
 const cron = require('node-cron'); // Import node-cron for scheduling
-const Groq = require('groq-sdk'); // Import Groq SDK
 const { scrapeArticle: opensourceScrapeArticle, discoverArticleUrls: opensourceDiscoverSources } = require('./opensourceScraper'); // Import open-source scraper functions
 const fs = require('fs').promises; // Import Node.js file system promises API
 const path = require('path'); // Import Node.js path module
 const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import from configLoader
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
-const { createSundayEdition, generateAIImage, generateAITranslation } = require('./sundayEditionGenerator'); // Import Sunday Edition generator and AI functions
+const { createSundayEdition, generateAIImage } = require('./sundayEditionGenerator'); // Import Sunday Edition generator and AI functions
+
+// Import centralized AI service for optimized AI operations
+const aiService = require('./services/aiService');
 
 // Import shared database pool to prevent connection exhaustion
 const { pool } = require('./db');
@@ -66,59 +68,12 @@ const sanitizeHtml = (htmlString) => {
   }
 };
 
-// Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
-const topicsList = [
-  "Politics", "Economy", "Business", "Technology", "Health", "Science",
-  "Environment", "Education", "Sports", "Entertainment", "Culture", "Travel",
-  "Crime", "Justice", "Weather", "Community", "Infrastructure", "Tourism",
-  "Real Estate", "Finance", "Agriculture", "Fishing", "History", "Arts",
-  "Religion", "Opinion", "Editorial", "Local News", "Regional News", "International News",
-  "Sport" // Added Sport based on previous analysis
-];
-
-// Pre-translated topics mapping
-const topicTranslations = {
-  "Politics": { "es": "Política", "ht": "Politik" },
-  "Economy": { "es": "Economía", "ht": "Ekonomi" },
-  "Business": { "es": "Negocios", "ht": "Biznis" },
-  "Technology": { "es": "Tecnología", "ht": "Teknoloji" },
-  "Health": { "es": "Salud", "ht": "Sante" },
-  "Science": { "es": "Ciencia", "ht": "Syans" },
-  "Environment": { "es": "Medio Ambiente", "ht": "Anviwònman" },
-  "Education": { "es": "Educación", "ht": "Edikasyon" },
-  "Sports": { "es": "Deportes", "ht": "Espò" },
-  "Entertainment": { "es": "Entretenimiento", "ht": "Divètisman" },
-  "Culture": { "es": "Cultura", "ht": "Kilti" },
-  "Travel": { "es": "Viajes", "ht": "Vwayaj" },
-  "Crime": { "es": "Crimen", "ht": "Krim" },
-  "Justice": { "es": "Justicia", "ht": "Jistis" },
-  "Weather": { "es": "Clima", "ht": "Tan" },
-  "Community": { "es": "Comunidad", "ht": "Kominote" },
-  "Infrastructure": { "es": "Infraestructura", "ht": "Enfrastrikti" },
-  "Tourism": { "es": "Turismo", "ht": "Touris" },
-  "Real Estate": { "es": "Bienes Raíces", "ht": "Imobilye" },
-  "Finance": { "es": "Finanzas", "ht": "Finans" },
-  "Agriculture": { "es": "Agricultura", "ht": "Agrikilti" },
-  "Fishing": { "es": "Pesca", "ht": "Lapèch" },
-  "History": { "es": "Historia", "ht": "Istwa" },
-  "Arts": { "es": "Atizay", "ht": "Atizay" },
-  "Religion": { "es": "Religión", "ht": "Relijyon" },
-  "Opinion": { "es": "Opinión", "ht": "Opinyon" },
-  "Editorial": { "es": "Editorial", "ht": "Editoryal" },
-  "Local News": { "es": "Noticias Locales", "ht": "Nouvèl Lokal" },
-  "Regional News": { "es": "Noticias Regionales", "ht": "Nouvèl Rejyonal" },
-  "International News": { "es": "Noticias Internacionales", "ht": "Nouvèl Entènasyonal" },
-  "Sport": { "es": "Deporte", "ht": "Espò" }
-};
-
+// Use topic lists and translations from centralized AI service
+const topicsList = aiService.TOPICS_LIST;
+const topicTranslations = aiService.TOPIC_TRANSLATIONS;
 
 // Note: Database pool is now imported from './db' to use a single shared pool
 // This prevents connection exhaustion and reduces memory overhead
-
-// Initialize Groq SDK
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY // Assuming API key is in environment variable
-});
 
 // Initialize Firecrawl client with API key
 const firecrawl = new Firecrawl({
@@ -179,85 +134,37 @@ const scrapeSource = async (source) => {
   }
 };
 
-// This function generates AI summaries using the Groq API
+// This function generates AI summaries using the centralized AI service
+// Now includes caching, retry logic, and rate limiting
 const generateAISummary = async (content) => {
-  console.log('Generating AI summary using Groq...');
-  const maxContentLength = 10000; // Define max content length to avoid hitting token limits
-
-  // Truncate content if it's too long
-  const truncatedContent = content.length > maxContentLength
-    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
-    : content;
-
   try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence. Do not include any links or URLs in the summary. Return only the summary text, without any introductory phrases or conversational filler."
-        },
-        {
-          role: "user",
-          content: truncatedContent, // Use truncated content
-        }
-      ],
-      model: "openai/gpt-oss-120b", // Changed to openai/gpt-oss120b
-      temperature: 0.5, // Adjust temperature for more focused topic selection
-      max_tokens: 300, // Adjusted max tokens for summary based on user feedback
-    });
-
-    const summary = chatCompletion.choices[0]?.message?.content || "Summary generation failed."; // Get the summary string
-
-    console.log('Generated summary:', summary);
-    return summary; // Return the summary string
-
-  } catch (llmErr) {
-    console.error('Error generating summary with Groq:', llmErr);
-    return "Summary generation failed."; // Return a default error message
+    const summary = await aiService.generateSummary(content);
+    return summary || "Summary generation failed.";
+  } catch (err) {
+    console.error('Error generating summary:', err);
+    return "Summary generation failed.";
   }
 };
 
-// This function assigns topics to an article using the Groq API
+// This function assigns topics using the centralized AI service
+// Now includes caching, retry logic, and rate limiting
 const assignTopicsWithAI = async (source, content) => {
-  console.log('Assigning topics using Groq...');
-  const maxContentLength = 5000; // Define max content length for topic assignment
-
-  // Truncate content if it's too long
-  const truncatedContent = content.length > maxContentLength
-    ? content.substring(0, maxContentLength) + '...' // Add ellipsis to indicate truncation
-    : content;
-
   try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `Analyze the following news article content and identify the 3 most relevant topics from the provided list. Return only a comma-separated list of exactly 3 topics. The topics must be from this list: ${topicsList.join(', ')}. Do not include any other text.`
-        },
-        {
-          role: "user",
-          content: truncatedContent, // Use truncated content
-        }
-      ],
-      model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b
-      temperature: 0.5, // Adjust temperature for more focused topic selection
-      max_tokens: 300, // Adjusted max tokens for topic list based on user feedback
-    });
+    return await aiService.assignTopics(content);
+  } catch (err) {
+    console.error('Error assigning topics:', err);
+    return [];
+  }
+};
 
-    const assignedTopicsString = chatCompletion.choices[0]?.message?.content || "";
-    // Parse the comma-separated string into an array of topics, trim whitespace, and filter to ensure they are in the allowed list
-    const assignedTopics = assignedTopicsString
-      .split(',')
-      .map(topic => topic.trim())
-      .filter(topic => topicsList.includes(topic))
-      .slice(0, 3); // Ensure exactly 3 topics are returned
-
-    console.log('Assigned topics:', assignedTopics);
-    return assignedTopics;
-
-  } catch (llmErr) {
-    console.error('Error assigning topics with Groq:', llmErr);
-    return []; // Return an empty array on error
+// This function generates AI translations using the centralized AI service
+// Now includes caching, retry logic, and rate limiting
+const generateAITranslation = async (text, targetLanguageCode, type = 'general') => {
+  try {
+    return await aiService.translateText(text, targetLanguageCode, type);
+  } catch (err) {
+    console.error(`Error translating to ${targetLanguageCode}:`, err);
+    return null;
   }
 };
 
@@ -370,6 +277,7 @@ const processScrapedData = async (data) => { // Accept a single data object
       const finalThumbnailUrl = aiImagePath || metadata?.thumbnail_url || null;
 
       // Generate translations for title and summary if enabled
+      // OPTIMIZED: Using parallel processing for all translations
       let title_es = null;
       let summary_es = null;
       let raw_content_es = null;
@@ -378,13 +286,22 @@ const processScrapedData = async (data) => { // Accept a single data object
       let raw_content_ht = null;
 
       if (shouldGenerateTranslations) {
-        console.log('AI translation generation is enabled. Generating translations...');
-        title_es = await generateAITranslation(title, 'es', 'title');
-        summary_es = await generateAITranslation(summary, 'es', 'summary');
-        raw_content_es = await generateAITranslation(raw_content, 'es', 'raw_content');
-        title_ht = await generateAITranslation(title, 'ht', 'title');
-        summary_ht = await generateAITranslation(summary, 'ht', 'summary');
-        raw_content_ht = await generateAITranslation(raw_content, 'ht', 'raw_content');
+        console.log('AI translation generation is enabled. Generating translations in parallel...');
+        
+        // Use parallel batch translation for better performance
+        const translationItems = [
+          { text: title, targetLanguageCode: 'es', type: 'title' },
+          { text: summary, targetLanguageCode: 'es', type: 'summary' },
+          { text: raw_content, targetLanguageCode: 'es', type: 'raw_content' },
+          { text: title, targetLanguageCode: 'ht', type: 'title' },
+          { text: summary, targetLanguageCode: 'ht', type: 'summary' },
+          { text: raw_content, targetLanguageCode: 'ht', type: 'raw_content' },
+        ];
+        
+        const translations = await aiService.translateBatch(translationItems);
+        
+        [title_es, summary_es, raw_content_es, title_ht, summary_ht, raw_content_ht] = translations;
+        console.log('Parallel translations completed.');
       } else {
         console.log('AI translation generation is disabled. Skipping translation generation.');
       }
@@ -402,35 +319,25 @@ const processScrapedData = async (data) => { // Accept a single data object
       let translatedTopicsEs = [];
       let translatedTopicsHt = [];
 
+      // Process topic translations - OPTIMIZED: Use centralized translation service with caching
       for (const topicName of assignedTopics) {
         let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
         let topicId;
-        let preTranslatedEs = null;
-        let preTranslatedHt = null;
-
-        if (topicTranslations[topicName]) {
-          preTranslatedEs = topicTranslations[topicName].es;
-          preTranslatedHt = topicTranslations[topicName].ht;
-        } else {
-          console.warn(`No pre-translation found for topic: "${topicName}". This topic will not be translated.`);
-        }
+        
+        // Get pre-translated values from centralized service (includes caching)
+        let preTranslatedEs = await aiService.getTopicTranslation(topicName, 'es');
+        let preTranslatedHt = await aiService.getTopicTranslation(topicName, 'ht');
 
         let currentTopicEs = topicResult.rows[0]?.name_es;
         let currentTopicHt = topicResult.rows[0]?.name_ht;
 
         if (topicResult.rows.length === 0) {
-          if (!preTranslatedEs) preTranslatedEs = await generateAITranslation(topicName, 'es', 'general');
-          if (!preTranslatedHt) preTranslatedHt = await generateAITranslation(topicName, 'ht', 'general');
-
           topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
           topicId = topicResult.rows[0].id;
         } else {
           topicId = topicResult.rows[0].id;
           let updatedEs = preTranslatedEs || currentTopicEs;
           let updatedHt = preTranslatedHt || currentTopicHt;
-
-          if (!updatedEs) updatedEs = await generateAITranslation(topicName, 'es', 'general');
-          if (!updatedHt) updatedHt = await generateAITranslation(topicName, 'ht', 'general');
 
           if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
             await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
@@ -881,38 +788,32 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
         let translatedTopicsHt = [];
 
         // Save assigned topics and link to article
+            // OPTIMIZED: Use centralized AI service for topic translation with caching
             for (const topicName of assignedTopics) {
               let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
               let topicId;
-              let preTranslatedEs = topicTranslations[topicName]?.es || null;
-              let preTranslatedHt = topicTranslations[topicName]?.ht || null;
+              
+              // Get translations using centralized service (includes caching)
+              let preTranslatedEs = await aiService.getTopicTranslation(topicName, 'es');
+              let preTranslatedHt = await aiService.getTopicTranslation(topicName, 'ht');
 
               let currentTopicEs = topicResult.rows[0]?.name_es;
               let currentTopicHt = topicResult.rows[0]?.name_ht;
 
               if (topicResult.rows.length === 0) {
-                // Topic doesn't exist, create it. Generate translations if not pre-translated.
-                if (!preTranslatedEs) preTranslatedEs = await generateAITranslation(topicName, 'es', 'general');
-                if (!preTranslatedHt) preTranslatedHt = await generateAITranslation(topicName, 'ht', 'general');
-
                 topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
                 topicId = topicResult.rows[0].id;
               } else {
                 topicId = topicResult.rows[0].id;
-                // Prioritize pre-translated values, otherwise generate with AI if missing.
                 let updatedEs = preTranslatedEs || currentTopicEs;
                 let updatedHt = preTranslatedHt || currentTopicHt;
-
-                if (!updatedEs) updatedEs = await generateAITranslation(topicName, 'es', 'general');
-                if (!updatedHt) updatedHt = await generateAITranslation(topicName, 'ht', 'general');
 
                 if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
                   await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
                 }
-                preTranslatedEs = updatedEs; // Use the final determined translation for article topics
-                preTranslatedHt = updatedHt; // Use the final determined translation for article topics
+                preTranslatedEs = updatedEs;
+                preTranslatedHt = updatedHt;
               }
-              // Add translated topic names to the arrays
               if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
               if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
 
@@ -959,64 +860,64 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
       }
     } else if (featureType === 'translations') {
       console.log(`Processing translations for article ID: ${article.id}`);
-      let updatedFields = [];
-      let queryParams = [];
-      let paramIndex = 1;
-
-      // Translate title if missing
-      if (!article.title_es) {
-        const translatedTitle = await generateAITranslation(article.title, 'es', 'title');
-        if (translatedTitle) {
-          updatedFields.push(`title_es = $${paramIndex++}`);
-          queryParams.push(translatedTitle);
-        }
+      
+      // OPTIMIZED: Use parallel translation batch for all missing translations
+      const translationItems = [];
+      const translationMeta = []; // Track which field each translation belongs to
+      
+      // Check which translations are missing and queue them
+      if (!article.title_es && article.title) {
+        translationItems.push({ text: article.title, targetLanguageCode: 'es', type: 'title' });
+        translationMeta.push('title_es');
       }
-      if (!article.title_ht) {
-        const translatedTitle = await generateAITranslation(article.title, 'ht', 'title');
-        if (translatedTitle) {
-          updatedFields.push(`title_ht = $${paramIndex++}`);
-          queryParams.push(translatedTitle);
-        }
+      if (!article.title_ht && article.title) {
+        translationItems.push({ text: article.title, targetLanguageCode: 'ht', type: 'title' });
+        translationMeta.push('title_ht');
       }
-
-      // Translate summary if missing
-      if (!article.summary_es) {
-        const translatedSummary = await generateAITranslation(article.summary, 'es', 'summary');
-        if (translatedSummary) {
-          updatedFields.push(`summary_es = $${paramIndex++}`);
-          queryParams.push(translatedSummary);
-        }
+      if (!article.summary_es && article.summary) {
+        translationItems.push({ text: article.summary, targetLanguageCode: 'es', type: 'summary' });
+        translationMeta.push('summary_es');
       }
-      if (!article.summary_ht) {
-        const translatedSummary = await generateAITranslation(article.summary, 'ht', 'summary');
-        if (translatedSummary) {
-          updatedFields.push(`summary_ht = $${paramIndex++}`);
-          queryParams.push(translatedSummary);
-        }
+      if (!article.summary_ht && article.summary) {
+        translationItems.push({ text: article.summary, targetLanguageCode: 'ht', type: 'summary' });
+        translationMeta.push('summary_ht');
       }
-
-      // Translate raw_content if missing
-      if (!article.raw_content_es) {
-        const translatedContent = await generateAITranslation(article.raw_content, 'es', 'raw_content');
-        if (translatedContent) {
-          updatedFields.push(`raw_content_es = $${paramIndex++}`);
-          queryParams.push(translatedContent);
-        }
+      if (!article.raw_content_es && article.raw_content) {
+        translationItems.push({ text: article.raw_content, targetLanguageCode: 'es', type: 'raw_content' });
+        translationMeta.push('raw_content_es');
       }
-      if (!article.raw_content_ht) {
-        const translatedContent = await generateAITranslation(article.raw_content, 'ht', 'raw_content');
-        if (translatedContent) {
-          updatedFields.push(`raw_content_ht = $${paramIndex++}`);
-          queryParams.push(translatedContent);
-        }
+      if (!article.raw_content_ht && article.raw_content) {
+        translationItems.push({ text: article.raw_content, targetLanguageCode: 'ht', type: 'raw_content' });
+        translationMeta.push('raw_content_ht');
       }
-
-      if (updatedFields.length > 0) {
-        queryParams.push(article.id); // Add article ID as the last parameter
-        await pool.query(`UPDATE articles SET ${updatedFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`, queryParams);
-        processedCount++;
+      
+      if (translationItems.length > 0) {
+        console.log(`Generating ${translationItems.length} missing translations in parallel...`);
+        const translations = await aiService.translateBatch(translationItems);
+        
+        // Build update query dynamically
+        let updatedFields = [];
+        let queryParams = [];
+        let paramIndex = 1;
+        
+        translations.forEach((translation, index) => {
+          if (translation) {
+            updatedFields.push(`${translationMeta[index]} = $${paramIndex++}`);
+            queryParams.push(translation);
+          }
+        });
+        
+        if (updatedFields.length > 0) {
+          queryParams.push(article.id);
+          await pool.query(`UPDATE articles SET ${updatedFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`, queryParams);
+          processed = true;
+          message = `Generated ${updatedFields.length} translations successfully.`;
+        } else {
+          message = 'Translation generation returned no results.';
+        }
       } else {
         console.log(`No missing translations found for article ID ${article.id}.`);
+        message = 'No missing translations found.';
       }
     } else {
       message = `AI feature '${featureType}' is disabled for source ${source.name} or feature type is invalid. No processing needed.`;
@@ -1064,42 +965,35 @@ const reprocessTranslatedTopicsForSource = async (sourceId) => {
 
     for (const article of articlesToProcess) {
       try {
+        // OPTIMIZED: Use centralized AI service for topic translation with caching
         if (article.english_topics && article.english_topics.length > 0) {
           let translatedTopicsEs = [];
           let translatedTopicsHt = [];
 
           for (const topicName of article.english_topics) {
-            // Fetch translations from the topics table (more reliable than topicTranslations object)
             const topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
             let topicId;
             let currentTopicEs = topicResult.rows[0]?.name_es;
             let currentTopicHt = topicResult.rows[0]?.name_ht;
-            let preTranslatedEs = topicTranslations[topicName]?.es || null;
-            let preTranslatedHt = topicTranslations[topicName]?.ht || null;
+            
+            // Use centralized service for translations (includes caching)
+            let preTranslatedEs = await aiService.getTopicTranslation(topicName, 'es');
+            let preTranslatedHt = await aiService.getTopicTranslation(topicName, 'ht');
 
             if (topicResult.rows.length === 0) {
-              // This case should ideally not happen if topics are created during initial scrape,
-              // but adding a fallback to create and translate if missing.
-              if (!preTranslatedEs) preTranslatedEs = await generateAITranslation(topicName, 'es', 'general');
-              if (!preTranslatedHt) preTranslatedHt = await generateAITranslation(topicName, 'ht', 'general');
               const newTopicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
               topicId = newTopicResult.rows[0].id;
             } else {
               topicId = topicResult.rows[0].id;
-              // Prioritize pre-translated values, otherwise generate with AI if missing.
               let updatedEs = preTranslatedEs || currentTopicEs;
               let updatedHt = preTranslatedHt || currentTopicHt;
-
-              if (!updatedEs) updatedEs = await generateAITranslation(topicName, 'es', 'general');
-              if (!updatedHt) updatedHt = await generateAITranslation(topicName, 'ht', 'general');
 
               if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
                 await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
               }
-              preTranslatedEs = updatedEs; // Use the final determined translation for article topics
-              preTranslatedHt = updatedHt; // Use the final determined translation for article topics
+              preTranslatedEs = updatedEs;
+              preTranslatedHt = updatedHt;
             }
-            // Add translated topic names to the arrays
             if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
             if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
           }

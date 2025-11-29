@@ -1,12 +1,14 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid'); // For unique filenames
-const Groq = require('groq-sdk'); // Import Groq SDK
 const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
 const FormData = require('form-data'); // Import the form-data library
 
 // Import shared database pool to prevent connection exhaustion and reduce memory
 const { pool } = require('./db');
+
+// Import centralized AI service for optimized AI operations
+const aiService = require('./services/aiService');
 
 // Configure AWS S3
 const s3Client = new S3Client({
@@ -19,18 +21,12 @@ const s3Client = new S3Client({
 
 const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
 const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/synthesisTasks';
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const IDEOGRAM_API_KEY = process.env.IDEOGRAM_API_KEY;
-
-// Initialize Groq SDK
-const groq = new Groq({
-    apiKey: GROQ_API_KEY
-});
 
 if (!UNREAL_SPEECH_API_KEY) {
     console.error('[ERROR] UNREAL_SPEECH_API_KEY is not set in environment variables.');
 }
-if (!GROQ_API_KEY) {
+if (!process.env.GROQ_API_KEY) {
     console.error('[ERROR] GROQ_API_KEY is not set in environment variables.');
 }
 if (!IDEOGRAM_API_KEY) {
@@ -54,75 +50,17 @@ async function fetchWeeklyArticles() {
     return rows;
 }
 
+// OPTIMIZED: Use centralized AI service for weekly summary generation
 async function generateSundayEditionSummary(articles) {
-    let articleContents = '';
-    const maxInputLength = 80000; // Increased to allow more input for longer summaries
-    const maxArticlesToSummarize = 30; // Increased to allow more articles for summary
-
     // Sort articles by publication_date in descending order to prioritize recent articles
     const sortedArticles = [...articles].sort((a, b) => new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime());
 
-    let articlesProcessed = 0;
-    for (const article of sortedArticles) {
-        if (articlesProcessed >= maxArticlesToSummarize) {
-            console.warn(`[WARNING] Exceeded max articles to summarize (${maxArticlesToSummarize}). Skipping remaining articles.`);
-            break;
-        }
-
-        let contentToAdd = '';
-        if (article.summary && article.summary.length > 50) { // Only use summary if substantial
-            contentToAdd = `Title: ${article.title}\nSummary: ${article.summary}\n\n`;
-        } else {
-            continue; // Skip if no substantial summary
-        }
-
-        if ((articleContents + contentToAdd).length > maxInputLength) {
-            console.warn(`[WARNING] Exceeded max input length for Groq summary. Truncating article list.`);
-            break; // Stop adding articles if max length is reached
-        }
-        articleContents += contentToAdd;
-        articlesProcessed++;
-    }
-
-    if (articleContents.length === 0) {
-        console.warn('[WARNING] No sufficient article content to generate Sunday Edition summary.');
-        return "No sufficient article content.";
-    }
-
-    const prompt = `
-        You are a BBC news anchor. Your task is to summarize the following news articles from the past week into a cohesive, engaging, and informative news report.
-        The summary must be exactly 4250 characters long, or as close as possible to this maximum, and finish with a complete sentence. It is absolutely critical that the summary is comprehensive, highly detailed, and fully utilizes the entire 4250-character limit to provide an exhaustive report. Elaborate extensively on each important and interesting development, providing as much context and depth as possible, ensuring the output reaches the specified length.
-        Maintain a professional, objective, and authoritative tone, similar to a BBC news anchor.
-        Format the summary using Markdown for readability. Use paragraphs for distinct ideas, bullet points for lists, and bold text for emphasis on key phrases or names. Ensure clear sentence and paragraph breaks.
-        Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
-        Just provide the news report. Start with: "Welcome to this week's Sunday Edition. It is brought to you by mango.tc. Your one-stop shop for everything TCI!"
-
-        Weekly Articles (summaries or truncated content):
-        ${articleContents}
-    `;
-
-    if (!GROQ_API_KEY) {
-        console.error('[ERROR] Groq API key is missing. Cannot generate summary.');
-        return "Summary generation failed.";
-    }
-
-    console.log('[INFO] Full content sent to Groq for Sunday Edition summary generation:\n', prompt);
-
     try {
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
-            model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b for better summary generation
-            temperature: 0.7,
-            max_tokens: 1200, // Increased to allow for longer summaries up to ~4250 characters
-        });
-        return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
+        console.log('[INFO] Generating Sunday Edition summary using centralized AI service...');
+        const summary = await aiService.generateWeeklySummary(sortedArticles);
+        return summary;
     } catch (error) {
-        console.error(`[ERROR] Error generating Sunday Edition summary with Groq: ${error.message}`);
+        console.error(`[ERROR] Error generating Sunday Edition summary: ${error.message}`);
         return "Summary generation failed.";
     }
 }
@@ -234,59 +172,12 @@ async function generateNarration(summary) {
     }
 }
 
-// This function generates AI translations using the Groq API (copied from scraper.js)
+// OPTIMIZED: Use centralized AI service for translations with caching and retry
 const generateAITranslation = async (text, targetLanguageCode, type = 'general') => {
-    if (!text) {
-        return null;
-    }
-    console.log(`Generating AI translation for "${text}" to ${targetLanguageCode} (type: ${type}) using Groq...`);
-
-    let systemPrompt = '';
-    const languageName = targetLanguageCode === 'es' ? 'Spanish' : 'Haitian Creole';
-
-    if (type === 'title') {
-        systemPrompt = `Translate the following news article title into ${languageName}. The translation must be concise, direct, and suitable as a headline. Return only the translated title, without any introductory phrases, conversational filler, or additional explanations.`;
-    } else if (type === 'summary') {
-        systemPrompt = `Translate the following news article summary into ${languageName}. The translation must be a concise summary, not an expanded list of points or a full article. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence.Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
-    } else if (type === 'raw_content') {
-        systemPrompt = `Translate the following news article content into ${languageName}. Maintain the original formatting, including paragraphs and markdown. Ensure the translation is accurate and complete. Return only the translated content, without any introductory phrases, conversational filler, or additional explanations.`;
-    } else { // 'general' or other types
-        systemPrompt = `Translate the following text into ${languageName}. Return only the translated text, without any introductory phrases or conversational filler.`;
-    }
-
-    let currentMaxTokens = 500; // Default max tokens
-
-    if (type === 'title') {
-        currentMaxTokens = 100; // Shorter for titles
-    } else if (type === 'summary') {
-        currentMaxTokens = 200; // Shorter for summaries
-    } else if (type === 'raw_content') {
-        currentMaxTokens = 8192; // Adjust to Groq's maximum limit
-    }
-
     try {
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: systemPrompt
-                },
-                {
-                    role: "user",
-                    content: text,
-                }
-            ],
-            model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b for text generation
-            temperature: 0.3, // Keep temperature low for accurate translation
-            max_tokens: currentMaxTokens, // Dynamically set max tokens
-        });
-
-        const translation = chatCompletion.choices[0]?.message?.content || null;
-        console.log(`Generated translation for "${text}" to ${targetLanguageCode} (type: ${type}): "${translation}"`);
-        return translation;
-
-    } catch (llmErr) {
-        console.error(`Error generating translation for "${text}" to ${targetLanguageCode} (type: ${type}) with Groq:`, llmErr);
+        return await aiService.translateText(text, targetLanguageCode, type);
+    } catch (error) {
+        console.error(`Error generating translation to ${targetLanguageCode}:`, error);
         return null;
     }
 };
@@ -306,24 +197,8 @@ const generateAIImage = async (title, summary) => {
     const imagePromptInstructions = `Create a compelling news thumbnail image relevant to the Turks and Caicos Islands (TCI). The image should be visually striking and optimized for clicks. Focus on imagery that reflects the article's summary and the TCI context, such as local landmarks, relevant objects, or scenes, but avoid identifiable faces of residents to ensure authenticity and prevent misrepresentation. Use vibrant colors and high contrast. If text is necessary, keep it to a maximum of 2 relevant keywords in a bold, sans-serif font, avoiding the lower-right corner. Do not include any asterisk (*) characters in the text.`;
 
     try {
-        console.log('Optimizing image prompt using Groq...');
-        const promptOptimizationCompletion = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: `Combine the following image generation instructions with the provided article summary to create a single, optimized prompt for an image generation AI. The optimized prompt should be concise, descriptive, and adhere to the instructions while incorporating key elements from the summary. Extract up to 5 most relevant keywords from the summary to include in the prompt. Return only the optimized prompt string, no other text.`
-                },
-                {
-                    role: "user",
-                    content: `Instructions: ${imagePromptInstructions}\nSummary: ${summary}`
-                }
-            ],
-            model: "openai/gpt-oss-20b", // Changed to openai/gpt-oss-20b for text generation
-            temperature: 0.7,
-            max_tokens: 200,
-        });
-
-        const optimizedPrompt = promptOptimizationCompletion.choices[0]?.message?.content || `Local TCI news thumbnail based on: ${summary}`;
+        console.log('Optimizing image prompt using centralized AI service...');
+        const optimizedPrompt = await aiService.optimizeImagePrompt(imagePromptInstructions, summary);
 
         console.log('Generated optimized prompt:', optimizedPrompt);
 
