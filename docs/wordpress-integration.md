@@ -1,46 +1,114 @@
-# WordPress Widget Integration
+# WordPress Integration
 
-Multilingual support has been extended to the WordPress news feed widgets, allowing content to be displayed in English, Spanish, or Haitian Creole.
+Embed Mango News content in WordPress sites using widgets or HTML snippets.
 
-*   **Elementor Widget (`widgets/mango-news-feed-elementor-widget.php`)**:
-    *   A new **"Display Language"** control has been added to the widget settings in Elementor.
-    *   Administrators can select the desired language (English, Spanish, or Haitian Creole) for the articles, summaries, topics, and static UI text displayed by that specific widget instance.
+## Integration Methods
 
-*   **Direct HTML/JS Embed (`widgets/mango-news-direct-code.php`)**:
-    *   When embedding the news feed directly using the HTML/JS snippet, the display language can be set by modifying the `displayLanguage` property within the JavaScript `config` object.
-    *   Example: `displayLanguage: 'es',` for Spanish.
-    *   The `translations` object within the JavaScript also contains the necessary strings for each language.
+### 1. Elementor Widget
 
-*   **PHP Function & Shortcode (`widgets/mango-news-direct-code.php`)**:
-    *   The `mango_news_feed()` PHP function now accepts a `language` argument.
-    *   Example usage in a theme template: `<?php mango_news_feed(['language' => 'es']); ?>`
-    *   The `[mango_news_feed]` shortcode also accepts a `language` attribute.
-    *   Example usage in a post/page: `[mango_news_feed language="ht"]`
+For sites using Elementor:
 
-The widget will automatically fetch and display the appropriate translated content (titles, summaries, topics) from the API based on the configured language. If a translation is not available for a specific field, it will fall back to the English version.
+1. Open page in Elementor editor
+2. Drag "HTML Code" widget to your page
+3. Paste content from `widgets/mango-news-content.html`
 
-## Using HTML Files with Elementor
+**Language Control:** Set `displayLanguage` in the JavaScript config:
+```javascript
+const config = {
+  displayLanguage: 'es',  // 'en', 'es', or 'ht'
+  // ...
+};
+```
 
-The `widgets/` directory contains several HTML files (`mango-news-content.html`, `mango-news-single-article.html`, `mango-news-styles.html`). These files are designed to be directly pasted into an Elementor HTML Code Widget.
+### 2. Direct HTML/JS Embed
 
-To use them:
-1.  Open your WordPress page or post in Elementor.
-2.  Drag and drop an "HTML Code" widget onto your page.
-3.  Open the desired HTML file from the `widgets/` directory in a text editor.
-4.  Copy the entire content of the HTML file.
-5.  Paste the copied HTML content directly into the "HTML Code" area of the Elementor widget.
-6.  Save your changes in Elementor.
+Copy snippets directly into your theme or page:
 
-This method allows for quick integration of pre-designed news feed layouts or single article displays without requiring custom PHP development.
+**Files:**
+- `widgets/mango-news-content.html` - Full news feed
+- `widgets/mango-news-single-article.html` - Single article display
+- `widgets/mango-news-styles.html` - CSS styling
 
-## Editing Widgets in Elementor
+### 3. PHP Function / Shortcode
 
-To edit the news feed or single article widgets once they are placed on a WordPress page:
+Add to your theme's `functions.php` or use the provided widget file.
 
-1.  Log in to your WordPress admin dashboard.
-2.  Navigate to the page where the news feed or article widget is embedded.
-3.  Click on "Edit with Elementor" at the top of the page.
-4.  Within the Elementor editor, you can select and modify the settings of the Elementor widget (if using the Elementor Widget method) or directly edit the HTML/code within the HTML Code Widget (if using the Direct HTML/JS Embed method).
+**PHP Function:**
+```php
+<?php mango_news_feed(['language' => 'es']); ?>
+```
 
-**Note on News Feed Structure:**
-For the news feed display, the CSS styling and the JavaScript code are often split into separate files within the `widgets/` directory (e.g., `mango-news-styles.html` for CSS and `mango-news-content.html` for the HTML/JS structure). This separation allows for easier management and customization of the appearance and functionality.
+**Shortcode:**
+```
+[mango_news_feed language="ht"]
+```
+
+## Widget Files
+
+| File | Purpose |
+|------|---------|
+| `widgets/mango-news-content.html` | Main news feed HTML/JS |
+| `widgets/mango-news-single-article.html` | Single article embed |
+| `widgets/mango-news-styles.html` | CSS styles |
+
+## Multilingual Support
+
+The widgets respect the `displayLanguage` setting:
+
+- `en` - English (default)
+- `es` - Spanish
+- `ht` - Haitian Creole
+
+Translated content (titles, summaries, topics) is automatically displayed based on the configured language. Falls back to English if translation unavailable.
+
+## Configuration Options
+
+In the JavaScript config object:
+
+```javascript
+const config = {
+  apiUrl: 'https://your-backend-url.com/api',
+  displayLanguage: 'en',
+  articlesPerPage: 10,
+  showImages: true,
+  showSummary: true,
+  showTopics: true,
+  topicFilter: null,  // Filter by specific topic
+};
+```
+
+## Editing Widgets in WordPress
+
+1. Log in to WordPress admin
+2. Navigate to the page with the widget
+3. Click "Edit with Elementor"
+4. Select the HTML Code widget
+5. Modify the code/settings
+6. Save changes
+
+## Styling
+
+The `mango-news-styles.html` file contains CSS that can be customized:
+
+- Colors and fonts
+- Card layouts
+- Responsive breakpoints
+- Image sizing
+
+For custom styling, copy and modify the CSS classes.
+
+## API Requirements
+
+Widgets fetch data from the backend API:
+
+- `GET /api/articles` - Article list
+- `GET /api/articles/:id` - Single article
+- `GET /api/topics` - Topic list
+
+Ensure your backend CORS settings allow requests from your WordPress domain.
+
+## Related Documentation
+
+- [Frontend UI](frontend-ui.md) - Reference implementation
+- [API Documentation](api-documentation.md) - Endpoint details
+- [Multilingual Support](multilingual-support.md) - Translation system

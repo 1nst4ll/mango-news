@@ -1,171 +1,138 @@
-# mango.tc news Documentation
+# Mango News - TCI News Aggregator
 
-Welcome to the mango.tc news documentation. This guide provides comprehensive information on setting up, configuring, and using the mango.tc news application, including details on its backend, the new Astro-based frontend, and scraping functionalities.
+A comprehensive news aggregation platform for the Turks and Caicos Islands. The application scrapes news from multiple sources, processes content with AI for summaries, translations, and topic tagging, and presents it through a modern web interface.
 
-## Table of Contents
+## 🚀 Quick Start
 
-- [Server Deployment Instructions](../deployment.md) - **New**
-- [Backend Setup and Configuration](backend-setup.md)
-- [Scraping Methods (Open Source and Firecrawl)](scraping-methods.md)
-- [Using CSS Selectors for Scraping](css-selectors.md)
-- [Settings Page (Admin Controls and Source Management)](admin-ui.md) - **Updated to reflect combined page and new UI**
-- [Troubleshooting Common Issues](troubleshooting.md)
-- [Frontend UI Styling and Stack](frontend-ui.md) - **Updated to reflect Astro migration**
-- [Multilingual Support (Spanish & Haitian Creole)](multilingual-support.md) - **Updated**
-- [WordPress Widget Integration](wordpress-integration.md) - **New**
+### Prerequisites
 
-## Backend API Endpoints
+- **Node.js** (v18+)
+- **PostgreSQL** database
+- **API Keys:** Groq (AI), Ideogram (images), AWS S3 (storage)
 
-This section details the available API endpoints provided by the backend server.
+### Installation
 
-### Authentication Endpoints
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/mango-news.git
+cd mango-news
 
-The backend now supports user registration and login using JWT authentication.
+# Backend setup
+cd backend
+cp .env.example .env  # Configure your environment variables
+npm install
+npm run dev
 
-### POST /api/register
-
-Registers a new user. Requires `username` and `password` in the request body.
-
-### POST /api/login
-
-Logs in an existing user. Requires `username` and `password` in the request body. Returns a JWT upon successful login.
-
-### Protected Endpoints
-
-The following endpoints now require a valid JWT in the `Authorization: Bearer YOUR_TOKEN` header:
-
-*   `POST /api/sources`
-*   `PUT /api/sources/:id`
-*   `DELETE /api/sources/:id`
-*   `POST /api/scrape/run/:id`
-*   `POST /api/scrape/run`
-*   `POST /api/process-missing-ai/:sourceId`
-*   `POST /api/articles/purge`
-*   `POST /api/articles/purge/:sourceId`
-*   `GET /api/stats`
-*   `GET /api/settings/scheduler`
-*   `POST /api/settings/scheduler`
-*   `DELETE /api/articles/:id`
-*   `PUT /api/articles/:id/block`
-*   `POST /api/articles/:articleId/process-ai`
-
-### General API Endpoints
-
-These endpoints do not currently require authentication.
-
-### GET /api/sources
-
-Retrieves a list of all news sources.
-
-### POST /api/sources
-
-Adds a new news source.
-
-### PUT /api/sources/:id
-
-Updates an existing news source by ID.
-
-### DELETE /api/sources/:id
-
-Deletes a news source by ID.
-
-### GET /api/topics
-
-Retrieves a list of all topics.
-
-### GET /api/articles
-
-Retrieves a list of all articles. Supports filtering by `topic`, `startDate`, and `endDate` query parameters.
-
-### GET /api/articles/:id
-
-Retrieves a single article by ID.
-
-### POST /api/scrape/run/:id
-
-Triggers the scraper for a specific source by ID.
-
-### POST /api/scrape/run
-
-Triggers a full scraper run for all active sources.
-
-
-### POST /api/articles/purge
-
-Deletes all articles, topics, and article links from the database.
-
-### GET /api/stats
-
-Retrieves database statistics, including total article count, total source count, article count per source, and article count per year.
-
-**Response Example:**
-
-```json
-{
-  "totalArticles": 1500,
-  "totalSources": 10,
-  "articlesPerSource": [
-    {
-      "source_name": "Source A",
-      "article_count": 500
-    },
-    {
-      "source_name": "Source B",
-      "article_count": 300
-    },
-    // ... more sources
-  ],
-  "articlesPerYear": [
-    {
-      "year": 2023,
-      "article_count": 800
-    },
-    {
-      "year": 2024,
-      "article_count": 700
-    }
-    // ... more years
-  ]
-}
+# Frontend setup (new terminal)
+cd frontend
+cp .env.example .env  # Set PUBLIC_API_URL
+npm install
+npm run dev
 ```
 
-## Scraping Enhancements
+The backend runs on `http://localhost:3000` and frontend on `http://localhost:4321`.
 
-- **AI Topic Assignment:** Integrated AI using the Groq SDK in `backend/src/scraper.js` to analyze article content and assign exactly 3 relevant topics from a predefined list of 31 general topics (including Sport). This ensures consistent tagging across articles.
-- **AI Summary Generation:** Enhanced the AI summary generation in `backend/src/scraper.js` using Groq's Llama 3.3 70B model to create concise, SEO-optimized text summaries focusing on key information and relevant keywords.
-- **Relative Date Parsing:** Implemented logic in `backend/src/scraper.js` to parse relative date formats (e.g., "x days ago", "x hours ago") and convert them to absolute timestamps for accurate storage and display.
+## 📚 Documentation
 
-## Frontend Features
+| Document | Description |
+|----------|-------------|
+| [Backend Setup](docs/backend-setup.md) | Database setup, environment variables, authentication |
+| [API Documentation](docs/api-documentation.md) | Complete API endpoint reference |
+| [Deployment Guide](docs/deployment.md) | Production deployment on Render and other platforms |
+| [Frontend UI](docs/frontend-ui.md) | Astro/React frontend architecture and components |
+| [Scraping Methods](docs/scraping-methods.md) | Open-source (Puppeteer) and Firecrawl scraping |
+| [CSS Selectors](docs/css-selectors.md) | Guide for configuring source scraping selectors |
+| [Admin UI](docs/admin-ui.md) | Settings page and source management |
+| [Multilingual Support](docs/multilingual-support.md) | Spanish & Haitian Creole translations |
+| [Sunday Edition](docs/sunday-edition.md) | Weekly AI-generated news summary feature |
+| [WordPress Integration](docs/wordpress-integration.md) | Embedding news widgets in WordPress |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 
-This section outlines key features and components of the Mango News frontend application, which is being migrated to **Astro**.
+## 🏗️ Architecture
 
-### News Feed
+```
+mango-news/
+├── backend/           # Node.js/Express API server
+│   ├── src/
+│   │   ├── index.js          # Main server entry point
+│   │   ├── scraper.js        # Article scraping & AI processing
+│   │   ├── opensourceScraper.js  # Puppeteer-based scraper
+│   │   ├── browserPool.js    # Shared browser instance
+│   │   ├── db.js             # PostgreSQL connection pool
+│   │   └── sundayEditionGenerator.js  # Weekly summary feature
+│   └── config/
+│       └── blacklist.json    # URLs to exclude from scraping
+├── frontend/          # Astro + React frontend
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── pages/            # Astro pages with i18n routing
+│   │   ├── locales/          # Translation files (en, es, ht)
+│   │   └── layouts/          # Page layouts
+│   └── public/               # Static assets
+├── db/                # Database schema and migrations
+└── widgets/           # WordPress integration widgets
+```
 
-The News Feed component (`frontend/src/components/NewsFeed.tsx`) displays aggregated news articles.
-- **Multilingual Display:** Articles (titles, summaries, and topics) are displayed in the user's selected language (English, Spanish, or Haitian Creole) with AI-powered translations.
-- **Dynamic Topic Filtering:** Articles can be filtered by topic. The available topics are fetched dynamically from the backend API (`/api/topics`).
+## ✨ Key Features
 
-### Article Detail Page
+- **Multi-Source Scraping:** Aggregate news from multiple TCI news sources
+- **AI-Powered Processing:**
+  - Automatic article summaries (Groq/Llama)
+  - Topic classification (31 predefined topics)
+  - AI-generated images (Ideogram API)
+  - Translations (Spanish, Haitian Creole)
+- **Sunday Edition:** Weekly AI-narrated news summary with audio
+- **Admin Dashboard:** Source management, scraping controls, statistics
+- **RSS Feed:** Subscribe to news updates
+- **Responsive Design:** Mobile-first with dark/light mode
 
-The Article Detail page (`frontend/src/pages/article/[id].astro`) displays the full content of a selected news article.
-- **Multilingual Display:** The full article content (title, summary, main content, and topics) is displayed in the user's selected language (English, Spanish, or Haitian Creole) with AI-powered translations.
+## 🔧 Environment Variables
 
-### Multilingual Display
+### Backend (`backend/.env`)
 
-The frontend supports English, Spanish, and Haitian Creole. Users can switch languages via a language switcher in the header. Dynamic content, including article titles, summaries, main content, and topics, is displayed in the selected language, leveraging AI-powered translations from the backend. Static UI text is managed via locale files. For more details, refer to the [Multilingual Support](multilingual-support.md) documentation.
+```env
+# Database
+DB_HOST=localhost
+DB_NAME=mangonews
+DB_USER=mangoadmin
+DB_PASSWORD=your_password
 
-### Navigation
+# API Keys
+GROQ_API_KEY=your_groq_key
+IDEOGRAM_API_KEY=your_ideogram_key
+FIRECRAWL_API_KEY=your_firecrawl_key  # Optional
+UNREAL_SPEECH_API_KEY=your_unreal_key  # For Sunday Edition
 
-A persistent header component (`frontend/src/components/Header.tsx`) has been added to all main pages (`/`, `/settings`, and `/article/[id]`) to provide consistent navigation. The navigation links are defined in `frontend/src/lib/nav-items.ts`.
+# AWS S3
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=your_bucket
 
-### Settings Page
+# Auth
+JWT_SECRET=your_jwt_secret
+```
 
-The Admin Dashboard and Source Management features have been combined into a single Settings page (`frontend/src/pages/settings.astro`), utilizing the `SettingsPage.tsx` React component. This page provides a centralized location for managing news sources and controlling scraping processes, now including visual charts for database statistics.
+### Frontend (`frontend/.env`)
 
-### Styling and Branding
+```env
+PUBLIC_API_URL=http://localhost:3000
+```
 
-The frontend is styled using **Tailwind CSS** and leverages **shadcn/ui** components for a modern and consistent look and feel. Details on the frontend stack and styling can be found in [Frontend UI Styling and Stack](frontend-ui.md).
+## 🔐 Authentication
+
+Protected endpoints require JWT authentication:
+
+1. Register: `POST /api/register`
+2. Login: `POST /api/login` → Returns JWT token
+3. Use token: `Authorization: Bearer YOUR_TOKEN`
+
+See [API Documentation](docs/api-documentation.md) for protected endpoint list.
+
+## 📝 License
+
+ISC
 
 ---
 
-This documentation is a work in progress. If you find any issues or have suggestions for improvement, please contribute!
+For detailed documentation on specific features, see the [docs](docs/) folder.

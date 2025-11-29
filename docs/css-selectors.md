@@ -1,56 +1,147 @@
-# CSS Selectors Documentation
+# CSS Selectors for Scraping
 
-This document provides a guide to identifying and using CSS selectors for scraping various websites for the mango.tc news application.
+This guide helps you identify and configure CSS selectors for scraping news sources.
 
-## General Principles
+## Finding Selectors
 
--   Use browser developer tools (usually F12) to inspect the HTML structure of the page you want to scrape.
--   Identify unique classes, IDs, or tag structures that reliably contain the data you need (e.g., article title, content, date, author).
--   More specific selectors are generally better, but avoid overly complex or deeply nested selectors that might break if the site structure changes slightly.
--   Use online CSS selector testers to verify your selectors.
+1. Open the target website in your browser
+2. Right-click on the element you want to extract
+3. Select "Inspect" to open Developer Tools
+4. Identify unique classes, IDs, or tag structures
 
-## Common Selectors for News Articles (WordPress Examples)
+**Tips:**
+- Prefer classes/IDs over deeply nested selectors
+- Test selectors in browser console: `document.querySelector('your-selector')`
+- More specific = more reliable, but also more fragile to site changes
 
-Many news websites are built on platforms like WordPress, which often use standard class names.
+## Selector Types
 
--   **Article Title:**
-    -   `h1.entry-title`
-    -   `.single-title`
-    -   `article header h1`
--   **Article Content:**
-    -   `.entry-content`
-    -   `div.article-content`
-    -   `main article .content`
--   **Publication Date:**
-    -   `.entry-date`
-    -   `time.published`
-    -   `span.date`
--   **Author:**
-    -   `.author`
-    -   `.vcard fn`
-    -   `span.author-name`
--   **Thumbnail/Featured Image:**
-    -   `.post-thumbnail img` (use `::src` to get the image URL)
-    -   `.featured-image img` (use `::src` to get the image URL)
-    -   `meta[property='og:image']` (use `::content` to get the image URL from meta tags)
+### Title Selector
 
-## Selectors for turksandcaicoshta.com
+Targets the article headline:
+```css
+h1.entry-title
+article header h1
+.post-title
+```
 
-Based on the structure observed from scraping:
+### Content Selector
 
--   **Article Title:** `h1.entry-title`
--   **Article Content:** `.fl-post-content` (This seems to be the main content wrapper based on the markdown structure)
--   **Publication Date:** `.fl-post-meta .fl-post-date`
--   **Author:** `.fl-post-meta .vcard fn`
--   **Thumbnail:** `meta[property='og:image']::content` (Using the meta tag is often more reliable for the main thumbnail)
--   **Topics/Categories:** `.fl-post-cats a` (This targets the links within the category list)
+Targets the main article body:
+```css
+.entry-content
+article .content
+div.article-body
+main .post-content
+```
 
-Remember to verify these selectors using browser developer tools on the actual website.
+### Date Selector
 
-## Selectors for magneticmediatv.com
+Targets publication date:
+```css
+time.published
+.entry-date
+span.post-date
+meta[property='article:published_time']::attr(content)
+```
 
-For `magneticmediatv.com`, the article URLs often follow a `/year/month/slug/` format. Specific CSS selectors for content extraction would need to be identified by inspecting the site's HTML structure.
+### Author Selector
 
-## Updating Documentation
+Targets the author name:
+```css
+.author-name
+.byline a
+span.vcard .fn
+```
 
-After successfully identifying and using selectors for a new source, update this document with the specific selectors used for that source to maintain a record.
+### Thumbnail Selector
+
+Targets the featured image:
+```css
+.post-thumbnail img::src
+.featured-image img::src
+meta[property='og:image']::content
+img.wp-post-image::src
+```
+
+Use `::src` or `::attr(src)` to get the image URL instead of the element.
+
+### Topics Selector
+
+Targets category/tag links:
+```css
+.post-categories a
+.tags-links a
+.entry-meta .cat-links a
+```
+
+## Include/Exclude Selectors
+
+### Include Selectors
+
+Specify content areas to extract (comma-separated):
+```
+.article-content, .post-body
+```
+
+### Exclude Selectors
+
+Remove unwanted elements (comma-separated):
+```
+.advertisement, .sidebar, .social-share, .related-posts, .comments
+```
+
+## Common WordPress Patterns
+
+WordPress sites often use consistent class names:
+
+| Element | Common Selectors |
+|---------|-----------------|
+| Title | `h1.entry-title`, `.post-title` |
+| Content | `.entry-content`, `.post-content` |
+| Date | `.entry-date`, `time.published` |
+| Author | `.author`, `.vcard .fn` |
+| Thumbnail | `.post-thumbnail img`, `meta[property='og:image']` |
+| Categories | `.cat-links a`, `.post-categories a` |
+| Tags | `.tags-links a`, `.post-tags a` |
+
+## Source-Specific Examples
+
+### Example: WordPress News Site
+
+```
+os_title_selector: h1.entry-title
+os_content_selector: .entry-content
+os_date_selector: time.entry-date
+os_author_selector: .author-name
+os_thumbnail_selector: meta[property='og:image']::content
+os_topics_selector: .cat-links a
+include_selectors: .entry-content
+exclude_selectors: .sharedaddy, .jp-relatedposts, .comments
+```
+
+### Example: Custom CMS
+
+```
+os_title_selector: article h1
+os_content_selector: article .content
+os_date_selector: .article-meta .date
+os_author_selector: .article-meta .author
+os_thumbnail_selector: .hero-image img::src
+os_topics_selector: .article-tags a
+```
+
+## Debugging Selectors
+
+If scraping fails:
+
+1. **Check selector validity** - Paste into browser console
+2. **Verify site hasn't changed** - Websites update their HTML
+3. **Check for dynamic content** - May need to wait for JavaScript
+4. **Review backend logs** - See what content was extracted
+
+## Related Documentation
+
+- [Scraping Methods](scraping-methods.md) - Open Source vs Firecrawl
+- [Admin UI](admin-ui.md) - Configure selectors in UI
+- [Troubleshooting](troubleshooting.md) - Common scraping issues

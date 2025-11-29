@@ -1,194 +1,159 @@
 # Backend Setup and Configuration
 
-This document guides you through setting up and configuring the backend for the mango.tc news application.
+This guide covers setting up and configuring the Mango News backend.
 
 ## Prerequisites
 
-*   Node.js and npm installed.
-*   Access to a PostgreSQL database.
-*   A Groq API key for AI features (summaries and topic assignment).
-*   An Ideogram API key for AI image generation.
-*   AWS S3 credentials and a bucket for storing AI-generated images.
-*   A strong secret key for JWT authentication.
+- Node.js and npm installed
+- PostgreSQL database
+- API keys:
+  - **Groq API** - AI summaries and translations
+  - **Ideogram API** - AI image generation
+  - **AWS S3** - Image storage
+  - **Firecrawl API** - Optional, for Firecrawl scraping method
+  - **Unreal Speech API** - Optional, for Sunday Edition audio
 
 ## Database Setup
 
-The backend connects to a PostgreSQL database.
+### 1. Create Database
 
-1.  **Database Details:**
-    *   **Type:** PostgreSQL
-    *   **Host:** For local development, use `localhost`. For production, this will be your database server address (e.g., `mangonews.onrender.com`).
-    *   **Database Name:** `mangonews`
-    *   **Username:** `mangoadmin`
-    *   **Password:** This should be stored securely in your backend's `.env` file.
+```sql
+CREATE DATABASE mangonews;
+CREATE USER mangoadmin WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE mangonews TO mangoadmin;
+```
 
-2.  **Apply Schema:** Apply the database schema defined in [`../db/schema.sql`](../db/schema.sql) to your PostgreSQL database. This will create the initial tables.
-    **Important:** If you are upgrading an existing database, you will also need to run the migration script located at [`../db/migrations/add_translation_columns.sql`](../db/migrations/add_translation_columns.sql) to add the new translation columns to your `articles` and `topics` tables.
+### 2. Apply Schema
 
-3.  **New Database Columns for Translations:**
-*   **`articles` table:** Now includes `title_es`, `summary_es`, `raw_content_es`, `title_ht`, `summary_ht`, and `raw_content_ht` for Spanish and Haitian Creole translations of article titles, summaries, and raw content.
-    *   **`topics` table:** Now includes `name_es` and `name_ht` for Spanish and Haitian Creole translations of topic names.
+```bash
+cd db
+psql -U mangoadmin -d mangonews -f schema.sql
+```
 
-4.  **`sources` Table:** The `sources` table stores information about each news source. A new column, `scrape_after_date`, has been added to this table.
-    *   **`scrape_after_date` (TIMESTAMP WITH TIME ZONE):** This optional field allows you to specify a date. When set for a source, the scraper will only add articles published on or after this date. Articles published before this date will be ignored. This is useful for preventing the scraping of very old articles.
+The schema creates the following tables:
+- `users` - Authentication
+- `sources` - News source configurations
+- `articles` - Scraped articles with translations
+- `topics` - Topic tags with translations
+- `article_topics` - Article-topic relationships
+- `application_settings` - Scheduler and app settings
+- `sunday_editions` - Weekly summary posts
 
-## Backend Configuration
+### 3. Run Migrations
 
-1.  **Navigate to Backend Directory:** Open your terminal and change to the backend directory:
-    ```bash
-    cd backend
-    ```
+For existing databases, apply migrations:
 
-2.  **Install Dependencies:** Install the required Node.js packages:
-    ```bash
-    npm install pg aws-sdk uuid rss marked
-    ```
-    This installs the core backend dependencies, including `pg` for PostgreSQL, plus `aws-sdk` for S3 integration, `uuid` for generating unique filenames, `rss` for generating RSS feeds, and `marked` for converting Markdown to HTML.
+```bash
+psql -U mangoadmin -d mangonews -f db/migrations/add_translation_columns.sql
+psql -U mangoadmin -d mangonews -f db/migrations/add_sunday_editions_table.sql
+# Apply other migrations as needed
+```
 
-3.  **Environment Variables:** Environment variables are used to configure the backend, especially for sensitive information like database credentials and API keys. An example file, `.env.example`, is provided in the `backend` directory.
-    *   Copy the example file:
-        ```bash
-        cp .env.example .env
-        ```
-    *   Edit the newly created `.env` file and fill in the required values:
-        ```env
-        # Database Configuration
-        DB_HOST=localhost
-        DB_NAME=mangonews
-        DB_USER=mangoadmin
-        DB_PASSWORD=your_database_password
+## Installation
 
-        # API Keys
-        GROQ_API_KEY=your_groq_api_key
-        IDEOGRAM_API_KEY=your_ideogram_api_key
+```bash
+cd backend
+npm install
+cp .env.example .env
+```
 
-        # AWS S3 Configuration for AI Images
-        AWS_ACCESS_KEY_ID=your_aws_access_key_id
-        AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-        AWS_REGION=your_aws_region # e.g., us-east-1
-        S3_BUCKET_NAME=your_s3_bucket_name # The name of your S3 bucket
+## Environment Variables
 
-        # Firecrawl API Key (if needed directly by backend, otherwise handled by MCP)
-        FIRECRAWL_API_KEY=your_firecrawl_api_key # Required for Firecrawl scraping method
+Edit `backend/.env`:
 
-        # Authentication
-        JWT_SECRET=your_jwt_secret_key
-        ```
-    Replace the placeholder values with your actual credentials, keys, S3 bucket details, and a strong, unique secret key for `JWT_SECRET`. Note that `FIRECRAWL_API_KEY` is now explicitly required if you intend to use the Firecrawl scraping method.
+```env
+# Database
+DB_HOST=localhost
+DB_NAME=mangonews
+DB_USER=mangoadmin
+DB_PASSWORD=your_database_password
 
-4.  **Database Connection, AWS, and Authentication Configuration in Code:** The database connection details, AWS S3 configuration, and JWT secret are handled in `backend/src/index.js`, `backend/src/scraper.js`, and `backend/src/middleware/auth.js`. These files are configured to read sensitive details from environment variables (e.g., using `process.env.DB_PASSWORD`, `process.env.AWS_ACCESS_KEY_ID`, `process.env.JWT_SECRET`).
+# AI Services
+GROQ_API_KEY=your_groq_api_key
+IDEOGRAM_API_KEY=your_ideogram_api_key
+
+# AWS S3 (for AI-generated images)
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=your_s3_bucket_name
+
+# Optional
+FIRECRAWL_API_KEY=your_firecrawl_api_key  # For Firecrawl scraping
+UNREAL_SPEECH_API_KEY=your_unreal_key     # For Sunday Edition audio
+
+# Authentication
+JWT_SECRET=your_jwt_secret_key
+```
+
+## Running the Server
+
+```bash
+# Development (with hot reload)
+npm run dev
+
+# Production
+npm start
+```
+
+The API runs on `http://localhost:3000` by default.
 
 ## Authentication
 
-The backend now includes secure user registration and login using JWT (JSON Web Tokens) for authentication.
+The backend uses JWT authentication:
 
-*   **Registration:** Users can register via the `POST /api/register` endpoint. This requires a unique username and a password. Passwords are securely hashed using bcrypt before being stored in the database.
-*   **Login:** Registered users can log in via the `POST /api/login` endpoint. Upon successful login, a JWT is issued. This token should be included in the `Authorization` header of subsequent requests to protected endpoints in the format `Bearer YOUR_TOKEN`.
-*   **Protected Endpoints:** Several backend endpoints now require a valid JWT for access. These include endpoints for adding, updating, and deleting sources, triggering scraper runs, processing missing AI data, accessing database statistics and scheduler settings, and managing articles (delete, block, process AI).
+1. **Register:** `POST /api/register` with `{ username, password }`
+2. **Login:** `POST /api/login` → Returns `{ token }`
+3. **Protected Routes:** Include `Authorization: Bearer YOUR_TOKEN` header
+
+Protected endpoints include:
+- Source management (CRUD operations)
+- Scraper triggering
+- Article deletion/blocking
+- Statistics and settings
+
+See [API Documentation](api-documentation.md) for the complete endpoint reference.
 
 ## URL Blacklist
 
-The backend scraper includes a URL blacklist feature to prevent scraping specific articles or pages.
+Prevent scraping specific URLs by editing `backend/config/blacklist.json`:
 
-*   **Configuration File:** The blacklisted URLs are stored in a JSON file located at `backend/config/blacklist.json`.
-*   **Format:** The file should contain a JSON array of strings, where each string is a full URL to be blacklisted.
-
-    ```json
-    [
-      "https://example.com/article-to-exclude-1",
-      "https://anothersite.com/page/to/skip"
-    ]
-    ```
-*   **Adding URLs:** To add a URL to the blacklist, simply edit the `backend/config/blacklist.json` file and add the URL as a new string element in the JSON array. Ensure the JSON format remains valid.
-*   **Implementation:** The scraper (`backend/src/scraper.js` and `backend/src/opensourceScraper.js`) reads this file on startup and checks each potential article URL against the blacklist before attempting to scrape it. Blacklisted URLs are skipped.
-
-## Running the Backend
-
-You can run the backend server in different modes:
-
-*   **Production Mode:**
-    ```bash
-    npm start
-    ```
-    This will start the backend server, typically listening on port 3000.
-
-*   **Development Mode:**
-    ```bash
-    npm run dev
-    ```
-    This mode uses `nodemon` to automatically restart the server whenever code changes are detected, which is convenient for development.
-
-The backend API will be accessible at the address and port it is configured to listen on (defaulting to `http://localhost:3000` for local development).
-
-## Further Documentation
-
-*   [Server Deployment Instructions](../deployment.md)
-*   [Scraping Methods (Open Source and Firecrawl)](./scraping-methods.md)
-*   [Using CSS Selectors for Scraping](css-selectors.md)
-*   [Settings Page (Admin Controls and Source Management)](admin-ui.md)
-*   [Troubleshooting Common Issues](troubleshooting.md)
-
-## RSS Feed
-
-The backend provides an RSS feed of the latest articles. This endpoint has been implemented in `backend/src/index.js`.
-
-### `GET /api/rss`
-
-This endpoint returns an RSS feed in XML format.
-
-*   **Content:** The feed includes the latest 20 articles, ordered by publication date.
-*   **Fields per item:**
-    *   `title`: Article title.
-    *   `link`: URL to the article on the Mango News frontend (e.g., `https://mangonews.onrender.com/article/:id`).
-    *   `pubDate`: Publication date of the article.
-    *   `description`: AI-generated summary of the article, converted from Markdown to HTML. If an `ai_image_path` or `thumbnail_url` is available for the article, an `<img>` tag pointing to this image will be prepended to the HTML description. This allows for rich text formatting and an image in compatible RSS readers. (Defaults to "<p>No summary available.</p>" if no summary).
-    *   `guid`: The original URL of the article from the source website (used as a unique identifier).
-    *   `author`: The name of the news source.
-*   **Feed Details:**
-    *   `title`: "Mango News Feed"
-    *   `description`: "Latest news from Turks and Caicos Islands"
-    *   `feed_url`: The URL of the RSS feed itself (e.g., `https://mango.tc/api/rss`).
-    *   `site_url`: The main site URL (e.g., `https://mango.tc`).
-    *   `language`: "en-us"
-    *   `ttl`: 60 (minutes)
-
-## Processing Missing AI Data
-
-A new function, `processMissingAiForSource`, has been added to `backend/src/scraper.js`. This function allows you to process existing articles for a specific source and generate/assign missing AI-generated data (summary, tags, or image) based on the source's AI settings.
-
-This functionality is exposed via a new API endpoint:
-
-### `POST /api/process-missing-ai/:sourceId`
-
-This endpoint triggers the `processMissingAiForSource` function for the specified source.
-
-*   **URL Parameters:**
-    *   `:sourceId` (required): The ID of the source for which to process missing AI data.
-*   **Request Body:**
-    *   `featureType` (required): A string specifying which type of AI data to process. Must be one of:
-        *   `"summary"`: Process articles missing an AI summary.
-        *   `"tags"`: Process articles missing AI-assigned tags.
-        *   `"image"`: Process articles missing an AI-generated image (thumbnail).
-        *   `"translations"`: Process articles missing AI-generated Spanish or Haitian Creole titles/summaries.
-
-A fix has been implemented in the `processMissingAiForSource` function to address cases where AI summary generation previously failed. The function now correctly identifies and attempts to re-process articles where the `summary` field contains the specific text "Summary generation failed.", in addition to articles where the `summary` is `NULL`.
-*   **Response:**
-    *   Returns a JSON object indicating the success or failure of the operation, along with counts of processed articles and errors.
-
-**Example Usage (using `curl`):**
-
-```bash
-curl -X POST http://localhost:3000/api/process-missing-ai/123 \
--H "Content-Type: application/json" \
--d '{"featureType": "tags"}'
+```json
+[
+  "https://example.com/page-to-skip",
+  "https://another-site.com/unwanted-article"
+]
 ```
 
-(Replace `123` with the actual source ID and `http://localhost:3000` with your backend URL if not running locally.)
+The scraper checks URLs against this list using prefix matching.
 
-## AI Summary Prompt
+## Architecture
 
-The system prompt used for AI summary generation is located in the `backend/src/scraper.js` file within the `generateAISummary` function. The prompt has been updated to explicitly request only the summary text without any introductory phrases or conversational filler. The model used for summary generation is `meta-llama/llama-4-scout-17b-16e-instruct`.
+### Key Files
 
-## AI Image Prompt
+| File | Purpose |
+|------|---------|
+| `src/index.js` | Express server, API routes, graceful shutdown |
+| `src/scraper.js` | Article scraping, AI processing, cron jobs |
+| `src/opensourceScraper.js` | Puppeteer-based web scraping |
+| `src/browserPool.js` | Shared Puppeteer browser instance |
+| `src/db.js` | PostgreSQL connection pool |
+| `src/sundayEditionGenerator.js` | Weekly AI summary generation |
+| `src/user.js` | User authentication logic |
+| `src/middleware/auth.js` | JWT verification middleware |
 
-The system prompt used for AI image generation is located in the `backend/src/scraper.js` file within the `generateAIImage` function. The prompt has been updated to be more specific about the desired image content, focusing on imagery relevant to the Turks and Caicos Islands and reinforcing the instruction to avoid identifiable faces of residents while still reflecting the local context. The image generation process now uses Groq to optimize the prompt before sending it to the Ideogram API, ensuring better adherence to instructions and incorporation of article context. The Ideogram API is called with `rendering_speed: 'TURBO'`, `aspect_ratio: '16x9'`, `magic_prompt: 'OFF'`, and `style_type: 'REALISTIC'`.
+### Scheduled Jobs
+
+The backend runs three cron jobs (configured in Settings):
+
+1. **Main Scraper** - Fetches new articles from all active sources
+2. **Missing AI Processor** - Generates AI content for articles missing summaries/tags/images/translations
+3. **Sunday Edition** - Weekly news summary with audio narration
+
+## Related Documentation
+
+- [API Documentation](api-documentation.md) - Complete endpoint reference
+- [Scraping Methods](scraping-methods.md) - Open-source vs Firecrawl
+- [CSS Selectors](css-selectors.md) - Configuring source selectors
+- [Deployment](deployment.md) - Production deployment guide
+- [Troubleshooting](troubleshooting.md) - Common issues and solutions

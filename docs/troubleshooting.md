@@ -1,82 +1,199 @@
-# Troubleshooting Common Issues
+# Troubleshooting
 
-This document provides guidance on troubleshooting common issues you might encounter while setting up or using mango.tc news.
+Common issues and solutions for Mango News.
 
 ## Backend Issues
 
-### Backend Server Not Starting
+### Server Won't Start
 
--   **Check Node.js and npm/yarn installation:** Ensure Node.js and your package manager are correctly installed and in your system's PATH.
--   **Install Dependencies:** Navigate to the `backend` directory and run `npm install` or `yarn install` to ensure all dependencies are installed. Refer to [Backend Setup and Configuration](backend-setup.md#setup-steps) for setup details.
--   **Check Environment Variables:** Verify that your `.env` file exists in the `backend` directory and contains all necessary environment variables with correct values (e.g., `DATABASE_URL`, `FIRECRAWL_API_KEY`). See [Backend Setup and Configuration](backend-setup.md#environment-variables) for required environment variables.
--   **Database Connection:** Ensure your database server is running and that the database connection details in your backend configuration are correct. Refer to [Backend Setup and Configuration](backend-setup.md#database-setup) for database setup.
--   **Check Backend Logs:** Look for error messages in the backend server's console output for clues about what might be going wrong.
+**Symptoms:** Server crashes on startup
 
-### Scraping Errors
+**Solutions:**
+1. Check Node.js version: `node --version` (requires v18+)
+2. Install dependencies: `npm install` in backend directory
+3. Verify `.env` file exists with all required variables
+4. Check database connection settings
+5. Review console output for specific error messages
 
--   **Incorrect CSS Selectors:** If you are using the [Open Source scraping method](scraping-methods.md#open-source-scraping-puppeteerplaywright), incorrect or outdated CSS selectors are a common cause of scraping failures. Use your browser's developer tools to inspect the target website and verify your selectors. Refer to [Using CSS Selectors for Scraping](css-selectors.md) for guidance on finding selectors.
--   **Website Structure Changes:** Websites frequently update their structure, which can break existing selectors. You may need to update the selectors in the [Admin UI (Source Management section)](admin-ui.md#source-management).
--   **Dynamic Content:** If the content you are trying to scrape is loaded dynamically by JavaScript, ensure your scraping method (Open Source) is configured to wait for the page to load completely.
--   **Firecrawl API Issues:** If you are using [Firecrawl](scraping-methods.md#firecrawl-scraping), check your Firecrawl API key and ensure you have an active subscription. Refer to the Firecrawl documentation for API-specific troubleshooting.
--   **Network Issues:** Temporary network problems can cause scraping to fail. Try running the scraper again.
--   **Backend Logs:** Check the backend logs for detailed error messages related to scraping attempts.
+### Database Connection Failed
 
-### Blacklist Logic Not Working
+**Symptoms:** `Error: connect ECONNREFUSED` or similar
 
-If the scraper is not respecting the URLs listed in `backend/config/blacklist.json`, it might be due to how the blacklist is accessed or matched against scraped URLs.
+**Solutions:**
+1. Verify PostgreSQL is running
+2. Check `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` in `.env`
+3. Ensure database exists and user has permissions
+4. Check firewall/network if using remote database
 
-*   **Resolution:** The blacklist is now loaded via a dedicated function (`loadUrlBlacklist` in `backend/src/configLoader.js`) and accessed using a getter function (`getBlacklist`). To address issues with partial URL matches, the blacklist check now verifies if a scraped URL *starts with* any entry in the blacklist, rather than requiring an exact match. This ensures that URLs with additional parameters or paths are correctly excluded if their base matches a blacklisted entry. If you encounter issues with the blacklist, ensure that `loadUrlBlacklist` is called before any scraping or discovery process begins and that `getBlacklist()` is used to retrieve the blacklist array. This fix was implemented by modifying `backend/src/configLoader.js`, `backend/src/scraper.js`, and `backend/src/opensourceScraper.js`. Ensure your backend code is up-to-date with these changes.
+### Scraping Fails
 
-### `ReferenceError: urlBlacklist is not defined`
+**Symptoms:** No articles scraped, errors in logs
 
-This error occurs when the scraper attempts to access the `urlBlacklist` variable before it has been properly loaded from the `blacklist.json` file. This specific error should now be resolved by the changes made to use the `getBlacklist()` function instead of directly referencing the `urlBlacklist` variable.
+**Solutions:**
+1. **Check CSS selectors** - Website may have changed structure
+2. **Test selectors** in browser console: `document.querySelector('selector')`
+3. **Verify source is active** - Check `is_active` flag
+4. **Check article_link_template** - May be too restrictive or too broad
+5. **Review blacklist** - URL might be in `backend/config/blacklist.json`
+6. **Check network** - Site may be blocking requests
 
-*   **Resolution:** This error is addressed by using the `getBlacklist()` function from `backend/src/configLoader.js` to access the blacklist, ensuring it is always retrieved after being loaded. Ensure your backend code is updated to use `getBlacklist()` where the blacklist is needed.
+### AI Features Not Working
 
-### Groq API `max_tokens` Error
+**Symptoms:** Summaries/tags/images/translations not generated
 
-This error occurs when the `max_tokens` parameter sent to the Groq API for AI translation (especially for `raw_content`) exceeds the model's maximum allowed limit.
+**Solutions:**
+1. Verify API keys in `.env`: `GROQ_API_KEY`, `IDEOGRAM_API_KEY`
+2. Check source-level AI toggles are enabled
+3. For manual scrapes, check global AI toggles in Settings
+4. Review backend logs for API error responses
+5. Check API rate limits/quotas
 
-*   **Error Message Example:** `BadRequestError: 400 {"error":{"message":"`max_tokens` must be less than or equal to `8192`..."}}`
-*   **Resolution:** The `generateAITranslation` function in `backend/src/scraper.js` has been updated to cap the `max_tokens` for `raw_content` translations at `8192`, which is the current maximum allowed by the Groq API. Ensure your `backend/src/scraper.js` file is updated with this change.
+### Groq API Token Error
 
-### `ReferenceError: Cannot access 'articleId' before initialization`
+**Error:** `max_tokens must be less than or equal to 8192`
 
-This error occurs in the `processScrapedData` function when the `articleId` variable is used before it has been assigned a value, specifically when linking articles to topics.
+**Solution:** This is handled automatically. The `generateAITranslation` function caps tokens at 8192 for long content. If still occurring, update your backend code.
 
-*   **Resolution:** The logic within the `processScrapedData` function in `backend/src/scraper.js` has been reordered. The `articleId` is now retrieved from the database after the main article insertion, and then used to link the article to its assigned topics. Ensure your `backend/src/scraper.js` file is updated with this corrected flow.
+### Blacklist Not Working
+
+**Symptoms:** Blacklisted URLs still being scraped
+
+**Solution:** Ensure you're using `getBlacklist()` function from `configLoader.js`. The blacklist uses prefix matching - URLs starting with any blacklisted entry are blocked.
 
 ## Frontend Issues
 
-### Frontend Not Displaying Correctly
+### Page Not Displaying
 
--   **Frontend Server Not Running:** Ensure your frontend development server is running (typically `npm run dev` in the `astro-frontend` directory).
--   **Backend Server Not Running:** The frontend relies on the backend API. Ensure your backend server is running.
--   **API Endpoint Configuration:** Verify that the frontend is configured to connect to the correct backend API URL (check the fetch calls in the frontend code, e.g., in `astro-frontend/src/pages/settings.astro` or relevant component files).
--   **Browser Cache:** Clear your browser's cache and cookies to ensure you are loading the latest version of the frontend code.
--   **Console Errors:** Check the browser's developer console for any JavaScript errors.
+**Solutions:**
+1. Ensure frontend server is running: `npm run dev`
+2. Verify backend is running and accessible
+3. Check `PUBLIC_API_URL` in frontend `.env`
+4. Clear browser cache
+5. Check browser console for JavaScript errors
 
-### Theme Switcher
+### Theme Toggle Not Working
 
--   **Implementation:** The theme switcher is currently implemented as a simple toggle button that switches between light and dark mode on click. This was changed from a dropdown menu to address compatibility issues on iOS Safari.
+**Context:** Theme switcher uses a simple toggle button (not dropdown) for iOS Safari compatibility.
 
-### Authentication Errors (No Token Provided)
+**Solutions:**
+1. Clear localStorage: `localStorage.removeItem('theme')`
+2. Refresh page
+3. Check for JavaScript errors in console
 
-If you encounter "Authentication failed: No token provided" errors when performing actions like deleting articles, it indicates that the API request is missing the necessary JWT (JSON Web Token) in the `Authorization` header.
+### Authentication Errors
 
--   **Resolution:** Ensure you are logged in. The frontend automatically retrieves the JWT token from `localStorage` after a successful login and includes it in authenticated API requests (e.g., for deleting articles). If you are logged in and still face this issue, clear your browser's local storage and cookies, then log in again. Verify that the `jwtToken` is present in your browser's local storage after logging in.
+**Symptoms:** "No token provided" on protected actions
 
-## General Issues
+**Solutions:**
+1. Log in again - token may have expired
+2. Clear localStorage and cookies, then re-login
+3. Verify `jwtToken` exists in localStorage after login
+4. Check token is being included in requests (Authorization header)
 
-### Database Problems
+### Infinite Scroll Not Loading
 
--   **Database Server Status:** Ensure your database server is running.
--   **Database Credentials:** Double-check your database connection credentials in the backend configuration.
--   **Database Schema:** Verify that the necessary tables and columns exist in your database by checking the `db/schema.sql` file and running any pending migrations.
+**Symptoms:** News feed stops loading more articles
 
-If you encounter an issue that is not covered in this document, please refer to the specific error messages in your console or logs and consult the relevant documentation for the technologies being used (Node.js, your database system, Puppeteer/Playwright, Firecrawl, Next.js, React).
+**Solutions:**
+1. Check browser console for API errors
+2. Verify backend is responding to paginated requests
+3. Check network tab for failed requests
+4. Try refreshing the page
 
----
+## Database Issues
 
-Further Documentation:
-* [Server Deployment Instructions](../deployment.md)
+### Schema Not Applied
+
+**Symptoms:** "relation does not exist" errors
+
+**Solutions:**
+1. Apply schema: `psql -U user -d mangonews -f db/schema.sql`
+2. Run migrations if upgrading:
+   ```bash
+   psql -U user -d mangonews -f db/migrations/add_translation_columns.sql
+   psql -U user -d mangonews -f db/migrations/add_sunday_editions_table.sql
+   ```
+
+### Connection Pool Exhausted
+
+**Symptoms:** "Too many connections" errors, slow responses
+
+**Solutions:**
+1. The backend now uses a shared connection pool (`db.js`)
+2. Restart backend to release connections
+3. Check for connection leaks in custom code
+4. Increase `max` pool size if needed (default: 10)
+
+## Memory Issues
+
+### Server Restarts / OOM
+
+**Symptoms:** Backend crashes periodically, especially during scraping
+
+**Solutions:**
+1. **Browser pool is shared** - Single Puppeteer instance for all scraping
+2. **DB pool is shared** - Single PostgreSQL connection pool
+3. **JSDOM cleaned up** - Windows closed after each sanitization
+4. **Cron job locking** - Prevents overlapping scheduled tasks
+5. Set memory limit: `node --max-old-space-size=512 src/index.js`
+6. Monitor memory: Check logs for `[MEMORY]` entries
+
+## Scraping-Specific Issues
+
+### Wrong Articles Discovered
+
+**Problem:** Non-article pages being scraped
+
+**Solutions:**
+1. Make `article_link_template` more specific
+2. Add unwanted URL patterns to blacklist
+3. Use `exclude_patterns` to strip query parameters
+
+### Duplicate Articles
+
+**Problem:** Same article scraped multiple times
+
+**Solutions:**
+1. Add query parameters to `exclude_patterns` (e.g., `utm_source,fbclid`)
+2. Check for URL variations in database
+3. The scraper deduplicates by `source_url`
+
+### Old Articles Being Scraped
+
+**Solution:** Set `scrape_after_date` on the source to ignore historical content.
+
+## Deployment Issues
+
+### Render Restarts
+
+**Symptoms:** Backend service restarts frequently
+
+**Solutions:**
+1. Memory optimizations are built-in (see Memory Issues above)
+2. Check Render logs for specific errors
+3. Ensure all environment variables are set
+4. Verify graceful shutdown handlers are working (`SIGTERM` handling)
+
+### Frontend Build Fails
+
+**Solutions:**
+1. Check for TypeScript errors
+2. Ensure all dependencies installed: `npm install`
+3. Clear `.astro` cache directory
+4. Check Node.js version compatibility
+
+## Getting Help
+
+If issues persist:
+
+1. Check backend logs for detailed error messages
+2. Review relevant documentation linked below
+3. Search for error messages in codebase
+4. Check GitHub issues if this is a public repo
+
+## Related Documentation
+
+- [Backend Setup](backend-setup.md) - Configuration reference
+- [Scraping Methods](scraping-methods.md) - Scraper configuration
+- [CSS Selectors](css-selectors.md) - Selector debugging
+- [Deployment](deployment.md) - Production setup
