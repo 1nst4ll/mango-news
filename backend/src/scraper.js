@@ -1,7 +1,6 @@
 // Contains the main scraping logic, including AI integration and scheduling.
 require('dotenv').config({ path: './backend/.env' }); // Load environment variables from backend/.env
 
-const { Pool } = require('pg');
 const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting .default)
 const cron = require('node-cron'); // Import node-cron for scheduling
 const Groq = require('groq-sdk'); // Import Groq SDK
@@ -13,45 +12,58 @@ const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 const { createSundayEdition, generateAIImage, generateAITranslation } = require('./sundayEditionGenerator'); // Import Sunday Edition generator and AI functions
 
-const window = new JSDOM('').window;
-const DOMPurify = createDOMPurify(window);
+// Import shared database pool to prevent connection exhaustion
+const { pool } = require('./db');
+
+// Import browser pool utilities for memory monitoring
+const { getBrowserStatus, closeBrowser } = require('./browserPool');
 
 // Function to sanitize HTML content
+// Fixed to properly create and close JSDOM windows to prevent memory leaks
 const sanitizeHtml = (htmlString) => {
-  // Use DOMPurify for initial sanitization
-  let sanitizedContent = DOMPurify.sanitize(htmlString, {
-    USE_PROFILES: { html: true },
-    FORBID_TAGS: ['figure', 'link', 'br', 'span', 'div', 'tbody', 'table', 'tr'], // Forbid tags that were previously removed or flattened
-    ALLOW_TAGS: ['p', 'a', 'img'], // Explicitly allow only these tags
-    ALLOW_ATTR: ['href', 'rel', 'src'], // Explicitly allow only these attributes
-    KEEP_CONTENT: true // Keep content of forbidden tags
-  });
+  // Create a new JSDOM window for each sanitization to prevent memory leaks
+  const window = new JSDOM('').window;
+  const DOMPurify = createDOMPurify(window);
+  
+  try {
+    // Use DOMPurify for initial sanitization
+    let sanitizedContent = DOMPurify.sanitize(htmlString, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ['figure', 'link', 'br', 'span', 'div', 'tbody', 'table', 'tr'], // Forbid tags that were previously removed or flattened
+      ALLOW_TAGS: ['p', 'a', 'img'], // Explicitly allow only these tags
+      ALLOW_ATTR: ['href', 'rel', 'src'], // Explicitly allow only these attributes
+      KEEP_CONTENT: true // Keep content of forbidden tags
+    });
 
-  // After DOMPurify, apply the whitespace normalization and paragraph creation logic
-  // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
-  sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
+    // After DOMPurify, apply the whitespace normalization and paragraph creation logic
+    // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
+    sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
 
-  // Remove all &nbsp;
-  sanitizedContent = sanitizedContent.replace(/&nbsp;/g, '');
+    // Remove all &nbsp;
+    sanitizedContent = sanitizedContent.replace(/&nbsp;/g, '');
 
-  // Split content by newlines and wrap each non-empty line in <p> tags
-  let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
-  sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('\n');
+    // Split content by newlines and wrap each non-empty line in <p> tags
+    let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
+    sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('\n');
 
-  // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
-  sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');
-  sanitizedContent = sanitizedContent.replace(/<\/p>\s*<\/p>/g, '</p>');
+    // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
+    sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');
+    sanitizedContent = sanitizedContent.replace(/<\/p>\s*<\/p>/g, '</p>');
 
-  // Remove empty tags (e.g., <p></p>)
-  // This loop will run multiple times to catch nested empty tags.
-  let oldContent;
-  do {
-    oldContent = sanitizedContent;
-    // Regex to match any empty HTML tag, including those with whitespace/newlines between opening and closing tags
-    sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
-  } while (sanitizedContent !== oldContent);
+    // Remove empty tags (e.g., <p></p>)
+    // This loop will run multiple times to catch nested empty tags.
+    let oldContent;
+    do {
+      oldContent = sanitizedContent;
+      // Regex to match any empty HTML tag, including those with whitespace/newlines between opening and closing tags
+      sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
+    } while (sanitizedContent !== oldContent);
 
-  return sanitizedContent;
+    return sanitizedContent;
+  } finally {
+    // CRITICAL: Close the JSDOM window to release memory
+    window.close();
+  }
 };
 
 // Placeholder list of allowed topics (replace with actual topic fetching from DB if needed)
@@ -100,14 +112,8 @@ const topicTranslations = {
 };
 
 
-// Database connection pool (using the same pool as the API)
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT, // Default PostgreSQL port
-});
+// Note: Database pool is now imported from './db' to use a single shared pool
+// This prevents connection exhaustion and reduces memory overhead
 
 // Initialize Groq SDK
 const groq = new Groq({
@@ -662,93 +668,162 @@ const runScraper = async (enableGlobalAiSummary = true, enableGlobalAiTags = tru
     }
   }
 
-  console.log('News scraping process finished.');
+  console.log('[scraper] News scraping process finished.');
 };
 
+// ============================================================================
+// CRON JOB LOCKING - Prevents overlapping executions that cause memory spikes
+// ============================================================================
+let isMainScraperRunning = false;
+let isMissingAiJobRunning = false;
+let isSundayEditionRunning = false;
+
 // Schedule the scraper to run periodically (e.g., every hour)
-// TODO: Adjust the cron schedule as needed
-cron.schedule('0 * * * *', () => {
-  console.log('Running scheduled scraping job...');
-  runScraper();
+cron.schedule('0 * * * *', async () => {
+  if (isMainScraperRunning) {
+    console.log('[CRON] Main scraper job is already running. Skipping this execution.');
+    return;
+  }
+  
+  isMainScraperRunning = true;
+  console.log('[CRON] Starting scheduled scraping job...');
+  
+  try {
+    await runScraper();
+  } catch (error) {
+    console.error('[CRON] Error in scheduled scraping job:', error);
+  } finally {
+    isMainScraperRunning = false;
+    console.log('[CRON] Scheduled scraping job completed.');
+    logMemoryUsage();
+  }
 });
 
-console.log('News scraper scheduled to run.');
+console.log('[scraper] News scraper scheduled to run hourly.');
 
 // Schedule Sunday Edition generation (every Sunday at 00:00)
-// This schedule will be configurable via application_settings
-cron.schedule('0 0 * * 0', async () => { // Default to every Sunday at midnight
-  console.log('Running scheduled Sunday Edition generation job...');
-  // Fetch the Sunday Edition schedule from application_settings
-  const settingsResult = await pool.query(
-    `SELECT setting_value FROM application_settings WHERE setting_name = 'sunday_edition_frequency'`
-  );
-  const sundayEditionFrequency = settingsResult.rows[0]?.setting_value || '0 0 * * 0'; // Default if not set
-
-  // If the current cron job is not the one from settings, we might need to reschedule.
-  // For simplicity, we'll just run it if this default schedule triggers.
-  // A more robust solution would involve dynamically managing cron jobs.
-  console.log(`Sunday Edition scheduled frequency: ${sundayEditionFrequency}`);
-  await createSundayEdition();
-});
-
-console.log('Sunday Edition generation scheduled to run.');
-
-// Schedule processing of missing AI data (summary, tags, image, and translations) for all active sources every 20 minutes
-cron.schedule('*/20 * * * *', async () => {
-  console.log('Running scheduled missing AI data processing job...');
-  const activeSources = await getActiveSources(); // Fetch active sources inside the job
-
-  // Fetch scheduler settings from the database
-  const settingsResult = await pool.query(
-    `SELECT setting_name, setting_value FROM application_settings
-     WHERE setting_name IN ('enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations')`
-  );
-
-  const settings = settingsResult.rows.reduce((acc, row) => {
-    acc[row.setting_name] = row.setting_value;
-    return acc;
-  }, {});
-
-  const enableScheduledMissingSummary = settings.enable_scheduled_missing_summary !== undefined ? settings.enable_scheduled_missing_summary === 'true' : true;
-  const enableScheduledMissingTags = settings.enable_scheduled_missing_tags !== undefined ? settings.enable_scheduled_missing_tags === 'true' : true;
-  const enableScheduledMissingImage = settings.enable_scheduled_missing_image !== undefined ? settings.enable_scheduled_missing_image === 'true' : true;
-  const enableScheduledMissingTranslations = settings.enable_scheduled_missing_translations !== undefined ? settings.enable_scheduled_missing_translations === 'true' : true;
-
-
-  for (const source of activeSources) {
-    console.log(`Processing missing AI data for source: ${source.name} (ID: ${source.id})`);
-    // Process missing summaries
-    if (enableScheduledMissingSummary) {
-      await processMissingAiForSource(source.id, 'summary');
-    } else {
-      console.log(`Scheduled missing summary processing disabled for source ${source.name}.`);
-    }
-
-    // Process missing tags
-    if (enableScheduledMissingTags) {
-      await processMissingAiForSource(source.id, 'tags');
-    } else {
-      console.log(`Scheduled missing tags processing disabled for source ${source.name}.`);
-    }
-
-    // Process missing images
-    if (enableScheduledMissingImage) {
-      await processMissingAiForSource(source.id, 'image');
-    } else {
-      console.log(`Scheduled missing image processing disabled for source ${source.name}.`);
-    }
-
-    // Process missing translations
-    if (enableScheduledMissingTranslations) {
-      await processMissingAiForSource(source.id, 'translations');
-    } else {
-      console.log(`Scheduled missing translations processing disabled for source ${source.name}.`);
-    }
+cron.schedule('0 0 * * 0', async () => {
+  if (isSundayEditionRunning) {
+    console.log('[CRON] Sunday Edition job is already running. Skipping this execution.');
+    return;
   }
-  console.log('Finished scheduled missing AI data processing job.');
+  
+  isSundayEditionRunning = true;
+  console.log('[CRON] Running scheduled Sunday Edition generation job...');
+  
+  try {
+    // Fetch the Sunday Edition schedule from application_settings
+    const settingsResult = await pool.query(
+      `SELECT setting_value FROM application_settings WHERE setting_name = 'sunday_edition_frequency'`
+    );
+    const sundayEditionFrequency = settingsResult.rows[0]?.setting_value || '0 0 * * 0';
+    console.log(`[CRON] Sunday Edition scheduled frequency: ${sundayEditionFrequency}`);
+    await createSundayEdition();
+  } catch (error) {
+    console.error('[CRON] Error in Sunday Edition generation job:', error);
+  } finally {
+    isSundayEditionRunning = false;
+    console.log('[CRON] Sunday Edition job completed.');
+    logMemoryUsage();
+  }
 });
 
-  console.log('Missing AI data processing scheduled to run every 20 minutes.');
+console.log('[scraper] Sunday Edition generation scheduled to run.');
+
+// Schedule processing of missing AI data every 20 minutes
+cron.schedule('*/20 * * * *', async () => {
+  if (isMissingAiJobRunning) {
+    console.log('[CRON] Missing AI data job is already running. Skipping this execution.');
+    return;
+  }
+  
+  isMissingAiJobRunning = true;
+  console.log('[CRON] Running scheduled missing AI data processing job...');
+  
+  try {
+    const activeSources = await getActiveSources();
+
+    // Fetch scheduler settings from the database
+    const settingsResult = await pool.query(
+      `SELECT setting_name, setting_value FROM application_settings
+       WHERE setting_name IN ('enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations')`
+    );
+
+    const settings = settingsResult.rows.reduce((acc, row) => {
+      acc[row.setting_name] = row.setting_value;
+      return acc;
+    }, {});
+
+    const enableScheduledMissingSummary = settings.enable_scheduled_missing_summary !== undefined ? settings.enable_scheduled_missing_summary === 'true' : true;
+    const enableScheduledMissingTags = settings.enable_scheduled_missing_tags !== undefined ? settings.enable_scheduled_missing_tags === 'true' : true;
+    const enableScheduledMissingImage = settings.enable_scheduled_missing_image !== undefined ? settings.enable_scheduled_missing_image === 'true' : true;
+    const enableScheduledMissingTranslations = settings.enable_scheduled_missing_translations !== undefined ? settings.enable_scheduled_missing_translations === 'true' : true;
+
+
+    for (const source of activeSources) {
+      console.log(`[CRON] Processing missing AI data for source: ${source.name} (ID: ${source.id})`);
+      // Process missing summaries
+      if (enableScheduledMissingSummary) {
+        await processMissingAiForSource(source.id, 'summary');
+      } else {
+        console.log(`[CRON] Scheduled missing summary processing disabled for source ${source.name}.`);
+      }
+
+      // Process missing tags
+      if (enableScheduledMissingTags) {
+        await processMissingAiForSource(source.id, 'tags');
+      } else {
+        console.log(`[CRON] Scheduled missing tags processing disabled for source ${source.name}.`);
+      }
+
+      // Process missing images
+      if (enableScheduledMissingImage) {
+        await processMissingAiForSource(source.id, 'image');
+      } else {
+        console.log(`[CRON] Scheduled missing image processing disabled for source ${source.name}.`);
+      }
+
+      // Process missing translations
+      if (enableScheduledMissingTranslations) {
+        await processMissingAiForSource(source.id, 'translations');
+      } else {
+        console.log(`[CRON] Scheduled missing translations processing disabled for source ${source.name}.`);
+      }
+    }
+  } catch (error) {
+    console.error('[CRON] Error in missing AI data processing job:', error);
+  } finally {
+    isMissingAiJobRunning = false;
+    console.log('[CRON] Finished scheduled missing AI data processing job.');
+    logMemoryUsage();
+  }
+});
+
+console.log('[scraper] Missing AI data processing scheduled to run every 20 minutes.');
+
+// ============================================================================
+// MEMORY MONITORING - Helps diagnose memory issues
+// ============================================================================
+const logMemoryUsage = () => {
+  const used = process.memoryUsage();
+  const browserStatus = getBrowserStatus();
+  console.log(`[MEMORY] RSS: ${Math.round(used.rss / 1024 / 1024)}MB, Heap Used: ${Math.round(used.heapUsed / 1024 / 1024)}MB, Heap Total: ${Math.round(used.heapTotal / 1024 / 1024)}MB, External: ${Math.round(used.external / 1024 / 1024)}MB`);
+  console.log(`[BROWSER] Connected: ${browserStatus.isConnected}, PID: ${browserStatus.pid || 'N/A'}`);
+};
+
+// Log memory usage every 5 minutes when not in active jobs
+setInterval(() => {
+  if (!isMainScraperRunning && !isMissingAiJobRunning && !isSundayEditionRunning) {
+    logMemoryUsage();
+  }
+}, 5 * 60 * 1000);
+
+// Export job status for monitoring
+const getJobStatus = () => ({
+  isMainScraperRunning,
+  isMissingAiJobRunning,
+  isSundayEditionRunning,
+});
 
 
 // Function to process AI data for a single article

@@ -1,5 +1,6 @@
 // Contains the logic for the open-source scraping method using Puppeteer.
-const puppeteer = require('puppeteer');
+// Updated to use browser pool to prevent memory leaks from launching multiple browsers
+const { getPage, closePage, getBrowser } = require('./browserPool');
 const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import from configLoader
 
 /**
@@ -13,46 +14,34 @@ const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import 
  * @returns {Promise<object|null>} - A promise that resolves with the scraped article data or null if scraping fails after retries or if the article is older than scrapeAfterDate.
  */
 async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3, delay = 1000) {
-  console.log(`Starting article scraping for: ${url} (Attempt ${4 - retries})`);
+  console.log(`[opensourceScraper] Starting article scraping for: ${url} (Attempt ${4 - retries})`);
   await loadUrlBlacklist(); // Ensure blacklist is loaded before checking
 
   // Check if the URL is in the blacklist by checking if it starts with any blacklisted entry
   const blacklist = getBlacklist();
   const isBlacklisted = blacklist.some(blacklistedUrl => url.startsWith(blacklistedUrl));
   if (isBlacklisted) {
-    console.log(`URL ${url} is in the opensource blacklist. Skipping scraping.`);
+    console.log(`[opensourceScraper] URL ${url} is in the opensource blacklist. Skipping scraping.`);
     return null; // Skip scraping if blacklisted
   }
 
-  let browser;
+  let page = null;
   try {
-    browser = await puppeteer.launch({
-      headless: true, // Use headless mode
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    });
-    const page = await browser.newPage();
+    // Use shared browser pool instead of launching new browser each time
+    // This prevents memory leaks from 100-300MB per browser instance
+    page = await getPage();
 
-    // Set a reasonable timeout for page navigation
-    await page.setDefaultNavigationTimeout(30000); // 30 seconds
-
-    console.log(`Attempting to navigate to ${url}`);
+    console.log(`[opensourceScraper] Attempting to navigate to ${url}`);
     try {
-      await page.goto(url, { waitUntil: 'domcontentloaded' });
-      console.log(`Successfully navigated to ${url}`);
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      console.log(`[opensourceScraper] Successfully navigated to ${url}`);
     } catch (navError) {
-      console.error(`Navigation failed for ${url}:`, navError);
+      console.error(`[opensourceScraper] Navigation failed for ${url}:`, navError.message);
+      await closePage(page); // Clean up page before retry
       if (retries > 0) {
-        console.log(`Retrying navigation for ${url} in ${delay}ms...`);
+        console.log(`[opensourceScraper] Retrying navigation for ${url} in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return scrapeArticle(url, selectors, retries - 1, delay * 2); // Exponential backoff
+        return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
       }
       return null; // Return null if navigation fails after retries
     }
@@ -252,11 +241,12 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
 
         // Basic validation of scraped data
         if (!articleData || !articleData.title || !articleData.content) {
-            console.warn(`Scraped data incomplete for ${url}:`, articleData);
+            console.warn(`[opensourceScraper] Scraped data incomplete for ${url}:`, articleData);
+            await closePage(page); // Clean up page before retry
              if (retries > 0) {
-                console.log(`Retrying scraping for ${url} in ${delay}ms...`);
+                console.log(`[opensourceScraper] Retrying scraping for ${url} in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
-                return scrapeArticle(url, selectors, retries - 1, delay * 2); // Exponential backoff
+                return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
             }
             return null; // Return null if essential data is missing after retries
         }
@@ -271,22 +261,25 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
           filterDate.setHours(0, 0, 0, 0);
 
           if (articleDate < filterDate) {
-            console.log(`Article "${articleData.title}" (${url}) is older than the scrape after date (${scrapeAfterDate}). Skipping.`);
+            console.log(`[opensourceScraper] Article "${articleData.title}" (${url}) is older than the scrape after date (${scrapeAfterDate}). Skipping.`);
+            await closePage(page); // Clean up page
             return null; // Return null if the article is older than the filter date
           }
-           console.log(`Article "${articleData.title}" (${url}) is on or after the scrape after date (${scrapeAfterDate}). Including.`);
+           console.log(`[opensourceScraper] Article "${articleData.title}" (${url}) is on or after the scrape after date (${scrapeAfterDate}). Including.`);
         } else if (scrapeAfterDate && !articleData.publication_date) {
-           console.warn(`Scrape after date is set (${scrapeAfterDate}), but no publication date found for article "${articleData.title}" (${url}). Including as date cannot be verified.`);
+           console.warn(`[opensourceScraper] Scrape after date is set (${scrapeAfterDate}), but no publication date found for article "${articleData.title}" (${url}). Including as date cannot be verified.`);
         }
         // --- End Date Filtering Logic ---
 
 
-        console.log(`Successfully scraped article from ${url}`);
+        console.log(`[opensourceScraper] Successfully scraped article from ${url}`);
+        await closePage(page); // Clean up page after successful scrape
         return articleData;
     } catch (evalError) {
-        console.error(`Error during page evaluation for ${url}:`, evalError);
+        console.error(`[opensourceScraper] Error during page evaluation for ${url}:`, evalError.message);
+        await closePage(page); // Clean up page before retry
          if (retries > 0) {
-            console.log(`Retrying scraping for ${url} in ${delay}ms...`);
+            console.log(`[opensourceScraper] Retrying scraping for ${url} in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
         }
@@ -295,19 +288,17 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
 
 
       } catch (error) {
-        console.error(`Error scraping article from ${url}:`, error);
+        console.error(`[opensourceScraper] Error scraping article from ${url}:`, error.message);
+        await closePage(page); // Clean up page before retry
          if (retries > 0) {
-            console.log(`Retrying scraping for ${url} in ${delay}ms...`);
+            console.log(`[opensourceScraper] Retrying scraping for ${url} in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
         }
         return null;
-      } finally {
-        if (browser) {
-          await browser.close();
-          console.log(`Browser closed for ${url}`);
-        }
       }
+      // Note: We don't close the browser here anymore since we're using a shared pool
+      // The page is closed in the individual try/catch blocks or on success
     }
 
 // Helper function to build regex from article link template
@@ -355,29 +346,18 @@ function buildTemplateRegex(template) {
  */
 async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatterns, limit = 100) {
   await loadUrlBlacklist(); // Ensure blacklist is loaded before discovery
-  let browser;
+  let page = null;
   const articleUrls = new Set();
   const excludeParams = excludePatterns ? excludePatterns.split(',').map(p => p.trim()) : [];
   const visitedUrls = new Set();
   const urlsToVisit = [{ url: sourceUrl, depth: 0 }];
   const maxDepth = 1; // Limit crawling depth for discovery
 
-  console.log(`Starting article URL discovery for: ${sourceUrl} (Limit: ${limit})`);
+  console.log(`[opensourceScraper] Starting article URL discovery for: ${sourceUrl} (Limit: ${limit})`);
 
   try {
-    browser = await puppeteer.launch({
-      headless: true, // Use headless mode
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    });
-    const page = await browser.newPage();
+    // Use shared browser pool instead of launching new browser
+    page = await getPage();
     const sourceHostname = new URL(sourceUrl).hostname;
 
     // Convert template to a regex pattern using the helper function
@@ -498,17 +478,16 @@ async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatter
       }
     }
 
-    console.log(`Finished discovery. Discovered ${articleUrls.size} potential article URLs.`);
+    console.log(`[opensourceScraper] Finished discovery. Discovered ${articleUrls.size} potential article URLs.`);
+    await closePage(page); // Clean up page
     return Array.from(articleUrls);
 
   } catch (error) {
-    console.error(`Error discovering article URLs from ${sourceUrl}:`, error);
+    console.error(`[opensourceScraper] Error discovering article URLs from ${sourceUrl}:`, error.message);
+    await closePage(page); // Clean up page on error
     return [];
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
+  // Note: We don't close the browser here anymore since we're using a shared pool
 }
 
 

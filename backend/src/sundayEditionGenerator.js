@@ -1,10 +1,12 @@
-const { Pool } = require('pg');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid'); // For unique filenames
 const Groq = require('groq-sdk'); // Import Groq SDK
 const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
 const FormData = require('form-data'); // Import the form-data library
+
+// Import shared database pool to prevent connection exhaustion and reduce memory
+const { pool } = require('./db');
 
 // Configure AWS S3
 const s3Client = new S3Client({
@@ -13,15 +15,6 @@ const s3Client = new S3Client({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     },
-});
-
-// Configure PostgreSQL
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: 5432,
 });
 
 const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;

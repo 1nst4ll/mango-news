@@ -5,7 +5,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const axios = require('axios'); // Import axios
-const { Pool } = require('pg'); // Import Pool from pg
 const RSS = require('rss'); // Import RSS
 const { marked } = require('marked'); // Import marked
 const { v4: uuidv4 } = require('uuid'); // For unique filenames
@@ -16,6 +15,11 @@ const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTra
 const { createSundayEdition } = require('./sundayEditionGenerator'); // Import createSundayEdition function
 const { registerUser, loginUser } = require('./user'); // Import user management functions
 const authenticateToken = require('./middleware/auth'); // Import authentication middleware
+
+// Import shared database pool and browser pool for centralized resource management
+// This prevents connection exhaustion and reduces memory overhead
+const { pool, testConnection, closePool } = require('./db');
+const { closeBrowser } = require('./browserPool');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -43,24 +47,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// PostgreSQL Database Pool
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
-
-// Test database connection
-pool.connect((err, client, done) => {
-  if (err) {
-    console.error(`[ERROR] ${new Date().toISOString()} - Database connection failed:`, err);
-  } else {
-    console.log(`[INFO] ${new Date().toISOString()} - Database connected successfully`);
-  }
-  done(); // This also releases the client
-});
+// Test database connection on startup
+testConnection();
 
 
 // API Endpoints
@@ -1457,6 +1445,46 @@ app.use((err, req, res, next) => {
     return next(err);
   }
   res.status(500).json({ error: 'Internal Server Error', details: err.message });
+});
+
+// ============================================================================
+// GRACEFUL SHUTDOWN - Properly close resources to prevent memory leaks
+// ============================================================================
+const shutdown = async (signal) => {
+  console.log(`[INFO] ${new Date().toISOString()} - Received ${signal}. Starting graceful shutdown...`);
+  
+  try {
+    // Close the browser pool first (Puppeteer instances)
+    console.log(`[INFO] ${new Date().toISOString()} - Closing browser pool...`);
+    await closeBrowser();
+    console.log(`[INFO] ${new Date().toISOString()} - Browser pool closed.`);
+    
+    // Close the database pool
+    console.log(`[INFO] ${new Date().toISOString()} - Closing database pool...`);
+    await closePool();
+    console.log(`[INFO] ${new Date().toISOString()} - Database pool closed.`);
+    
+    console.log(`[INFO] ${new Date().toISOString()} - Graceful shutdown complete.`);
+    process.exit(0);
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - Error during graceful shutdown:`, error);
+    process.exit(1);
+  }
+};
+
+// Listen for termination signals (Render sends SIGTERM)
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  console.error(`[ERROR] ${new Date().toISOString()} - Uncaught Exception:`, error);
+  shutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error(`[ERROR] ${new Date().toISOString()} - Unhandled Rejection at:`, promise, 'reason:', reason);
+  // Don't shutdown on unhandled rejection, just log it
 });
 
 module.exports = { pool };
