@@ -255,7 +255,20 @@ const generateSummary = async (content) => {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) to emphasize key facts, names, or figures. The summary should be between 80 to 100 words, providing enough detail to inform the reader while remaining concise. Ensure the summary ends on a complete sentence. Do not include any links or URLs in the summary. Return only the summary text, without any introductory phrases or conversational filler."
+          content: `You are a professional news editor for Mango News, a news aggregator serving the Turks and Caicos Islands (TCI). Generate a concise, SEO-optimized summary of the provided article.
+
+Requirements:
+- Length: 80-100 words (strictly enforced)
+- Focus on the 5 W's: Who, What, When, Where, Why
+- Lead with the most newsworthy information
+- Include 2-3 relevant keywords naturally for SEO
+- Use markdown bold (**text**) to highlight 1-2 key facts, names, or figures
+- Write in active voice with an engaging, professional tone
+- End with a complete sentence
+- Do not include URLs, links, or hashtags
+- Do not use AI-typical phrases like "This article discusses..." or "In summary..."
+
+Output: Return ONLY the summary text, no preamble or explanations.`
         },
         {
           role: "user",
@@ -310,7 +323,17 @@ const assignTopics = async (content) => {
       messages: [
         {
           role: "system",
-          content: `Analyze the following news article content and identify the 3 most relevant topics from the provided list. Return only a comma-separated list of exactly 3 topics. The topics must be from this list: ${TOPICS_LIST.join(', ')}. Do not include any other text.`
+          content: `Classify the following news article into exactly 3 topics from the provided list. Analyze the main subject, secondary themes, and overall context.
+
+Available topics: ${TOPICS_LIST.join(', ')}
+
+Rules:
+1. Select exactly 3 topics, ordered by relevance (most relevant first)
+2. Topics MUST be from the provided list (exact match required)
+3. If fewer than 3 topics clearly apply, select the closest relevant alternatives
+4. Consider both explicit and implicit themes in the content
+
+Output format: Return ONLY a comma-separated list of 3 topics (e.g., "Politics, Economy, Local News"). No additional text.`
         },
         {
           role: "user",
@@ -318,7 +341,7 @@ const assignTopics = async (content) => {
         }
       ],
       model: CONFIG.MODELS.TOPICS,
-      temperature: 0.5,
+      temperature: 0.3,
       max_tokens: CONFIG.MAX_TOKENS.TOPICS,
     });
 
@@ -357,6 +380,9 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
   console.log(`[AI Service] Translating ${type} to ${targetLanguageCode}...`);
   
   const languageName = targetLanguageCode === 'es' ? 'Spanish' : 'Haitian Creole';
+  const languageSpecificGuideline = targetLanguageCode === 'ht'
+    ? '- For Haitian Creole: Use modern Kreyòl orthography. Technical terms and English loan words commonly used in Caribbean contexts may be preserved.'
+    : '- For Spanish: Use Caribbean/Latin American Spanish conventions, avoiding regional terms from Spain.';
   
   // Build system prompt based on type
   let systemPrompt = '';
@@ -364,17 +390,53 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
   let maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_CONTENT;
   
   if (type === 'title') {
-    systemPrompt = `Translate the following news article title into ${languageName}. The translation must be concise, direct, and suitable as a headline. Return only the translated title, without any introductory phrases, conversational filler, or additional explanations.`;
+    systemPrompt = `Translate this news headline into ${languageName} for a Caribbean audience.
+
+Guidelines:
+- Keep the translation concise and punchy, suitable for a headline
+- Preserve proper nouns (names of people, places, organizations) unless they have standard translations
+- Maintain the urgency and news value of the original
+- Avoid literal word-for-word translation; prioritize natural ${languageName} phrasing
+${languageSpecificGuideline}
+
+Output: Return ONLY the translated headline, nothing else.`;
     maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_TITLE;
     maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_TITLE;
   } else if (type === 'summary') {
-    systemPrompt = `Translate the following news article summary into ${languageName}. Preserve the same level of detail and length as the original. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information where present in the original. Ensure the summary ends on a complete sentence. Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
+    systemPrompt = `Translate this news summary into ${languageName} for readers in the Caribbean region.
+
+Guidelines:
+- Preserve the original meaning, tone, and length
+- Maintain markdown formatting (including **bold text**)
+- Keep proper nouns intact unless they have established translations
+- Use natural ${languageName} phrasing rather than literal translation
+- End with a complete sentence
+${languageSpecificGuideline}
+
+Output: Return ONLY the translated summary, no preamble or notes.`;
     maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_SUMMARY;
     maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_SUMMARY;
   } else if (type === 'raw_content') {
-    systemPrompt = `Translate the following news article content into ${languageName}. Maintain the original formatting, including paragraphs and markdown. Ensure the translation is accurate and complete. Return only the translated content, without any introductory phrases, conversational filler, or additional explanations.`;
+    systemPrompt = `Translate this news article content into ${languageName} for Caribbean readers.
+
+Guidelines:
+- Maintain all original formatting: paragraphs, line breaks, and markdown
+- Preserve proper nouns (names, places, organizations) unless they have standard translations
+- Use natural, fluent ${languageName} rather than literal translation
+- Keep the same paragraph structure as the original
+- Preserve any quotes as direct translations
+${languageSpecificGuideline}
+
+Output: Return ONLY the translated content, maintaining the exact structure of the original.`;
   } else {
-    systemPrompt = `Translate the following text into ${languageName}. Return only the translated text, without any introductory phrases or conversational filler.`;
+    systemPrompt = `Translate the following text into ${languageName} for a Caribbean audience.
+
+Guidelines:
+- Use natural ${languageName} phrasing
+- Preserve proper nouns unless they have standard translations
+${languageSpecificGuideline}
+
+Output: Return ONLY the translated text, nothing else.`;
   }
   
   // Truncate if needed
@@ -498,11 +560,26 @@ const optimizeImagePrompt = async (instructions, summary) => {
       messages: [
         {
           role: "system",
-          content: `Combine the following image generation instructions with the provided article summary to create a single, optimized prompt for an image generation AI. The optimized prompt should be concise, descriptive, and adhere to the instructions while incorporating key elements from the summary. Extract up to 5 most relevant keywords from the summary to include in the prompt. Ensure the complete prompt is returned without truncation. Return only the optimized prompt string, no other text.`
+          content: `You are an expert at crafting prompts for AI image generation. Create an optimized image generation prompt by combining the provided instructions with key visual elements from the article summary.
+
+Process:
+1. Extract 3-5 key visual elements from the summary
+2. Identify the main subject/scene that would represent the article
+3. Incorporate Turks and Caicos Islands visual context where relevant
+4. Structure the prompt for maximum image generation effectiveness
+
+Output Requirements:
+- Length: 50-150 words (optimal for image AI)
+- Start with the main subject/scene
+- Include specific visual descriptors (colors, lighting, composition)
+- End with style keywords
+- Do NOT include negative prompts (those are handled separately)
+
+Output: Return ONLY the optimized prompt text, ready for image generation.`
         },
         {
           role: "user",
-          content: `Instructions: ${instructions}\nSummary: ${truncatedSummary}`
+          content: `Base Instructions: ${instructions}\n\nArticle Summary: ${truncatedSummary}`
         }
       ],
       model: CONFIG.MODELS.PROMPT_OPTIMIZATION,
@@ -565,22 +642,41 @@ const generateWeeklySummary = async (articles) => {
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
-          role: "user",
-          content: `
-            You are a BBC news anchor. Your task is to summarize the following news articles from the past week into a cohesive, engaging, and informative news report.
-            The summary must be exactly 4250 characters long, or as close as possible to this maximum, and finish with a complete sentence. It is absolutely critical that the summary is comprehensive, highly detailed, and fully utilizes the entire 4250-character limit to provide an exhaustive report. Elaborate extensively on each important and interesting development, providing as much context and depth as possible, ensuring the output reaches the specified length.
-            Maintain a professional, objective, and authoritative tone, similar to a BBC news anchor.
-            Format the summary using Markdown for readability. Use paragraphs for distinct ideas, bullet points for lists, and bold text for emphasis on key phrases or names. Ensure clear sentence and paragraph breaks.
-            Do not include any introductory phrases like "Here's a summary of the week's news" or conversational filler.
-            Just provide the news report. Start with: "Welcome to this week's Sunday Edition. It is brought to you by mango.tc. Your one-stop shop for everything TCI!"
+          role: "system",
+          content: `You are the lead editor of Mango News Sunday Edition, the premiere weekly news digest for the Turks and Caicos Islands. Compile the provided weekly articles into an engaging, professional news broadcast script.
 
-            Weekly Articles (summaries or truncated content):
-            ${articleContents}
-          `
+Content Structure:
+1. Opening: Start with "Welcome to this week's Sunday Edition. It is brought to you by mango.tc. Your one-stop shop for everything TCI!"
+2. Lead Stories: Follow with the most impactful news of the week
+3. Thematic Grouping: Group related stories together with smooth transitions
+4. Closing: End with a forward-looking statement or community-focused note
+
+Style Requirements:
+- Tone: Authoritative yet warm, professional but accessible to TCI residents
+- Voice: Third-person, active voice throughout
+- Language: Clear, broadcast-ready English optimized for text-to-speech
+- Length: 4,000-4,200 characters (critical for audio generation limits)
+
+Formatting:
+- Use paragraphs to separate distinct topics
+- Use **bold** for names, key figures, and important facts
+- Use bullet points sparingly, only for short lists
+- Include smooth transitions between topics (e.g., "In other news...", "Meanwhile...", "Turning to...")
+
+Constraints:
+- Do NOT include: URLs, hashtags, email addresses, or call-to-action phrases
+- Do NOT use phrases like "This week we saw..." or "Let's take a look at..."
+- Do NOT use asterisk characters (*) outside of markdown bold syntax
+- MUST end with a complete sentence
+- MUST stay within the character limit for audio processing`
+        },
+        {
+          role: "user",
+          content: `Weekly Articles to summarize:\n\n${articleContents}`
         }
       ],
       model: CONFIG.MODELS.SUMMARY,
-      temperature: 0.7,
+      temperature: 0.6,
       max_tokens: 1200,
     });
 

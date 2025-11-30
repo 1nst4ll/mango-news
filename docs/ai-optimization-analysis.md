@@ -4,6 +4,17 @@
 
 This document analyzes all AI-related tasks in the Mango News codebase and provides optimization recommendations.
 
+## Prompt Engineering Best Practices Applied
+
+All AI prompts have been refined following these principles:
+
+1. **Structured Instructions**: Clear sections with headers for requirements, guidelines, and output format
+2. **Context-Specific**: Prompts include Turks and Caicos Islands (TCI) context for relevance
+3. **Explicit Constraints**: Clear boundaries on length, format, and forbidden content
+4. **Role Assignment**: Appropriate persona/role for each task (news editor, translator, etc.)
+5. **Output Formatting**: Explicit instructions on how to format responses
+6. **Negative Instructions**: Clear "do not" statements to prevent common issues
+
 ## AI Services Used
 
 | Service | Provider | Purpose | File Location |
@@ -246,10 +257,87 @@ Authorization: Bearer YOUR_TOKEN
    - GET `/api/ai-service/stats` - View cache and rate limit status
    - POST `/api/ai-service/clear-cache` - Clear translation cache
 
+## AI Prompts Reference
+
+### 1. Summary Generation Prompt
+**Location**: `aiService.js` - `generateSummary()`
+**Purpose**: Generate SEO-optimized article summaries
+
+Key improvements:
+- Role: "Professional news editor for Mango News"
+- 5 W's focus (Who, What, When, Where, Why)
+- SEO keyword integration
+- Strict 80-100 word length
+- Active voice requirement
+- Explicit forbidden phrases list
+
+### 2. Topic Assignment Prompt
+**Location**: `aiService.js` - `assignTopics()`
+**Purpose**: Classify articles into 3 predefined topics
+
+Key improvements:
+- Explicit topic list provided in prompt
+- Ordered by relevance (most relevant first)
+- Lower temperature (0.3) for consistency
+- Clear fallback behavior for edge cases
+
+### 3. Translation Prompts
+**Location**: `aiService.js` - `translateText()`
+**Purpose**: Translate content to Spanish and Haitian Creole
+
+Key improvements:
+- Caribbean audience context
+- Language-specific guidelines (Kreyòl orthography, Caribbean Spanish)
+- Proper noun preservation rules
+- Format-specific variants (title/summary/content)
+- Natural phrasing over literal translation
+
+### 4. Image Prompt Optimization
+**Location**: `aiService.js` - `optimizeImagePrompt()`
+**Purpose**: Create optimized prompts for AI image generation
+
+Key improvements:
+- Visual element extraction process
+- TCI visual context inclusion
+- Optimal prompt length (50-150 words)
+- Structure guidance (subject → descriptors → style)
+- Negative prompts handled separately
+
+### 5. Weekly Summary (Sunday Edition)
+**Location**: `aiService.js` - `generateWeeklySummary()`
+**Purpose**: Create weekly news digest script for audio narration
+
+Key improvements:
+- Mango News branding integration
+- Broadcast-ready language for TTS
+- Clear content structure (opening → lead stories → groupings → closing)
+- Character limit enforcement (4,000-4,200 chars)
+- Transition phrases for smooth audio flow
+- Forbidden elements for audio clarity
+
+### 6. Image Generation Instructions
+**Location**: `sundayEditionGenerator.js` - `generateAIImage()`
+**Purpose**: Base instructions for news thumbnail generation
+
+Key improvements:
+- Photorealistic news photography aesthetic
+- TCI-specific visual elements (Grace Bay, Chalk Sound)
+- Caribbean color palette guidance
+- Local character representation: Dark skin tones reflecting authentic TCI demographics
+- Dignified, respectful portrayal of local Caribbean people
+- Clear avoidance list (identifiable individuals, text, logos)
+- Journalistic neutrality and local authenticity requirement
+
 ## Related Files
 
-- [`backend/src/services/aiService.js`](../backend/src/services/aiService.js) - Centralized AI service (NEW)
+- [`backend/src/services/aiService.js`](../backend/src/services/aiService.js) - Centralized AI service
 - [`backend/src/scraper.js`](../backend/src/scraper.js) - Main scraping with AI integration
 - [`backend/src/sundayEditionGenerator.js`](../backend/src/sundayEditionGenerator.js) - Sunday Edition AI features
 - [`docs/multilingual-support.md`](multilingual-support.md) - Translation documentation
 - [`docs/scraping-methods.md`](scraping-methods.md) - AI feature toggles
+
+## Version History
+
+| Date | Change |
+|------|--------|
+| 2025-11-30 | Refined all AI prompts with structured instructions, TCI context, and explicit constraints |

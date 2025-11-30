@@ -199,7 +199,26 @@ const generateAIImage = async (title, summary) => {
 
     const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
 
-    const imagePromptInstructions = `Create a compelling news thumbnail image relevant to the Turks and Caicos Islands (TCI). The image should be visually striking and optimized for clicks. Focus on imagery that reflects the article's summary and the TCI context, such as local landmarks, relevant objects, or scenes, but avoid identifiable faces of residents to ensure authenticity and prevent misrepresentation. Use vibrant colors and high contrast. If text is necessary, keep it to a maximum of 2 relevant keywords in a bold, sans-serif font, avoiding the lower-right corner. Do not include any asterisk (*) characters in the text.`;
+    const imagePromptInstructions = `Create a professional news thumbnail image for Mango News, a Turks and Caicos Islands (TCI) news aggregator.
+
+Visual Requirements:
+- Style: Photorealistic, high-resolution news photography aesthetic
+- Composition: 16:9 aspect ratio optimized for web thumbnails and social media
+- Lighting: Well-lit, clear visibility, professional news broadcast quality
+- Colors: Vibrant Caribbean palette (turquoise waters, sandy beaches, blue skies) when contextually appropriate
+
+Character Representation (IMPORTANT):
+- When human figures are included, depict them as local Caribbean people with dark skin tones, reflecting the authentic demographics of the Turks and Caicos Islands
+- Represent diverse ages and professional attire appropriate to the news context
+- Ensure respectful, dignified representation of all people
+
+Content Guidelines:
+- Feature relevant scenes: TCI landmarks (Grace Bay, Chalk Sound, Government buildings), Caribbean coastal scenes, or abstract representations of the news topic
+- AVOID: Identifiable specific individuals, text overlays, logos, watermarks
+- AVOID: Controversial, sensitive, or potentially misleading imagery
+- DO NOT include asterisks (*), hashtags, or social media symbols
+
+Context: This image accompanies a TCI news article. The scene should visually represent the article's main theme while maintaining journalistic neutrality and local authenticity.`;
 
     try {
         console.log('Optimizing image prompt using centralized AI service...');
