@@ -52,10 +52,10 @@ const CONFIG = {
   },
   // Token limits
   MAX_TOKENS: {
-    SUMMARY: 300,
+    SUMMARY: 500,
     TOPICS: 300,
-    TRANSLATION_TITLE: 100,
-    TRANSLATION_SUMMARY: 200,
+    TRANSLATION_TITLE: 150,
+    TRANSLATION_SUMMARY: 500,
     TRANSLATION_CONTENT: 8192,
   }
 };
@@ -253,7 +253,7 @@ const generateSummary = async (content) => {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content concisely, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence. Do not include any links or URLs in the summary. Return only the summary text, without any introductory phrases or conversational filler."
+          content: "Summarize the following news article content, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) to emphasize key facts, names, or figures. The summary should be between 100-150 words, providing enough detail to inform the reader while remaining concise. Ensure the summary ends on a complete sentence. Do not include any links or URLs in the summary. Return only the summary text, without any introductory phrases or conversational filler."
         },
         {
           role: "user",
@@ -366,7 +366,7 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
     maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_TITLE;
     maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_TITLE;
   } else if (type === 'summary') {
-    systemPrompt = `Translate the following news article summary into ${languageName}. The translation must be a concise summary, not an expanded list of points or a full article. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information. Ensure the summary is a maximum of 80 words and ends on a complete sentence. Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
+    systemPrompt = `Translate the following news article summary into ${languageName}. Preserve the same level of detail and length as the original. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) for key information where present in the original. Ensure the summary ends on a complete sentence. Return only the translated summary, without any introductory phrases, conversational filler, or additional explanations.`;
     maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_SUMMARY;
     maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_SUMMARY;
   } else if (type === 'raw_content') {
