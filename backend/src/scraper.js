@@ -926,8 +926,8 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
     return { success: processed, message: message };
 
   } catch (err) {
-    console.error(`Error during AI processing for article ID ${article.id}, feature ${featureType}:`, err);
-    return { success: false, message: `Error processing article ${article.id}: ${err.message}` };
+    console.error(`Error during AI processing for article ID ${articleId}, feature ${featureType}:`, err);
+    return { success: false, message: `Error processing article ${articleId}: ${err.message}` };
   }
 };
 
