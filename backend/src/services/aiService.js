@@ -523,14 +523,14 @@ const getTopicTranslation = async (topicName, targetLanguageCode) => {
 
 /**
  * Optimize image prompt using AI
- * @param {string} instructions - Base image generation instructions
- * @param {string} summary - Article summary for context (will be truncated if too long)
- * @returns {Promise<string>} - Optimized prompt
+ * @param {string} instructions - Base image generation instructions (style guidelines)
+ * @param {string} summary - Article summary for context - THIS IS THE PRIMARY SOURCE FOR IMAGE CONTENT
+ * @returns {Promise<string>} - Optimized prompt with article-specific details
  */
 const optimizeImagePrompt = async (instructions, summary) => {
   if (!summary) {
-    console.log('[AI Service] No summary provided for image prompt optimization. Using instructions only.');
-    return instructions;
+    console.log('[AI Service] No summary provided for image prompt optimization. Using generic TCI scene.');
+    return 'Professional news photograph of Grace Bay Beach, Turks and Caicos Islands, turquoise Caribbean waters, white sand, tropical palm trees, sunny day, photorealistic, high resolution, 16:9 aspect ratio';
   }
   
   console.log('[AI Service] Optimizing image prompt...');
@@ -560,41 +560,59 @@ const optimizeImagePrompt = async (instructions, summary) => {
       messages: [
         {
           role: "system",
-          content: `You are an expert at crafting prompts for AI image generation. Create an optimized image generation prompt by combining the provided instructions with key visual elements from the article summary.
+          content: `You are an expert visual journalist creating image prompts for a Caribbean news outlet. Your task is to generate a UNIQUE, ARTICLE-SPECIFIC image prompt that visually represents the news story.
 
-Process:
-1. Extract 3-5 key visual elements from the summary
-2. Identify the main subject/scene that would represent the article
-3. Incorporate Turks and Caicos Islands visual context where relevant
-4. Structure the prompt for maximum image generation effectiveness
+CRITICAL: Each prompt must be DIFFERENT and SPECIFIC to the article content. Generic Caribbean beach scenes are NOT acceptable unless the article is specifically about beaches/tourism.
 
-Output Requirements:
-- Length: 50-150 words (optimal for image AI)
-- Start with the main subject/scene
-- Include specific visual descriptors (colors, lighting, composition)
-- End with style keywords
-- Do NOT include negative prompts (those are handled separately)
+EXTRACTION PROCESS (follow strictly):
+1. IDENTIFY the article's main subject: What is this story about? (person, event, building, issue, etc.)
+2. EXTRACT specific visual elements mentioned: names, places, objects, actions, numbers, dates
+3. DETERMINE the appropriate scene type:
+   - Government/Politics: Government buildings, officials, meetings, press conferences
+   - Crime/Justice: Courthouses, police, legal proceedings (NO graphic content)
+   - Business/Economy: Offices, construction, storefronts, workers, currency, markets
+   - Health: Hospitals, medical staff, clinics, health facilities
+   - Education: Schools, classrooms, students, graduation
+   - Sports: Athletes, sports facilities, competitions, trophies
+   - Environment: Natural landscapes, conservation areas, weather events
+   - Community: Local gatherings, cultural events, neighborhoods
+   - Infrastructure: Roads, buildings under construction, utilities
+   - Tourism: Hotels, attractions, visitors (ONLY if article is about tourism)
 
-Output: Return ONLY the optimized prompt text, ready for image generation.`
+OUTPUT FORMAT:
+Generate a 50-100 word prompt structured as:
+[Main subject/scene], [specific details from article], [setting/location if mentioned], [relevant people if applicable - always depict Caribbean locals with dark skin tones], [lighting and mood appropriate to the news tone], photorealistic news photography, 16:9 aspect ratio
+
+FORBIDDEN:
+- Generic "beautiful Caribbean beach" unless article is about beaches
+- Text, logos, watermarks
+- Specific identifiable individuals' faces
+- Graphic violence or disturbing imagery
+- Abstract or artistic interpretations`
         },
         {
           role: "user",
-          content: `Base Instructions: ${instructions}\n\nArticle Summary: ${truncatedSummary}`
+          content: `Generate an image prompt for this news article:\n\n${truncatedSummary}`
         }
       ],
       model: CONFIG.MODELS.PROMPT_OPTIMIZATION,
-      temperature: 0.7,
+      temperature: 0.8, // Slightly higher for more creative variety
       max_tokens: CONFIG.MAX_TOKENS.IMAGE_PROMPT,
     });
 
-    const optimizedPrompt = chatCompletion.choices[0]?.message?.content || instructions;
+    const optimizedPrompt = chatCompletion.choices[0]?.message?.content || null;
     
     // Log if the response might have been truncated
     if (chatCompletion.choices[0]?.finish_reason === 'length') {
       console.warn('[AI Service] Image prompt optimization may have been truncated due to max_tokens limit');
     }
     
-    console.log(`[AI Service] Generated optimized prompt (${optimizedPrompt.length} chars)`);
+    if (!optimizedPrompt) {
+      console.warn('[AI Service] Failed to generate optimized prompt, using fallback');
+      return 'Professional news photograph, Caribbean setting, Turks and Caicos Islands, photorealistic, high resolution, 16:9 aspect ratio';
+    }
+    
+    console.log(`[AI Service] Generated optimized prompt (${optimizedPrompt.length} chars): ${optimizedPrompt.substring(0, 100)}...`);
     return optimizedPrompt;
   });
 };
