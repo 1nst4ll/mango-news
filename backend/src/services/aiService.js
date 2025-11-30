@@ -30,7 +30,7 @@ const CONFIG = {
   // See https://console.groq.com/docs/models for available models
   // Valid models include: llama-3.3-70b-versatile, openai/gpt-oss-120b, 
   MODELS: {
-    SUMMARY: process.env.AI_SUMMARY_MODEL || 'openai/gpt-oss-120b',
+    SUMMARY: process.env.AI_SUMMARY_MODEL || 'llama-3.3-70b-versatile',
     TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'openai/gpt-oss-120b',
     TOPICS: process.env.AI_TOPICS_MODEL || 'openai/gpt-oss-20b',
     PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'openai/gpt-oss-120b',
