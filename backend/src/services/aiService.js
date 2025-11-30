@@ -28,11 +28,12 @@ const groq = new Groq({
 const CONFIG = {
   // Model configuration - using Groq's Llama models
   // See https://console.groq.com/docs/models for available models
+  // Valid models include: llama-3.3-70b-versatile, llama3-8b-8192, gemma2-9b-it, etc.
   MODELS: {
-    SUMMARY: process.env.AI_SUMMARY_MODEL || 'openai/gpt-oss-120b',
-    TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'openai/gpt-oss-120b',
-    TOPICS: process.env.AI_TOPICS_MODEL || 'openai/gpt-oss-120b',
-    PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'openai/gpt-oss-120b',
+    SUMMARY: process.env.AI_SUMMARY_MODEL || 'llama-3.3-70b-versatile',
+    TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'llama-3.3-70b-versatile',
+    TOPICS: process.env.AI_TOPICS_MODEL || 'llama-3.3-70b-versatile',
+    PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'llama-3.3-70b-versatile',
   },
   // Retry configuration
   MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES) || 3,
@@ -246,6 +247,8 @@ const generateSummary = async (content) => {
   await checkRateLimit();
   
   return withRetry(async () => {
+    console.log(`[AI Service] Using model: ${CONFIG.MODELS.SUMMARY}`);
+    
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
@@ -262,9 +265,17 @@ const generateSummary = async (content) => {
       max_tokens: CONFIG.MAX_TOKENS.SUMMARY,
     });
 
+    // Debug logging to understand response structure
+    console.log(`[AI Service] Response received - choices count: ${chatCompletion.choices?.length || 0}`);
+    if (chatCompletion.choices?.[0]) {
+      console.log(`[AI Service] Choice finish_reason: ${chatCompletion.choices[0].finish_reason}`);
+      console.log(`[AI Service] Message content length: ${chatCompletion.choices[0].message?.content?.length || 0}`);
+    }
+    
     const summary = chatCompletion.choices[0]?.message?.content || null;
     
     if (!summary) {
+      console.error('[AI Service] Empty response structure:', JSON.stringify(chatCompletion, null, 2));
       throw new Error('Empty response from AI');
     }
     
@@ -372,6 +383,8 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
   await checkRateLimit();
   
   const translation = await withRetry(async () => {
+    console.log(`[AI Service] Using model for translation: ${CONFIG.MODELS.TRANSLATION}`);
+    
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
@@ -388,9 +401,17 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
       max_tokens: maxTokens,
     });
 
+    // Debug logging to understand response structure
+    console.log(`[AI Service] Translation response - choices count: ${chatCompletion.choices?.length || 0}`);
+    if (chatCompletion.choices?.[0]) {
+      console.log(`[AI Service] Translation finish_reason: ${chatCompletion.choices[0].finish_reason}`);
+      console.log(`[AI Service] Translation content length: ${chatCompletion.choices[0].message?.content?.length || 0}`);
+    }
+
     const result = chatCompletion.choices[0]?.message?.content || null;
     
     if (!result) {
+      console.error('[AI Service] Empty translation response structure:', JSON.stringify(chatCompletion, null, 2));
       throw new Error('Empty translation response');
     }
     
