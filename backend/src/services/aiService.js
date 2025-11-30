@@ -26,12 +26,13 @@ const groq = new Groq({
 // ============================================================================
 
 const CONFIG = {
-  // Model configuration - use smaller model for cost efficiency
+  // Model configuration - using Groq's Llama models
+  // See https://console.groq.com/docs/models for available models
   MODELS: {
-    SUMMARY: process.env.AI_SUMMARY_MODEL || 'openai/gpt-oss-20b',
-    TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'openai/gpt-oss-20b',
-    TOPICS: process.env.AI_TOPICS_MODEL || 'openai/gpt-oss-20b',
-    PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'openai/gpt-oss-20b',
+    SUMMARY: process.env.AI_SUMMARY_MODEL || 'openai/gpt-oss-120b',
+    TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'openai/gpt-oss-120b',
+    TOPICS: process.env.AI_TOPICS_MODEL || 'openai/gpt-oss-120b',
+    PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'openai/gpt-oss-120b',
   },
   // Retry configuration
   MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES) || 3,
