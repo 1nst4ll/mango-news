@@ -10,7 +10,7 @@ const { marked } = require('marked'); // Import marked
 const { v4: uuidv4 } = require('uuid'); // For unique filenames
 const { scheduleScraper } = require('./scraper');
 const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); // Import opensourceScraper functions
-const { scrapeUrl: firecrawlScrapeUrl } = require('@mendable/firecrawl-js'); // Assuming firecrawl-js is used for Firecrawl scraping
+// firecrawl-js is used in scraper.js, not directly here
 const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTranslatedTopicsForSource, scrapeArticlePage } = require('./scraper'); // Import scraper functions including processMissingAiForSource and the new function
 const { createSundayEdition } = require('./sundayEditionGenerator'); // Import createSundayEdition function
 const aiService = require('./services/aiService'); // Import centralized AI service for monitoring
@@ -65,8 +65,8 @@ app.post('/api/register', async (req, res) => {
   try {
     const result = await registerUser(pool, username, password); // Pass pool
     if (result.success) {
-      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - User registered successfully: ${result.user.username}`);
-      res.status(201).json({ message: 'User registered successfully.', user: { id: result.user.id, username: result.user.username } });
+      console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - User registered successfully: ${result.user.email}`);
+      res.status(201).json({ message: 'User registered successfully.', user: { id: result.user.id, email: result.user.email } });
     } else {
       console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - User registration failed: ${result.message}`);
       res.status(400).json({ error: result.message });
@@ -720,19 +720,13 @@ app.put('/api/articles/:id', authenticateToken, async (req, res) => {
     const updatedArticleResult = await pool.query(`
       SELECT
           a.*,
-          ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS topics,
-          ARRAY_REMOVE(ARRAY_AGG(t_es.name), NULL) AS topics_es_array,
-          ARRAY_REMOVE(ARRAY_AGG(t_ht.name), NULL) AS topics_ht_array
+          ARRAY_REMOVE(ARRAY_AGG(DISTINCT t.name), NULL) AS topics
       FROM
           articles a
       LEFT JOIN
           article_topics at ON a.id = at.article_id
       LEFT JOIN
           topics t ON at.topic_id = t.id
-      LEFT JOIN
-          topics t_es ON a.topics_es LIKE '%' || t_es.name || '%' -- This join might be problematic if topics_es is just a string
-      LEFT JOIN
-          topics t_ht ON a.topics_ht LIKE '%' || t_ht.name || '%' -- This join might be problematic if topics_ht is just a string
       WHERE
           a.id = $1
       GROUP BY
@@ -740,11 +734,11 @@ app.put('/api/articles/:id', authenticateToken, async (req, res) => {
     `, [articleId]);
 
     const updatedArticle = updatedArticleResult.rows[0];
-    // Re-format topics_es and topics_ht back to arrays if they were stored as strings
-    if (updatedArticle.topics_es && typeof updatedArticle.topics_es === 'string') {
+    // Re-format topics_es and topics_ht back to arrays if they were stored as comma-separated strings
+    if (updatedArticle && updatedArticle.topics_es && typeof updatedArticle.topics_es === 'string') {
       updatedArticle.topics_es = updatedArticle.topics_es.split(',').map(t => t.trim()).filter(t => t);
     }
-    if (updatedArticle.topics_ht && typeof updatedArticle.topics_ht === 'string') {
+    if (updatedArticle && updatedArticle.topics_ht && typeof updatedArticle.topics_ht === 'string') {
       updatedArticle.topics_ht = updatedArticle.topics_ht.split(',').map(t => t.trim()).filter(t => t);
     }
 
@@ -1118,8 +1112,7 @@ app.post('/api/ai-service/clear-cache', authenticateToken, async (req, res) => {
 });
 
 // Sunday Edition Endpoints
-app.post('/api/sunday-editions/generate', async (req, res) => { // Temporarily removed authenticateToken for debugging
-  // This is a temporary change for debugging. Re-add authenticateToken after debugging.
+app.post('/api/sunday-editions/generate', authenticateToken, async (req, res) => {
   try {
     const result = await createSundayEdition();
     if (result.success) {
@@ -1236,12 +1229,17 @@ app.post('/api/unreal-speech-callback', async (req, res) => {
     }
   } else if (TaskStatus === 'failed') {
     console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Unreal Speech synthesis task ${TaskId} failed.`);
-    // Optionally update database to mark narration as failed
-    await pool.query(
-      'UPDATE sunday_editions SET narration_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE unreal_speech_task_id = $1',
-      [TaskId]
-    );
-    res.status(200).json({ message: 'Synthesis task failed, database updated.' });
+    // Update database to mark narration as failed
+    try {
+      await pool.query(
+        'UPDATE sunday_editions SET narration_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE unreal_speech_task_id = $1',
+        [TaskId]
+      );
+      res.status(200).json({ message: 'Synthesis task failed, database updated.' });
+    } catch (dbError) {
+      console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error updating database for failed task ${TaskId}:`, dbError);
+      res.status(500).json({ error: 'Failed to update database for failed synthesis task.' });
+    }
   } else {
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Callback received for TaskId: ${TaskId}, Status: ${TaskStatus}. No action taken.`);
     res.status(200).json({ message: 'Callback received, no action taken.' });
@@ -1371,6 +1369,8 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
          enable_scheduled_missing_summary: true,
          enable_scheduled_missing_tags: true,
          enable_scheduled_missing_image: true,
+         enable_scheduled_missing_translations: true,
+         sunday_edition_frequency: '0 0 * * 0',
        });
     } else {
       res.status(500).json({ error: 'Internal Server Error' });

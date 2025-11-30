@@ -53,7 +53,12 @@ async function fetchWeeklyArticles() {
 // OPTIMIZED: Use centralized AI service for weekly summary generation
 async function generateSundayEditionSummary(articles) {
     // Sort articles by publication_date in descending order to prioritize recent articles
-    const sortedArticles = [...articles].sort((a, b) => new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime());
+    // Handle null/undefined publication_date to avoid NaN in sort comparison
+    const sortedArticles = [...articles].sort((a, b) => {
+        const dateA = a.publication_date ? new Date(a.publication_date).getTime() : 0;
+        const dateB = b.publication_date ? new Date(b.publication_date).getTime() : 0;
+        return dateB - dateA;
+    });
 
     try {
         console.log('[INFO] Generating Sunday Edition summary using centralized AI service...');

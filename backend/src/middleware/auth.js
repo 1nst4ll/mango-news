@@ -22,7 +22,7 @@ const authenticateToken = (req, res, next) => {
     }
     // If token is valid, attach user information to the request and proceed
     req.user = user;
-    console.log(`[INFO] ${new Date().toISOString()} - Authentication successful for user ID: ${user.userId}, username: ${user.username}`);
+    console.log(`[INFO] ${new Date().toISOString()} - Authentication successful for user ID: ${user.userId}, email: ${user.email}`);
     next();
   });
 };

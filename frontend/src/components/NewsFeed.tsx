@@ -8,6 +8,7 @@ import { MessageCircleMore, Facebook, Loader2, XCircle, Info } from 'lucide-reac
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
 import AudioPlayer from './ui/AudioPlayer'; // Import AudioPlayer component
+import { getDomainFromUrl } from '../lib/utils'; // Import shared utility
 
 interface Article {
   id: number;
@@ -52,18 +53,6 @@ interface NewsFeedProps {
   selectedSources: number[];
   activeCategory: string;
 }
-
-// Helper function to extract domain from URL
-const getDomainFromUrl = (url: string): string => {
-  try {
-    const parsedUrl = new URL(url);
-    return parsedUrl.hostname;
-  } catch (e) {
-    console.error("Invalid URL:", url, e);
-    return url;
-  }
-};
-
 
 function NewsFeed({
   searchTerm = '',
@@ -203,6 +192,17 @@ function NewsFeed({
   }, []);
 
   const observer = useRef<IntersectionObserver | null>(null);
+
+  // Cleanup IntersectionObserver on component unmount
+  useEffect(() => {
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+        observer.current = null;
+      }
+    };
+  }, []);
+
   const loadMoreTriggerRef = useCallback((node: HTMLDivElement | null) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();

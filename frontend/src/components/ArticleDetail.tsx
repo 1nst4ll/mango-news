@@ -14,6 +14,7 @@ import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, Chevr
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
+import { getDomainFromUrl } from '../lib/utils'; // Import shared utility
 
 interface Article {
   id: number;
@@ -401,17 +402,6 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
       </article>
     </div>
   );
-};
-
-// Helper function to extract domain from URL (copied from NewsFeed.tsx for consistency)
-const getDomainFromUrl = (url: string): string => {
-  try {
-    const parsedUrl = new URL(url);
-    return parsedUrl.hostname;
-  } catch (e) {
-    console.error("Invalid URL:", url, e);
-    return url;
-  }
 };
 
 export default ArticleDetail;
