@@ -28,12 +28,12 @@ const groq = new Groq({
 const CONFIG = {
   // Model configuration - using Groq's Llama models
   // See https://console.groq.com/docs/models for available models
-  // Valid models include: llama-3.3-70b-versatile, llama3-8b-8192, gemma2-9b-it, etc.
+  // Valid models include: llama-3.3-70b-versatile, openai/gpt-oss-120b, 
   MODELS: {
-    SUMMARY: process.env.AI_SUMMARY_MODEL || 'llama-3.3-70b-versatile',
-    TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'llama-3.3-70b-versatile',
-    TOPICS: process.env.AI_TOPICS_MODEL || 'llama-3.3-70b-versatile',
-    PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'llama-3.3-70b-versatile',
+    SUMMARY: process.env.AI_SUMMARY_MODEL || 'openai/gpt-oss-120b',
+    TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'openai/gpt-oss-120b',
+    TOPICS: process.env.AI_TOPICS_MODEL || 'openai/gpt-oss-20b',
+    PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'openai/gpt-oss-120b',
   },
   // Retry configuration
   MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES) || 3,
@@ -253,7 +253,7 @@ const generateSummary = async (content) => {
       messages: [
         {
           role: "system",
-          content: "Summarize the following news article content, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) to emphasize key facts, names, or figures. The summary should be between 100-150 words, providing enough detail to inform the reader while remaining concise. Ensure the summary ends on a complete sentence. Do not include any links or URLs in the summary. Return only the summary text, without any introductory phrases or conversational filler."
+          content: "Summarize the following news article content, focusing on key information and incorporating relevant keywords for SEO. Make the summary engaging to encourage clicks. Use markdown bold syntax (**text**) to emphasize key facts, names, or figures. The summary should be between 80 to 100 words, providing enough detail to inform the reader while remaining concise. Ensure the summary ends on a complete sentence. Do not include any links or URLs in the summary. Return only the summary text, without any introductory phrases or conversational filler."
         },
         {
           role: "user",
