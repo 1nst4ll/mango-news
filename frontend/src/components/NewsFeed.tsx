@@ -230,8 +230,24 @@ function NewsFeed({
 
   console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
-  // Combine articles and Sunday Editions, then sort by publication_date
-  const combinedFeed = [...articles, ...sundayEditions.map(edition => ({
+  // Filter Sunday editions to only show those with publication dates within the range of loaded articles
+  // This prevents all Sunday editions from appearing before more articles can load
+  const filteredSundayEditions = React.useMemo(() => {
+    if (articles.length === 0) return sundayEditions;
+    
+    // Get the date range of loaded articles
+    const articleDates = articles.map(a => new Date(a.publication_date).getTime());
+    const oldestArticleDate = Math.min(...articleDates);
+    
+    // Only include Sunday editions that fall within or after the oldest loaded article
+    return sundayEditions.filter(edition => {
+      const editionDate = new Date(edition.publication_date).getTime();
+      return editionDate >= oldestArticleDate;
+    });
+  }, [articles, sundayEditions]);
+
+  // Combine articles and filtered Sunday Editions, then sort by publication_date
+  const combinedFeed = [...articles, ...filteredSundayEditions.map(edition => ({
     ...edition,
     type: 'sundayEdition' as const, // Explicitly set type as a literal
     publication_date: edition.publication_date, // Ensure consistent date field
@@ -240,6 +256,7 @@ function NewsFeed({
   });
 
   // Group combined feed by date (Day, Month, Year)
+  // Store the actual timestamp for proper sorting later
   const groupedFeed = combinedFeed.reduce((acc, item) => {
     const date = new Date(item.publication_date);
     const year = date.getFullYear();
@@ -247,17 +264,19 @@ function NewsFeed({
     const monthName = t.months[monthIndex.toString() as keyof typeof t.months]; // Get translated month name from locale
     const day = date.getDate();
     const dateKey = `${monthName} ${day}, ${year}`;
+    // Store timestamp as a sortable key (YYYY-MM-DD format)
+    const sortKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
     if (!acc[dateKey]) {
-      acc[dateKey] = [];
+      acc[dateKey] = { items: [], sortKey };
     }
-    acc[dateKey].push(item);
+    acc[dateKey].items.push(item);
     return acc;
-  }, {} as Record<string, (Article | (SundayEdition & { type: 'sundayEdition' }))[]>);
+  }, {} as Record<string, { items: (Article | (SundayEdition & { type: 'sundayEdition' }))[]; sortKey: string }>);
 
-  // Sort dates in descending order
+  // Sort dates in descending order using the sortKey (ISO format) instead of translated date strings
   const sortedDates = Object.keys(groupedFeed).sort((a, b) => {
-    return new Date(b).getTime() - new Date(a).getTime();
+    return groupedFeed[b].sortKey.localeCompare(groupedFeed[a].sortKey);
   });
 
 
@@ -344,7 +363,7 @@ function NewsFeed({
           )}
           <h2 className="text-2xl font-bold mb-4">{dateKey}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {groupedFeed[dateKey].map(item => {
+            {groupedFeed[dateKey].items.map(item => {
               try {
                 if (item.type === 'sundayEdition') {
                   const edition = item as SundayEdition; // Cast to SundayEdition
