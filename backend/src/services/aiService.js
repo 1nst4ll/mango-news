@@ -49,6 +49,7 @@ const CONFIG = {
     TRANSLATION_TITLE: 500,
     TRANSLATION_SUMMARY: 2000,
     TRANSLATION_CONTENT: 30000,
+    IMAGE_PROMPT_SUMMARY: 2000, // Max summary length for image prompt optimization
   },
   // Token limits
   MAX_TOKENS: {
@@ -57,6 +58,7 @@ const CONFIG = {
     TRANSLATION_TITLE: 150,
     TRANSLATION_SUMMARY: 500,
     TRANSLATION_CONTENT: 8192,
+    IMAGE_PROMPT: 300, // Increased from 200 to ensure prompt isn't truncated
   }
 };
 
@@ -460,15 +462,34 @@ const getTopicTranslation = async (topicName, targetLanguageCode) => {
 /**
  * Optimize image prompt using AI
  * @param {string} instructions - Base image generation instructions
- * @param {string} summary - Article summary for context
+ * @param {string} summary - Article summary for context (will be truncated if too long)
  * @returns {Promise<string>} - Optimized prompt
  */
 const optimizeImagePrompt = async (instructions, summary) => {
   if (!summary) {
+    console.log('[AI Service] No summary provided for image prompt optimization. Using instructions only.');
     return instructions;
   }
   
   console.log('[AI Service] Optimizing image prompt...');
+  console.log(`[AI Service] Summary length for image prompt: ${summary.length} characters`);
+  
+  // Truncate summary if it exceeds the max length to prevent context overflow
+  // This is especially important when raw_content is passed as fallback
+  let truncatedSummary = summary;
+  if (summary.length > CONFIG.MAX_CONTENT_LENGTH.IMAGE_PROMPT_SUMMARY) {
+    truncatedSummary = summary.substring(0, CONFIG.MAX_CONTENT_LENGTH.IMAGE_PROMPT_SUMMARY);
+    // Try to end at a sentence boundary for better context
+    const lastSentenceEnd = Math.max(
+      truncatedSummary.lastIndexOf('.'),
+      truncatedSummary.lastIndexOf('!'),
+      truncatedSummary.lastIndexOf('?')
+    );
+    if (lastSentenceEnd > CONFIG.MAX_CONTENT_LENGTH.IMAGE_PROMPT_SUMMARY * 0.7) {
+      truncatedSummary = truncatedSummary.substring(0, lastSentenceEnd + 1);
+    }
+    console.log(`[AI Service] Summary truncated from ${summary.length} to ${truncatedSummary.length} characters for image prompt optimization`);
+  }
   
   await checkRateLimit();
   
@@ -477,19 +498,27 @@ const optimizeImagePrompt = async (instructions, summary) => {
       messages: [
         {
           role: "system",
-          content: `Combine the following image generation instructions with the provided article summary to create a single, optimized prompt for an image generation AI. The optimized prompt should be concise, descriptive, and adhere to the instructions while incorporating key elements from the summary. Extract up to 5 most relevant keywords from the summary to include in the prompt. Return only the optimized prompt string, no other text.`
+          content: `Combine the following image generation instructions with the provided article summary to create a single, optimized prompt for an image generation AI. The optimized prompt should be concise, descriptive, and adhere to the instructions while incorporating key elements from the summary. Extract up to 5 most relevant keywords from the summary to include in the prompt. Ensure the complete prompt is returned without truncation. Return only the optimized prompt string, no other text.`
         },
         {
           role: "user",
-          content: `Instructions: ${instructions}\nSummary: ${summary}`
+          content: `Instructions: ${instructions}\nSummary: ${truncatedSummary}`
         }
       ],
       model: CONFIG.MODELS.PROMPT_OPTIMIZATION,
       temperature: 0.7,
-      max_tokens: 200,
+      max_tokens: CONFIG.MAX_TOKENS.IMAGE_PROMPT,
     });
 
-    return chatCompletion.choices[0]?.message?.content || instructions;
+    const optimizedPrompt = chatCompletion.choices[0]?.message?.content || instructions;
+    
+    // Log if the response might have been truncated
+    if (chatCompletion.choices[0]?.finish_reason === 'length') {
+      console.warn('[AI Service] Image prompt optimization may have been truncated due to max_tokens limit');
+    }
+    
+    console.log(`[AI Service] Generated optimized prompt (${optimizedPrompt.length} chars)`);
+    return optimizedPrompt;
   });
 };
 

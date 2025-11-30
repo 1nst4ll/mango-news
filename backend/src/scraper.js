@@ -265,7 +265,18 @@ const processScrapedData = async (data) => { // Accept a single data object
       // Pass the generated summary to generateAIImage
       if (shouldGenerateImage && (!metadata?.thumbnail_url || metadata.thumbnail_url.trim() === '')) {
         console.log('AI image generation is enabled and no thumbnail exists. Generating image...');
-        aiImagePath = await generateAIImage(title, summary || raw_content); // Use summary if available, otherwise raw_content
+        
+        // Determine which content to use for image generation
+        let imageContextContent;
+        if (summary && summary.trim() !== '' && summary !== 'Summary generation failed.') {
+          imageContextContent = summary;
+          console.log(`Using generated summary for image prompt (${summary.length} chars)`);
+        } else {
+          imageContextContent = raw_content;
+          console.log(`[WARNING] No valid summary available. Using raw_content for image prompt (${raw_content.length} chars). This may be truncated by AI service.`);
+        }
+        
+        aiImagePath = await generateAIImage(title, imageContextContent);
         console.log(`generateAIImage returned: ${aiImagePath}`); // Log return value
       } else if (!shouldGenerateImage) {
         console.log('AI image generation is disabled. Skipping image generation.');
@@ -843,13 +854,23 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
          // Optionally update the database with the newly generated summary here if needed
          if (articleSummary && articleSummary !== "Summary generation failed.") {
              await pool.query('UPDATE articles SET summary = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [articleSummary, article.id]);
+             console.log(`Summary generated and saved. Using summary (${articleSummary.length} chars) for image prompt.`);
          } else {
-             console.warn(`Failed to generate summary for article ID ${article.id}. Cannot generate image based on summary.`);
-             return { success: false, message: 'Failed to generate summary for image prompt.' };
+             console.warn(`Failed to generate summary for article ID ${article.id}. Will use truncated raw_content for image prompt.`);
+             // Don't return early - let the AI service truncate the raw_content
          }
+      } else {
+         console.log(`Using existing summary (${articleSummary.length} chars) for image prompt.`);
       }
 
-      const aiImagePath = await generateAIImage(article.title, articleSummary || article.raw_content); // Use generated summary or raw content
+      // Determine final content for image generation
+      // The AI service will handle truncation if needed
+      const imageContextContent = (articleSummary && articleSummary !== "Summary generation failed.")
+        ? articleSummary
+        : article.raw_content;
+      
+      console.log(`Image generation using content of ${imageContextContent.length} chars`);
+      const aiImagePath = await generateAIImage(article.title, imageContextContent);
       if (aiImagePath) {
         // Update both ai_image_path and potentially thumbnail_url if it was also null
         await pool.query('UPDATE articles SET ai_image_path = $1, thumbnail_url = COALESCE(thumbnail_url, $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImagePath, article.id]);

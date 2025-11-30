@@ -305,9 +305,12 @@ async function createSundayEdition() {
 
         let imageUrl = null;
         try {
+            console.log(`[INFO] Generating AI image for Sunday Edition using summary (${summary.length} chars)...`);
             imageUrl = await generateAIImage(title, summary);
             if (!imageUrl) {
                 console.warn('Failed to generate AI image for Sunday Edition. Proceeding without image.');
+            } else {
+                console.log(`[INFO] AI image generated successfully for Sunday Edition: ${imageUrl}`);
             }
         } catch (imageError) {
             console.error('Error generating AI image for Sunday Edition:', imageError.message);
