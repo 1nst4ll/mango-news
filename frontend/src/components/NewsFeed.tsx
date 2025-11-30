@@ -230,19 +230,22 @@ function NewsFeed({
 
   console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
-  // Filter Sunday editions to only show those with publication dates within the range of loaded articles
-  // This prevents all Sunday editions from appearing before more articles can load
+  // Filter Sunday editions to only show those with publication dates WITHIN the range of loaded articles
+  // This prevents all Sunday editions from appearing before more articles can load via infinite scroll
   const filteredSundayEditions = React.useMemo(() => {
-    if (articles.length === 0) return sundayEditions;
+    // Don't show any editions until articles are loaded
+    if (articles.length === 0) return [];
     
     // Get the date range of loaded articles
     const articleDates = articles.map(a => new Date(a.publication_date).getTime());
     const oldestArticleDate = Math.min(...articleDates);
+    const newestArticleDate = Math.max(...articleDates);
     
-    // Only include Sunday editions that fall within or after the oldest loaded article
+    // Only include Sunday editions that fall WITHIN the date range of loaded articles
+    // This ensures Sunday editions appear naturally as you scroll through articles
     return sundayEditions.filter(edition => {
       const editionDate = new Date(edition.publication_date).getTime();
-      return editionDate >= oldestArticleDate;
+      return editionDate >= oldestArticleDate && editionDate <= newestArticleDate;
     });
   }, [articles, sundayEditions]);
 
