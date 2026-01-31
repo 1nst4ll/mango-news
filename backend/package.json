@@ -13,8 +13,11 @@
   "author": "Cline",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/groq": "^3.0.15",
     "@aws-sdk/client-s3": "^3.803.0",
+    "@fal-ai/client": "^1.8.3",
     "@mendable/firecrawl-js": "^1.24.0",
+    "ai": "^6.0.48",
     "aws-sdk": "^2.1692.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -23,7 +26,6 @@
     "express": "^5.1.0",
     "firecrawl": "^1.24.0",
     "form-data": "^4.0.2",
-    "groq-sdk": "^0.25.0",
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
     "marked": "^15.0.11",
@@ -32,7 +34,8 @@
     "pg": "^8.14.1",
     "puppeteer": "^24.6.1",
     "rss": "^1.2.2",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

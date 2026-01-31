@@ -1,12 +1,13 @@
 /**
  * Centralized AI Service Module
- * 
+ *
  * This module consolidates all AI-related functionality:
  * - Text generation (summaries, translations)
  * - Topic assignment
  * - Image prompt optimization
- * 
+ *
  * Features:
+ * - Uses Vercel AI SDK for unified AI provider interface
  * - Request caching to avoid redundant API calls
  * - Parallel processing for batch operations
  * - Retry logic with exponential backoff
@@ -14,10 +15,11 @@
  * - Centralized error handling
  */
 
-const Groq = require('groq-sdk');
+const { generateText } = require('ai');
+const { createGroq } = require('@ai-sdk/groq');
 
-// Initialize Groq SDK
-const groq = new Groq({
+// Initialize Groq provider via Vercel AI SDK
+const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY
 });
 
@@ -82,12 +84,12 @@ const generateCacheKey = (type, ...args) => {
 const getFromCache = (key) => {
   const item = cache.get(key);
   if (!item) return null;
-  
+
   if (Date.now() > item.expiry) {
     cache.delete(key);
     return null;
   }
-  
+
   return item.value;
 };
 
@@ -128,13 +130,13 @@ let lastResetTime = Date.now();
  */
 const checkRateLimit = async () => {
   const now = Date.now();
-  
+
   // Reset counter every minute
   if (now - lastResetTime >= 60000) {
     requestCount = 0;
     lastResetTime = now;
   }
-  
+
   // If at limit, wait until next minute
   if (requestCount >= CONFIG.RATE_LIMIT_PER_MINUTE) {
     const waitTime = 60000 - (now - lastResetTime);
@@ -143,36 +145,41 @@ const checkRateLimit = async () => {
     requestCount = 0;
     lastResetTime = Date.now();
   }
-  
+
   requestCount++;
 };
 
 // ============================================================================
-// RETRY LOGIC
+// RETRY LOGIC (Exported for use by other services)
 // ============================================================================
 
 /**
  * Execute function with retry logic and exponential backoff
+ * @param {Function} fn - Async function to execute
+ * @param {number} maxRetries - Maximum retry attempts
+ * @param {number} delayMs - Base delay between retries (doubles each attempt)
+ * @param {string} serviceName - Name for logging (default: 'AI Service')
+ * @returns {Promise<any>} - Result of the function
  */
-const withRetry = async (fn, maxRetries = CONFIG.MAX_RETRIES, delayMs = CONFIG.RETRY_DELAY_MS) => {
+const withRetry = async (fn, maxRetries = CONFIG.MAX_RETRIES, delayMs = CONFIG.RETRY_DELAY_MS, serviceName = 'AI Service') => {
   let lastError;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      console.warn(`[AI Service] Attempt ${attempt}/${maxRetries} failed: ${error.message}`);
-      
+      console.warn(`[${serviceName}] Attempt ${attempt}/${maxRetries} failed: ${error.message}`);
+
       // Don't wait after the last attempt
       if (attempt < maxRetries) {
         const waitTime = delayMs * Math.pow(2, attempt - 1);
-        console.log(`[AI Service] Retrying in ${waitTime}ms...`);
+        console.log(`[${serviceName}] Retrying in ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
   }
-  
+
   throw lastError;
 };
 
@@ -238,24 +245,22 @@ const generateSummary = async (content) => {
   if (!content) {
     return null;
   }
-  
+
   console.log('[AI Service] Generating summary...');
-  
+
   // Truncate content if too long
   const truncatedContent = content.length > CONFIG.MAX_CONTENT_LENGTH.SUMMARY
     ? content.substring(0, CONFIG.MAX_CONTENT_LENGTH.SUMMARY) + '...'
     : content;
-  
+
   await checkRateLimit();
-  
+
   return withRetry(async () => {
     console.log(`[AI Service] Using model: ${CONFIG.MODELS.SUMMARY}`);
-    
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are a professional news editor for Mango News, a news aggregator serving the Turks and Caicos Islands (TCI). Generate a concise, SEO-optimized summary of the provided article.
+
+    const { text, finishReason, usage } = await generateText({
+      model: groq(CONFIG.MODELS.SUMMARY),
+      system: `You are a professional news editor for Mango News, a news aggregator serving the Turks and Caicos Islands (TCI). Generate a concise, SEO-optimized summary of the provided article.
 
 Requirements:
 - Length: 80-100 words (strictly enforced)
@@ -268,34 +273,24 @@ Requirements:
 - Do not include URLs, links, or hashtags
 - Do not use AI-typical phrases like "This article discusses..." or "In summary..."
 
-Output: Return ONLY the summary text, no preamble or explanations.`
-        },
-        {
-          role: "user",
-          content: truncatedContent,
-        }
-      ],
-      model: CONFIG.MODELS.SUMMARY,
+Output: Return ONLY the summary text, no preamble or explanations.`,
+      prompt: truncatedContent,
       temperature: 0.5,
-      max_tokens: CONFIG.MAX_TOKENS.SUMMARY,
+      maxTokens: CONFIG.MAX_TOKENS.SUMMARY,
     });
 
-    // Debug logging to understand response structure
-    console.log(`[AI Service] Response received - choices count: ${chatCompletion.choices?.length || 0}`);
-    if (chatCompletion.choices?.[0]) {
-      console.log(`[AI Service] Choice finish_reason: ${chatCompletion.choices[0].finish_reason}`);
-      console.log(`[AI Service] Message content length: ${chatCompletion.choices[0].message?.content?.length || 0}`);
-    }
-    
-    const summary = chatCompletion.choices[0]?.message?.content || null;
-    
-    if (!summary) {
-      console.error('[AI Service] Empty response structure:', JSON.stringify(chatCompletion, null, 2));
+    // Debug logging
+    console.log(`[AI Service] Response received - finish reason: ${finishReason}`);
+    console.log(`[AI Service] Token usage: ${JSON.stringify(usage)}`);
+    console.log(`[AI Service] Message content length: ${text?.length || 0}`);
+
+    if (!text) {
+      console.error('[AI Service] Empty response from AI');
       throw new Error('Empty response from AI');
     }
-    
+
     console.log('[AI Service] Summary generated successfully');
-    return summary;
+    return text;
   });
 };
 
@@ -308,22 +303,20 @@ const assignTopics = async (content) => {
   if (!content) {
     return [];
   }
-  
+
   console.log('[AI Service] Assigning topics...');
-  
+
   // Truncate content if too long
   const truncatedContent = content.length > CONFIG.MAX_CONTENT_LENGTH.TOPICS
     ? content.substring(0, CONFIG.MAX_CONTENT_LENGTH.TOPICS) + '...'
     : content;
-  
+
   await checkRateLimit();
-  
+
   return withRetry(async () => {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `Classify the following news article into exactly 3 topics from the provided list. Analyze the main subject, secondary themes, and overall context.
+    const { text } = await generateText({
+      model: groq(CONFIG.MODELS.TOPICS),
+      system: `Classify the following news article into exactly 3 topics from the provided list. Analyze the main subject, secondary themes, and overall context.
 
 Available topics: ${TOPICS_LIST.join(', ')}
 
@@ -333,19 +326,13 @@ Rules:
 3. If fewer than 3 topics clearly apply, select the closest relevant alternatives
 4. Consider both explicit and implicit themes in the content
 
-Output format: Return ONLY a comma-separated list of 3 topics (e.g., "Politics, Economy, Local News"). No additional text.`
-        },
-        {
-          role: "user",
-          content: truncatedContent,
-        }
-      ],
-      model: CONFIG.MODELS.TOPICS,
+Output format: Return ONLY a comma-separated list of 3 topics (e.g., "Politics, Economy, Local News"). No additional text.`,
+      prompt: truncatedContent,
       temperature: 0.3,
-      max_tokens: CONFIG.MAX_TOKENS.TOPICS,
+      maxTokens: CONFIG.MAX_TOKENS.TOPICS,
     });
 
-    const assignedTopicsString = chatCompletion.choices[0]?.message?.content || "";
+    const assignedTopicsString = text || "";
     const assignedTopics = assignedTopicsString
       .split(',')
       .map(topic => topic.trim())
@@ -368,7 +355,7 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
   if (!text) {
     return null;
   }
-  
+
   // Check cache first
   const cacheKey = generateCacheKey('translation', targetLanguageCode, type, text);
   const cached = getFromCache(cacheKey);
@@ -376,19 +363,19 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
     console.log(`[AI Service] Translation cache hit for ${type} (${targetLanguageCode})`);
     return cached;
   }
-  
+
   console.log(`[AI Service] Translating ${type} to ${targetLanguageCode}...`);
-  
+
   const languageName = targetLanguageCode === 'es' ? 'Spanish' : 'Haitian Creole';
   const languageSpecificGuideline = targetLanguageCode === 'ht'
     ? '- For Haitian Creole: Use modern Kreyòl orthography. Technical terms and English loan words commonly used in Caribbean contexts may be preserved.'
     : '- For Spanish: Use Caribbean/Latin American Spanish conventions, avoiding regional terms from Spain.';
-  
+
   // Build system prompt based on type
   let systemPrompt = '';
   let maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_CONTENT;
   let maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_CONTENT;
-  
+
   if (type === 'title') {
     systemPrompt = `Translate this news headline into ${languageName} for a Caribbean audience.
 
@@ -438,53 +425,40 @@ ${languageSpecificGuideline}
 
 Output: Return ONLY the translated text, nothing else.`;
   }
-  
+
   // Truncate if needed
   const truncatedText = text.length > maxContentLength
     ? text.substring(0, maxContentLength) + '...'
     : text;
-  
+
   await checkRateLimit();
-  
+
   const translation = await withRetry(async () => {
     console.log(`[AI Service] Using model for translation: ${CONFIG.MODELS.TRANSLATION}`);
-    
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: truncatedText,
-        }
-      ],
-      model: CONFIG.MODELS.TRANSLATION,
+
+    const { text: translatedText, finishReason, usage } = await generateText({
+      model: groq(CONFIG.MODELS.TRANSLATION),
+      system: systemPrompt,
+      prompt: truncatedText,
       temperature: 0.3,
-      max_tokens: maxTokens,
+      maxTokens: maxTokens,
     });
 
-    // Debug logging to understand response structure
-    console.log(`[AI Service] Translation response - choices count: ${chatCompletion.choices?.length || 0}`);
-    if (chatCompletion.choices?.[0]) {
-      console.log(`[AI Service] Translation finish_reason: ${chatCompletion.choices[0].finish_reason}`);
-      console.log(`[AI Service] Translation content length: ${chatCompletion.choices[0].message?.content?.length || 0}`);
-    }
+    // Debug logging
+    console.log(`[AI Service] Translation response - finish reason: ${finishReason}`);
+    console.log(`[AI Service] Translation content length: ${translatedText?.length || 0}`);
 
-    const result = chatCompletion.choices[0]?.message?.content || null;
-    
-    if (!result) {
-      console.error('[AI Service] Empty translation response structure:', JSON.stringify(chatCompletion, null, 2));
+    if (!translatedText) {
+      console.error('[AI Service] Empty translation response');
       throw new Error('Empty translation response');
     }
-    
-    return result;
+
+    return translatedText;
   });
-  
+
   // Cache the result
   setInCache(cacheKey, translation);
-  
+
   console.log(`[AI Service] Translation completed for ${type} (${targetLanguageCode})`);
   return translation;
 };
@@ -496,11 +470,11 @@ Output: Return ONLY the translated text, nothing else.`;
  */
 const translateBatch = async (items) => {
   console.log(`[AI Service] Batch translating ${items.length} items...`);
-  
+
   const results = await Promise.all(
     items.map(item => translateText(item.text, item.targetLanguageCode, item.type))
   );
-  
+
   console.log(`[AI Service] Batch translation complete`);
   return results;
 };
@@ -516,32 +490,29 @@ const getTopicTranslation = async (topicName, targetLanguageCode) => {
   if (TOPIC_TRANSLATIONS[topicName]?.[targetLanguageCode]) {
     return TOPIC_TRANSLATIONS[topicName][targetLanguageCode];
   }
-  
+
   // Fall back to AI translation
   return translateText(topicName, targetLanguageCode, 'general');
 };
 
 /**
- * Optimize image prompt using AI
- * @param {string} instructions - Base image generation instructions (style guidelines)
+ * Optimize image prompt using AI for TCI news articles
  * @param {string} summary - Article summary for context - THIS IS THE PRIMARY SOURCE FOR IMAGE CONTENT
- * @returns {Promise<string>} - Optimized prompt with article-specific details
+ * @returns {Promise<string>} - Optimized prompt with TCI-specific details
  */
-const optimizeImagePrompt = async (instructions, summary) => {
+const optimizeImagePrompt = async (summary) => {
   if (!summary) {
     console.log('[AI Service] No summary provided for image prompt optimization. Using generic TCI scene.');
-    return 'Professional news photograph of Grace Bay Beach, Turks and Caicos Islands, turquoise Caribbean waters, white sand, tropical palm trees, sunny day, photorealistic, high resolution, 16:9 aspect ratio';
+    return 'Professional news photograph of Grace Bay Beach in Providenciales, Turks and Caicos Islands, crystal-clear turquoise Caribbean waters, pristine white sand beach, tropical palm trees swaying, bright sunny Caribbean day, local Caribbean people with dark skin tones enjoying the beach, photorealistic news photography, high resolution, 16:9 aspect ratio';
   }
-  
+
   console.log('[AI Service] Optimizing image prompt...');
   console.log(`[AI Service] Summary length for image prompt: ${summary.length} characters`);
-  
+
   // Truncate summary if it exceeds the max length to prevent context overflow
-  // This is especially important when raw_content is passed as fallback
   let truncatedSummary = summary;
   if (summary.length > CONFIG.MAX_CONTENT_LENGTH.IMAGE_PROMPT_SUMMARY) {
     truncatedSummary = summary.substring(0, CONFIG.MAX_CONTENT_LENGTH.IMAGE_PROMPT_SUMMARY);
-    // Try to end at a sentence boundary for better context
     const lastSentenceEnd = Math.max(
       truncatedSummary.lastIndexOf('.'),
       truncatedSummary.lastIndexOf('!'),
@@ -552,66 +523,58 @@ const optimizeImagePrompt = async (instructions, summary) => {
     }
     console.log(`[AI Service] Summary truncated from ${summary.length} to ${truncatedSummary.length} characters for image prompt optimization`);
   }
-  
+
   await checkRateLimit();
-  
+
   return withRetry(async () => {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert visual journalist creating image prompts for a Caribbean news outlet. Your task is to generate a UNIQUE, ARTICLE-SPECIFIC image prompt that visually represents the news story.
+    const { text: optimizedPrompt, finishReason } = await generateText({
+      model: groq(CONFIG.MODELS.PROMPT_OPTIMIZATION),
+      system: `You are a visual journalist for Mango News in the Turks and Caicos Islands (TCI). Create a UNIQUE image prompt that accurately represents the news article.
 
-CRITICAL: Each prompt must be DIFFERENT and SPECIFIC to the article content. Generic Caribbean beach scenes are NOT acceptable unless the article is specifically about beaches/tourism.
+TURKS AND CAICOS CONTEXT (use when relevant):
+- Main Islands: Providenciales (Provo), Grand Turk (capital), Salt Cay, South Caicos, Middle Caicos, North Caicos, Parrot Cay
+- Landmarks: Grace Bay Beach, Chalk Sound National Park, Grand Turk Lighthouse, Cockburn Town, The Bight, Long Bay Beach, Sapodilla Bay
+- Government: House of Assembly, Government Complex in Grand Turk, Governor's Beach
+- Culture: Junkanoo festivals, ripsaw music, conch fishing heritage, salt industry history
+- Economy: Tourism, offshore finance, fishing, construction
+- Architecture: Bermudian-style colonial buildings, modern resorts, traditional island homes
+- Nature: Turquoise waters, coral reefs, flamingos, iguanas, mangroves, salt flats
 
-EXTRACTION PROCESS (follow strictly):
-1. IDENTIFY the article's main subject: What is this story about? (person, event, building, issue, etc.)
-2. EXTRACT specific visual elements mentioned: names, places, objects, actions, numbers, dates
-3. DETERMINE the appropriate scene type:
-   - Government/Politics: Government buildings, officials, meetings, press conferences
-   - Crime/Justice: Courthouses, police, legal proceedings (NO graphic content)
-   - Business/Economy: Offices, construction, storefronts, workers, currency, markets
-   - Health: Hospitals, medical staff, clinics, health facilities
-   - Education: Schools, classrooms, students, graduation
-   - Sports: Athletes, sports facilities, competitions, trophies
-   - Environment: Natural landscapes, conservation areas, weather events
-   - Community: Local gatherings, cultural events, neighborhoods
-   - Infrastructure: Roads, buildings under construction, utilities
-   - Tourism: Hotels, attractions, visitors (ONLY if article is about tourism)
+SCENE MAPPING (match article topic):
+- Government/Politics → House of Assembly, Government Complex, official meetings, Caribbean officials in formal attire
+- Crime/Justice → Magistrate's Court, Royal Turks and Caicos Islands Police, legal proceedings (NO graphic content)
+- Business/Economy → Downtown Providenciales, Grace Bay resorts, construction sites, fishing boats, local markets
+- Health → Cheshire Hall Medical Centre, Turks and Caicos Hospital, medical staff
+- Education → TCI Community College, local schools, students in uniforms
+- Tourism → Grace Bay Beach, resorts, snorkeling, diving, tourists and locals
+- Environment → National parks, coral reefs, wetlands, hurricanes, coastal erosion
+- Community → Local festivals, churches, neighborhood gatherings, Junkanoo celebrations
+- Infrastructure → Providenciales International Airport, roads, utilities, development projects
+- Fishing → Conch diving, fishing boats, Blue Hills fishing village, seafood markets
 
-OUTPUT FORMAT:
-Generate a 50-100 word prompt structured as:
-[Main subject/scene], [specific details from article], [setting/location if mentioned], [relevant people if applicable - always depict Caribbean locals with dark skin tones], [lighting and mood appropriate to the news tone], photorealistic news photography, 16:9 aspect ratio
+CHARACTER REPRESENTATION (CRITICAL):
+- Depict local Turks and Caicos Islanders (Belongers) with dark skin tones
+- Show diverse ages and appropriate professional attire
+- Respectful, dignified representation
 
-FORBIDDEN:
-- Generic "beautiful Caribbean beach" unless article is about beaches
-- Text, logos, watermarks
-- Specific identifiable individuals' faces
-- Graphic violence or disturbing imagery
-- Abstract or artistic interpretations`
-        },
-        {
-          role: "user",
-          content: `Generate an image prompt for this news article:\n\n${truncatedSummary}`
-        }
-      ],
-      model: CONFIG.MODELS.PROMPT_OPTIMIZATION,
-      temperature: 0.8, // Slightly higher for more creative variety
-      max_tokens: CONFIG.MAX_TOKENS.IMAGE_PROMPT,
+OUTPUT: Generate a 50-80 word prompt:
+[Specific TCI scene/location], [article-specific details], [local people if relevant], [Caribbean lighting - bright sun, golden hour, or dramatic storm clouds as appropriate], photorealistic news photography, 16:9 aspect ratio
+
+FORBIDDEN: Generic beaches (unless topic is tourism/beaches), text/logos/watermarks, identifiable faces, violence, abstract art`,
+      prompt: `Generate an image prompt for this TCI news article:\n\n${truncatedSummary}`,
+      temperature: 0.7,
+      maxTokens: CONFIG.MAX_TOKENS.IMAGE_PROMPT,
     });
 
-    const optimizedPrompt = chatCompletion.choices[0]?.message?.content || null;
-    
-    // Log if the response might have been truncated
-    if (chatCompletion.choices[0]?.finish_reason === 'length') {
+    if (finishReason === 'length') {
       console.warn('[AI Service] Image prompt optimization may have been truncated due to max_tokens limit');
     }
-    
+
     if (!optimizedPrompt) {
       console.warn('[AI Service] Failed to generate optimized prompt, using fallback');
-      return 'Professional news photograph, Caribbean setting, Turks and Caicos Islands, photorealistic, high resolution, 16:9 aspect ratio';
+      return 'Professional news photograph of Cockburn Town waterfront in Grand Turk, Turks and Caicos Islands, colonial Bermudian architecture, Caribbean blue sky, local islanders, photorealistic, 16:9 aspect ratio';
     }
-    
+
     console.log(`[AI Service] Generated optimized prompt (${optimizedPrompt.length} chars): ${optimizedPrompt.substring(0, 100)}...`);
     return optimizedPrompt;
   });
@@ -624,44 +587,42 @@ FORBIDDEN:
  */
 const generateWeeklySummary = async (articles) => {
   console.log('[AI Service] Generating weekly summary...');
-  
+
   const maxInputLength = 80000;
   const maxArticlesToSummarize = 30;
-  
+
   // Build article content string
   let articleContents = '';
   let articlesProcessed = 0;
-  
+
   for (const article of articles) {
     if (articlesProcessed >= maxArticlesToSummarize) {
       break;
     }
-    
+
     if (article.summary && article.summary.length > 50) {
       const contentToAdd = `Title: ${article.title}\nSummary: ${article.summary}\n\n`;
-      
+
       if ((articleContents + contentToAdd).length > maxInputLength) {
         break;
       }
-      
+
       articleContents += contentToAdd;
       articlesProcessed++;
     }
   }
-  
+
   if (articleContents.length === 0) {
     console.warn('[AI Service] No sufficient article content for weekly summary');
     return "No sufficient article content.";
   }
-  
+
   await checkRateLimit();
-  
+
   return withRetry(async () => {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are the lead editor of Mango News Sunday Edition, the premiere weekly news digest for the Turks and Caicos Islands. Compile the provided weekly articles into an engaging, professional news broadcast script.
+    const { text } = await generateText({
+      model: groq(CONFIG.MODELS.SUMMARY),
+      system: `You are the lead editor of Mango News Sunday Edition, the premiere weekly news digest for the Turks and Caicos Islands. Compile the provided weekly articles into an engaging, professional news broadcast script.
 
 Content Structure:
 1. Opening: Start with "Welcome to this week's Sunday Edition. It is brought to you by mango.tc. Your one-stop shop for everything TCI!"
@@ -686,19 +647,13 @@ Constraints:
 - Do NOT use phrases like "This week we saw..." or "Let's take a look at..."
 - Do NOT use asterisk characters (*) outside of markdown bold syntax
 - MUST end with a complete sentence
-- MUST stay within the character limit for audio processing`
-        },
-        {
-          role: "user",
-          content: `Weekly Articles to summarize:\n\n${articleContents}`
-        }
-      ],
-      model: CONFIG.MODELS.SUMMARY,
+- MUST stay within the character limit for audio processing`,
+      prompt: `Weekly Articles to summarize:\n\n${articleContents}`,
       temperature: 0.6,
-      max_tokens: 1200,
+      maxTokens: 1200,
     });
 
-    return chatCompletion.choices[0]?.message?.content || "Summary generation failed.";
+    return text || "Summary generation failed.";
   });
 };
 
@@ -748,16 +703,17 @@ module.exports = {
   getTopicTranslation,
   optimizeImagePrompt,
   generateWeeklySummary,
-  
+
   // Data exports
   TOPICS_LIST,
   TOPIC_TRANSLATIONS,
-  
-  // Utility functions
+
+  // Utility functions (exported for use by other services)
+  withRetry,
   getCacheStats,
   clearCache,
   getRateLimitStatus,
-  
+
   // Configuration (read-only)
   CONFIG,
 };

@@ -1,14 +1,15 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid'); // For unique filenames
-const fetch = require('node-fetch'); // Import node-fetch for making HTTP requests
-const FormData = require('form-data'); // Import the form-data library
 
 // Import shared database pool to prevent connection exhaustion and reduce memory
 const { pool } = require('./db');
 
 // Import centralized AI service for optimized AI operations
 const aiService = require('./services/aiService');
+
+// Import image service for AI image generation
+const imageService = require('./services/imageService');
 
 // Configure AWS S3
 const s3Client = new S3Client({
@@ -21,7 +22,6 @@ const s3Client = new S3Client({
 
 const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
 const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/synthesisTasks';
-const IDEOGRAM_API_KEY = process.env.IDEOGRAM_API_KEY;
 
 if (!UNREAL_SPEECH_API_KEY) {
     console.error('[ERROR] UNREAL_SPEECH_API_KEY is not set in environment variables.');
@@ -29,8 +29,8 @@ if (!UNREAL_SPEECH_API_KEY) {
 if (!process.env.GROQ_API_KEY) {
     console.error('[ERROR] GROQ_API_KEY is not set in environment variables.');
 }
-if (!IDEOGRAM_API_KEY) {
-    console.error('[ERROR] IDEOGRAM_API_KEY is not set in environment variables.');
+if (!process.env.FAL_KEY) {
+    console.error('[ERROR] FAL_KEY is not set in environment variables.');
 }
 if (!process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.S3_BUCKET_NAME) {
     console.error('[ERROR] AWS S3 environment variables (AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME) are not fully set.');
@@ -187,113 +187,10 @@ const generateAITranslation = async (text, targetLanguageCode, type = 'general')
     }
 };
 
-// Function to generate AI image using Ideogram API (copied from scraper.js)
+// Function to generate AI image using fal.ai via centralized image service
 const generateAIImage = async (title, summary) => {
-    console.log('Attempting to generate AI image using Ideogram API...');
-
-    if (!IDEOGRAM_API_KEY) {
-        console.warn('IDEOGRAM_API_KEY is not set. Skipping AI image generation.');
-        return null;
-    }
-    console.log(`IDEOGRAM_API_KEY is set: ${!!IDEOGRAM_API_KEY}`);
-
-    const ideogramApiUrl = 'https://api.ideogram.ai/v1/ideogram-v3/generate';
-
-    const imagePromptInstructions = `Create a professional news thumbnail image for Mango News, a Turks and Caicos Islands (TCI) news aggregator.
-
-Visual Requirements:
-- Style: Photorealistic, high-resolution news photography aesthetic
-- Composition: 16:9 aspect ratio optimized for web thumbnails and social media
-- Lighting: Well-lit, clear visibility, professional news broadcast quality
-- Colors: Vibrant Caribbean palette (turquoise waters, sandy beaches, blue skies) when contextually appropriate
-
-Character Representation (IMPORTANT):
-- When human figures are included, depict them as local Caribbean people with dark skin tones, reflecting the authentic demographics of the Turks and Caicos Islands
-- Represent diverse ages and professional attire appropriate to the news context
-- Ensure respectful, dignified representation of all people
-
-Content Guidelines:
-- Feature relevant scenes: TCI landmarks (Grace Bay, Chalk Sound, Government buildings), Caribbean coastal scenes, or abstract representations of the news topic
-- AVOID: Identifiable specific individuals, text overlays, logos, watermarks
-- AVOID: Controversial, sensitive, or potentially misleading imagery
-- DO NOT include asterisks (*), hashtags, or social media symbols
-
-Context: This image accompanies a TCI news article. The scene should visually represent the article's main theme while maintaining journalistic neutrality and local authenticity.`;
-
-    try {
-        console.log('Optimizing image prompt using centralized AI service...');
-        const optimizedPrompt = await aiService.optimizeImagePrompt(imagePromptInstructions, summary);
-
-        console.log('Generated optimized prompt:', optimizedPrompt);
-
-        const formData = new FormData();
-        formData.append('prompt', optimizedPrompt);
-        formData.append('rendering_speed', 'TURBO');
-        formData.append('aspect_ratio', '16x9');
-        formData.append('magic_prompt', 'OFF');
-        formData.append('style_type', 'REALISTIC');
-        formData.append('num_images', '1'); // Explicitly requesting 1 image
-        formData.append('negative_prompt', 'text, words, blurry, distorted, ugly, deformed, disfigured, low quality, bad anatomy, bad hands, missing fingers, extra fingers, fewer fingers, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, artist name, error, out of frame, duplicate, tiling, cartoon, anime, sketch, painting, drawing, illustration, 3D render, digital art, abstract, monochrome, grayscale, oversaturated, underexposed, overexposed, too dark, too bright, too colorful, too dull, too much contrast, too little contrast, too much detail, too little detail, messy, cluttered, noisy, grainy, pixelated, blurry background, distorted background, ugly background, deformed background, disfigured background, low quality background, bad anatomy background, bad hands background, missing fingers background, extra fingers background, fewer fingers background, cropped background, worst quality background, low quality background, normal quality background, jpeg artifacts background, signature background, watermark background, username background, artist name background, error background, out of frame background, duplicate background, tiling background, cartoon background, anime background, sketch background, painting background, drawing background, illustration background, 3D render background, digital art background, abstract background, monochrome background, grayscale background, oversaturated background, underexposed background, overexposed background, too dark background, too bright background, too colorful background, too dull background, too much contrast background, too little contrast background, too much detail background, too little detail background, messy background, cluttered background, noisy background, grainy background, pixelated background'); // Added negative prompts
-        console.log('Ideogram API request parameters:', {
-            prompt: optimizedPrompt,
-            rendering_speed: 'TURBO',
-            aspect_ratio: '16x9',
-            magic_prompt: 'OFF',
-            style_type: 'REALISTIC',
-            num_images: '1',
-            negative_prompt: 'text, words, blurry, distorted, ugly, deformed, disfigured, low quality, bad anatomy, bad hands, missing fingers, extra fingers, fewer fingers, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, artist name, error, out of frame, duplicate, tiling, cartoon, anime, sketch, painting, drawing, illustration, 3D render, digital art, abstract, monochrome, grayscale, oversaturated, underexposed, overexposed, too dark, too bright, too colorful, too dull, too much contrast, too little contrast, too much detail, too little detail, messy, cluttered, noisy, grainy, pixelated, blurry background, distorted background, ugly background, deformed background, disfigured background, low quality background, bad anatomy background, bad hands background, missing fingers background, extra fingers background, fewer fingers background, cropped background, worst quality background, low quality background, normal quality background, jpeg artifacts background, signature background, watermark background, username background, artist name background, error background, out of frame background, duplicate background, tiling background, cartoon background, anime background, sketch background, painting background, drawing background, illustration background, 3D render background, digital art background, abstract background, monochrome background, grayscale background, oversaturated background, underexposed background, overexposed, too dark, too bright, too colorful, too dull, too much contrast, too little contrast, too much detail, too little detail, messy, cluttered, noisy, grainy, pixelated, blurry background, distorted background, ugly background, deformed background, disfigured background, low quality background, bad anatomy background, bad hands background, missing fingers background, extra fingers background, fewer fingers background, cropped background, worst quality background, low quality background, normal quality background, jpeg artifacts background, signature background, watermark background, username background, artist name background, error background, out of frame background, duplicate background, tiling background, cartoon background, anime background, sketch background, painting background, drawing background, illustration background, 3D render background, digital art background, abstract background, monochrome background, grayscale background, oversaturated background, underexposed background, overexposed background, too dark background, too bright background, too colorful background, too dull background, too much contrast background, too little contrast background, too much detail background, too little detail background, messy background, cluttered background, noisy background, grainy background, pixelated background'
-        });
-
-        const headers = formData.getHeaders();
-        headers['Api-Key'] = IDEOGRAM_API_KEY;
-
-        const response = await fetch(ideogramApiUrl, {
-            method: 'POST',
-            headers: headers,
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Ideogram API request failed: ${response.status} ${response.statusText} - ${errorText}`);
-        }
-
-        const responseData = await response.json();
-        console.log('Ideogram API raw response data:', JSON.stringify(responseData, null, 2));
-
-        if (responseData && responseData.data && responseData.data.length > 0) {
-            const imageUrl = responseData.data[0].url;
-            console.log('Generated AI image URL:', imageUrl);
-
-            console.log('Attempting to download image from:', imageUrl);
-            const imageResponse = await fetch(imageUrl);
-            if (!imageResponse.ok) {
-                throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
-            }
-            console.log('Image downloaded successfully.');
-
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-
-            const urlParts = imageUrl.split('.');
-            const fileExtension = urlParts.pop()?.split('?')[0] || 'png';
-
-            const imageName = `sunday-editions/images/${uuidv4()}.${fileExtension}`;
-
-            const s3ImageUrl = await uploadToS3(buffer, 'sunday-editions/images', `${uuidv4()}.${fileExtension}`, `image/${fileExtension}`);
-
-            console.log('Uploaded AI image to S3:', s3ImageUrl);
-            return s3ImageUrl;
-
-        } else {
-            console.warn('Ideogram API response did not contain expected image data.', responseData);
-            return null;
-        }
-
-    } catch (apiErr) {
-        console.error('Error generating or uploading AI image with Ideogram API or S3:', apiErr);
-        return null;
-    }
+    console.log('Attempting to generate AI image using fal.ai...');
+    return imageService.generateSundayEditionImage(title, summary);
 };
 
 async function createSundayEdition() {
