@@ -872,8 +872,9 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
       console.log(`Image generation using content of ${imageContextContent.length} chars`);
       const aiImagePath = await generateAIImage(article.title, imageContextContent);
       if (aiImagePath) {
-        // Update both ai_image_path and potentially thumbnail_url if it was also null
-        await pool.query('UPDATE articles SET ai_image_path = $1, thumbnail_url = COALESCE(thumbnail_url, $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImagePath, article.id]);
+        // Update both ai_image_path and thumbnail_url with the new image
+        // Always overwrite thumbnail_url to ensure the new image is displayed
+        await pool.query('UPDATE articles SET ai_image_path = $1, thumbnail_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [aiImagePath, article.id]);
         processed = true;
         message = `AI image generated and saved successfully: ${aiImagePath}.`;
       } else {

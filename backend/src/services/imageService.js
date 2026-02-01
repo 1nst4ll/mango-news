@@ -2,10 +2,11 @@
  * Image Generation Service
  *
  * Centralized service for AI image generation using fal.ai
- * Model: fal-ai/flux-2/klein/4b/base/lora
+ * Model: fal-ai/flux-2/turbo (FLUX.2 Dev Turbo)
  *
  * Features:
- * - Uses fal.ai FLUX.2 Klein model for fast, high-quality generation
+ * - Uses fal.ai FLUX.2 Turbo for ultra-fast, high-quality generation (~6s per image)
+ * - 6x faster than standard models with 8-step distilled inference
  * - Automatic S3 upload for generated images
  * - Integration with AI service for TCI-specific prompt optimization
  * - Shared retry logic from AI service
@@ -38,20 +39,22 @@ const s3Client = new S3Client({
 
 const CONFIG = {
   // fal.ai model configuration
-  // Using FLUX.2 Klein 4B with LoRA support for fast, high-quality generation
-  MODEL: process.env.FAL_IMAGE_MODEL || 'fal-ai/flux-2/klein/4b/base/lora',
-  // Image dimensions (16:9 aspect ratio for news thumbnails)
+  // Using FLUX.2 Turbo for ultra-fast generation (~6s per image, 8-step distilled inference)
+  // Alternative models: 'fal-ai/flux-2' (dev), 'fal-ai/flux-2-pro' (highest quality)
+  MODEL: process.env.FAL_IMAGE_MODEL || 'fal-ai/flux-2/turbo',
+  // Image dimensions - using preset for better compatibility with FLUX.2
+  // Options: square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, landscape_16_9
+  IMAGE_SIZE: process.env.FAL_IMAGE_SIZE || 'landscape_16_9',
+  // Legacy dimension support (used if IMAGE_SIZE is 'custom')
   IMAGE_WIDTH: parseInt(process.env.FAL_IMAGE_WIDTH) || 1280,
   IMAGE_HEIGHT: parseInt(process.env.FAL_IMAGE_HEIGHT) || 720,
   // Retry configuration (uses AI service defaults if not specified)
   MAX_RETRIES: parseInt(process.env.FAL_MAX_RETRIES) || aiService.CONFIG.MAX_RETRIES,
   RETRY_DELAY_MS: parseInt(process.env.FAL_RETRY_DELAY) || aiService.CONFIG.RETRY_DELAY_MS,
-  // Number of inference steps (default 28 per API docs, higher = better quality)
-  NUM_INFERENCE_STEPS: parseInt(process.env.FAL_INFERENCE_STEPS) || 28,
-  // Guidance scale for classifier-free guidance (default 5 per API docs)
-  GUIDANCE_SCALE: parseFloat(process.env.FAL_GUIDANCE_SCALE) || 5,
+  // Guidance scale for classifier-free guidance (default 2.5 for FLUX.2)
+  GUIDANCE_SCALE: parseFloat(process.env.FAL_GUIDANCE_SCALE) || 2.5,
   // Output format: jpeg, png, or webp
-  OUTPUT_FORMAT: process.env.FAL_OUTPUT_FORMAT || 'png',
+  OUTPUT_FORMAT: process.env.FAL_OUTPUT_FORMAT || 'jpeg',
 };
 
 // ============================================================================
@@ -91,14 +94,14 @@ const uploadToS3 = async (buffer, folder, filename, contentType) => {
 // ============================================================================
 
 /**
- * Generate AI image using fal.ai FLUX.2 Klein model
+ * Generate AI image using fal.ai FLUX.2 Turbo model
  * @param {string} title - Article title (for logging context)
  * @param {string} summary - Article summary or content for prompt generation
  * @param {string} folder - S3 folder for upload (default: 'ai-images')
  * @returns {Promise<string|null>} - S3 URL of generated image or null on failure
  */
 const generateAIImage = async (title, summary, folder = 'ai-images') => {
-  console.log('[Image Service] Attempting to generate AI image using fal.ai FLUX.2 Klein...');
+  console.log('[Image Service] Attempting to generate AI image using fal.ai FLUX.2 Turbo...');
 
   if (!process.env.FAL_KEY) {
     console.warn('[Image Service] FAL_KEY is not set. Skipping AI image generation.');
@@ -114,17 +117,17 @@ const generateAIImage = async (title, summary, folder = 'ai-images') => {
     // Use shared withRetry from AI service
     return await aiService.withRetry(async () => {
       console.log(`[Image Service] Generating image with fal.ai model: ${CONFIG.MODEL}`);
-      console.log(`[Image Service] Settings: ${CONFIG.IMAGE_WIDTH}x${CONFIG.IMAGE_HEIGHT}, ${CONFIG.NUM_INFERENCE_STEPS} steps, guidance ${CONFIG.GUIDANCE_SCALE}`);
+      console.log(`[Image Service] Settings: ${CONFIG.IMAGE_SIZE}, guidance ${CONFIG.GUIDANCE_SCALE}`);
+
+      // Build image_size parameter - use preset string or custom dimensions
+      const imageSize = CONFIG.IMAGE_SIZE === 'custom'
+        ? { width: CONFIG.IMAGE_WIDTH, height: CONFIG.IMAGE_HEIGHT }
+        : CONFIG.IMAGE_SIZE;
 
       const result = await fal.subscribe(CONFIG.MODEL, {
         input: {
           prompt: optimizedPrompt,
-          negative_prompt: 'text, words, letters, watermark, logo, signature, blurry, distorted, low quality, cartoon, anime, sketch, painting, drawing, illustration, abstract',
-          image_size: {
-            width: CONFIG.IMAGE_WIDTH,
-            height: CONFIG.IMAGE_HEIGHT
-          },
-          num_inference_steps: CONFIG.NUM_INFERENCE_STEPS,
+          image_size: imageSize,
           guidance_scale: CONFIG.GUIDANCE_SCALE,
           num_images: 1,
           enable_safety_checker: true,
