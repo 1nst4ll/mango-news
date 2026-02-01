@@ -54,6 +54,10 @@ interface NewsFeedProps {
   activeCategory: string;
 }
 
+// Debug logging only in development
+const isDev = import.meta.env.DEV;
+const log = isDev ? console.log.bind(console) : () => {};
+
 function NewsFeed({
   searchTerm = '',
   selectedSources = [],
@@ -82,7 +86,7 @@ function NewsFeed({
 
   const fetchArticles = useCallback(async (page: number) => {
     if (fetchInProgressRef.current) {
-      console.log('[NewsFeed] Fetch attempt skipped: a fetch is already in progress.');
+      log('[NewsFeed] Fetch attempt skipped: a fetch is already in progress.');
       return;
     }
 
@@ -121,21 +125,21 @@ function NewsFeed({
         url += `?${params.toString()}`;
       }
 
-      console.log('[NewsFeed] Fetching articles with URL:', url);
+      log('[NewsFeed] Fetching articles with URL:', url);
 
       const response = await Promise.race([
         fetch(url, { signal: controller.signal }),
         timeoutPromise
       ]) as Response;
 
-      console.log('[NewsFeed] API Response Status:', response.status);
+      log('[NewsFeed] API Response Status:', response.status);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data: Article[] = await response.json();
-      console.log('[NewsFeed] Fetched articles data:', data);
+      log('[NewsFeed] Fetched articles data:', data);
 
       setArticles(prevArticles => {
         const newArticles = data.filter(
@@ -156,7 +160,7 @@ function NewsFeed({
         setError(err);
       }
     } finally {
-      console.log('[NewsFeed] Setting loading to false in finally block.');
+      log('[NewsFeed] Setting loading to false in finally block.');
       if (page === 1) {
         setInitialLoading(false);
       }
@@ -209,7 +213,7 @@ function NewsFeed({
 
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore && !loading) {
-        console.log('[NewsFeed] IntersectionObserver triggered fetch.');
+        log('[NewsFeed] IntersectionObserver triggered fetch.');
         if (observer.current) {
           observer.current.disconnect();
         }
@@ -228,60 +232,107 @@ function NewsFeed({
     if (node) observer.current.observe(node);
   }, [loading, hasMore, fetchArticles]);
 
-  console.log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
+  log('[NewsFeed] Render state - loading:', loading, 'articles.length:', articles.length, 'error:', error);
 
-  // Filter Sunday editions to only show those with publication dates WITHIN the range of loaded articles
-  // This prevents all Sunday editions from appearing before more articles can load via infinite scroll
+  // Filter Sunday editions to show:
+  // 1. Always show the most recent Sunday edition (so users see it immediately)
+  // 2. Show editions within the date range of loaded articles (for infinite scroll)
   const filteredSundayEditions = React.useMemo(() => {
-    // Don't show any editions until articles are loaded
-    if (articles.length === 0) return [];
-    
+    if (sundayEditions.length === 0) return [];
+
+    // Sort editions by date descending to get most recent first
+    const sortedEditions = [...sundayEditions].sort(
+      (a, b) => new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime()
+    );
+
+    // Always include the most recent edition
+    const mostRecentEdition = sortedEditions[0];
+
+    // If no articles loaded yet, just show the most recent edition
+    if (articles.length === 0) return [mostRecentEdition];
+
     // Get the date range of loaded articles
     const articleDates = articles.map(a => new Date(a.publication_date).getTime());
     const oldestArticleDate = Math.min(...articleDates);
     const newestArticleDate = Math.max(...articleDates);
-    
-    // Only include Sunday editions that fall WITHIN the date range of loaded articles
-    // This ensures Sunday editions appear naturally as you scroll through articles
-    return sundayEditions.filter(edition => {
+
+    // Include editions within the article date range, plus always the most recent
+    const editionsInRange = sortedEditions.filter(edition => {
       const editionDate = new Date(edition.publication_date).getTime();
       return editionDate >= oldestArticleDate && editionDate <= newestArticleDate;
     });
+
+    // Combine: most recent + those in range (deduplicated)
+    const editionIds = new Set(editionsInRange.map(e => e.id));
+    if (!editionIds.has(mostRecentEdition.id)) {
+      return [mostRecentEdition, ...editionsInRange];
+    }
+    return editionsInRange;
   }, [articles, sundayEditions]);
 
-  // Combine articles and filtered Sunday Editions, then sort by publication_date
-  const combinedFeed = [...articles, ...filteredSundayEditions.map(edition => ({
-    ...edition,
-    type: 'sundayEdition' as const, // Explicitly set type as a literal
-    publication_date: edition.publication_date, // Ensure consistent date field
-  }))].sort((a, b) => {
-    return new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime();
-  });
+  // Combine articles and filtered Sunday Editions, then sort by publication_date (memoized)
+  const combinedFeed = React.useMemo(() => {
+    return [...articles, ...filteredSundayEditions.map(edition => ({
+      ...edition,
+      type: 'sundayEdition' as const,
+      publication_date: edition.publication_date,
+    }))].sort((a, b) => {
+      return new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime();
+    });
+  }, [articles, filteredSundayEditions]);
 
-  // Group combined feed by date (Day, Month, Year)
-  // Store the actual timestamp for proper sorting later
-  const groupedFeed = combinedFeed.reduce((acc, item) => {
-    const date = new Date(item.publication_date);
-    const year = date.getFullYear();
-    const monthIndex = date.getMonth(); // Get month as 0-11 index
-    const monthName = t.months[monthIndex.toString() as keyof typeof t.months]; // Get translated month name from locale
-    const day = date.getDate();
-    const dateKey = `${monthName} ${day}, ${year}`;
-    // Store timestamp as a sortable key (YYYY-MM-DD format)
-    const sortKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  // Group combined feed by date (memoized)
+  const { groupedFeed, sortedDates } = React.useMemo(() => {
+    const grouped = combinedFeed.reduce((acc, item) => {
+      const date = new Date(item.publication_date);
+      const year = date.getFullYear();
+      const monthIndex = date.getMonth();
+      const monthName = t.months[monthIndex.toString() as keyof typeof t.months];
+      const day = date.getDate();
+      const dateKey = `${monthName} ${day}, ${year}`;
+      const sortKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-    if (!acc[dateKey]) {
-      acc[dateKey] = { items: [], sortKey };
+      if (!acc[dateKey]) {
+        acc[dateKey] = { items: [], sortKey };
+      }
+      acc[dateKey].items.push(item);
+      return acc;
+    }, {} as Record<string, { items: (Article | (SundayEdition & { type: 'sundayEdition' }))[]; sortKey: string }>);
+
+    const sorted = Object.keys(grouped).sort((a, b) => {
+      return grouped[b].sortKey.localeCompare(grouped[a].sortKey);
+    });
+
+    return { groupedFeed: grouped, sortedDates: sorted };
+  }, [combinedFeed, t.months]);
+
+  // Helper to get translated text with fallback (memoized)
+  const getTranslatedText = useCallback((article: Article, field: 'title' | 'summary', locale: string) => {
+    if (locale === 'es' && article[`${field}_es`]) {
+      return article[`${field}_es`];
     }
-    acc[dateKey].items.push(item);
-    return acc;
-  }, {} as Record<string, { items: (Article | (SundayEdition & { type: 'sundayEdition' }))[]; sortKey: string }>);
+    if (locale === 'ht' && article[`${field}_ht`]) {
+      return article[`${field}_ht`];
+    }
+    return article[field];
+  }, []);
 
-  // Sort dates in descending order using the sortKey (ISO format) instead of translated date strings
-  const sortedDates = Object.keys(groupedFeed).sort((a, b) => {
-    return groupedFeed[b].sortKey.localeCompare(groupedFeed[a].sortKey);
-  });
+  // Helper to get translated topics with fallback (memoized)
+  const getTranslatedTopics = useCallback((article: Article, locale: string): string[] | undefined => {
+    if (locale === 'es' && article.topics_es && article.topics_es.length > 0) {
+      return article.topics_es;
+    }
+    if (locale === 'ht' && article.topics_ht && article.topics_ht.length > 0) {
+      return article.topics_ht;
+    }
+    return article.topics;
+  }, []);
 
+  // Helper for fallback message (memoized)
+  const getFallbackMessage = useCallback((locale: string) => {
+    const langName = locale === 'es' ? 'Spanish' : 'Haitian Creole';
+    return t.translation_not_available.replace('{language}', langName);
+  }, [t.translation_not_available]);
 
   if (initialLoading) {
     return (
@@ -326,34 +377,6 @@ function NewsFeed({
       </div>
     );
   }
-
-  // Helper to get translated text with fallback
-  const getTranslatedText = (article: Article, field: 'title' | 'summary', locale: string) => {
-    if (locale === 'es' && article[`${field}_es`]) {
-      return article[`${field}_es`];
-    }
-    if (locale === 'ht' && article[`${field}_ht`]) {
-      return article[`${field}_ht`];
-    }
-    return article[field]; // Fallback to English
-  };
-
-  // Helper to get translated topics with fallback
-  const getTranslatedTopics = (article: Article, locale: string): string[] | undefined => {
-    if (locale === 'es' && article.topics_es && article.topics_es.length > 0) {
-      return article.topics_es;
-    }
-    if (locale === 'ht' && article.topics_ht && article.topics_ht.length > 0) {
-      return article.topics_ht;
-    }
-    return article.topics; // Fallback to English (which is already an array)
-  };
-
-  const getFallbackMessage = (locale: string) => {
-    const langName = locale === 'es' ? 'Spanish' : 'Haitian Creole';
-    return t.translation_not_available.replace('{language}', langName);
-  };
-
 
   return (
     <div className="container mx-auto p-4">
