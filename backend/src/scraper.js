@@ -243,8 +243,12 @@ const sanitizeHtml = (input, isMarkdown = false) => {
     // Step 1: Convert markdown to HTML if needed
     const rawHtml = isMarkdown ? markdownToHtml(input) : input;
 
-    // Step 2: DOMPurify pass — strips dangerous content, keeps safe tags for Step 3
-    const cleanHtml = DOMPurify.sanitize(rawHtml, {
+    // Step 2: DOMPurify pass — strips dangerous content, keeps safe tags for Step 3.
+    // figure/figcaption are EXCLUDED from allowed tags AND not in KEEP_CONTENT so
+    // their text doesn't bleed through. We handle this by removing them from the raw
+    // HTML before sanitizing.
+    const stripped = rawHtml.replace(/<figure[\s\S]*?<\/figure>/gi, '');
+    const cleanHtml = DOMPurify.sanitize(stripped, {
       ALLOWED_TAGS: [
         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
@@ -263,9 +267,9 @@ const sanitizeHtml = (input, isMarkdown = false) => {
 
       // Step 3a: Remove drop-cap elements — CMS styling artifacts that split the
       // first letter of a word into a separate styled node, producing "A new" / "F ully".
-      // Match by class name or by single-uppercase-letter text content heuristic.
+      // Match anywhere in the document by class name or single-uppercase-letter heuristic.
       const DROP_CAP_CLASS = /\bdrop-?cap\b|wp-dropcap/i;
-      body.querySelectorAll('span, p > *:first-child, div > *:first-child').forEach(el => {
+      body.querySelectorAll('*').forEach(el => {
         const t = el.textContent;
         const hasDropCapClass = DROP_CAP_CLASS.test(el.getAttribute('class') || '');
         const isSingleLetter = /^[A-Z]$/.test(t.trim()) && !el.querySelector('*');
