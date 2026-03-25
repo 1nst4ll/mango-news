@@ -39,6 +39,83 @@ const BLOCK_ELEMENTS = new Set([
 ]);
 
 /**
+ * Serialize a <p> element, splitting it into multiple blocks when it contains
+ * bold-only runs (CMS section headings) mixed with regular text.
+ * Returns either a single { block, html } or an array of them.
+ */
+function serializeParagraph(node) {
+  // Check if the <p> is purely a bold heading (only child is <strong>/<b>)
+  const significantChildren = [...node.childNodes].filter(c =>
+    c.nodeType === 1 ||
+    (c.nodeType === 3 && c.nodeValue.trim().length > 0)
+  );
+  if (
+    significantChildren.length === 1 &&
+    significantChildren[0].nodeType === 1 &&
+    /^(strong|b)$/.test(significantChildren[0].tagName.toLowerCase())
+  ) {
+    const headingText = significantChildren[0].textContent.trim();
+    if (headingText) return { block: true, html: `<h3>${headingText}</h3>` };
+  }
+
+  // Otherwise serialize children, collecting inline runs and splitting on any
+  // bold-only text segments that act as inline headings (e.g. "<strong>Title</strong>text")
+  const results = [];
+  let pendingInline = '';
+
+  const flushPending = () => {
+    const t = pendingInline
+      .replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ')
+      .replace(/([.!?])([A-Z])/g, '$1 $2').trim();
+    if (t) results.push({ block: true, html: `<p>${t}</p>` });
+    pendingInline = '';
+  };
+
+  for (const child of node.childNodes) {
+    if (child.nodeType === 3) {
+      const val = child.nodeValue;
+      if (val) pendingInline += val;
+      continue;
+    }
+    if (child.nodeType !== 1) continue;
+    const childTag = child.tagName.toLowerCase();
+    if (SKIP_TAGS.has(childTag)) continue;
+
+    // A <strong>/<b> child that is followed or preceded only by whitespace text
+    // nodes (i.e. it's effectively standalone in the paragraph) → heading
+    if (/^(strong|b)$/.test(childTag)) {
+      const boldText = child.textContent.trim();
+      // Check siblings around this child to see if it's a standalone heading
+      const prevSiblingText = child.previousSibling && child.previousSibling.nodeType === 3
+        ? child.previousSibling.nodeValue.trim() : null;
+      const nextSiblingText = child.nextSibling && child.nextSibling.nodeType === 3
+        ? child.nextSibling.nodeValue.trim() : null;
+      const isStandalone = !prevSiblingText && !nextSiblingText && boldText.length > 5;
+      if (isStandalone) {
+        flushPending();
+        results.push({ block: true, html: `<h3>${boldText}</h3>` });
+        continue;
+      }
+    }
+
+    // Regular inline child
+    const serialized = serializeNode(child);
+    if (!serialized) continue;
+    if (typeof serialized === 'object') {
+      flushPending();
+      results.push(serialized);
+    } else {
+      pendingInline += serialized;
+    }
+  }
+  flushPending();
+
+  if (results.length === 0) return '';
+  if (results.length === 1) return results[0];
+  return results;
+}
+
+/**
  * Serialize a node to an HTML string, preserving inline formatting tags
  * (strong, em, a) and list structure (ul, ol, li) while stripping
  * everything else down to clean text.
@@ -100,26 +177,15 @@ function serializeNode(node) {
     return `<${outTag}>${inner}</${outTag}>`;
   }
 
+  // Explicit paragraph tags → always emit as their own block(s)
+  // A <p> may contain mixed inline + bold-heading content; split it into
+  // multiple blocks so each logical unit gets its own paragraph.
+  if (tag === 'p') {
+    return serializeParagraph(node);
+  }
+
   // All other block elements → treat as paragraph boundaries
   if (BLOCK_ELEMENTS.has(tag)) {
-    // Bold-as-heading: <p> or <div> whose only meaningful child is a <strong>/<b>
-    // These are CMS-generated section headings styled as bold paragraphs.
-    if (tag === 'p' || tag === 'div') {
-      const significantChildren = [...node.childNodes].filter(c =>
-        c.nodeType === 1 ||
-        (c.nodeType === 3 && c.nodeValue.trim().length > 0)
-      );
-      if (
-        significantChildren.length === 1 &&
-        significantChildren[0].nodeType === 1 &&
-        /^(strong|b)$/.test(significantChildren[0].tagName.toLowerCase())
-      ) {
-        const headingText = significantChildren[0].textContent.trim();
-        if (headingText) {
-          return { block: true, html: `<h3>${headingText}</h3>` };
-        }
-      }
-    }
     const inner = serializeChildren(node).trim();
     if (!inner) return '';
     return { block: true, html: inner };
@@ -223,28 +289,36 @@ const sanitizeHtml = (input, isMarkdown = false) => {
         pendingInline = '';
       };
 
+      const emitBlock = (serialized) => {
+        // Normalise whitespace inside block html
+        const html = serialized.html
+          .replace(/\u00a0/g, ' ')
+          .replace(/[ \t]+/g, ' ')
+          .replace(/([.!?])([A-Z])/g, '$1 $2')
+          .trim();
+        if (!html) return;
+        // Already-wrapped block tags emit as-is; bare content gets a <p>
+        if (/^<(h[1-6]|ul|ol|blockquote|pre|p)[\s>]/i.test(html)) {
+          blocks.push(html);
+        } else {
+          blocks.push(`<p>${html}</p>`);
+        }
+      };
+
       for (const child of body.childNodes) {
         const serialized = serializeNode(child);
         if (!serialized) continue;
 
-        if (typeof serialized === 'object') {
-          // Block-level result (heading, list, paragraph boundary)
+        if (Array.isArray(serialized)) {
+          // serializeParagraph returned multiple blocks
           flushInline();
-          // Normalise whitespace inside the block html
-          const html = serialized.html
-            .replace(/\u00a0/g, ' ')
-            .replace(/[ \t]+/g, ' ')
-            .replace(/([.!?])([A-Z])/g, '$1 $2')
-            .trim();
-          if (!html) continue;
-
-          // If the block html is already a known block tag, emit as-is;
-          // otherwise wrap it in a <p>
-          if (/^<(h[1-6]|ul|ol|blockquote|pre)[\s>]/i.test(html)) {
-            blocks.push(html);
-          } else {
-            blocks.push(`<p>${html}</p>`);
+          for (const item of serialized) {
+            if (typeof item === 'object') emitBlock(item);
           }
+        } else if (typeof serialized === 'object') {
+          // Single block-level result
+          flushInline();
+          emitBlock(serialized);
         } else {
           // Inline text/markup — accumulate until we hit a block boundary
           if (pendingInline && !pendingInline.endsWith(' ') && !serialized.startsWith(' ')) {
