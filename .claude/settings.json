@@ -14,7 +14,8 @@
       "Bash(node --check src/browserPool.js)",
       "Bash(node --check src/db.js)",
       "Bash(git check-ignore:*)",
-      "Bash(node --check /d/ClaudeMCP/!projects/mango-news/backend/src/scraper.js)"
+      "Bash(node --check /d/ClaudeMCP/!projects/mango-news/backend/src/scraper.js)",
+      "Bash(node -e \":*)"
     ]
   }
 }

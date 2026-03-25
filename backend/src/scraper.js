@@ -22,7 +22,13 @@ const { pool } = require('./db');
 // Import browser pool utilities for memory monitoring
 const { getBrowserStatus, closeBrowser } = require('./browserPool');
 
-// Block-level HTML elements — transitions between these become paragraph breaks
+// Tags that should be completely removed along with their content
+const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'nav', 'form']);
+
+// Inline formatting tags to preserve in the final HTML output
+const INLINE_KEEP = new Set(['strong', 'b', 'em', 'i', 'a', 'mark', 'code', 'sup', 'sub']);
+
+// Block-level elements — used to decide when to insert paragraph breaks
 const BLOCK_ELEMENTS = new Set([
   'p', 'div', 'section', 'article', 'aside', 'header', 'footer', 'main',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -33,10 +39,16 @@ const BLOCK_ELEMENTS = new Set([
 ]);
 
 /**
- * Walk a DOM node tree and extract clean text, inserting spaces between
- * inline elements and paragraph breaks between block elements.
+ * Serialize a node to an HTML string, preserving inline formatting tags
+ * (strong, em, a) and list structure (ul, ol, li) while stripping
+ * everything else down to clean text.
+ *
+ * Returns either:
+ *  - A plain string for text/inline content
+ *  - An object { block: true, html: '...' } for block-level nodes that
+ *    should become their own top-level element
  */
-function extractTextFromNode(node) {
+function serializeNode(node) {
   if (node.nodeType === 3 /* TEXT_NODE */) {
     return node.nodeValue;
   }
@@ -46,48 +58,82 @@ function extractTextFromNode(node) {
 
   const tag = node.tagName.toLowerCase();
 
-  // Skip elements unlikely to contain article text
-  if (['script', 'style', 'noscript', 'iframe', 'nav', 'form'].includes(tag)) {
-    return '';
+  if (SKIP_TAGS.has(tag)) return '';
+
+  // Headings → preserve as heading tags
+  if (/^h[1-6]$/.test(tag)) {
+    const inner = serializeChildren(node);
+    if (!inner.trim()) return '';
+    return { block: true, html: `<${tag}>${inner}</${tag}>` };
   }
 
-  const isBlock = BLOCK_ELEMENTS.has(tag);
+  // Blockquotes → preserve as blockquote
+  if (tag === 'blockquote') {
+    const inner = serializeChildren(node).trim();
+    if (!inner) return '';
+    return { block: true, html: `<blockquote>${inner}</blockquote>` };
+  }
 
-  // Recurse into children
-  let text = '';
-  let prevWasBlock = false;
+  // Lists → preserve ul/ol/li structure
+  if (tag === 'ul' || tag === 'ol') {
+    const items = [];
+    for (const child of node.childNodes) {
+      if (child.nodeType === 1 && child.tagName.toLowerCase() === 'li') {
+        const liContent = serializeChildren(child).trim();
+        if (liContent) items.push(`<li>${liContent}</li>`);
+      }
+    }
+    if (!items.length) return '';
+    return { block: true, html: `<${tag}>${items.join('')}</${tag}>` };
+  }
 
+  // Inline formatting tags → wrap content and return as inline string
+  if (INLINE_KEEP.has(tag)) {
+    const inner = serializeChildren(node);
+    if (!inner.trim()) return '';
+    if (tag === 'a') {
+      const href = node.getAttribute('href');
+      return href ? `<a href="${href}">${inner}</a>` : inner;
+    }
+    // Normalise <b>→<strong>, <i>→<em>
+    const outTag = tag === 'b' ? 'strong' : tag === 'i' ? 'em' : tag;
+    return `<${outTag}>${inner}</${outTag}>`;
+  }
+
+  // All other block elements → treat as paragraph boundaries
+  if (BLOCK_ELEMENTS.has(tag)) {
+    const inner = serializeChildren(node).trim();
+    if (!inner) return '';
+    return { block: true, html: inner };
+  }
+
+  // Anything else (span, div without block classification, etc.) → inline
+  return serializeChildren(node);
+}
+
+/**
+ * Serialize all children of a node into a single inline HTML string.
+ * Block children are converted to their inner text (they've already been
+ * unwrapped by the parent call or will be handled at the top level).
+ */
+function serializeChildren(node) {
+  let result = '';
   for (const child of node.childNodes) {
-    const childTag = child.nodeType === 1 ? child.tagName.toLowerCase() : null;
-    const childIsBlock = childTag ? BLOCK_ELEMENTS.has(childTag) : false;
-
-    const childText = extractTextFromNode(child);
-    if (!childText) continue;
-
-    if (childIsBlock) {
-      // Block child: ensure we're on a new "paragraph" boundary
-      if (text && !text.endsWith('\n')) {
-        text += '\n';
-      }
-      text += childText;
-      if (!text.endsWith('\n')) {
-        text += '\n';
-      }
-      prevWasBlock = true;
+    const serialized = serializeNode(child);
+    if (!serialized) continue;
+    if (typeof serialized === 'object') {
+      // Block child inside an inline context — use its html as inline text
+      if (result && !result.endsWith(' ') && !result.endsWith('\n')) result += ' ';
+      result += serialized.html;
     } else {
-      // Inline child: join with a space if previous content doesn't already end with one
-      if (text && !text.endsWith(' ') && !text.endsWith('\n') && !childText.startsWith(' ')) {
-        text += ' ';
+      // Inline: join with a space if needed to prevent word-merging
+      if (result && !result.endsWith(' ') && !result.endsWith('\n') && !serialized.startsWith(' ')) {
+        result += ' ';
       }
-      text += childText;
-      prevWasBlock = false;
+      result += serialized;
     }
   }
-
-  if (isBlock) {
-    return '\n' + text.trim() + '\n';
-  }
-  return text;
+  return result;
 }
 
 /**
@@ -117,7 +163,8 @@ const sanitizeHtml = (input, isMarkdown = false) => {
     const cleanHtml = DOMPurify.sanitize(rawHtml, {
       ALLOWED_TAGS: [
         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'strong', 'em', 'a', 'img',
+        'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
+        'strong', 'b', 'em', 'i', 'a', 'mark', 'sup', 'sub', 'img',
         'div', 'span', 'section', 'article', 'figure', 'figcaption',
         'table', 'thead', 'tbody', 'tr', 'th', 'td',
       ],
@@ -125,38 +172,69 @@ const sanitizeHtml = (input, isMarkdown = false) => {
       KEEP_CONTENT: true,
     });
 
-    // Step 3: Parse the sanitized HTML into a DOM and extract properly spaced text
+    // Step 3: Parse the sanitized HTML into a DOM and serialize to structured HTML
     const contentDom = new JSDOM(`<body>${cleanHtml}</body>`);
     try {
       const body = contentDom.window.document.body;
 
-      // Step 3a: Remove drop-cap spans — inline <span> elements whose entire
-      // text content is a single uppercase letter (a common CMS styling pattern
-      // that causes the first letter of a word to be split into a separate node,
-      // producing output like "A new" or "F ully" instead of "A new" / "Fully").
+      // Step 3a: Remove drop-cap spans — inline <span> whose entire text is a
+      // single uppercase letter (CMS styling artifact that splits the first letter
+      // of a word into a separate node, producing "A new" / "F ully" etc.)
       body.querySelectorAll('span').forEach(span => {
-        const text = span.textContent;
-        if (/^[A-Z]$/.test(text.trim()) && !span.querySelector('*')) {
-          // Replace the span with a plain text node so the letter stays in-flow
-          span.replaceWith(contentDom.window.document.createTextNode(text));
+        const t = span.textContent;
+        if (/^[A-Z]$/.test(t.trim()) && !span.querySelector('*')) {
+          span.replaceWith(contentDom.window.document.createTextNode(t));
         }
       });
 
-      let text = extractTextFromNode(body);
+      // Step 4: Walk the body's direct children and collect top-level blocks
+      const blocks = [];
+      let pendingInline = '';
 
-      // Step 4: Normalise whitespace
-      text = text.replace(/\u00a0/g, ' ');
-      text = text.replace(/[ \t]+/g, ' ');
-      text = text.replace(/([.!?])([A-Z])/g, '$1 $2');
-      text = text.replace(/\n{3,}/g, '\n\n');
+      const flushInline = () => {
+        // Normalise whitespace and fix missing spaces after sentence-ending punctuation
+        let text = pendingInline
+          .replace(/\u00a0/g, ' ')
+          .replace(/[ \t]+/g, ' ')
+          .replace(/([.!?])([A-Z])/g, '$1 $2')
+          .trim();
+        if (text) blocks.push(`<p>${text}</p>`);
+        pendingInline = '';
+      };
 
-      // Step 5: Split into paragraphs and wrap in <p> tags
-      const paragraphs = text
-        .split(/\n{2,}/)
-        .map(p => p.replace(/\n/g, ' ').trim())
-        .filter(p => p.length > 0);
+      for (const child of body.childNodes) {
+        const serialized = serializeNode(child);
+        if (!serialized) continue;
 
-      return paragraphs.map(p => `<p>${p}</p>`).join('\n');
+        if (typeof serialized === 'object') {
+          // Block-level result (heading, list, paragraph boundary)
+          flushInline();
+          // Normalise whitespace inside the block html
+          const html = serialized.html
+            .replace(/\u00a0/g, ' ')
+            .replace(/[ \t]+/g, ' ')
+            .replace(/([.!?])([A-Z])/g, '$1 $2')
+            .trim();
+          if (!html) continue;
+
+          // If the block html is already a known block tag, emit as-is;
+          // otherwise wrap it in a <p>
+          if (/^<(h[1-6]|ul|ol|blockquote|pre)[\s>]/i.test(html)) {
+            blocks.push(html);
+          } else {
+            blocks.push(`<p>${html}</p>`);
+          }
+        } else {
+          // Inline text/markup — accumulate until we hit a block boundary
+          if (pendingInline && !pendingInline.endsWith(' ') && !serialized.startsWith(' ')) {
+            pendingInline += ' ';
+          }
+          pendingInline += serialized;
+        }
+      }
+      flushInline();
+
+      return blocks.join('\n');
     } finally {
       contentDom.window.close();
     }
