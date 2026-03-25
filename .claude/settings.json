@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm show:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.firecrawl.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(node --check src/scraper.js)",
+      "Bash(xargs grep:*)",
+      "Bash(node --check src/index.js)",
+      "Bash(node --check src/services/aiService.js)"
+    ]
+  }
+}

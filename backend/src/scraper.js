@@ -1,7 +1,8 @@
 // Contains the main scraping logic, including AI integration and scheduling.
-require('dotenv').config({ path: './backend/.env' }); // Load environment variables from backend/.env
+require('dotenv').config({ path: './backend/.env', quiet: true }); // Load environment variables from backend/.env
 
-const Firecrawl = require('firecrawl').default; // Import Firecrawl (attempting .default)
+const Firecrawl = require('firecrawl').default;
+const { z } = require('zod');
 const cron = require('node-cron'); // Import node-cron for scheduling
 const { scrapeArticle: opensourceScrapeArticle, discoverArticleUrls: opensourceDiscoverSources } = require('./opensourceScraper'); // Import open-source scraper functions
 const fs = require('fs').promises; // Import Node.js file system promises API
@@ -111,10 +112,9 @@ const scrapeSource = async (source) => {
     } else { // Default to Firecrawl
       console.log(`Using Firecrawl for source: ${source.name}`);
       // Call Firecrawl scrape tool using the SDK, passing source settings
-      scrapedResult = await firecrawl.scrapeUrl(source.url, {
-        formats: ['markdown'], // Request markdown content
-        onlyMainContent: true, // Try to get only the main article content
-        // Pass source-specific selectors to Firecrawl
+      scrapedResult = await firecrawl.scrape(source.url, {
+        formats: ['markdown'],
+        onlyMainContent: true,
         includeTags: source.include_selectors ? source.include_selectors.split(',').map(s => s.trim()) : undefined,
         excludeTags: source.exclude_selectors ? source.exclude_selectors.split(',').map(s => s.trim()) : undefined,
       });
@@ -474,23 +474,20 @@ const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryTo
       }
 
     } else { // Default to Firecrawl
-      const firecrawlResult = await firecrawl.scrapeUrl(articleUrl, {
-        formats: ['markdown', 'extract'], // Request both markdown and extract
-        onlyMainContent: true, // Try to get only the main article content
+      const firecrawlResult = await firecrawl.scrape(articleUrl, {
+        formats: ['markdown', 'extract'],
+        onlyMainContent: true,
         includeTags: source.include_selectors ? source.include_selectors.split(',').map(s => s.trim()) : undefined,
         excludeTags: source.exclude_selectors ? source.exclude_selectors.split(',').map(s => s.trim()) : undefined,
-        extract: { // Add extract configuration
-          schema: {
-            type: "object",
-            properties: {
-              title: {"type": "string"},
-              url: {"type": "string"},
-              publication_date: {"type": "string"}, // Use publication_date to match DB schema
-              author: {"type": "string"}
-            }
-          },
-          prompt: "Extract the article title, URL, publication date, and author from the page." // Specific prompt
-        }
+        extract: {
+          schema: z.object({
+            title: z.string().optional(),
+            url: z.string().optional(),
+            publication_date: z.string().optional(),
+            author: z.string().optional(),
+          }),
+          prompt: "Extract the article title, URL, publication date, and author from the page.",
+        },
       });
 
       if (firecrawlResult && firecrawlResult.success) {
@@ -532,31 +529,22 @@ const runScraper = async (enableGlobalAiSummary = true, enableGlobalAiTags = tru
 
          } else { // Default to Firecrawl
         console.log(`Using Firecrawl discovery for source: ${source.name}`);
-        const extractedData = await firecrawl.scrapeUrl(source.url, {
+        const extractedData = await firecrawl.scrape(source.url, {
           formats: ['extract'],
           extract: {
-            schema: {
-              type: "object",
-              properties: {
-                articles: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: {"type": "string"},
-                      url: {"type": "string"},
-                      date: {"type": "string"}
-                    }
-                  }
-                }
-              }
-            },
-            prompt: "Extract a list of recent news article links from the page, including their title and URL."
-          }
+            schema: z.object({
+              articles: z.array(z.object({
+                title: z.string().optional(),
+                url: z.string().optional(),
+                date: z.string().optional(),
+              })),
+            }),
+            prompt: "Extract a list of recent news article links from the page, including their title and URL.",
+          },
         });
 
-        if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
-          articleUrls = extractedData.extract.articles.map(article => article.url).filter(url => url); // Extract URLs and filter out nulls
+        if (extractedData && extractedData.success && extractedData.extract?.articles) {
+          articleUrls = extractedData.extract.articles.map(article => article.url).filter(url => url);
           console.log(`Discovered ${articleUrls.length} potential article URLs with Firecrawl.`);
         } else {
           console.error(`Failed to extract article list from source with Firecrawl: ${source.name}`, extractedData);
@@ -1070,31 +1058,22 @@ const runScraperForSource = async (sourceId, enableAiSummary, enableAiTags, enab
 
     } else { // Default to Firecrawl
       console.log(`Using Firecrawl discovery for source: ${source.name}`);
-      const extractedData = await firecrawl.scrapeUrl(source.url, {
+      const extractedData = await firecrawl.scrape(source.url, {
         formats: ['extract'],
         extract: {
-          schema: {
-            type: "object",
-            properties: {
-              articles: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: {"type": "string"},
-                    url: {"type": "string"},
-                    date: {"type": "string"}
-                  }
-                }
-              }
-            }
-          },
-          prompt: "Extract a list of recent news article links from the page, including their title and URL."
-        }
+          schema: z.object({
+            articles: z.array(z.object({
+              title: z.string().optional(),
+              url: z.string().optional(),
+              date: z.string().optional(),
+            })),
+          }),
+          prompt: "Extract a list of recent news article links from the page, including their title and URL.",
+        },
       });
 
-      if (extractedData && extractedData.success && extractedData.extract && extractedData.extract.articles) {
-        articleUrls = extractedData.extract.articles.map(article => article.url).filter(url => url); // Extract URLs and filter out nulls
+      if (extractedData && extractedData.success && extractedData.extract?.articles) {
+        articleUrls = extractedData.extract.articles.map(article => article.url).filter(url => url);
         console.log(`Discovered ${articleUrls.length} potential article URLs with Firecrawl.`);
       } else {
         console.error(`Failed to extract article list from source with Firecrawl: ${source.name}`, extractedData);

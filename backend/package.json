@@ -13,31 +13,28 @@
   "author": "Cline",
   "license": "ISC",
   "dependencies": {
-    "@ai-sdk/groq": "^3.0.15",
-    "@aws-sdk/client-s3": "^3.803.0",
-    "@fal-ai/client": "^1.8.3",
-    "@mendable/firecrawl-js": "^1.24.0",
-    "ai": "^6.0.48",
-    "aws-sdk": "^2.1692.0",
+    "@ai-sdk/groq": "^3.0.31",
+    "@aws-sdk/client-s3": "^3.1016.0",
+    "@fal-ai/client": "^1.9.5",
+    "ai": "^6.0.138",
+    "axios": "^1.13.6",
     "bcrypt": "^6.0.0",
-    "cors": "^2.8.5",
-    "dompurify": "^3.2.6",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "firecrawl": "^1.24.0",
-    "form-data": "^4.0.2",
+    "cors": "^2.8.6",
+    "dompurify": "^3.3.3",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "firecrawl": "^4.17.0",
     "jsdom": "^26.1.0",
-    "jsonwebtoken": "^9.0.2",
+    "jsonwebtoken": "^9.0.3",
     "marked": "^15.0.11",
-    "node-cron": "^4.1.0",
-    "openai": "^5.5.1",
+    "node-cron": "^4.2.1",
     "pg": "^8.14.1",
-    "puppeteer": "^24.6.1",
+    "puppeteer": "^24.40.0",
     "rss": "^1.2.2",
     "uuid": "^11.1.0",
-    "zod": "^4.3.6"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.14"
   }
 }

@@ -276,7 +276,7 @@ Requirements:
 Output: Return ONLY the summary text, no preamble or explanations.`,
       prompt: truncatedContent,
       temperature: 0.5,
-      maxTokens: CONFIG.MAX_TOKENS.SUMMARY,
+      maxOutputTokens: CONFIG.MAX_TOKENS.SUMMARY,
     });
 
     // Debug logging
@@ -329,7 +329,7 @@ Rules:
 Output format: Return ONLY a comma-separated list of 3 topics (e.g., "Politics, Economy, Local News"). No additional text.`,
       prompt: truncatedContent,
       temperature: 0.3,
-      maxTokens: CONFIG.MAX_TOKENS.TOPICS,
+      maxOutputTokens: CONFIG.MAX_TOKENS.TOPICS,
     });
 
     const assignedTopicsString = text || "";
@@ -441,7 +441,7 @@ Output: Return ONLY the translated text, nothing else.`;
       system: systemPrompt,
       prompt: truncatedText,
       temperature: 0.3,
-      maxTokens: maxTokens,
+      maxOutputTokens: maxTokens,
     });
 
     // Debug logging
@@ -563,7 +563,7 @@ OUTPUT: Generate a 50-80 word prompt:
 FORBIDDEN: Generic beaches (unless topic is tourism/beaches), text/logos/watermarks, identifiable faces, violence, abstract art`,
       prompt: `Generate an image prompt for this TCI news article:\n\n${truncatedSummary}`,
       temperature: 0.7,
-      maxTokens: CONFIG.MAX_TOKENS.IMAGE_PROMPT,
+      maxOutputTokens: CONFIG.MAX_TOKENS.IMAGE_PROMPT,
     });
 
     if (finishReason === 'length') {
@@ -650,7 +650,7 @@ Constraints:
 - MUST stay within the character limit for audio processing`,
       prompt: `Weekly Articles to summarize:\n\n${articleContents}`,
       temperature: 0.6,
-      maxTokens: 1200,
+      maxOutputTokens: 1200,
     });
 
     return text || "Summary generation failed.";

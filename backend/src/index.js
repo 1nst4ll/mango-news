@@ -1,8 +1,7 @@
 // Main entry point for the backend application, handling API routes and database interactions.
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config({ quiet: true }); // Load environment variables from .env file
 
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const axios = require('axios'); // Import axios
 const RSS = require('rss'); // Import RSS
@@ -28,7 +27,7 @@ const port = process.env.PORT || 3000;
 app.use(cors({
   exposedHeaders: ['X-Total-Count'], // Expose custom header for frontend to read
 }));
-app.use(bodyParser.json());
+app.use(express.json());
 
 // Logging middleware
 app.use((req, res, next) => {

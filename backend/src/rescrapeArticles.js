@@ -1,4 +1,4 @@
-require('dotenv').config({ path: __dirname + '/../.env' });
+require('dotenv').config({ path: __dirname + '/../.env', quiet: true });
 const { Pool } = require('pg');
 const { rescrapeSourceArticles, scrapeArticlePage } = require('./scraper');
 
