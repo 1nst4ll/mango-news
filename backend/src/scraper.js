@@ -10,6 +10,7 @@ const path = require('path'); // Import Node.js path module
 const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import from configLoader
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
+const { marked } = require('marked');
 const { createSundayEdition, generateAIImage } = require('./sundayEditionGenerator'); // Import Sunday Edition generator and AI functions
 
 // Import centralized AI service for optimized AI operations
@@ -21,50 +22,135 @@ const { pool } = require('./db');
 // Import browser pool utilities for memory monitoring
 const { getBrowserStatus, closeBrowser } = require('./browserPool');
 
-// Function to sanitize HTML content
-// Fixed to properly create and close JSDOM windows to prevent memory leaks
-const sanitizeHtml = (htmlString) => {
-  // Create a new JSDOM window for each sanitization to prevent memory leaks
-  const window = new JSDOM('').window;
+// Block-level HTML elements — transitions between these become paragraph breaks
+const BLOCK_ELEMENTS = new Set([
+  'p', 'div', 'section', 'article', 'aside', 'header', 'footer', 'main',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+  'blockquote', 'pre', 'figure', 'figcaption',
+  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+  'br', 'hr',
+]);
+
+/**
+ * Walk a DOM node tree and extract clean text, inserting spaces between
+ * inline elements and paragraph breaks between block elements.
+ */
+function extractTextFromNode(node) {
+  if (node.nodeType === 3 /* TEXT_NODE */) {
+    return node.nodeValue;
+  }
+  if (node.nodeType !== 1 /* ELEMENT_NODE */) {
+    return '';
+  }
+
+  const tag = node.tagName.toLowerCase();
+
+  // Skip elements unlikely to contain article text
+  if (['script', 'style', 'noscript', 'iframe', 'nav', 'form'].includes(tag)) {
+    return '';
+  }
+
+  const isBlock = BLOCK_ELEMENTS.has(tag);
+
+  // Recurse into children
+  let text = '';
+  let prevWasBlock = false;
+
+  for (const child of node.childNodes) {
+    const childTag = child.nodeType === 1 ? child.tagName.toLowerCase() : null;
+    const childIsBlock = childTag ? BLOCK_ELEMENTS.has(childTag) : false;
+
+    const childText = extractTextFromNode(child);
+    if (!childText) continue;
+
+    if (childIsBlock) {
+      // Block child: ensure we're on a new "paragraph" boundary
+      if (text && !text.endsWith('\n')) {
+        text += '\n';
+      }
+      text += childText;
+      if (!text.endsWith('\n')) {
+        text += '\n';
+      }
+      prevWasBlock = true;
+    } else {
+      // Inline child: join with a space if previous content doesn't already end with one
+      if (text && !text.endsWith(' ') && !text.endsWith('\n') && !childText.startsWith(' ')) {
+        text += ' ';
+      }
+      text += childText;
+      prevWasBlock = false;
+    }
+  }
+
+  if (isBlock) {
+    return '\n' + text.trim() + '\n';
+  }
+  return text;
+}
+
+/**
+ * Convert markdown to clean <p>-wrapped HTML.
+ */
+function markdownToHtml(markdownString) {
+  // marked converts markdown to HTML with proper block structure
+  return marked.parse(markdownString, { async: false });
+}
+
+/**
+ * Sanitize and reformat article content into clean <p>-wrapped HTML.
+ * Accepts either raw HTML (from opensourceScraper) or markdown (from Firecrawl).
+ * @param {string} input - Raw HTML or markdown string
+ * @param {boolean} isMarkdown - True if input is markdown (Firecrawl), false for HTML
+ */
+const sanitizeHtml = (input, isMarkdown = false) => {
+  const dom = new JSDOM('');
+  const window = dom.window;
   const DOMPurify = createDOMPurify(window);
-  
+
   try {
-    // Use DOMPurify for initial sanitization
-    let sanitizedContent = DOMPurify.sanitize(htmlString, {
-      USE_PROFILES: { html: true },
-      FORBID_TAGS: ['figure', 'link', 'br', 'span', 'div', 'tbody', 'table', 'tr'], // Forbid tags that were previously removed or flattened
-      ALLOW_TAGS: ['p', 'a', 'img'], // Explicitly allow only these tags
-      ALLOW_ATTR: ['href', 'rel', 'src'], // Explicitly allow only these attributes
-      KEEP_CONTENT: true // Keep content of forbidden tags
+    // Step 1: Convert markdown to HTML if needed
+    const rawHtml = isMarkdown ? markdownToHtml(input) : input;
+
+    // Step 2: DOMPurify pass — strips dangerous content, keeps safe tags for Step 3
+    const cleanHtml = DOMPurify.sanitize(rawHtml, {
+      ALLOWED_TAGS: [
+        'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'blockquote', 'strong', 'em', 'a', 'img',
+        'div', 'span', 'section', 'article', 'figure', 'figcaption',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      ],
+      ALLOWED_ATTR: ['href', 'src', 'rel'],
+      KEEP_CONTENT: true,
     });
 
-    // After DOMPurify, apply the whitespace normalization and paragraph creation logic
-    // Replace multiple spaces with a newline, which will then be wrapped in <p> tags
-    sanitizedContent = sanitizedContent.replace(/\s{2,}/g, '\n');
+    // Step 3: Parse the sanitized HTML into a DOM and extract properly spaced text
+    const contentDom = new JSDOM(`<body>${cleanHtml}</body>`);
+    const body = contentDom.window.document.body;
+    let text = extractTextFromNode(body);
 
-    // Remove all &nbsp;
-    sanitizedContent = sanitizedContent.replace(/&nbsp;/g, '');
+    // Step 4: Normalise whitespace
+    // Decode &nbsp; entities
+    text = text.replace(/\u00a0/g, ' ');
+    // Collapse multiple spaces on a single line to one space
+    text = text.replace(/[ \t]+/g, ' ');
+    // Ensure exactly one space after sentence-ending punctuation when followed by a letter
+    text = text.replace(/([.!?])([A-Z])/g, '$1 $2');
+    // Collapse 3+ consecutive newlines to 2
+    text = text.replace(/\n{3,}/g, '\n\n');
 
-    // Split content by newlines and wrap each non-empty line in <p> tags
-    let lines = sanitizedContent.split('\n').filter(line => line.trim() !== '');
-    sanitizedContent = lines.map(line => `<p>${line.trim()}</p>`).join('\n');
+    // Step 5: Split into paragraphs and wrap in <p> tags
+    const paragraphs = text
+      .split(/\n{2,}/)
+      .map(p => p.replace(/\n/g, ' ').trim())
+      .filter(p => p.length > 0);
 
-    // Remove multiple consecutive <p> tags (should be less necessary now but good for robustness)
-    sanitizedContent = sanitizedContent.replace(/<p>\s*<p>/g, '<p>');
-    sanitizedContent = sanitizedContent.replace(/<\/p>\s*<\/p>/g, '</p>');
+    const result = paragraphs.map(p => `<p>${p}</p>`).join('\n');
 
-    // Remove empty tags (e.g., <p></p>)
-    // This loop will run multiple times to catch nested empty tags.
-    let oldContent;
-    do {
-      oldContent = sanitizedContent;
-      // Regex to match any empty HTML tag, including those with whitespace/newlines between opening and closing tags
-      sanitizedContent = sanitizedContent.replace(/<(\w+)\s*>\s*<\/\1>/gi, '');
-    } while (sanitizedContent !== oldContent);
-
-    return sanitizedContent;
+    contentDom.window.close();
+    return result;
   } finally {
-    // CRITICAL: Close the JSDOM window to release memory
     window.close();
   }
 };
@@ -171,7 +257,7 @@ const generateAITranslation = async (text, targetLanguageCode, type = 'general')
 
 // This function will process the scraped data and save it to the database
 const processScrapedData = async (data) => { // Accept a single data object
-  const { source, content, metadata, scrapeType, enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations } = data; // Destructure data object
+  const { source, content, metadata, scrapeType, isMarkdown, enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations } = data; // Destructure data object
   console.log(`processScrapedData function started. scrapeType received: ${scrapeType}`); // Added log at the beginning
   console.log(`Processing scraped data for source: ${source.name} (Scrape Type: ${scrapeType})`);
   console.log(`processScrapedData received scrapeType: ${scrapeType}, enableGlobalAiSummary: ${enableGlobalAiSummary}, enableGlobalAiTags: ${enableGlobalAiTags}, enableGlobalAiImage: ${enableGlobalAiImage}, enableGlobalAiTranslations: ${enableGlobalAiTranslations}`); // Log received values
@@ -182,7 +268,7 @@ const processScrapedData = async (data) => { // Accept a single data object
 
       const title = metadata?.title || 'No Title'; // Get title from metadata
       // Apply the new sanitizeHtml function to the content
-      const raw_content = sanitizeHtml(content).replace(/Share this:.*$/, '').trim(); // Use processedContent and remove sharing text
+      const raw_content = sanitizeHtml(content, isMarkdown).replace(/Share this:.*$/i, '').trim();
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
       // Attempt to extract publication date from metadata or use current date
       let publication_date = metadata?.publication_date || metadata?.published_date;
@@ -467,7 +553,7 @@ const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryTo
         };
         console.log(`Successfully scraped article with opensource: ${metadata?.title || 'No Title'}`);
         console.log(`scrapeArticlePage passing scrapeType to processScrapedData: ${scrapeType}`); // Added log
-        return await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object and return its result
+        return await processScrapedData({ source, content, metadata, scrapeType, isMarkdown: false, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations });
       } else {
         console.error(`Failed to scrape article page with opensource: ${articleUrl}`);
         return false; // Indicate failure
@@ -494,7 +580,7 @@ const scrapeArticlePage = async (source, articleUrl, scrapeType, globalSummaryTo
         content = firecrawlResult.markdown; // Get markdown content
         metadata = firecrawlResult.extract; // Get extracted data as metadata
         console.log(`Successfully scraped article with Firecrawl: ${metadata?.title || 'No Title'}`);
-        return await processScrapedData({ source, content, metadata, scrapeType, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }); // Pass data as an object and return its result
+        return await processScrapedData({ source, content, metadata, scrapeType, isMarkdown: true, enableGlobalAiSummary: globalSummaryToggle, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations });
       } else {
         console.error(`Failed to scrape article page with Firecrawl: ${articleUrl}`, firecrawlResult);
         return false; // Indicate failure
