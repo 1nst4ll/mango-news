@@ -29,8 +29,10 @@ const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'nav', 'form
 const INLINE_KEEP = new Set(['strong', 'b', 'em', 'i', 'a', 'mark', 'code', 'sup', 'sub']);
 
 // Block-level elements — used to decide when to insert paragraph breaks
+// Note: div/section/article/aside/main/header/footer are handled by serializeContainer
+// Note: p is handled by serializeParagraph
+// Note: figure/figcaption are in SKIP_TAGS
 const BLOCK_ELEMENTS = new Set([
-  'p', 'div', 'section', 'article', 'aside', 'header', 'footer', 'main',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li', 'dl', 'dt', 'dd',
   'blockquote', 'pre',
@@ -116,6 +118,48 @@ function serializeParagraph(node) {
 }
 
 /**
+ * Serialize a generic container (div, section, article, etc.) by recursing into
+ * its children and returning an array of block results. Inline runs are collected
+ * and flushed as <p> blocks. This ensures div-based paragraph structures get
+ * proper paragraph breaks rather than collapsing into one wall of text.
+ */
+function serializeContainer(node) {
+  const results = [];
+  let pendingInline = '';
+
+  const flushPending = () => {
+    const t = pendingInline
+      .replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ')
+      .replace(/([.!?])([A-Z])/g, '$1 $2').trim();
+    if (t) results.push({ block: true, html: `<p>${t}</p>` });
+    pendingInline = '';
+  };
+
+  for (const child of node.childNodes) {
+    const serialized = serializeNode(child);
+    if (!serialized) continue;
+
+    if (Array.isArray(serialized)) {
+      flushPending();
+      results.push(...serialized);
+    } else if (typeof serialized === 'object') {
+      flushPending();
+      results.push(serialized);
+    } else {
+      if (pendingInline && !pendingInline.endsWith(' ') && !serialized.startsWith(' ')) {
+        pendingInline += ' ';
+      }
+      pendingInline += serialized;
+    }
+  }
+  flushPending();
+
+  if (results.length === 0) return '';
+  if (results.length === 1) return results[0];
+  return results;
+}
+
+/**
  * Serialize a node to an HTML string, preserving inline formatting tags
  * (strong, em, a) and list structure (ul, ol, li) while stripping
  * everything else down to clean text.
@@ -184,6 +228,13 @@ function serializeNode(node) {
     return serializeParagraph(node);
   }
 
+  // Generic containers (div, section, article, etc.) — recurse transparently
+  // so their children each get a chance to become their own top-level blocks.
+  // This handles sites that use <div> for paragraphs instead of <p>.
+  if (['div', 'section', 'article', 'aside', 'main', 'header', 'footer'].includes(tag)) {
+    return serializeContainer(node);
+  }
+
   // All other block elements → treat as paragraph boundaries
   if (BLOCK_ELEMENTS.has(tag)) {
     const inner = serializeChildren(node).trim();
@@ -191,7 +242,7 @@ function serializeNode(node) {
     return { block: true, html: inner };
   }
 
-  // Anything else (span, div without block classification, etc.) → inline
+  // Anything else (span, etc.) → inline
   return serializeChildren(node);
 }
 
