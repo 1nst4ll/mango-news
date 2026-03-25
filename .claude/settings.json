@@ -15,7 +15,8 @@
       "Bash(node --check src/db.js)",
       "Bash(git check-ignore:*)",
       "Bash(node --check /d/ClaudeMCP/!projects/mango-news/backend/src/scraper.js)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(node --check \"d:\\\\ClaudeMCP\\\\!projects\\\\mango-news\\\\backend\\\\src\\\\scraper.js\")"
     ]
   }
 }

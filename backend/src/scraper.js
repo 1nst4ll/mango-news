@@ -23,7 +23,7 @@ const { pool } = require('./db');
 const { getBrowserStatus, closeBrowser } = require('./browserPool');
 
 // Tags that should be completely removed along with their content
-const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'nav', 'form']);
+const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'nav', 'form', 'figure', 'figcaption']);
 
 // Inline formatting tags to preserve in the final HTML output
 const INLINE_KEEP = new Set(['strong', 'b', 'em', 'i', 'a', 'mark', 'code', 'sup', 'sub']);
@@ -33,7 +33,7 @@ const BLOCK_ELEMENTS = new Set([
   'p', 'div', 'section', 'article', 'aside', 'header', 'footer', 'main',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li', 'dl', 'dt', 'dd',
-  'blockquote', 'pre', 'figure', 'figcaption',
+  'blockquote', 'pre',
   'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
   'br', 'hr',
 ]);
@@ -102,6 +102,24 @@ function serializeNode(node) {
 
   // All other block elements → treat as paragraph boundaries
   if (BLOCK_ELEMENTS.has(tag)) {
+    // Bold-as-heading: <p> or <div> whose only meaningful child is a <strong>/<b>
+    // These are CMS-generated section headings styled as bold paragraphs.
+    if (tag === 'p' || tag === 'div') {
+      const significantChildren = [...node.childNodes].filter(c =>
+        c.nodeType === 1 ||
+        (c.nodeType === 3 && c.nodeValue.trim().length > 0)
+      );
+      if (
+        significantChildren.length === 1 &&
+        significantChildren[0].nodeType === 1 &&
+        /^(strong|b)$/.test(significantChildren[0].tagName.toLowerCase())
+      ) {
+        const headingText = significantChildren[0].textContent.trim();
+        if (headingText) {
+          return { block: true, html: `<h3>${headingText}</h3>` };
+        }
+      }
+    }
     const inner = serializeChildren(node).trim();
     if (!inner) return '';
     return { block: true, html: inner };
@@ -164,8 +182,8 @@ const sanitizeHtml = (input, isMarkdown = false) => {
       ALLOWED_TAGS: [
         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
-        'strong', 'b', 'em', 'i', 'a', 'mark', 'sup', 'sub', 'img',
-        'div', 'span', 'section', 'article', 'figure', 'figcaption',
+        'strong', 'b', 'em', 'i', 'a', 'mark', 'sup', 'sub',
+        'div', 'span', 'section', 'article',
         'table', 'thead', 'tbody', 'tr', 'th', 'td',
       ],
       ALLOWED_ATTR: ['href', 'src', 'rel'],
@@ -177,13 +195,16 @@ const sanitizeHtml = (input, isMarkdown = false) => {
     try {
       const body = contentDom.window.document.body;
 
-      // Step 3a: Remove drop-cap spans — inline <span> whose entire text is a
-      // single uppercase letter (CMS styling artifact that splits the first letter
-      // of a word into a separate node, producing "A new" / "F ully" etc.)
-      body.querySelectorAll('span').forEach(span => {
-        const t = span.textContent;
-        if (/^[A-Z]$/.test(t.trim()) && !span.querySelector('*')) {
-          span.replaceWith(contentDom.window.document.createTextNode(t));
+      // Step 3a: Remove drop-cap elements — CMS styling artifacts that split the
+      // first letter of a word into a separate styled node, producing "A new" / "F ully".
+      // Match by class name or by single-uppercase-letter text content heuristic.
+      const DROP_CAP_CLASS = /\bdrop-?cap\b|wp-dropcap/i;
+      body.querySelectorAll('span, p > *:first-child, div > *:first-child').forEach(el => {
+        const t = el.textContent;
+        const hasDropCapClass = DROP_CAP_CLASS.test(el.getAttribute('class') || '');
+        const isSingleLetter = /^[A-Z]$/.test(t.trim()) && !el.querySelector('*');
+        if (hasDropCapClass || isSingleLetter) {
+          el.replaceWith(contentDom.window.document.createTextNode(t));
         }
       });
 
