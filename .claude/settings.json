@@ -12,7 +12,8 @@
       "Bash(node --check src/index.js)",
       "Bash(node --check src/services/aiService.js)",
       "Bash(node --check src/browserPool.js)",
-      "Bash(node --check src/db.js)"
+      "Bash(node --check src/db.js)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

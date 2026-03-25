@@ -13,9 +13,10 @@ package-lock.json
 frontend/dist/
 frontend/.astro/
 
-# Ignore environment variables file
+# Ignore environment variable files — never commit real credentials
 .env
-.env.render
+.env.*
+!.env.example
 
 # --- Added by Roo ---
 
