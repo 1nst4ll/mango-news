@@ -427,7 +427,7 @@ Retrieves a list of all articles, with pagination and filtering.
     *   `startDate` (string, optional): Filters articles published on or after this date (ISO 8601 format).
     *   `endDate` (string, optional): Filters articles published on or before this date (ISO 8601 format).
     *   `searchTerm` (string, optional): Filters articles by title or raw content.
-    *   `sources` (string, optional): Comma-separated list of source names to filter articles by.
+    *   `source_ids` (string, optional): Comma-separated list of source IDs to filter articles by (e.g., `1,3,5`).
     *   `page` (number, optional): The page number to retrieve (default: `1`).
     *   `limit` (number, optional): The number of articles per page (default: `15`).
 *   **Success Response (`200 OK`):**
@@ -494,6 +494,42 @@ Retrieves details for a single article by its ID.
     }
     ```
 *   **Error Responses:**
+    *   `404 Not Found`: Article with the specified ID not found.
+    *   `500 Internal Server Error`: General server error.
+
+#### `PUT /api/articles/:id`
+
+Updates fields on an existing article. All body fields are optional.
+
+*   **Authentication:** Required.
+*   **Path Parameters:**
+    *   `id` (number, required): The ID of the article.
+*   **Request Body:** (all fields optional)
+    ```json
+    {
+      "title": "string",
+      "source_url": "string",
+      "author": "string",
+      "publication_date": "string",
+      "raw_content": "string",
+      "summary": "string",
+      "thumbnail_url": "string | null",
+      "topics": "string[]",
+      "category": "string",
+      "title_es": "string | null",
+      "summary_es": "string | null",
+      "raw_content_es": "string | null",
+      "topics_es": "string[]",
+      "title_ht": "string | null",
+      "summary_ht": "string | null",
+      "raw_content_ht": "string | null",
+      "topics_ht": "string[]"
+    }
+    ```
+*   **Success Response (`200 OK`):** Updated article object (same shape as `GET /api/articles/:id`).
+*   **Error Responses:**
+    *   `400 Bad Request`: No update fields provided.
+    *   `401 Unauthorized`: Invalid or missing authentication token.
     *   `404 Not Found`: Article with the specified ID not found.
     *   `500 Internal Server Error`: General server error.
 
@@ -702,20 +738,24 @@ Retrieves statistics about the AI service including cache usage, rate limiting, 
     ```json
     {
       "cache": {
-        "translations": "number",
-        "topics": "number"
+        "size": "number",
+        "sampleKeys": "string[]"
       },
       "rateLimit": {
-        "requestsThisMinute": "number",
-        "limitPerMinute": "number",
-        "remainingRequests": "number"
+        "currentCount": "number",
+        "limit": "number",
+        "resetInMs": "number"
       },
       "config": {
+        "models": {
+          "SUMMARY": "string",
+          "TRANSLATION": "string",
+          "TOPICS": "string",
+          "PROMPT_OPTIMIZATION": "string"
+        },
         "maxRetries": "number",
-        "retryDelay": "number",
-        "cacheTTL": "number",
-        "summaryModel": "string",
-        "translationModel": "string"
+        "cacheTtlMs": "number",
+        "rateLimitPerMinute": "number"
       }
     }
     ```
@@ -732,11 +772,7 @@ Clears the AI service translation cache. Useful when translations need to be reg
 *   **Success Response (`200 OK`):**
     ```json
     {
-      "message": "AI service cache cleared successfully",
-      "clearedEntries": {
-        "translations": "number",
-        "topics": "number"
-      }
+      "message": "AI service cache cleared successfully."
     }
     ```
 *   **Error Responses:**
@@ -908,6 +944,7 @@ Retrieves the current scheduler settings for background tasks.
     {
       "main_scraper_frequency": "string", // Cron string (e.g., "0 * * * *")
       "missing_ai_frequency": "string",   // Cron string (e.g., "*/20 * * * *")
+      "sunday_edition_frequency": "string", // Cron string (e.g., "0 0 * * 0")
       "enable_scheduled_missing_summary": "boolean",
       "enable_scheduled_missing_tags": "boolean",
       "enable_scheduled_missing_image": "boolean",
@@ -928,6 +965,7 @@ Saves new scheduler settings.
     {
       "main_scraper_frequency": "string", // Cron string
       "missing_ai_frequency": "string",   // Cron string
+      "sunday_edition_frequency": "string", // Cron string
       "enable_scheduled_missing_summary": "boolean",
       "enable_scheduled_missing_tags": "boolean",
       "enable_scheduled_missing_image": "boolean",

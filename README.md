@@ -2,40 +2,58 @@
 
 A comprehensive news aggregation platform for the Turks and Caicos Islands. The application scrapes news from multiple sources, processes content with AI for summaries, translations, and topic tagging, and presents it through a modern web interface.
 
-## 🚀 Quick Start
+## 🚀 Hosting
+
+The live site runs on **[Render](https://render.com)**:
+
+| Service | Type | Root directory |
+| --- | --- | --- |
+| Backend API | Web Service (Node.js) | `backend/` |
+| Frontend | Web Service (Node.js SSR) | `frontend/` |
+| Database | Managed PostgreSQL | — |
+
+See the [Deployment Guide](docs/deployment.md) for full Render setup instructions.
+
+## 💻 Local Development
 
 ### Prerequisites
 
-- **Node.js** (v18+)
-- **PostgreSQL** database
-- **API Keys:** Groq (AI), Ideogram (images), AWS S3 (storage)
+- Node.js v18+
+- PostgreSQL running locally
+- API keys: Groq, fal.ai, AWS S3 (and optionally Firecrawl, Unreal Speech)
 
-### Installation
+### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/your-repo/mango-news.git
 cd mango-news
 
-# Backend setup
+# Backend
 cd backend
-cp .env.example .env  # Configure your environment variables
+cp .env.example .env   # fill in credentials
 npm install
-npm run dev
+npm run dev            # http://localhost:3000
 
-# Frontend setup (new terminal)
+# Frontend (new terminal)
 cd frontend
-cp .env.example .env  # Set PUBLIC_API_URL
+cp .env.example .env   # set PUBLIC_API_URL=http://localhost:3000
 npm install
-npm run dev
+npm run dev            # http://localhost:4321
 ```
 
-The backend runs on `http://localhost:3000` and frontend on `http://localhost:4321`.
+Apply the database schema before first run:
+
+```bash
+cd db
+psql -U postgres -d mangonews -f schema.sql
+```
+
+For a full walkthrough including database setup, env vars, and admin account creation, see the [Deployment Guide](docs/deployment.md).
 
 ## 📚 Documentation
 
 | Document | Description |
-|----------|-------------|
+| --- | --- |
 | [Backend Setup](docs/backend-setup.md) | Database setup, environment variables, authentication |
 | [API Documentation](docs/api-documentation.md) | Complete API endpoint reference |
 | [Deployment Guide](docs/deployment.md) | Production deployment on Render and other platforms |
@@ -50,7 +68,7 @@ The backend runs on `http://localhost:3000` and frontend on `http://localhost:43
 
 ## 🏗️ Architecture
 
-```
+```text
 mango-news/
 ├── backend/           # Node.js/Express API server
 │   ├── src/
@@ -79,7 +97,7 @@ mango-news/
 - **AI-Powered Processing:**
   - Automatic article summaries (Groq/Llama)
   - Topic classification (31 predefined topics)
-  - AI-generated images (Ideogram API)
+  - AI-generated images (fal.ai FLUX.2 Turbo)
   - Translations (Spanish, Haitian Creole)
 - **Sunday Edition:** Weekly AI-narrated news summary with audio
 - **Admin Dashboard:** Source management, scraping controls, statistics
@@ -99,7 +117,7 @@ DB_PASSWORD=your_password
 
 # API Keys
 GROQ_API_KEY=your_groq_key
-IDEOGRAM_API_KEY=your_ideogram_key
+FAL_KEY=your_fal_ai_key
 FIRECRAWL_API_KEY=your_firecrawl_key  # Optional
 UNREAL_SPEECH_API_KEY=your_unreal_key  # For Sunday Edition
 

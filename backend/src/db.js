@@ -21,7 +21,7 @@ const pool = new Pool({
   
   // Connection pool settings optimized for memory-constrained environments
   max: 10, // Maximum number of connections in the pool (reduced from default 10 for Render)
-  min: 2, // Minimum number of connections to keep open
+  min: 0, // Allow pool to fully idle when not in use
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
   connectionTimeoutMillis: 10000, // Timeout for acquiring a connection
   

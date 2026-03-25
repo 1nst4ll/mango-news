@@ -127,29 +127,26 @@ const sanitizeHtml = (input, isMarkdown = false) => {
 
     // Step 3: Parse the sanitized HTML into a DOM and extract properly spaced text
     const contentDom = new JSDOM(`<body>${cleanHtml}</body>`);
-    const body = contentDom.window.document.body;
-    let text = extractTextFromNode(body);
+    try {
+      const body = contentDom.window.document.body;
+      let text = extractTextFromNode(body);
 
-    // Step 4: Normalise whitespace
-    // Decode &nbsp; entities
-    text = text.replace(/\u00a0/g, ' ');
-    // Collapse multiple spaces on a single line to one space
-    text = text.replace(/[ \t]+/g, ' ');
-    // Ensure exactly one space after sentence-ending punctuation when followed by a letter
-    text = text.replace(/([.!?])([A-Z])/g, '$1 $2');
-    // Collapse 3+ consecutive newlines to 2
-    text = text.replace(/\n{3,}/g, '\n\n');
+      // Step 4: Normalise whitespace
+      text = text.replace(/\u00a0/g, ' ');
+      text = text.replace(/[ \t]+/g, ' ');
+      text = text.replace(/([.!?])([A-Z])/g, '$1 $2');
+      text = text.replace(/\n{3,}/g, '\n\n');
 
-    // Step 5: Split into paragraphs and wrap in <p> tags
-    const paragraphs = text
-      .split(/\n{2,}/)
-      .map(p => p.replace(/\n/g, ' ').trim())
-      .filter(p => p.length > 0);
+      // Step 5: Split into paragraphs and wrap in <p> tags
+      const paragraphs = text
+        .split(/\n{2,}/)
+        .map(p => p.replace(/\n/g, ' ').trim())
+        .filter(p => p.length > 0);
 
-    const result = paragraphs.map(p => `<p>${p}</p>`).join('\n');
-
-    contentDom.window.close();
-    return result;
+      return paragraphs.map(p => `<p>${p}</p>`).join('\n');
+    } finally {
+      contentDom.window.close();
+    }
   } finally {
     window.close();
   }
@@ -1261,7 +1258,7 @@ const processMissingAiForSource = async (sourceId, featureType) => {
 };
 
 // Function to re-scrape all articles for a specific source
-const rescrapeSourceArticles = async (sourceId) => {
+const rescrapeSourceArticles = async (sourceId, sseRes = null, abortSignal = null) => {
   console.log(`[rescrapeSourceArticles] Starting re-scraping of all articles for source ID: ${sourceId}`);
   let articlesRescraped = 0;
   let errorCount = 0;
@@ -1285,12 +1282,18 @@ const rescrapeSourceArticles = async (sourceId) => {
     console.log(`[rescrapeSourceArticles] Found ${totalArticles} articles for source ID ${sourceId} to re-scrape.`);
 
     for (const article of articlesToRescrape) {
+      // Stop processing if the SSE client disconnected
+      if (abortSignal?.aborted) {
+        console.log(`[rescrapeSourceArticles] Aborted by client disconnect after ${articlesRescraped} articles.`);
+        break;
+      }
+
       try {
         console.log(`[rescrapeSourceArticles] Re-scraping article: "${article.title}" (ID: ${article.id}) from URL: ${article.source_url}`);
         const processed = await scrapeArticlePage(
           source,
           article.source_url,
-          'rescrape', // Use 'rescrape' type to ensure update logic is triggered
+          'rescrape',
           source.enable_ai_summary,
           source.enable_ai_tags,
           source.enable_ai_image,

@@ -54,10 +54,12 @@ const getBrowser = async () => {
 
   try {
     browserInstance = await browserLaunchPromise;
+    browserLaunchPromise = null; // Clear promise after successful launch
     console.log(`[BrowserPool] Browser launched successfully. PID: ${browserInstance.process()?.pid}`);
-    
-    // Handle browser disconnection
-    browserInstance.on('disconnected', () => {
+
+    // Use once() so the listener is automatically removed after firing,
+    // preventing accumulation across browser reconnects
+    browserInstance.once('disconnected', () => {
       console.log('[BrowserPool] Browser disconnected');
       browserInstance = null;
       browserLaunchPromise = null;

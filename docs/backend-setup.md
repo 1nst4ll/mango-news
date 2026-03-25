@@ -8,7 +8,7 @@ This guide covers setting up and configuring the Mango News backend.
 - PostgreSQL database
 - API keys:
   - **Groq API** - AI summaries and translations
-  - **Ideogram API** - AI image generation
+  - **fal.ai API** - AI image generation (FLUX.2 Turbo)
   - **AWS S3** - Image storage
   - **Firecrawl API** - Optional, for Firecrawl scraping method
   - **Unreal Speech API** - Optional, for Sunday Edition audio
@@ -70,7 +70,7 @@ DB_PASSWORD=your_database_password
 
 # AI Services
 GROQ_API_KEY=your_groq_api_key
-IDEOGRAM_API_KEY=your_ideogram_api_key
+FAL_KEY=your_fal_ai_key
 
 # AWS S3 (for AI-generated images)
 AWS_ACCESS_KEY_ID=your_aws_access_key_id
@@ -143,9 +143,11 @@ The backend includes a centralized AI service (`src/services/aiService.js`) that
 Add these to `backend/.env` to customize AI behavior (all have sensible defaults):
 
 ```env
-# AI Model Configuration
-AI_SUMMARY_MODEL=openai/gpt-oss-20b     # Model for summaries
-AI_TRANSLATION_MODEL=openai/gpt-oss-20b # Model for translations
+# AI Model Configuration (Groq/Llama models)
+AI_SUMMARY_MODEL=llama-3.3-70b-versatile      # Model for summaries (default)
+AI_TRANSLATION_MODEL=llama-3.3-70b-versatile  # Model for translations (default)
+AI_TOPICS_MODEL=llama-3.1-8b-instant          # Model for topic classification (default)
+AI_PROMPT_MODEL=llama-3.3-70b-versatile       # Model for image prompt generation (default)
 
 # Retry Configuration
 AI_MAX_RETRIES=3                        # Max retry attempts
@@ -153,9 +155,10 @@ AI_RETRY_DELAY=1000                     # Initial retry delay (ms)
 
 # Cache Configuration
 AI_CACHE_TTL=86400000                   # Cache TTL (default: 24 hours)
+AI_CACHE_MAX_SIZE=500                   # Max in-memory cache entries (prevents unbounded growth)
 
 # Rate Limiting
-AI_RATE_LIMIT_PER_MINUTE=60             # Max requests per minute
+AI_RATE_LIMIT_PER_MINUTE=60             # Max Groq API requests per minute
 ```
 
 ### AI Service Methods

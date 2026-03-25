@@ -1,12 +1,118 @@
 # Deployment Guide
 
-This guide covers deploying Mango News to production environments.
+Mango News is deployed on **[Render](https://render.com)**:
 
-## Prerequisites
+- **Backend** — Render Web Service (Node.js), `backend/` root directory
+- **Frontend** — Render Web Service (Node.js SSR), `frontend/` root directory
+- **Database** — Render Managed PostgreSQL
 
-- PostgreSQL database (managed service recommended)
-- Node.js hosting environment
-- Environment variables configured
+---
+
+## Local Development
+
+### Prerequisites
+
+- Node.js v18+
+- PostgreSQL running locally (or a remote dev database)
+- All API keys (see [Backend Setup](backend-setup.md))
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/your-org/mango-news.git
+cd mango-news
+```
+
+### 2. Configure backend
+
+```bash
+cd backend
+cp .env.example .env   # then fill in your credentials
+npm install
+```
+
+Minimum `.env` for local dev:
+
+```env
+# Database (local PostgreSQL)
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mangonews
+DB_USER=postgres
+DB_PASSWORD=your_local_password
+
+# Required API keys
+GROQ_API_KEY=your_groq_key
+FAL_KEY=your_fal_ai_key
+JWT_SECRET=any_random_string_for_dev
+
+# AWS S3 (required for image uploads)
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=your_bucket
+
+# Optional
+FIRECRAWL_API_KEY=your_firecrawl_key
+UNREAL_SPEECH_API_KEY=your_unreal_key
+```
+
+### 3. Apply database schema
+
+```bash
+cd ../db
+psql -U postgres -d mangonews -f schema.sql
+# For existing databases, also run migrations:
+psql -U postgres -d mangonews -f migrations/add_translation_columns.sql
+psql -U postgres -d mangonews -f migrations/add_sunday_editions_table.sql
+```
+
+### 4. Configure frontend
+
+```bash
+cd ../frontend
+cp .env.example .env
+```
+
+Set the backend URL in `frontend/.env`:
+
+```env
+PUBLIC_API_URL=http://localhost:3000
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+### 5. Run both servers
+
+In two separate terminals:
+
+```bash
+# Terminal 1 — backend (hot reload via nodemon)
+cd backend
+npm run dev   # http://localhost:3000
+
+# Terminal 2 — frontend (Astro dev server)
+cd frontend
+npm run dev   # http://localhost:4321
+```
+
+### 6. Create your admin account
+
+```bash
+curl -X POST http://localhost:3000/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your_password"}'
+```
+
+Then log in via the frontend at `http://localhost:4321/admin` or use the token from `POST /api/login`.
+
+---
+
+## Production Deployment (Render)
 
 ## Database Deployment
 
@@ -43,7 +149,7 @@ This guide covers deploying Mango News to production environments.
    DB_USER=your-db-user
    DB_PASSWORD=your-db-password
    GROQ_API_KEY=your-groq-key
-   IDEOGRAM_API_KEY=your-ideogram-key
+   FAL_KEY=your-fal-ai-key
    AWS_ACCESS_KEY_ID=your-aws-key
    AWS_SECRET_ACCESS_KEY=your-aws-secret
    AWS_REGION=us-east-1

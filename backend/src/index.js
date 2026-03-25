@@ -347,20 +347,31 @@ app.get('/api/sources/:sourceId/rescrape-stream', authenticateToken, async (req,
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders(); // Flush headers to establish SSE connection immediately
+  res.flushHeaders();
 
   console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - SSE connection established for rescrape of source ID: ${sourceId}`);
 
+  // Abort controller so we can signal cancellation when client disconnects
+  const abortController = new AbortController();
+  req.on('close', () => {
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Client disconnected, aborting rescrape for source ID: ${sourceId}`);
+    abortController.abort();
+  });
+
   try {
     const { rescrapeSourceArticles } = require('./scraper');
-    await rescrapeSourceArticles(sourceId, res); // Pass the response object for SSE
+    await rescrapeSourceArticles(sourceId, res, abortController.signal);
 
-    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Rescrape process completed for source ID: ${sourceId}. Closing SSE connection.`);
-    res.end(); // End the SSE connection
+    if (!abortController.signal.aborted) {
+      console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Rescrape process completed for source ID: ${sourceId}. Closing SSE connection.`);
+      res.end();
+    }
   } catch (error) {
-    console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error during rescrape SSE for source ${sourceId}:`, error);
-    res.write(`data: ${JSON.stringify({ status: 'error', message: `Failed to trigger rescrape: ${error.message}` })}\n\n`);
-    res.end(); // End the SSE connection on error
+    if (!abortController.signal.aborted) {
+      console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error during rescrape SSE for source ${sourceId}:`, error);
+      res.write(`data: ${JSON.stringify({ status: 'error', message: `Failed to trigger rescrape: ${error.message}` })}\n\n`);
+      res.end();
+    }
   }
 });
 
@@ -1387,64 +1398,37 @@ app.post('/api/settings/scheduler', authenticateToken, async (req, res) => {
      return res.status(400).json({ error: 'Missing required scheduler settings.' });
   }
 
+  const client = await pool.connect();
   try {
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Saving scheduler settings: ${JSON.stringify(req.body)}`);
 
-    // Use a transaction to ensure atomicity
-    await pool.query('BEGIN');
+    await client.query('BEGIN');
 
-    // Upsert (Insert or Update) each setting
-    await pool.query(
+    const upsert = (name, value) => client.query(
       `INSERT INTO application_settings (setting_name, setting_value)
        VALUES ($1, $2)
        ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
-      ['main_scraper_frequency', main_scraper_frequency]
-    );
-    await pool.query(
-      `INSERT INTO application_settings (setting_name, setting_value)
-       VALUES ($1, $2)
-       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
-      ['missing_ai_frequency', missing_ai_frequency]
-    );
-    await pool.query(
-      `INSERT INTO application_settings (setting_name, setting_value)
-       VALUES ($1, $2)
-       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
-      ['enable_scheduled_missing_summary', String(enable_scheduled_missing_summary)] // Store boolean as string
-    );
-    await pool.query(
-      `INSERT INTO application_settings (setting_name, setting_value)
-       VALUES ($1, $2)
-       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
-      ['enable_scheduled_missing_tags', String(enable_scheduled_missing_tags)] // Store boolean as string
-    );
-    await pool.query(
-      `INSERT INTO application_settings (setting_name, setting_value)
-       VALUES ($1, $2)
-       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
-      ['enable_scheduled_missing_image', String(enable_scheduled_missing_image)] // Store boolean as string
-    );
-    await pool.query(
-      `INSERT INTO application_settings (setting_name, setting_value)
-       VALUES ($1, $2)
-       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
-      ['enable_scheduled_missing_translations', String(enable_scheduled_missing_translations)] // Store boolean as string
-    );
-    await pool.query(
-      `INSERT INTO application_settings (setting_name, setting_value)
-       VALUES ($1, $2)
-       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
-      ['sunday_edition_frequency', sunday_edition_frequency]
+      [name, value]
     );
 
-    await pool.query('COMMIT');
+    await upsert('main_scraper_frequency', main_scraper_frequency);
+    await upsert('missing_ai_frequency', missing_ai_frequency);
+    await upsert('enable_scheduled_missing_summary', String(enable_scheduled_missing_summary));
+    await upsert('enable_scheduled_missing_tags', String(enable_scheduled_missing_tags));
+    await upsert('enable_scheduled_missing_image', String(enable_scheduled_missing_image));
+    await upsert('enable_scheduled_missing_translations', String(enable_scheduled_missing_translations));
+    await upsert('sunday_edition_frequency', sunday_edition_frequency);
+
+    await client.query('COMMIT');
 
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Scheduler settings saved successfully.`);
     res.json({ message: 'Scheduler settings saved successfully.' });
   } catch (err) {
-    await pool.query('ROLLBACK'); // Rollback transaction on error
+    await client.query('ROLLBACK');
     console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error saving scheduler settings:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
+  } finally {
+    client.release();
   }
 });
 

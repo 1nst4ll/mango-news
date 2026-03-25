@@ -42,6 +42,8 @@ const CONFIG = {
   RETRY_DELAY_MS: parseInt(process.env.AI_RETRY_DELAY) || 1000,
   // Cache configuration (24 hours default)
   CACHE_TTL_MS: parseInt(process.env.AI_CACHE_TTL) || 86400000,
+  // Maximum number of cache entries to prevent unbounded memory growth
+  CACHE_MAX_SIZE: parseInt(process.env.AI_CACHE_MAX_SIZE) || 500,
   // Rate limiting
   RATE_LIMIT_PER_MINUTE: parseInt(process.env.AI_RATE_LIMIT_PER_MINUTE) || 60,
   // Content limits
@@ -94,9 +96,14 @@ const getFromCache = (key) => {
 };
 
 /**
- * Set item in cache with TTL
+ * Set item in cache with TTL. Evicts the oldest entry when the cache is full.
  */
 const setInCache = (key, value, ttlMs = CONFIG.CACHE_TTL_MS) => {
+  if (cache.size >= CONFIG.CACHE_MAX_SIZE && !cache.has(key)) {
+    // Evict the oldest inserted entry (Map preserves insertion order)
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
   cache.set(key, {
     value,
     expiry: Date.now() + ttlMs

@@ -10,7 +10,9 @@
       "Bash(node --check src/scraper.js)",
       "Bash(xargs grep:*)",
       "Bash(node --check src/index.js)",
-      "Bash(node --check src/services/aiService.js)"
+      "Bash(node --check src/services/aiService.js)",
+      "Bash(node --check src/browserPool.js)",
+      "Bash(node --check src/db.js)"
     ]
   }
 }
