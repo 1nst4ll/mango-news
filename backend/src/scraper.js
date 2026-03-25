@@ -129,6 +129,19 @@ const sanitizeHtml = (input, isMarkdown = false) => {
     const contentDom = new JSDOM(`<body>${cleanHtml}</body>`);
     try {
       const body = contentDom.window.document.body;
+
+      // Step 3a: Remove drop-cap spans — inline <span> elements whose entire
+      // text content is a single uppercase letter (a common CMS styling pattern
+      // that causes the first letter of a word to be split into a separate node,
+      // producing output like "A new" or "F ully" instead of "A new" / "Fully").
+      body.querySelectorAll('span').forEach(span => {
+        const text = span.textContent;
+        if (/^[A-Z]$/.test(text.trim()) && !span.querySelector('*')) {
+          // Replace the span with a plain text node so the letter stays in-flow
+          span.replaceWith(contentDom.window.document.createTextNode(text));
+        }
+      });
+
       let text = extractTextFromNode(body);
 
       // Step 4: Normalise whitespace
