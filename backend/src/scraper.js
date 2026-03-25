@@ -265,16 +265,17 @@ const sanitizeHtml = (input, isMarkdown = false) => {
     try {
       const body = contentDom.window.document.body;
 
-      // Step 3a: Remove drop-cap elements — CMS styling artifacts that split the
-      // first letter of a word into a separate styled node, producing "A new" / "F ully".
-      // Match anywhere in the document by class name or single-uppercase-letter heuristic.
+      // Step 3a: Remove drop-cap spans — CMS styling artifacts that split the first
+      // letter of a word into a separate styled <span>, producing oversized letters.
+      // Collect into array first to avoid live-NodeList mutation issues.
       const DROP_CAP_CLASS = /\bdrop-?cap\b|wp-dropcap/i;
-      body.querySelectorAll('*').forEach(el => {
-        const t = el.textContent;
-        const hasDropCapClass = DROP_CAP_CLASS.test(el.getAttribute('class') || '');
-        const isSingleLetter = /^[A-Z]$/.test(t.trim()) && !el.querySelector('*');
+      [...body.querySelectorAll('span')].forEach(span => {
+        const t = span.textContent;
+        const hasDropCapClass = DROP_CAP_CLASS.test(span.getAttribute('class') || '');
+        // Single uppercase letter with no child elements = drop-cap heuristic
+        const isSingleLetter = /^[A-Z]$/.test(t.trim()) && span.children.length === 0;
         if (hasDropCapClass || isSingleLetter) {
-          el.replaceWith(contentDom.window.document.createTextNode(t));
+          span.replaceWith(contentDom.window.document.createTextNode(t));
         }
       });
 

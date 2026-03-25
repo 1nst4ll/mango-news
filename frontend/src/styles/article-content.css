@@ -15,24 +15,24 @@
   }
 
   /* First paragraph styling */
-  p:first-of-type {
-    font-size: 1.1em; /* Slightly decreased for better integration with drop cap */
-    font-weight: 500; /* Slightly bolder */
+  > p:first-of-type {
+    font-size: 1.1em;
+    font-weight: 500;
     line-height: 1.6;
     margin-bottom: 1.5em;
-    text-indent: 0; /* Remove indent for the first paragraph */
+    text-indent: 0;
   }
 
-  /* Drop cap for the first letter of the article */
-  p:first-of-type::first-letter {
+  /* Drop cap for the first letter of the article — direct child only */
+  > p:first-of-type::first-letter {
     float: left;
-    font-family: 'Playfair Display', serif; /* A more decorative font for drop cap */
-    font-size: 5em; /* Adjusted for three lines of text tall */
+    font-family: 'Playfair Display', serif;
+    font-size: 5em;
     line-height: 0.8;
     margin-right: 0.1em;
     margin-top: 0.05em;
     font-weight: bold;
-    color: var(--foreground); /* Use foreground color */
+    color: var(--foreground);
   }
 
   /* Headings within the article content */
