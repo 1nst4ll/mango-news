@@ -53,6 +53,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [isArticleEditDialogOpen, setIsArticleEditDialogOpen] = useState(false);
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
 
+  // State for image lightbox
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   // Pagination state for server-side pagination
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(5); // Default page size
@@ -203,7 +206,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     fetchArticles(pageIndex, pageSize); // Refresh articles after a successful save
   };
 
-  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle });
+  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick: setLightboxUrl });
 
   // Fetch source settings
   useEffect(() => {
@@ -509,6 +512,28 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         articleId={selectedArticleId}
         onSaveSuccess={handleArticleSaveSuccess}
       />
+
+      {/* Image lightbox */}
+      {lightboxUrl && (
+        <dialog
+          open
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, width: '100vw', height: '100vh',
+            maxWidth: '100vw', maxHeight: '100vh', margin: 0, padding: 0,
+            border: 'none', background: 'rgba(0,0,0,0.88)', overflow: 'hidden', zIndex: 50,
+          }}
+        >
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+            <img
+              src={lightboxUrl}
+              alt=""
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', pointerEvents: 'auto', cursor: 'default', borderRadius: 8 }}
+            />
+          </div>
+        </dialog>
+      )}
     </Card>
   );
 };
