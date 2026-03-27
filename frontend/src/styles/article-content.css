@@ -28,12 +28,12 @@
   > div:first-child > p:first-of-type::first-letter {
     float: left;
     font-family: 'Playfair Display', 'Lora', Georgia, serif;
-    font-size: 3.6em;
+    font-size: 2.8em;
     font-weight: 700;
-    line-height: 1;
-    margin-right: 0.06em;
-    margin-bottom: -0.05em;
-    margin-top: 0;
+    line-height: 0.85;
+    margin-right: 0.08em;
+    margin-bottom: 0;
+    margin-top: 0.08em;
     color: var(--primary);
   }
 
@@ -179,7 +179,7 @@
 
     > p:first-of-type::first-letter,
     > div:first-child > p:first-of-type::first-letter {
-      font-size: 3em;
+      font-size: 2.6em;
     }
 
     h2 { font-size: 1.35em; }
