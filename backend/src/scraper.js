@@ -216,24 +216,31 @@ function serializeNode(node) {
 
   // Images → pass through as block with best-resolution src from srcset
   if (tag === 'img') {
-    // Pick the highest-resolution URL from srcset if available, otherwise use src
-    let bestSrc = node.getAttribute('src') || '';
-    const srcset = node.getAttribute('srcset');
-    if (srcset) {
-      // srcset format: "url1 100w, url2 200w, ..." — pick the entry with the largest width
+    // Pick best URL from srcset / data-srcset (highest width descriptor),
+    // falling back to src / data-src for lazy-loaded images (e.g. Wix).
+    const pickBestFromSrcset = (srcset) => {
+      if (!srcset) return '';
       const entries = srcset.split(',').map(s => {
         const parts = s.trim().split(/\s+/);
-        const url = parts[0];
-        const width = parts[1] ? parseInt(parts[1], 10) : 0;
-        return { url, width };
+        return { url: parts[0], width: parts[1] ? parseInt(parts[1], 10) : 0 };
       }).filter(e => e.url);
-      if (entries.length > 0) {
-        const best = entries.reduce((a, b) => b.width > a.width ? b : a);
-        if (best.url) bestSrc = best.url;
-      }
-    }
-    const alt = node.getAttribute('alt') || '';
-    if (!bestSrc) return '';
+      if (entries.length === 0) return '';
+      return entries.reduce((a, b) => b.width > a.width ? b : a).url;
+    };
+
+    // Filter out data URIs and blob URLs (lazy-load placeholders)
+    const isPlaceholder = (url) => !url || url.startsWith('data:') || url.startsWith('blob:');
+
+    const bestSrc =
+      pickBestFromSrcset(node.getAttribute('srcset')) ||
+      pickBestFromSrcset(node.getAttribute('data-srcset')) ||
+      (!isPlaceholder(node.getAttribute('src')) ? node.getAttribute('src') : '') ||
+      node.getAttribute('data-src') ||
+      '';
+
+    if (!bestSrc || isPlaceholder(bestSrc)) return '';
+
+    const alt = node.getAttribute('alt') || node.getAttribute('data-alt') || '';
     return { block: true, html: `<img src="${bestSrc}" alt="${alt}">` };
   }
 
@@ -333,6 +340,7 @@ const sanitizeHtml = (input, isMarkdown = false) => {
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<button[\s\S]*?<\/button>/gi, '')
       .replace(/<img[^>]*data-hook="gallery-item-image-img-preload"[^>]*\/?>/gi, '')
+      .replace(/<img[^>]*class="[^"]*blur[^"]*"[^>]*\/?>/gi, '')
       .replace(/(<br\s*\/?>[\s\u00a0]*){2,}/gi, '</p><p>');
     const cleanHtml = DOMPurify.sanitize(stripped, {
       ALLOWED_TAGS: [
@@ -342,7 +350,7 @@ const sanitizeHtml = (input, isMarkdown = false) => {
         'div', 'span', 'section', 'article',
         'img',
       ],
-      ALLOWED_ATTR: ['href', 'src', 'srcset', 'rel', 'alt', 'data-idx'],
+      ALLOWED_ATTR: ['href', 'src', 'srcset', 'data-src', 'data-srcset', 'data-alt', 'rel', 'alt'],
       KEEP_CONTENT: true,
     });
 
