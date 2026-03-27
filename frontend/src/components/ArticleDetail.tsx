@@ -85,6 +85,16 @@ function splitContentSegments(html: string): Array<string | GalleryImage[]> {
   return segments;
 }
 
+/**
+ * For Wix CDN URLs, strip the resize parameters to get the original full-resolution image.
+ * Wix URL pattern: https://static.wixstatic.com/media/HASH~mv2.jpg/v1/fill/w_N,h_N,.../HASH~mv2.jpg
+ * Full-res URL:    https://static.wixstatic.com/media/HASH~mv2.jpg
+ */
+function getFullResSrc(src: string): string {
+  const m = src.match(/^(https:\/\/static\.wixstatic\.com\/media\/[^/]+)/);
+  return m ? m[1] : src;
+}
+
 /** Lightbox + thumbnail gallery component */
 function ImageGallery({ images }: { images: GalleryImage[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -168,7 +178,7 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
                 <X className="h-5 w-5" />
               </button>
               <img
-                src={images[lightboxIndex].src}
+                src={getFullResSrc(images[lightboxIndex].src)}
                 alt={images[lightboxIndex].alt}
                 className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
               />
