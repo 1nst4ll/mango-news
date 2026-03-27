@@ -1,216 +1,129 @@
-# AI Tasks Analysis & Optimization Recommendations
+# AI Tasks Analysis & Optimization
 
 ## Overview
 
-This document analyzes all AI-related tasks in the Mango News codebase and provides optimization recommendations.
-
-## Prompt Engineering Best Practices Applied
-
-All AI prompts have been refined following these principles:
-
-1. **Structured Instructions**: Clear sections with headers for requirements, guidelines, and output format
-2. **Context-Specific**: Prompts include Turks and Caicos Islands (TCI) context for relevance
-3. **Explicit Constraints**: Clear boundaries on length, format, and forbidden content
-4. **Role Assignment**: Appropriate persona/role for each task (news editor, translator, etc.)
-5. **Output Formatting**: Explicit instructions on how to format responses
-6. **Negative Instructions**: Clear "do not" statements to prevent common issues
+This document describes the AI services used in Mango News, the optimizations applied, and the current architecture.
 
 ## AI Services Used
 
-| Service | Provider | Purpose | File Location |
-|---------|----------|---------|---------------|
-| Groq API | Groq | LLM for text generation | `scraper.js`, `sundayEditionGenerator.js` |
-| Ideogram API | Ideogram | AI image generation | `sundayEditionGenerator.js` |
-| Unreal Speech API | Unreal Speech | Text-to-speech narration | `sundayEditionGenerator.js` |
+| Service | Provider | Purpose | File |
+| ------- | -------- | ------- | ---- |
+| Groq API (Llama) | Groq | Summaries, topics, translations, weekly summary | `services/aiService.js` |
+| fal.ai (FLUX.2 Turbo) | fal.ai | AI image generation for thumbnails | `sundayEditionGenerator.js` |
+| Unreal Speech API | Unreal Speech | Text-to-speech narration for Sunday Edition | `sundayEditionGenerator.js` |
 
-## AI Tasks Inventory
+## AI Tasks
 
 ### 1. Summary Generation
-- **Function**: [`generateAISummary()`](../backend/src/scraper.js:183)
-- **Model**: `openai/gpt-oss-120b` (large model)
-- **Max Tokens**: 300
-- **Content Limit**: 10,000 characters
-- **Purpose**: Generate SEO-optimized article summaries (max 80 words)
+
+- **Function:** `aiService.generateSummary()`
+- **Purpose:** SEO-optimized article summary, max 80–100 words
+- **Input limit:** 10,000 characters
 
 ### 2. Topic Assignment
-- **Function**: [`assignTopicsWithAI()`](../backend/src/scraper.js:222)
-- **Model**: `openai/gpt-oss-20b` (small model)
-- **Max Tokens**: 300
-- **Content Limit**: 5,000 characters
-- **Purpose**: Assign 3 topics from 31 predefined categories
 
-### 3. Translation Generation
-- **Function**: [`generateAITranslation()`](../backend/src/sundayEditionGenerator.js:238)
-- **Model**: `openai/gpt-oss-20b`
-- **Max Tokens**: 100-8192 (varies by type)
-- **Purpose**: Translate titles, summaries, content to Spanish/Haitian Creole
+- **Function:** `aiService.assignTopics()`
+- **Purpose:** Assign 3 topics from 31 predefined categories
+- **Input limit:** 5,000 characters
+
+### 3. Translation
+
+- **Function:** `aiService.translateText()` / `aiService.translateBatch()`
+- **Purpose:** Translate title, summary, and body to Spanish and Haitian Creole
+- **Processing:** All 6 translations run in parallel via `translateBatch()`
 
 ### 4. Sunday Edition Summary
-- **Function**: [`generateSundayEditionSummary()`](../backend/src/sundayEditionGenerator.js:57)
-- **Model**: `openai/gpt-oss-20b`
-- **Max Tokens**: 1200
-- **Content Limit**: 80,000 characters
-- **Purpose**: Generate weekly news summary (4250 characters)
+
+- **Function:** `aiService.generateWeeklySummary()`
+- **Purpose:** Weekly broadcast-ready news digest (4,000–4,200 chars)
+- **Input limit:** 80,000 characters
 
 ### 5. Image Prompt Optimization
-- **Function**: Within [`generateAIImage()`](../backend/src/sundayEditionGenerator.js:295)
-- **Model**: `openai/gpt-oss-20b`
-- **Max Tokens**: 200
-- **Purpose**: Optimize prompts for image generation
+
+- **Function:** `aiService.optimizeImagePrompt()`
+- **Purpose:** Generate a structured visual prompt for fal.ai from article content
 
 ### 6. AI Image Generation
-- **Function**: [`generateAIImage()`](../backend/src/sundayEditionGenerator.js:295)
-- **API**: Ideogram v3
-- **Purpose**: Generate news thumbnails when none exists
+
+- **Function:** `generateAIImage()` in `sundayEditionGenerator.js`
+- **API:** fal.ai FLUX.2 Turbo
+- **Trigger:** Only when no thumbnail URL exists for an article
 
 ### 7. Audio Narration
-- **Function**: [`generateNarration()`](../backend/src/sundayEditionGenerator.js:182)
-- **API**: Unreal Speech
-- **Purpose**: Generate audio for Sunday Edition
 
-## Issues Identified
+- **Function:** `generateNarration()` in `sundayEditionGenerator.js`
+- **API:** Unreal Speech
+- **Purpose:** MP3 audio for Sunday Edition
 
-### 1. Code Duplication (HIGH PRIORITY)
-**Problem**: `generateAITranslation` logic exists in both `scraper.js` and `sundayEditionGenerator.js`
+## Architecture
 
-**Impact**: 
-- Maintenance overhead
-- Inconsistent updates
-- Larger codebase
+All Groq-based AI functions are consolidated in a single centralized service:
 
-**Solution**: Extract to shared AI service module
-
-### 2. Model Inconsistency (MEDIUM PRIORITY)
-**Problem**: Different models used for similar tasks
-- Summary: `openai/gpt-oss-120b` (120B parameters)
-- Other tasks: `openai/gpt-oss-20b` (20B parameters)
-
-**Impact**: 
-- Potentially unnecessary cost for larger model
-- Inconsistent quality
-
-**Solution**: Standardize on appropriate model per task type
-
-### 3. Sequential Processing (HIGH PRIORITY)
-**Problem**: Translations processed sequentially
-
-```javascript
-// Current approach (SLOW)
-title_es = await generateAITranslation(title, 'es', 'title');
-summary_es = await generateAITranslation(summary, 'es', 'summary');
-title_ht = await generateAITranslation(title, 'ht', 'title');
-// ... more sequential calls
-```
-
-**Impact**: 6+ sequential API calls for each article
-
-**Solution**: Use `Promise.all()` for parallel execution
-
-### 4. No Caching (HIGH PRIORITY)
-**Problem**: Topic translations regenerated repeatedly
-
-**Impact**: 
-- Redundant API calls
-- Increased latency
-- Higher costs
-
-**Solution**: Cache topic translations in memory
-
-### 5. No Rate Limiting (MEDIUM PRIORITY)
-**Problem**: No built-in rate limiting for API calls
-
-**Impact**: Risk of hitting API rate limits during batch processing
-
-**Solution**: Implement request queue with rate limiting
-
-### 6. Missing Retry Logic (MEDIUM PRIORITY)
-**Problem**: AI calls fail silently without retry
-
-**Impact**: Lost data when transient errors occur
-
-**Solution**: Implement exponential backoff retry
-
-### 7. Inefficient Token Usage (LOW PRIORITY)
-**Problem**: Hardcoded token limits not optimized per task
-
-**Solution**: Dynamic token allocation based on input length
-
-## Performance Metrics (Estimated)
-
-| Current State | Optimized State | Improvement |
-|---------------|-----------------|-------------|
-| 6 sequential translation calls | 6 parallel calls | ~80% faster |
-| No topic caching | Cached topics | 100% reduction for repeats |
-| No retry logic | 3 retries with backoff | Higher success rate |
-
-## Implementation Plan
-
-### Phase 1: Create Shared AI Service Module
-1. Create `backend/src/services/aiService.js`
-2. Extract all AI functions
-3. Add caching layer
-4. Add retry logic
-
-### Phase 2: Optimize Translation
-1. Implement parallel translation
-2. Cache topic translations
-3. Add rate limiting
-
-### Phase 3: Monitoring
-1. Add timing metrics
-2. Log API usage
-3. Track success/failure rates
-
-## Recommended Architecture
-
-```
+```text
 backend/src/services/
-├── aiService.js      # Core AI service with caching & retry
-├── groqClient.js     # Groq API wrapper
-├── ideogramClient.js # Ideogram API wrapper
-└── speechClient.js   # Unreal Speech API wrapper
+└── aiService.js   # Groq client, caching, retry, rate limiting, batch translation
 ```
 
-## Configuration Recommendations
+`scraper.js` and `sundayEditionGenerator.js` call `aiService` — no direct Groq calls outside of it.
 
-```env
-# AI Service Configuration
-AI_SUMMARY_MODEL=openai/gpt-oss-20b
-AI_TRANSLATION_MODEL=openai/gpt-oss-20b
-AI_MAX_RETRIES=3
-AI_RETRY_DELAY=1000
-AI_CACHE_TTL=86400000  # 24 hours
-AI_RATE_LIMIT_PER_MINUTE=60
-```
+## Optimizations Implemented
 
-## API Endpoints for Monitoring
+### 1. Centralized AI Service (resolved)
 
-### Get AI Service Statistics
+All AI functions extracted from `scraper.js` and `sundayEditionGenerator.js` into `aiService.js`. Eliminates duplication and ensures consistent retry/caching behaviour across all callers.
 
-```http
-GET /api/ai-service/stats
-Authorization: Bearer YOUR_TOKEN
-```
+### 2. Parallel Translation (resolved)
 
-**Response:**
+All 6 translations (title/summary/content × ES/HT) are dispatched in a single `translateBatch()` call using `Promise.all()` internally. Previously sequential — ~80% latency reduction for the translation step.
+
+### 3. Topic Translation Caching (resolved)
+
+Topic translations are pre-computed and cached in memory. Repeated scrapes of articles with the same topics skip AI calls entirely.
+
+### 4. Retry Logic with Exponential Backoff (resolved)
+
+All AI calls retry up to 3 times with exponential backoff on transient failures.
+
+### 5. Rate Limiting (resolved)
+
+`aiService` enforces a per-minute request cap to avoid hitting Groq API limits during batch processing.
+
+### 6. Batch Topic DB Lookup (resolved)
+
+Topic existence checks use `SELECT ... WHERE name = ANY($1)` — one query per article instead of one query per topic. Previously N sequential round-trips per article.
+
+### 7. Batch `article_topics` Insert (resolved)
+
+All topic associations for an article are written in a single `INSERT ... VALUES (...),(...)` statement with `ON CONFLICT DO NOTHING`. Previously one `INSERT` per topic per article.
+
+### 8. Single JSDOM Instance in Sanitizer (resolved)
+
+`sanitizeHtml()` previously created two JSDOM instances (one for DOMPurify, one for content parsing). Now uses a single instance for both, halving DOM allocation overhead per article.
+
+### 9. Dead Code Removal (resolved)
+
+`scrapeSource()` — a legacy function that was defined but never called — has been removed.
+
+### 10. Set-Based Container Tag Lookup (resolved)
+
+Container tag detection in the HTML serializer (`div`, `section`, `article`, etc.) uses a `Set` for O(1) lookup instead of an array `.includes()` call on every DOM node.
+
+## HTML Sanitization Pipeline
+
+See [Scraping Methods — HTML Sanitization Pipeline](scraping-methods.md#html-sanitization-pipeline) for the full breakdown of how raw scraped HTML is cleaned and structured.
+
+## Monitoring Endpoints
+
+### GET `/api/ai-service/stats` _(authenticated)_
+
+Returns current cache size, rate limit state, and model configuration.
+
 ```json
 {
-  "cache": {
-    "size": 42,
-    "sampleKeys": ["translation:es:title:...", "translation:ht:summary:..."]
-  },
-  "rateLimit": {
-    "currentCount": 15,
-    "limit": 60,
-    "resetInMs": 45000
-  },
+  "cache": { "size": 42 },
+  "rateLimit": { "currentCount": 15, "limit": 60, "resetInMs": 45000 },
   "config": {
-    "models": {
-      "SUMMARY": "openai/gpt-oss-20b",
-      "TRANSLATION": "openai/gpt-oss-20b",
-      "TOPICS": "openai/gpt-oss-20b",
-      "PROMPT_OPTIMIZATION": "openai/gpt-oss-20b"
-    },
+    "models": { "SUMMARY": "...", "TRANSLATION": "...", "TOPICS": "..." },
     "maxRetries": 3,
     "cacheTtlMs": 86400000,
     "rateLimitPerMinute": 60
@@ -218,126 +131,40 @@ Authorization: Bearer YOUR_TOKEN
 }
 ```
 
-### Clear AI Service Cache
+### POST `/api/ai-service/clear-cache` _(authenticated)_
 
-```http
-POST /api/ai-service/clear-cache
-Authorization: Bearer YOUR_TOKEN
-```
+Clears the in-memory translation cache.
 
-**Response:**
 ```json
-{
-  "message": "AI service cache cleared successfully."
-}
+{ "message": "AI service cache cleared successfully." }
 ```
 
-## Implementation Summary
+## Environment Variables
 
-### Changes Made
+```env
+# Required
+GROQ_API_KEY=your_groq_key
+FAL_KEY=your_fal_ai_key
 
-1. **Created centralized AI service** ([`backend/src/services/aiService.js`](../backend/src/services/aiService.js))
-   - Consolidated all AI-related functions
-   - Added caching layer for translations
-   - Implemented retry logic with exponential backoff
-   - Added rate limiting
-   - Enabled parallel batch translation
-
-2. **Updated scraper.js**
-   - Refactored to use centralized AI service
-   - Parallel translation processing (~80% faster)
-   - Cached topic translations
-
-3. **Updated sundayEditionGenerator.js**
-   - Refactored to use centralized AI service
-   - Removed duplicate translation code
-   - Simplified image prompt optimization
-
-4. **Added monitoring endpoints**
-   - GET `/api/ai-service/stats` - View cache and rate limit status
-   - POST `/api/ai-service/clear-cache` - Clear translation cache
-
-## AI Prompts Reference
-
-### 1. Summary Generation Prompt
-**Location**: `aiService.js` - `generateSummary()`
-**Purpose**: Generate SEO-optimized article summaries
-
-Key improvements:
-- Role: "Professional news editor for Mango News"
-- 5 W's focus (Who, What, When, Where, Why)
-- SEO keyword integration
-- Strict 80-100 word length
-- Active voice requirement
-- Explicit forbidden phrases list
-
-### 2. Topic Assignment Prompt
-**Location**: `aiService.js` - `assignTopics()`
-**Purpose**: Classify articles into 3 predefined topics
-
-Key improvements:
-- Explicit topic list provided in prompt
-- Ordered by relevance (most relevant first)
-- Lower temperature (0.3) for consistency
-- Clear fallback behavior for edge cases
-
-### 3. Translation Prompts
-**Location**: `aiService.js` - `translateText()`
-**Purpose**: Translate content to Spanish and Haitian Creole
-
-Key improvements:
-- Caribbean audience context
-- Language-specific guidelines (Kreyòl orthography, Caribbean Spanish)
-- Proper noun preservation rules
-- Format-specific variants (title/summary/content)
-- Natural phrasing over literal translation
-
-### 4. Image Prompt Optimization
-**Location**: `aiService.js` - `optimizeImagePrompt()`
-**Purpose**: Create optimized prompts for AI image generation
-
-Key improvements:
-- Visual element extraction process
-- TCI visual context inclusion
-- Optimal prompt length (50-150 words)
-- Structure guidance (subject → descriptors → style)
-- Negative prompts handled separately
-
-### 5. Weekly Summary (Sunday Edition)
-**Location**: `aiService.js` - `generateWeeklySummary()`
-**Purpose**: Create weekly news digest script for audio narration
-
-Key improvements:
-- Mango News branding integration
-- Broadcast-ready language for TTS
-- Clear content structure (opening → lead stories → groupings → closing)
-- Character limit enforcement (4,000-4,200 chars)
-- Transition phrases for smooth audio flow
-- Forbidden elements for audio clarity
-
-### 6. Image Generation Instructions
-**Location**: `sundayEditionGenerator.js` - `generateAIImage()`
-**Purpose**: Base instructions for news thumbnail generation
-
-Key improvements:
-- Photorealistic news photography aesthetic
-- TCI-specific visual elements (Grace Bay, Chalk Sound)
-- Caribbean color palette guidance
-- Local character representation: Dark skin tones reflecting authentic TCI demographics
-- Dignified, respectful portrayal of local Caribbean people
-- Clear avoidance list (identifiable individuals, text, logos)
-- Journalistic neutrality and local authenticity requirement
+# Optional tuning (with defaults)
+AI_CACHE_MAX_SIZE=1000
+AI_MAX_RETRIES=3
+AI_RETRY_DELAY=1000
+AI_CACHE_TTL=86400000
+AI_RATE_LIMIT_PER_MINUTE=60
+```
 
 ## Related Files
 
 - [`backend/src/services/aiService.js`](../backend/src/services/aiService.js) - Centralized AI service
-- [`backend/src/scraper.js`](../backend/src/scraper.js) - Main scraping with AI integration
-- [`backend/src/sundayEditionGenerator.js`](../backend/src/sundayEditionGenerator.js) - Sunday Edition AI features
+- [`backend/src/scraper.js`](../backend/src/scraper.js) - Scraping with AI integration
+- [`backend/src/sundayEditionGenerator.js`](../backend/src/sundayEditionGenerator.js) - Sunday Edition
 - [`docs/multilingual-support.md`](multilingual-support.md) - Translation documentation
-- [`docs/scraping-methods.md`](scraping-methods.md) - AI feature toggles
+- [`docs/scraping-methods.md`](scraping-methods.md) - Scraper configuration and HTML pipeline
 
 ## Version History
 
 | Date | Change |
-|------|--------|
-| 2025-11-30 | Refined all AI prompts with structured instructions, TCI context, and explicit constraints |
+| ---- | ------ |
+| 2026-03-26 | Batch topic DB lookup, batch article_topics insert, single JSDOM instance, dead code removal, Set-based container lookup |
+| 2025-11-30 | Centralized AI service, parallel translation, topic caching, retry logic, rate limiting |

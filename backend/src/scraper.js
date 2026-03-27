@@ -28,9 +28,11 @@ const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'nav', 'form
 // Inline formatting tags to preserve in the final HTML output
 const INLINE_KEEP = new Set(['strong', 'b', 'em', 'i', 'a', 'mark', 'code', 'sup', 'sub']);
 
+// Generic container tags — recurse transparently so children each become top-level blocks
+const CONTAINER_TAGS = new Set(['div', 'section', 'article', 'aside', 'main', 'header', 'footer']);
+
 // Block-level elements — used to decide when to insert paragraph breaks
-// Note: div/section/article/aside/main/header/footer are handled by serializeContainer
-// Note: p is handled by serializeParagraph
+// Note: CONTAINER_TAGS and <p> are handled by dedicated functions
 // Note: figure/figcaption are in SKIP_TAGS
 const BLOCK_ELEMENTS = new Set([
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -39,6 +41,15 @@ const BLOCK_ELEMENTS = new Set([
   'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
   'br', 'hr',
 ]);
+
+// Shared whitespace normalizer used by all inline-flush helpers
+function normalizeInline(text) {
+  return text
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/([.!?])([A-Z])/g, '$1 $2')
+    .trim();
+}
 
 /**
  * Serialize a <p> element, splitting it into multiple blocks when it contains
@@ -66,9 +77,7 @@ function serializeParagraph(node) {
   let pendingInline = '';
 
   const flushPending = () => {
-    const t = pendingInline
-      .replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ')
-      .replace(/([.!?])([A-Z])/g, '$1 $2').trim();
+    const t = normalizeInline(pendingInline);
     if (t) results.push({ block: true, html: `<p>${t}</p>` });
     pendingInline = '';
   };
@@ -128,9 +137,7 @@ function serializeContainer(node) {
   let pendingInline = '';
 
   const flushPending = () => {
-    const t = pendingInline
-      .replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ')
-      .replace(/([.!?])([A-Z])/g, '$1 $2').trim();
+    const t = normalizeInline(pendingInline);
     if (t) results.push({ block: true, html: `<p>${t}</p>` });
     pendingInline = '';
   };
@@ -228,10 +235,9 @@ function serializeNode(node) {
     return serializeParagraph(node);
   }
 
-  // Generic containers (div, section, article, etc.) — recurse transparently
-  // so their children each get a chance to become their own top-level blocks.
+  // Generic containers — recurse transparently so children each become top-level blocks.
   // This handles sites that use <div> for paragraphs instead of <p>.
-  if (['div', 'section', 'article', 'aside', 'main', 'header', 'footer'].includes(tag)) {
+  if (CONTAINER_TAGS.has(tag)) {
     return serializeContainer(node);
   }
 
@@ -286,19 +292,20 @@ function markdownToHtml(markdownString) {
  * @param {boolean} isMarkdown - True if input is markdown (Firecrawl), false for HTML
  */
 const sanitizeHtml = (input, isMarkdown = false) => {
-  const dom = new JSDOM('');
-  const window = dom.window;
-  const DOMPurify = createDOMPurify(window);
+  // Single JSDOM instance serves both DOMPurify and content parsing
+  const contentDom = new JSDOM('');
+  const DOMPurify = createDOMPurify(contentDom.window);
 
-  try {
-    // Step 1: Convert markdown to HTML if needed
-    const rawHtml = isMarkdown ? markdownToHtml(input) : input;
+  // Step 1: Convert markdown to HTML if needed
+  const rawHtml = isMarkdown ? markdownToHtml(input) : input;
 
-    // Step 2: DOMPurify pass — strips dangerous content, keeps safe tags for Step 3.
-    // figure/figcaption are EXCLUDED from allowed tags AND not in KEEP_CONTENT so
-    // their text doesn't bleed through. We handle this by removing them from the raw
-    // HTML before sanitizing.
-    const stripped = rawHtml.replace(/<figure[\s\S]*?<\/figure>/gi, '');
+    // Step 2: Pre-process raw HTML before sanitizing.
+    // a) Remove figure/figcaption entirely (KEEP_CONTENT would leak caption text).
+    // b) Convert <br><br> (and variants) into </p><p> so that sources like SunTCI
+    //    that use double line-breaks as paragraph separators get proper paragraphs.
+    const stripped = rawHtml
+      .replace(/<figure[\s\S]*?<\/figure>/gi, '')
+      .replace(/(<br\s*\/?>[\s\u00a0]*){2,}/gi, '</p><p>');
     const cleanHtml = DOMPurify.sanitize(stripped, {
       ALLOWED_TAGS: [
         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -311,8 +318,8 @@ const sanitizeHtml = (input, isMarkdown = false) => {
       KEEP_CONTENT: true,
     });
 
-    // Step 3: Parse the sanitized HTML into a DOM and serialize to structured HTML
-    const contentDom = new JSDOM(`<body>${cleanHtml}</body>`);
+    // Step 3: Parse sanitized HTML into the same DOM and serialize to structured HTML
+    contentDom.window.document.body.innerHTML = cleanHtml;
     try {
       const body = contentDom.window.document.body;
 
@@ -335,23 +342,13 @@ const sanitizeHtml = (input, isMarkdown = false) => {
       let pendingInline = '';
 
       const flushInline = () => {
-        // Normalise whitespace and fix missing spaces after sentence-ending punctuation
-        let text = pendingInline
-          .replace(/\u00a0/g, ' ')
-          .replace(/[ \t]+/g, ' ')
-          .replace(/([.!?])([A-Z])/g, '$1 $2')
-          .trim();
+        const text = normalizeInline(pendingInline);
         if (text) blocks.push(`<p>${text}</p>`);
         pendingInline = '';
       };
 
       const emitBlock = (serialized) => {
-        // Normalise whitespace inside block html
-        const html = serialized.html
-          .replace(/\u00a0/g, ' ')
-          .replace(/[ \t]+/g, ' ')
-          .replace(/([.!?])([A-Z])/g, '$1 $2')
-          .trim();
+        const html = normalizeInline(serialized.html);
         if (!html) return;
         // Already-wrapped block tags emit as-is; bare content gets a <p>
         if (/^<(h[1-6]|ul|ol|blockquote|pre|p)[\s>]/i.test(html)) {
@@ -389,9 +386,6 @@ const sanitizeHtml = (input, isMarkdown = false) => {
     } finally {
       contentDom.window.close();
     }
-  } finally {
-    window.close();
-  }
 };
 
 // Use topic lists and translations from centralized AI service
@@ -414,48 +408,6 @@ const getActiveSources = async () => {
   } catch (err) {
     console.error('Error fetching active sources:', err);
     return [];
-  }
-};
-
-// This function will handle scraping based on the source's scraping_method
-const scrapeSource = async (source) => {
-  console.log(`Scraping source: ${source.name} (${source.url}) using method: ${source.scraping_method || 'firecrawl'}`);
-  let scrapedResult = null;
-
-  try {
-    if (source.scraping_method === 'opensource') {
-      // Use the open-source scraper
-      // Note: opensourceScrapeArticle currently scrapes a single article page,
-      // we might need a different function for discovering articles from a source homepage
-      // For now, let's assume discoverSources will return article URLs, and scrapeArticlePage handles the individual scrape.
-      // This part needs refinement based on how opensourceDiscoverSources is implemented.
-      // For the purpose of demonstrating method selection, let's assume scrapeArticlePage is called later.
-      console.log(`Using open-source scraper for source: ${source.name}`);
-      // The actual scraping of articles from this source's page will happen in runScraper/runScraperForSource
-      // after discovering article URLs.
-      return; // Exit this function as article scraping is handled elsewhere for opensource
-    } else { // Default to Firecrawl
-      console.log(`Using Firecrawl for source: ${source.name}`);
-      // Call Firecrawl scrape tool using the SDK, passing source settings
-      scrapedResult = await firecrawl.scrape(source.url, {
-        formats: ['markdown'],
-        onlyMainContent: true,
-        includeTags: source.include_selectors ? source.include_selectors.split(',').map(s => s.trim()) : undefined,
-        excludeTags: source.exclude_selectors ? source.exclude_selectors.split(',').map(s => s.trim()) : undefined,
-      });
-
-      // Check if the scrape was successful and data is available
-      if (scrapedResult && scrapedResult.success && scrapedResult.markdown) {
-        console.log(`Successfully scraped: ${scrapedResult.metadata?.title || 'No Title'}`);
-        // Removed call to processScrapedData as this function is for discovery, not article processing
-        // await processScrapedData(source, scrapedResult.markdown, scrapedResult.metadata);
-      } else {
-        console.error(`Failed to scrape source: ${source.name}`, scrapedResult); // Log the full result object
-      }
-    }
-
-  } catch (err) {
-    console.error(`Error during scraping for source ${source.name}:`, err); // Log the full error object
   }
 };
 
@@ -655,36 +607,40 @@ const processScrapedData = async (data) => { // Accept a single data object
       let translatedTopicsEs = [];
       let translatedTopicsHt = [];
 
-      // Process topic translations - OPTIMIZED: Use centralized translation service with caching
-      for (const topicName of assignedTopics) {
-        let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
-        let topicId;
-        
-        // Get pre-translated values from centralized service (includes caching)
-        let preTranslatedEs = await aiService.getTopicTranslation(topicName, 'es');
-        let preTranslatedHt = await aiService.getTopicTranslation(topicName, 'ht');
+      // Process topic translations — batch SELECT then upsert only what's needed
+      if (assignedTopics.length > 0) {
+        const existingTopicsResult = await pool.query(
+          'SELECT id, name, name_es, name_ht FROM topics WHERE name = ANY($1)',
+          [assignedTopics]
+        );
+        const existingByName = Object.fromEntries(existingTopicsResult.rows.map(r => [r.name, r]));
 
-        let currentTopicEs = topicResult.rows[0]?.name_es;
-        let currentTopicHt = topicResult.rows[0]?.name_ht;
+        for (const topicName of assignedTopics) {
+          const preTranslatedEs = await aiService.getTopicTranslation(topicName, 'es');
+          const preTranslatedHt = await aiService.getTopicTranslation(topicName, 'ht');
+          let topicId;
 
-        if (topicResult.rows.length === 0) {
-          topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
-          topicId = topicResult.rows[0].id;
-        } else {
-          topicId = topicResult.rows[0].id;
-          let updatedEs = preTranslatedEs || currentTopicEs;
-          let updatedHt = preTranslatedHt || currentTopicHt;
-
-          if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
-            await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
+          if (!existingByName[topicName]) {
+            const ins = await pool.query(
+              'INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id',
+              [topicName, preTranslatedEs, preTranslatedHt]
+            );
+            topicId = ins.rows[0].id;
+          } else {
+            const row = existingByName[topicName];
+            topicId = row.id;
+            const updatedEs = preTranslatedEs || row.name_es;
+            const updatedHt = preTranslatedHt || row.name_ht;
+            if (row.name_es !== updatedEs || row.name_ht !== updatedHt) {
+              await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
+            }
+            if (updatedEs) translatedTopicsEs.push(updatedEs);
+            if (updatedHt) translatedTopicsHt.push(updatedHt);
           }
-          preTranslatedEs = updatedEs;
-          preTranslatedHt = updatedHt;
+          if (preTranslatedEs && !existingByName[topicName]) translatedTopicsEs.push(preTranslatedEs);
+          if (preTranslatedHt && !existingByName[topicName]) translatedTopicsHt.push(preTranslatedHt);
+          collectedTopicIds.push(topicId);
         }
-        if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
-        if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
-
-        collectedTopicIds.push(topicId);
       }
 
       const topics_es = translatedTopicsEs.join(', ');
@@ -731,8 +687,12 @@ const processScrapedData = async (data) => { // Accept a single data object
         articleId = articleResult.rows[0].id;
       }
 
-      for (const topicId of collectedTopicIds) {
-        await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [articleId, topicId]);
+      if (collectedTopicIds.length > 0) {
+        const values = collectedTopicIds.map((_, i) => `($1, $${i + 2})`).join(', ');
+        await pool.query(
+          `INSERT INTO article_topics (article_id, topic_id) VALUES ${values} ON CONFLICT (article_id, topic_id) DO NOTHING`,
+          [articleId, ...collectedTopicIds]
+        );
       }
 
       console.log(`Article "${title}" processed (ID: ${articleId}). Assigned topics: ${assignedTopics.join(', ')}. Translated topics (ES): ${topics_es}, (HT): ${topics_ht}.`);
@@ -1107,48 +1067,54 @@ const processAiForArticle = async (articleId, featureType) => { // featureType c
         // First, remove existing topics for this article to avoid duplicates
         await pool.query('DELETE FROM article_topics WHERE article_id = $1', [article.id]);
 
-        // Collect translated topics for the article
-        let translatedTopicsEs = [];
-        let translatedTopicsHt = [];
+        const translatedTopicsEs = [];
+        const translatedTopicsHt = [];
+        const collectedTopicIds = [];
 
-        // Save assigned topics and link to article
-            // OPTIMIZED: Use centralized AI service for topic translation with caching
-            for (const topicName of assignedTopics) {
-              let topicResult = await pool.query('SELECT id, name_es, name_ht FROM topics WHERE name = $1', [topicName]);
-              let topicId;
-              
-              // Get translations using centralized service (includes caching)
-              let preTranslatedEs = await aiService.getTopicTranslation(topicName, 'es');
-              let preTranslatedHt = await aiService.getTopicTranslation(topicName, 'ht');
+        const existingTopicsResult = await pool.query(
+          'SELECT id, name, name_es, name_ht FROM topics WHERE name = ANY($1)',
+          [assignedTopics]
+        );
+        const existingByName = Object.fromEntries(existingTopicsResult.rows.map(r => [r.name, r]));
 
-              let currentTopicEs = topicResult.rows[0]?.name_es;
-              let currentTopicHt = topicResult.rows[0]?.name_ht;
+        for (const topicName of assignedTopics) {
+          const preTranslatedEs = await aiService.getTopicTranslation(topicName, 'es');
+          const preTranslatedHt = await aiService.getTopicTranslation(topicName, 'ht');
+          let topicId;
 
-              if (topicResult.rows.length === 0) {
-                topicResult = await pool.query('INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id', [topicName, preTranslatedEs, preTranslatedHt]);
-                topicId = topicResult.rows[0].id;
-              } else {
-                topicId = topicResult.rows[0].id;
-                let updatedEs = preTranslatedEs || currentTopicEs;
-                let updatedHt = preTranslatedHt || currentTopicHt;
-
-                if (currentTopicEs !== updatedEs || currentTopicHt !== updatedHt) {
-                  await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
-                }
-                preTranslatedEs = updatedEs;
-                preTranslatedHt = updatedHt;
-              }
-              if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
-              if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
-
-              await pool.query('INSERT INTO article_topics (article_id, topic_id) VALUES ($1, $2) ON CONFLICT (article_id, topic_id) DO NOTHING', [article.id, topicId]);
+          if (!existingByName[topicName]) {
+            const ins = await pool.query(
+              'INSERT INTO topics (name, name_es, name_ht) VALUES ($1, $2, $3) RETURNING id',
+              [topicName, preTranslatedEs, preTranslatedHt]
+            );
+            topicId = ins.rows[0].id;
+            if (preTranslatedEs) translatedTopicsEs.push(preTranslatedEs);
+            if (preTranslatedHt) translatedTopicsHt.push(preTranslatedHt);
+          } else {
+            const row = existingByName[topicName];
+            topicId = row.id;
+            const updatedEs = preTranslatedEs || row.name_es;
+            const updatedHt = preTranslatedHt || row.name_ht;
+            if (row.name_es !== updatedEs || row.name_ht !== updatedHt) {
+              await pool.query('UPDATE topics SET name_es = $1, name_ht = $2 WHERE id = $3', [updatedEs, updatedHt, topicId]);
             }
+            if (updatedEs) translatedTopicsEs.push(updatedEs);
+            if (updatedHt) translatedTopicsHt.push(updatedHt);
+          }
+          collectedTopicIds.push(topicId);
+        }
 
-        // Convert translated topic arrays to comma-separated strings
+        if (collectedTopicIds.length > 0) {
+          const values = collectedTopicIds.map((_, i) => `($1, $${i + 2})`).join(', ');
+          await pool.query(
+            `INSERT INTO article_topics (article_id, topic_id) VALUES ${values} ON CONFLICT (article_id, topic_id) DO NOTHING`,
+            [article.id, ...collectedTopicIds]
+          );
+        }
+
         const topics_es = translatedTopicsEs.join(', ');
         const topics_ht = translatedTopicsHt.join(', ');
 
-        // Update the article with the new translated topics
         await pool.query('UPDATE articles SET topics_es = $1, topics_ht = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3', [topics_es, topics_ht, article.id]);
 
         processed = true;

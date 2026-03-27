@@ -36,7 +36,7 @@ The scraper discovers article URLs by:
 
 1. Loading the source homepage
 2. Finding links matching `article_link_template`
-3. Crawling up to depth 3 from homepage
+3. Crawling up to depth 1 from homepage
 4. Filtering URLs matching the source domain
 
 **Article Link Template Examples:**
@@ -83,7 +83,7 @@ AI processing runs after content extraction:
 |---------|-----|-------------|
 | **Summary** | Groq (Llama) | SEO-optimized article summary |
 | **Topics** | Groq | Assigns 3 topics from 31 predefined categories |
-| **Image** | Ideogram | Generates relevant image if no thumbnail found |
+| **Image** | fal.ai (FLUX.2 Turbo) | Generates relevant image if no thumbnail found |
 | **Translations** | Groq | Spanish and Haitian Creole translations |
 
 ### AI Toggle Logic
@@ -103,6 +103,33 @@ In source configuration:
 - `enable_ai_tags` - Assign topic tags
 - `enable_ai_image` - Generate missing images
 - `enable_ai_translations` - Generate translations
+
+## HTML Sanitization Pipeline
+
+Raw HTML from the open-source scraper passes through a multi-stage sanitization pipeline in `scraper.js` before being stored:
+
+1. **Pre-processing** — Strips `<figure>`/`<figcaption>` blocks entirely (prevents image captions leaking into article text). Converts double `<br><br>` sequences into paragraph breaks for sources that use line breaks instead of `<p>` tags (e.g. SunTCI).
+
+2. **DOMPurify** — Removes scripts, iframes, and unsafe attributes. Preserves structural tags (`p`, `h1–h6`, `ul`, `ol`, `li`, `blockquote`, `strong`, `em`, `a`, `div`, `span`, etc.).
+
+3. **Drop-cap removal** — CMS-injected single-letter `<span>` elements (drop-cap styling) are replaced with plain text nodes before serialization so they don't render as oversized floating letters.
+
+4. **Structured serialization** — A DOM walker produces clean, consistently structured output:
+   - `<p>` tags → `serializeParagraph()`: each paragraph becomes its own block; a `<p>` whose only child is `<strong>`/`<b>` is promoted to `<h3>`
+   - `<div>`, `<section>`, `<article>` → `serializeContainer()`: children are recursed so div-based paragraph structures (e.g. TC Weekly News) get proper breaks
+   - `<ul>`, `<ol>` → preserved with full `<li>` structure
+   - `<h1>`–`<h6>` → preserved as-is
+   - `<blockquote>` → preserved
+   - `<strong>`, `<em>`, `<a>`, `<code>`, `<mark>`, `<sup>`, `<sub>` → preserved as inline formatting
+
+This pipeline handles the four main source HTML patterns found in TCI news sites:
+
+| Source | HTML pattern | Handled by |
+| ------ | ----------- | ---------- |
+| Magnetic Media | Standard `<p>` tags | `serializeParagraph` |
+| NewslineTCI (Wix) | `<p>` with nested `<span>` | `serializeParagraph` + inline pass-through |
+| TC Weekly News | One `<div>` per paragraph | `serializeContainer` |
+| SunTCI | Plain text with `<br><br>` | Pre-processing → `<p>` conversion |
 
 ## Scrape After Date
 

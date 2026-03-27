@@ -9,6 +9,7 @@ Common issues and solutions for Mango News.
 **Symptoms:** Server crashes on startup
 
 **Solutions:**
+
 1. Check Node.js version: `node --version` (requires v18+)
 2. Install dependencies: `npm install` in backend directory
 3. Verify `.env` file exists with all required variables
@@ -20,6 +21,7 @@ Common issues and solutions for Mango News.
 **Symptoms:** `Error: connect ECONNREFUSED` or similar
 
 **Solutions:**
+
 1. Verify PostgreSQL is running
 2. Check `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` in `.env`
 3. Ensure database exists and user has permissions
@@ -30,6 +32,7 @@ Common issues and solutions for Mango News.
 **Symptoms:** No articles scraped, errors in logs
 
 **Solutions:**
+
 1. **Check CSS selectors** - Website may have changed structure
 2. **Test selectors** in browser console: `document.querySelector('selector')`
 3. **Verify source is active** - Check `is_active` flag
@@ -42,7 +45,8 @@ Common issues and solutions for Mango News.
 **Symptoms:** Summaries/tags/images/translations not generated
 
 **Solutions:**
-1. Verify API keys in `.env`: `GROQ_API_KEY`, `IDEOGRAM_API_KEY`
+
+1. Verify API keys in `.env`: `GROQ_API_KEY`, `FAL_KEY`
 2. Check source-level AI toggles are enabled
 3. For manual scrapes, check global AI toggles in Settings
 4. Review backend logs for API error responses
@@ -65,6 +69,7 @@ Common issues and solutions for Mango News.
 ### Page Not Displaying
 
 **Solutions:**
+
 1. Ensure frontend server is running: `npm run dev`
 2. Verify backend is running and accessible
 3. Check `PUBLIC_API_URL` in frontend `.env`
@@ -76,6 +81,7 @@ Common issues and solutions for Mango News.
 **Context:** Theme switcher uses a simple toggle button (not dropdown) for iOS Safari compatibility.
 
 **Solutions:**
+
 1. Clear localStorage: `localStorage.removeItem('theme')`
 2. Refresh page
 3. Check for JavaScript errors in console
@@ -85,6 +91,7 @@ Common issues and solutions for Mango News.
 **Symptoms:** "No token provided" on protected actions
 
 **Solutions:**
+
 1. Log in again - token may have expired
 2. Clear localStorage and cookies, then re-login
 3. Verify `jwtToken` exists in localStorage after login
@@ -95,6 +102,7 @@ Common issues and solutions for Mango News.
 **Symptoms:** News feed stops loading more articles
 
 **Solutions:**
+
 1. Check browser console for API errors
 2. Verify backend is responding to paginated requests
 3. Check network tab for failed requests
@@ -107,8 +115,10 @@ Common issues and solutions for Mango News.
 **Symptoms:** "relation does not exist" errors
 
 **Solutions:**
+
 1. Apply schema: `psql -U user -d mangonews -f db/schema.sql`
 2. Run migrations if upgrading:
+
    ```bash
    psql -U user -d mangonews -f db/migrations/add_translation_columns.sql
    psql -U user -d mangonews -f db/migrations/add_sunday_editions_table.sql
@@ -119,6 +129,7 @@ Common issues and solutions for Mango News.
 **Symptoms:** "Too many connections" errors, slow responses
 
 **Solutions:**
+
 1. The backend now uses a shared connection pool (`db.js`)
 2. Restart backend to release connections
 3. Check for connection leaks in custom code
@@ -131,12 +142,54 @@ Common issues and solutions for Mango News.
 **Symptoms:** Backend crashes periodically, especially during scraping
 
 **Solutions:**
+
 1. **Browser pool is shared** - Single Puppeteer instance for all scraping
 2. **DB pool is shared** - Single PostgreSQL connection pool
-3. **JSDOM cleaned up** - Windows closed after each sanitization
+3. **JSDOM cleaned up** - Single instance closed after each sanitization
 4. **Cron job locking** - Prevents overlapping scheduled tasks
 5. Set memory limit: `node --max-old-space-size=512 src/index.js`
 6. Monitor memory: Check logs for `[MEMORY]` entries
+
+## Content Formatting Issues
+
+### Article Text Has No Paragraph Breaks
+
+**Symptoms:** Article body renders as one wall of text
+
+**Cause:** The source site uses `<div>` per paragraph or `<br><br>` for spacing instead of `<p>` tags.
+
+**Solutions:**
+
+1. Verify the `os_content_selector` targets the correct container
+2. The sanitizer handles `<div>`-based paragraphs automatically via `serializeContainer`
+3. `<br><br>` sequences are automatically converted to paragraph breaks — check source HTML to confirm the pattern
+
+### Drop-Cap Letter Appears Oversized
+
+**Symptoms:** First letter of article floats large and detached from its word
+
+**Cause:** Either the source CMS injects a `<span class="dropcap">` or the CSS `p:first-of-type::first-letter` rule is applying unexpectedly.
+
+**Solutions:**
+
+1. The sanitizer strips drop-cap spans automatically (class-name and single-uppercase-letter heuristics)
+2. If the issue persists, check the raw HTML for non-standard drop-cap markup and add the class name to the `DROP_CAP_CLASS` regex in `scraper.js`
+
+### Image Captions Appearing in Article Text
+
+**Symptoms:** Caption text (e.g. "Photo: Airport in Providenciales") merged into body paragraphs
+
+**Cause:** `<figure>`/`<figcaption>` content leaking through DOMPurify's `KEEP_CONTENT: true` setting.
+
+**Solution:** The sanitizer pre-strips all `<figure>...</figure>` blocks before DOMPurify runs. If captions still leak, check if the source uses a non-standard caption element and add it to `SKIP_TAGS` in `scraper.js`.
+
+### Bold Headings Running Inline with Paragraphs
+
+**Symptoms:** Section headings appear mid-paragraph rather than on their own line
+
+**Cause:** CMS uses `<p><strong>Heading</strong></p>` instead of `<h>` tags.
+
+**Solution:** The sanitizer automatically promotes a `<p>` whose sole child is `<strong>`/`<b>` to `<h3>`. Standalone bold text (surrounded only by whitespace, length > 5 chars) is also split into its own block.
 
 ## Scraping-Specific Issues
 
@@ -145,6 +198,7 @@ Common issues and solutions for Mango News.
 **Problem:** Non-article pages being scraped
 
 **Solutions:**
+
 1. Make `article_link_template` more specific
 2. Add unwanted URL patterns to blacklist
 3. Use `exclude_patterns` to strip query parameters
@@ -154,6 +208,7 @@ Common issues and solutions for Mango News.
 **Problem:** Same article scraped multiple times
 
 **Solutions:**
+
 1. Add query parameters to `exclude_patterns` (e.g., `utm_source,fbclid`)
 2. Check for URL variations in database
 3. The scraper deduplicates by `source_url`
@@ -169,6 +224,7 @@ Common issues and solutions for Mango News.
 **Symptoms:** Backend service restarts frequently
 
 **Solutions:**
+
 1. Memory optimizations are built-in (see Memory Issues above)
 2. Check Render logs for specific errors
 3. Ensure all environment variables are set
@@ -177,6 +233,7 @@ Common issues and solutions for Mango News.
 ### Frontend Build Fails
 
 **Solutions:**
+
 1. Check for TypeScript errors
 2. Ensure all dependencies installed: `npm install`
 3. Clear `.astro` cache directory
