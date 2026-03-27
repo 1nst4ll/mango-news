@@ -20,10 +20,9 @@ const ogType = "website";
   <SettingsPage client:load />
 </BaseLayout>
 
-<script is:inline>
+<script define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL || 'http://localhost:3000' }}>
   // Client-side script to verify authentication via /api/me (cookie-based)
   document.addEventListener('astro:page-load', async () => {
-    const apiUrl = window.__PUBLIC_API_URL__ || 'http://localhost:3000';
     try {
       const res = await fetch(`${apiUrl}/api/me`, { credentials: 'include' });
       if (!res.ok) {

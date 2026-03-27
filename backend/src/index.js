@@ -179,13 +179,13 @@ app.post('/api/login', authLimiter, async (req, res) => {
       res.cookie('jwt', result.token, {
         httpOnly: true,
         secure: isProd,
-        sameSite: 'strict',
+        sameSite: isProd ? 'none' : 'strict',
         maxAge: accessMaxAge,
       });
       res.cookie('jwt_refresh', result.refreshToken, {
         httpOnly: true,
         secure: isProd,
-        sameSite: 'strict',
+        sameSite: isProd ? 'none' : 'strict',
         maxAge: refreshMaxAge,
         path: '/api/refresh',
       });
@@ -203,7 +203,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
 // User Logout
 app.post('/api/logout', (req, res) => {
   const isProd = process.env.NODE_ENV === 'production';
-  const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'strict' };
+  const cookieOpts = { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'strict' };
   res.clearCookie('jwt', cookieOpts);
   res.clearCookie('jwt_refresh', { ...cookieOpts, path: '/api/refresh' });
   res.json({ message: 'Logged out successfully.' });
@@ -233,7 +233,7 @@ app.post('/api/refresh', (req, res) => {
     res.cookie('jwt', newAccessToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'none' : 'strict',
       maxAge: 60 * 60 * 1000,
     });
     res.json({ message: 'Token refreshed.' });
