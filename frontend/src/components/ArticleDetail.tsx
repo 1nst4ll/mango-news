@@ -158,18 +158,23 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
         ))}
       </div>
 
-      {/* Full-screen lightbox — clicking the backdrop (dialog itself) closes it */}
+      {/* Full-screen lightbox */}
       <dialog
         ref={dialogRef}
         onClick={closeLightbox}
-        className="fixed inset-0 w-screen h-screen max-w-none max-h-none m-0 bg-black/85 border-0 p-0 overflow-hidden [&::backdrop]:hidden"
+        style={{
+          position: 'fixed', inset: 0, width: '100vw', height: '100vh',
+          maxWidth: '100vw', maxHeight: '100vh', margin: 0, padding: 0,
+          border: 'none', background: 'rgba(0,0,0,0.88)', overflow: 'hidden',
+        }}
       >
         {lightboxIndex !== null && (
           <>
-            {/* Close button */}
+            {/* Close */}
             <button
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+              style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -177,43 +182,45 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
 
             {/* Counter */}
             {images.length > 1 && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 text-white/70 text-sm tabular-nums">
+              <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}
+                className="text-white/70 text-sm tabular-nums">
                 {lightboxIndex + 1} / {images.length}
               </div>
             )}
 
-            {/* Centered image — stopPropagation only on the img itself */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <img
-                src={getFullResSrc(images[lightboxIndex].src)}
-                alt={images[lightboxIndex].alt}
-                onClick={e => e.stopPropagation()}
-                className="max-w-[88vw] object-contain pointer-events-auto cursor-default"
-                style={{ maxHeight: 'calc(100vh - 2rem)' }}
-              />
-            </div>
-
-            {/* Prev arrow — left side */}
+            {/* Prev arrow */}
             {images.length > 1 && (
               <button
                 onClick={goPrev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
+                className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
                 aria-label="Previous"
               >
                 <ChevronLeft className="h-6 w-6" />
               </button>
             )}
 
-            {/* Next arrow — right side */}
+            {/* Next arrow */}
             {images.length > 1 && (
               <button
                 onClick={goNext}
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
+                className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
                 aria-label="Next"
               >
                 <ChevronRight className="h-6 w-6" />
               </button>
             )}
+
+            {/* Image — centered, clicking image doesn't close */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <img
+                src={getFullResSrc(images[lightboxIndex].src)}
+                alt={images[lightboxIndex].alt}
+                onClick={e => e.stopPropagation()}
+                style={{ maxWidth: '88vw', maxHeight: '100vh', objectFit: 'contain', pointerEvents: 'auto', cursor: 'default' }}
+              />
+            </div>
           </>
         )}
       </dialog>
