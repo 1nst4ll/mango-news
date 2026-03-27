@@ -41,6 +41,14 @@ const BLOCK_ELEMENTS = new Set([
   'br', 'hr',
 ]);
 
+// Per-call base URL for resolving relative image URLs in serializeNode.
+// Set by sanitizeHtml before invoking the serializer and cleared after.
+let _currentBaseUrl = '';
+const _resolveUrl = (url) => {
+  if (!url || !_currentBaseUrl) return url;
+  try { return new URL(url, _currentBaseUrl).href; } catch { return url; }
+};
+
 // Shared whitespace normalizer used by all inline-flush helpers
 function normalizeInline(text) {
   return text
@@ -214,7 +222,7 @@ function serializeNode(node) {
     return { block: true, html: `<${tag}>${items.join('')}</${tag}>` };
   }
 
-  // Images → pass through as block with best-resolution src from srcset
+  // Images → pass through as block with best-resolution absolute src.
   if (tag === 'img') {
     // Pick best URL from srcset / data-srcset (highest width descriptor),
     // falling back to src / data-src for lazy-loaded images (e.g. Wix).
@@ -231,11 +239,15 @@ function serializeNode(node) {
     // Filter out data URIs and blob URLs (lazy-load placeholders)
     const isPlaceholder = (url) => !url || url.startsWith('data:') || url.startsWith('blob:');
 
+    // Resolve all URLs via _resolveUrl (uses siteOrigin) so relative paths like
+    // "q_90/abc~mv2.jpg" become "https://site.com/q_90/abc~mv2.jpg".
+    const rawSrc = node.getAttribute('src') || '';
+
     const bestSrc =
-      pickBestFromSrcset(node.getAttribute('srcset')) ||
-      pickBestFromSrcset(node.getAttribute('data-srcset')) ||
-      (!isPlaceholder(node.getAttribute('src')) ? node.getAttribute('src') : '') ||
-      node.getAttribute('data-src') ||
+      _resolveUrl(pickBestFromSrcset(node.getAttribute('srcset'))) ||
+      _resolveUrl(pickBestFromSrcset(node.getAttribute('data-srcset'))) ||
+      (!isPlaceholder(rawSrc) ? _resolveUrl(rawSrc) : '') ||
+      _resolveUrl(node.getAttribute('data-src')) ||
       '';
 
     if (!bestSrc || isPlaceholder(bestSrc)) return '';
@@ -319,10 +331,22 @@ function markdownToHtml(markdownString) {
  * Accepts either raw HTML (from opensourceScraper) or markdown (from Firecrawl).
  * @param {string} input - Raw HTML or markdown string
  * @param {boolean} isMarkdown - True if input is markdown (Firecrawl), false for HTML
+ * @param {string} [baseUrl] - Article URL used to resolve relative image URLs
  */
-const sanitizeHtml = (input, isMarkdown = false) => {
-  // Single JSDOM instance serves both DOMPurify and content parsing
-  const contentDom = new JSDOM('');
+const sanitizeHtml = (input, isMarkdown = false, baseUrl = '') => {
+  // Use site origin (scheme + host) for resolving relative image URLs.
+  // Wix image paths like "q_90/abc~mv2.jpg" are relative to the site root,
+  // not the article page path, so we resolve against the origin only.
+  let siteOrigin = '';
+  if (baseUrl) {
+    try { siteOrigin = new URL(baseUrl).origin; } catch { siteOrigin = baseUrl; }
+  }
+  _currentBaseUrl = siteOrigin;
+
+  // Single JSDOM instance serves both DOMPurify and content parsing.
+  // Providing the article URL as the document base lets JSDOM resolve
+  // relative src attributes via node.src (IDL property).
+  const contentDom = new JSDOM('', baseUrl ? { url: baseUrl } : {});
   const DOMPurify = createDOMPurify(contentDom.window);
 
   // Step 1: Convert markdown to HTML if needed
@@ -520,8 +544,8 @@ const processScrapedData = async (data) => { // Accept a single data object
 
       const title = metadata?.title || 'No Title'; // Get title from metadata
       // Apply the new sanitizeHtml function to the content
-      const raw_content = sanitizeHtml(content, isMarkdown).replace(/Share this:.*$/i, '').trim();
       const source_url = metadata?.url || source.url; // Use metadata URL if available, otherwise source URL
+      const raw_content = sanitizeHtml(content, isMarkdown, source_url).replace(/Share this:.*$/i, '').trim();
       // Attempt to extract publication date from metadata or use current date
       let publication_date = metadata?.publication_date || metadata?.published_date;
       const now = new Date();
