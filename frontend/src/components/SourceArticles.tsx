@@ -57,8 +57,12 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Pagination state for server-side pagination
+  const STORAGE_KEY = 'source-articles-table';
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(5); // Default page size
+  const [pageSize, setPageSize] = useState(() => {
+    try { const s = localStorage.getItem(`${STORAGE_KEY}:pageSize`); if (s) return Number(s); } catch {}
+    return 10;
+  });
   const [pageCount, setPageCount] = useState(0); // Total number of pages
 
   useEffect(() => {
@@ -499,6 +503,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               pageCount={pageCount}
               pageIndex={pageIndex}
               pageSize={pageSize}
+              storageKey={STORAGE_KEY}
               onPaginationChange={({ pageIndex, pageSize }) => {
                 setPageIndex(pageIndex);
                 setPageSize(pageSize);

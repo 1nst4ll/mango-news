@@ -41,6 +41,13 @@ import {
   } from "@/components/ui/select"
 import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from "@radix-ui/react-icons"
 
+const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
+  ai_summary: false,
+  ai_image_path: false,
+  source_url: false,
+  select: false,
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
@@ -48,6 +55,7 @@ interface DataTableProps<TData, TValue> {
   pageIndex: number;
   pageSize: number;
   onPaginationChange: (pagination: { pageIndex: number; pageSize: number }) => void;
+  storageKey?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -57,20 +65,42 @@ export function DataTable<TData, TValue>({
   pageIndex: controlledPageIndex,
   pageSize: controlledPageSize,
   onPaginationChange,
+  storageKey,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  )
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({
-        ai_summary: false,
-        ai_image_path: false,
-        source_url: false,
-        select: false,
+
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    if (storageKey) {
+      try {
+        const saved = localStorage.getItem(`${storageKey}:cols`)
+        if (saved) return JSON.parse(saved)
+      } catch {}
+    }
+    return DEFAULT_COLUMN_VISIBILITY
+  })
+
+  // Persist column visibility changes
+  const handleColumnVisibilityChange = React.useCallback((updater: React.SetStateAction<VisibilityState>) => {
+    setColumnVisibility(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      if (storageKey) {
+        try { localStorage.setItem(`${storageKey}:cols`, JSON.stringify(next)) } catch {}
+      }
+      return next
     })
-    const [rowSelection, setRowSelection] = React.useState({})
+  }, [storageKey])
+
+  // Persist pageSize changes — propagate up and save
+  const handlePaginationChange = React.useCallback((pagination: { pageIndex: number; pageSize: number }) => {
+    if (storageKey && pagination.pageSize !== controlledPageSize) {
+      try { localStorage.setItem(`${storageKey}:pageSize`, String(pagination.pageSize)) } catch {}
+    }
+    onPaginationChange(pagination)
+  }, [storageKey, controlledPageSize, onPaginationChange])
+
+  const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data,
@@ -82,11 +112,11 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
     onRowSelectionChange: setRowSelection,
     getFacetedRowModel: getFacetedRowModel(),
-    manualPagination: true, // Enable manual pagination
-    pageCount: controlledPageCount, // Pass controlled page count
+    manualPagination: true,
+    pageCount: controlledPageCount,
     state: {
       sorting,
       columnFilters,
@@ -102,7 +132,7 @@ export function DataTable<TData, TValue>({
       const newPagination = typeof updater === 'function'
         ? updater({ pageIndex: controlledPageIndex, pageSize: controlledPageSize })
         : updater;
-      onPaginationChange(newPagination);
+      handlePaginationChange(newPagination);
     },
   })
 
@@ -210,7 +240,7 @@ export function DataTable<TData, TValue>({
                     <SelectValue placeholder={table.getState().pagination.pageSize} />
                     </SelectTrigger>
                     <SelectContent side="top">
-                    {[5, 10, 15, 20, 50].map((pageSize) => (
+                    {[10, 20, 50, 100].map((pageSize) => (
                         <SelectItem key={pageSize} value={`${pageSize}`}>
                         {pageSize}
                         </SelectItem>
