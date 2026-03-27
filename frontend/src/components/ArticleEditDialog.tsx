@@ -60,6 +60,7 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
   const [error, setError] = useState<string | null>(null);
   const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('en');
+  const [rawMode, setRawMode] = useState<Record<string, boolean>>({ en: false, es: false, ht: false });
 
   useEffect(() => {
     if (typeof window !== 'undefined') setJwtToken(localStorage.getItem('jwtToken'));
@@ -127,7 +128,7 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] w-[1200px] max-h-[92vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[80vw] w-[80vw] max-h-[96vh] h-[96vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-5 pb-3 border-b">
           <DialogTitle>{articleData ? `Edit: ${articleData.title}` : 'Edit Article'}</DialogTitle>
         </DialogHeader>
@@ -178,96 +179,72 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
                   <TabsTrigger value="ht">Haitian Creole</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="en" className="flex flex-col gap-4 mt-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Content (English)</Label>
-                      <Suspense fallback={<div className="h-48 border rounded animate-pulse bg-muted" />}>
-                        <HtmlEditor
-                          value={articleData.raw_content || ''}
-                          onChange={v => set('raw_content', v)}
-                          minHeight={300}
-                        />
-                      </Suspense>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Preview</Label>
-                      <div
-                        className="border rounded-md px-4 py-3 overflow-y-auto prose prose-sm max-w-none"
-                        style={{ minHeight: 300 }}
-                        dangerouslySetInnerHTML={{ __html: articleData.raw_content || '' }}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
+                {([
+                  { lang: 'en', label: 'English',        contentKey: 'raw_content',    titleKey: null,       summaryKey: null,       topicsKey: null },
+                  { lang: 'es', label: 'Spanish',        contentKey: 'raw_content_es', titleKey: 'title_es', summaryKey: 'summary_es', topicsKey: 'topics_es' },
+                  { lang: 'ht', label: 'Haitian Creole', contentKey: 'raw_content_ht', titleKey: 'title_ht', summaryKey: 'summary_ht', topicsKey: 'topics_ht' },
+                ] as const).map(({ lang, label, contentKey, titleKey, summaryKey, topicsKey }) => (
+                  <TabsContent key={lang} value={lang} className="flex flex-col gap-4 mt-4">
+                    {titleKey && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field label={`Title (${label})`}>
+                          <Input name={titleKey} value={(articleData as any)[titleKey] || ''} onChange={handleInputChange} />
+                        </Field>
+                        <Field label={`Topics (${label}, comma-separated)`}>
+                          <Input value={(articleData as any)[topicsKey!]?.join(', ') || ''}
+                            onChange={e => set(topicsKey! as keyof Article, e.target.value.split(',').map((t: string) => t.trim()).filter(Boolean))} />
+                        </Field>
+                        <div className="sm:col-span-2">
+                          <Field label={`Summary (${label})`}>
+                            <Textarea name={summaryKey!} value={(articleData as any)[summaryKey!] || ''} onChange={handleInputChange} className="min-h-[60px]" />
+                          </Field>
+                        </div>
+                      </div>
+                    )}
 
-                <TabsContent value="es" className="flex flex-col gap-4 mt-4">
-                  <Field label="Title (Spanish)">
-                    <Input name="title_es" value={articleData.title_es || ''} onChange={handleInputChange} />
-                  </Field>
-                  <Field label="Summary (Spanish)">
-                    <Textarea name="summary_es" value={articleData.summary_es || ''} onChange={handleInputChange} className="min-h-[80px]" />
-                  </Field>
-                  <Field label="Topics (Spanish, comma-separated)">
-                    <Input name="topics_es"
-                      value={articleData.topics_es?.join(', ') || ''}
-                      onChange={e => set('topics_es', e.target.value.split(',').map(t => t.trim()).filter(Boolean))} />
-                  </Field>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Editor + Preview */}
                     <div className="flex flex-col gap-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Content (Spanish)</Label>
-                      <Suspense fallback={<div className="h-48 border rounded animate-pulse bg-muted" />}>
-                        <HtmlEditor
-                          value={articleData.raw_content_es || ''}
-                          onChange={v => set('raw_content_es', v)}
-                          minHeight={300}
-                        />
-                      </Suspense>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Content ({label})</Label>
+                        <button
+                          type="button"
+                          onClick={() => setRawMode(prev => ({ ...prev, [lang]: !prev[lang] }))}
+                          className="text-xs px-2 py-1 rounded border border-border hover:bg-accent transition-colors font-mono"
+                        >
+                          {rawMode[lang] ? 'WYSIWYG' : '&lt;/&gt; HTML'}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                          {rawMode[lang] ? (
+                            <Textarea
+                              value={(articleData as any)[contentKey] || ''}
+                              onChange={e => set(contentKey as keyof Article, e.target.value)}
+                              className="font-mono text-xs min-h-[400px] resize-y"
+                              spellCheck={false}
+                            />
+                          ) : (
+                            <Suspense fallback={<div className="h-48 border rounded animate-pulse bg-muted" />}>
+                              <HtmlEditor
+                                value={(articleData as any)[contentKey] || ''}
+                                onChange={v => set(contentKey as keyof Article, v)}
+                                minHeight={400}
+                              />
+                            </Suspense>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Preview</Label>
+                          <div
+                            className="border rounded-md px-4 py-3 overflow-y-auto prose prose-sm max-w-none"
+                            style={{ minHeight: 400 }}
+                            dangerouslySetInnerHTML={{ __html: (articleData as any)[contentKey] || '' }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Preview</Label>
-                      <div
-                        className="border rounded-md px-4 py-3 overflow-y-auto prose prose-sm max-w-none"
-                        style={{ minHeight: 300 }}
-                        dangerouslySetInnerHTML={{ __html: articleData.raw_content_es || '' }}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="ht" className="flex flex-col gap-4 mt-4">
-                  <Field label="Title (Haitian Creole)">
-                    <Input name="title_ht" value={articleData.title_ht || ''} onChange={handleInputChange} />
-                  </Field>
-                  <Field label="Summary (Haitian Creole)">
-                    <Textarea name="summary_ht" value={articleData.summary_ht || ''} onChange={handleInputChange} className="min-h-[80px]" />
-                  </Field>
-                  <Field label="Topics (Haitian Creole, comma-separated)">
-                    <Input name="topics_ht"
-                      value={articleData.topics_ht?.join(', ') || ''}
-                      onChange={e => set('topics_ht', e.target.value.split(',').map(t => t.trim()).filter(Boolean))} />
-                  </Field>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Content (Haitian Creole)</Label>
-                      <Suspense fallback={<div className="h-48 border rounded animate-pulse bg-muted" />}>
-                        <HtmlEditor
-                          value={articleData.raw_content_ht || ''}
-                          onChange={v => set('raw_content_ht', v)}
-                          minHeight={300}
-                        />
-                      </Suspense>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Preview</Label>
-                      <div
-                        className="border rounded-md px-4 py-3 overflow-y-auto prose prose-sm max-w-none"
-                        style={{ minHeight: 300 }}
-                        dangerouslySetInnerHTML={{ __html: articleData.raw_content_ht || '' }}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
+                ))}
               </Tabs>
 
             </div>
