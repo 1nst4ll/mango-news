@@ -35,6 +35,10 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
       console.log(`[opensourceScraper] Successfully navigated to ${url}`);
+      // Scroll to trigger lazy-load JS (e.g. Wix gallery images) then wait briefly
+      // for image src attributes to be populated before extracting HTML.
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (navError) {
       console.error(`[opensourceScraper] Navigation failed for ${url}:`, navError.message);
       await closePage(page); // Clean up page before retry
