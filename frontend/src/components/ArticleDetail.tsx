@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from "./ui/button"; // Import Button component
 import { Badge } from "./ui/badge"; // Import Badge component
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"; // Import Card components
@@ -10,7 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./ui/breadcrumb"; // Import Breadcrumb components
-import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react'; // Import icons
+import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react'; // Import icons
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
@@ -43,6 +43,160 @@ interface Article {
 
 interface ArticleDetailProps {
   id: string;
+}
+
+interface GalleryImage {
+  src: string;
+  alt: string;
+}
+
+/** Extract images from a gallery div string: <img src="..." alt="..."> */
+function parseGalleryImages(galleryHtml: string): GalleryImage[] {
+  const imgs: GalleryImage[] = [];
+  const re = /<img\s[^>]*src="([^"]*)"[^>]*(?:alt="([^"]*)")?[^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(galleryHtml)) !== null) {
+    imgs.push({ src: m[1], alt: m[2] || '' });
+  }
+  return imgs;
+}
+
+/**
+ * Split article HTML into segments: plain HTML strings and gallery arrays.
+ * Gallery divs (<div data-gallery="true">...</div>) are extracted and returned
+ * as GalleryImage[] so they can be rendered as an interactive grid.
+ */
+function splitContentSegments(html: string): Array<string | GalleryImage[]> {
+  const segments: Array<string | GalleryImage[]> = [];
+  const galleryRe = /<div data-gallery="true">([\s\S]*?)<\/div>/gi;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = galleryRe.exec(html)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push(html.slice(lastIndex, match.index));
+    }
+    const images = parseGalleryImages(match[1]);
+    if (images.length > 0) segments.push(images);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < html.length) {
+    segments.push(html.slice(lastIndex));
+  }
+  return segments;
+}
+
+/** Lightbox + thumbnail gallery component */
+function ImageGallery({ images }: { images: GalleryImage[] }) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    dialogRef.current?.showModal();
+  };
+
+  const closeLightbox = () => {
+    setLightboxIndex(null);
+    dialogRef.current?.close();
+  };
+
+  const goNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLightboxIndex(i => (i !== null ? (i + 1) % images.length : 0));
+  };
+
+  const goPrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLightboxIndex(i => (i !== null ? (i - 1 + images.length) % images.length : 0));
+  };
+
+  // Close on Escape and backdrop click
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') setLightboxIndex(i => (i !== null ? (i + 1) % images.length : 0));
+      if (e.key === 'ArrowLeft') setLightboxIndex(i => (i !== null ? (i - 1 + images.length) % images.length : 0));
+    };
+    const handleClick = (e: MouseEvent) => {
+      if (e.target === dialog) closeLightbox();
+    };
+    dialog.addEventListener('keydown', handleKeyDown);
+    dialog.addEventListener('click', handleClick);
+    return () => {
+      dialog.removeEventListener('keydown', handleKeyDown);
+      dialog.removeEventListener('click', handleClick);
+    };
+  }, [images.length]);
+
+  return (
+    <div className="not-prose my-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {images.map((img, i) => (
+          <button
+            key={i}
+            onClick={() => openLightbox(i)}
+            className="relative aspect-square overflow-hidden rounded-md bg-muted focus:outline-none focus:ring-2 focus:ring-primary group"
+            aria-label={img.alt || `Image ${i + 1}`}
+          >
+            <img
+              src={img.src}
+              alt={img.alt}
+              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+              <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <dialog
+        ref={dialogRef}
+        className="fixed inset-0 m-auto max-w-[95vw] max-h-[95vh] w-auto h-auto bg-transparent border-0 p-0 [&::backdrop]:bg-black/80"
+        style={{ position: 'fixed' }}
+      >
+        <div className="relative flex flex-col items-center justify-center">
+          {lightboxIndex !== null && (
+            <>
+              <button
+                onClick={closeLightbox}
+                className="absolute top-0 right-0 z-10 m-2 p-1 rounded-full bg-black/60 text-white hover:bg-black/80"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <img
+                src={images[lightboxIndex].src}
+                alt={images[lightboxIndex].alt}
+                className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              />
+              {images.length > 1 && (
+                <div className="flex items-center gap-4 mt-3">
+                  <button
+                    onClick={goPrev}
+                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/80"
+                    aria-label="Previous"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <span className="text-white text-sm">{lightboxIndex + 1} / {images.length}</span>
+                  <button
+                    onClick={goNext}
+                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/80"
+                    aria-label="Next"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </dialog>
+    </div>
+  );
 }
 
 const ArticleDetail = ({ id }: ArticleDetailProps) => {
@@ -307,7 +461,13 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             ))}
           </div>
         </div>
-        <div className="article-content" dangerouslySetInnerHTML={{ __html: displayContent }} />
+        <div className="article-content">
+          {splitContentSegments(displayContent).map((segment, i) =>
+            Array.isArray(segment)
+              ? <ImageGallery key={i} images={segment} />
+              : <div key={i} dangerouslySetInnerHTML={{ __html: segment }} />
+          )}
+        </div>
         <div className="mt-8 pt-4 border-t border-gray-300 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             size="sm"

@@ -23,7 +23,7 @@ const { pool } = require('./db');
 const { getBrowserStatus, closeBrowser } = require('./browserPool');
 
 // Tags that should be completely removed along with their content
-const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'nav', 'form', 'figure', 'figcaption']);
+const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'iframe', 'nav', 'form', 'figure', 'figcaption', 'button']);
 
 // Inline formatting tags to preserve in the final HTML output
 const INLINE_KEEP = new Set(['strong', 'b', 'em', 'i', 'a', 'mark', 'code', 'sup', 'sub']);
@@ -214,6 +214,29 @@ function serializeNode(node) {
     return { block: true, html: `<${tag}>${items.join('')}</${tag}>` };
   }
 
+  // Images → pass through as block with best-resolution src from srcset
+  if (tag === 'img') {
+    // Pick the highest-resolution URL from srcset if available, otherwise use src
+    let bestSrc = node.getAttribute('src') || '';
+    const srcset = node.getAttribute('srcset');
+    if (srcset) {
+      // srcset format: "url1 100w, url2 200w, ..." — pick the entry with the largest width
+      const entries = srcset.split(',').map(s => {
+        const parts = s.trim().split(/\s+/);
+        const url = parts[0];
+        const width = parts[1] ? parseInt(parts[1], 10) : 0;
+        return { url, width };
+      }).filter(e => e.url);
+      if (entries.length > 0) {
+        const best = entries.reduce((a, b) => b.width > a.width ? b : a);
+        if (best.url) bestSrc = best.url;
+      }
+    }
+    const alt = node.getAttribute('alt') || '';
+    if (!bestSrc) return '';
+    return { block: true, html: `<img src="${bestSrc}" alt="${alt}">` };
+  }
+
   // Inline formatting tags → wrap content and return as inline string
   if (INLINE_KEEP.has(tag)) {
     const inner = serializeChildren(node);
@@ -300,10 +323,16 @@ const sanitizeHtml = (input, isMarkdown = false) => {
 
     // Step 2: Pre-process raw HTML before sanitizing.
     // a) Remove figure/figcaption entirely (KEEP_CONTENT would leak caption text).
-    // b) Convert <br><br> (and variants) into </p><p> so that sources like SunTCI
+    // b) Remove Wix blurred preload images (data-hook="gallery-item-image-img-preload").
+    // c) Remove <style> blocks entirely.
+    // d) Remove <button> elements entirely.
+    // e) Convert <br><br> (and variants) into </p><p> so that sources like SunTCI
     //    that use double line-breaks as paragraph separators get proper paragraphs.
     const stripped = rawHtml
       .replace(/<figure[\s\S]*?<\/figure>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<button[\s\S]*?<\/button>/gi, '')
+      .replace(/<img[^>]*data-hook="gallery-item-image-img-preload"[^>]*\/?>/gi, '')
       .replace(/(<br\s*\/?>[\s\u00a0]*){2,}/gi, '</p><p>');
     const cleanHtml = DOMPurify.sanitize(stripped, {
       ALLOWED_TAGS: [
@@ -311,8 +340,9 @@ const sanitizeHtml = (input, isMarkdown = false) => {
         'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
         'strong', 'b', 'em', 'i', 'a', 'mark', 'sup', 'sub',
         'div', 'span', 'section', 'article',
+        'img',
       ],
-      ALLOWED_ATTR: ['href', 'src', 'rel'],
+      ALLOWED_ATTR: ['href', 'src', 'srcset', 'rel', 'alt', 'data-idx'],
       KEEP_CONTENT: true,
     });
 
@@ -349,7 +379,7 @@ const sanitizeHtml = (input, isMarkdown = false) => {
         const html = normalizeInline(serialized.html);
         if (!html) return;
         // Already-wrapped block tags emit as-is; bare content gets a <p>
-        if (/^<(h[1-6]|ul|ol|blockquote|pre|p)[\s>]/i.test(html)) {
+        if (/^<(h[1-6]|ul|ol|blockquote|pre|p|img)[\s>]/i.test(html)) {
           blocks.push(html);
         } else {
           blocks.push(`<p>${html}</p>`);
@@ -380,7 +410,32 @@ const sanitizeHtml = (input, isMarkdown = false) => {
       }
       flushInline();
 
-      return blocks.join('\n');
+      // Step 5: Group consecutive <img> blocks into a gallery div.
+      // When multiple images appear in a row (Wix article galleries), wrap them
+      // in a single <div data-gallery="true"> so the frontend can render them
+      // as a thumbnail grid with lightbox instead of inline block images.
+      const grouped = [];
+      let imgRun = [];
+      const flushImgRun = () => {
+        if (imgRun.length === 0) return;
+        if (imgRun.length === 1) {
+          grouped.push(imgRun[0]);
+        } else {
+          grouped.push(`<div data-gallery="true">${imgRun.join('')}</div>`);
+        }
+        imgRun = [];
+      };
+      for (const block of blocks) {
+        if (/^<img[\s>]/i.test(block)) {
+          imgRun.push(block);
+        } else {
+          flushImgRun();
+          grouped.push(block);
+        }
+      }
+      flushImgRun();
+
+      return grouped.join('\n');
     } finally {
       contentDom.window.close();
     }

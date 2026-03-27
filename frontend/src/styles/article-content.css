@@ -14,8 +14,9 @@
     text-indent: 2em; /* Add first line indent to all paragraphs */
   }
 
-  /* First paragraph styling */
-  > p:first-of-type {
+  /* First paragraph styling — direct child p or first segment div > first p */
+  > p:first-of-type,
+  > div:first-child > p:first-of-type {
     font-size: 1.1em;
     font-weight: 500;
     line-height: 1.6;
@@ -23,8 +24,9 @@
     text-indent: 0;
   }
 
-  /* Drop cap for the first letter of the article — direct child only */
-  > p:first-of-type::first-letter {
+  /* Drop cap for the first letter of the article — direct child or first segment div */
+  > p:first-of-type::first-letter,
+  > div:first-child > p:first-of-type::first-letter {
     float: left;
     font-family: 'Playfair Display', serif;
     font-size: 5em;
