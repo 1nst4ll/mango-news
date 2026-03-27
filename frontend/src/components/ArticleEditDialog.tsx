@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { apiFetch } from '../lib/api';
 import {
   Dialog,
   DialogContent,
@@ -58,13 +59,8 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('en');
   const [rawMode, setRawMode] = useState<Record<string, boolean>>({ en: false, es: false, ht: false });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') setJwtToken(localStorage.getItem('jwtToken'));
-  }, []);
 
   useEffect(() => {
     if (isOpen && articleId) {
@@ -72,10 +68,7 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
         setLoading(true);
         setError(null);
         try {
-          const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-          const headers: HeadersInit = { 'Content-Type': 'application/json' };
-          if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`;
-          const response = await fetch(`${apiUrl}/api/articles/${articleId}`, { headers });
+          const response = await apiFetch(`/api/articles/${articleId}`);
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const data: Article = await response.json();
           setArticleData(data);
@@ -91,7 +84,7 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
     } else {
       setArticleData(null);
     }
-  }, [isOpen, articleId, jwtToken]);
+  }, [isOpen, articleId]);
 
   const set = (field: keyof Article, value: any) =>
     setArticleData(prev => prev ? { ...prev, [field]: value } : null);
@@ -104,11 +97,10 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
     setSaving(true);
     setError(null);
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`;
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}`, {
-        method: 'PUT', headers, body: JSON.stringify(articleData),
+      const response = await apiFetch(`/api/articles/${articleId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(articleData),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to update article');

@@ -17,11 +17,17 @@
   export function LoginButton({ isLoggedIn, setIsLoggedIn }: LoginButtonProps) {
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
 
-    const handleLogout = () => {
-      // Remove the token from localStorage
-      localStorage.removeItem('jwtToken');
-      setIsLoggedIn(false); // Update login state
-      // Optional: Redirect to homepage or update UI state
+    const handleLogout = async () => {
+      const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api';
+      try {
+        await fetch(`${backendApiUrl}/logout`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+      } catch (err) {
+        console.error('Logout request failed:', err);
+      }
+      setIsLoggedIn(false);
       window.location.href = '/';
     };
 

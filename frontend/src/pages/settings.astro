@@ -21,11 +21,15 @@ const ogType = "website";
 </BaseLayout>
 
 <script is:inline>
-  // Client-side script to check for authentication token
-  document.addEventListener('astro:page-load', () => {
-    const token = localStorage.getItem('jwtToken');
-    if (!token) {
-      // Redirect to homepage if not logged in
+  // Client-side script to verify authentication via /api/me (cookie-based)
+  document.addEventListener('astro:page-load', async () => {
+    const apiUrl = window.__PUBLIC_API_URL__ || 'http://localhost:3000';
+    try {
+      const res = await fetch(`${apiUrl}/api/me`, { credentials: 'include' });
+      if (!res.ok) {
+        window.location.href = '/';
+      }
+    } catch {
       window.location.href = '/';
     }
   });
