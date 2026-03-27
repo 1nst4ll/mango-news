@@ -89,7 +89,7 @@ export type Article = {
       },
     cell: ({ row }) => {
         const article = row.original
-        return <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="min-w-[200px] break-words whitespace-pre-wrap block hover:underline text-blue-500">{article.title}</a>
+        return <a href={`/article/${article.id}`} target="_blank" rel="noopener noreferrer" className="min-w-[200px] break-words whitespace-pre-wrap block hover:underline text-blue-500">{article.title}</a>
     }
   },
   {
