@@ -149,6 +149,7 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
               alt={img.alt}
               width={323}
               height={323}
+              data-gallery-thumb
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
