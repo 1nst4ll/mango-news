@@ -38,7 +38,6 @@ const BLOCK_ELEMENTS = new Set([
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li', 'dl', 'dt', 'dd',
   'blockquote', 'pre',
-  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
   'br', 'hr',
 ]);
 
@@ -312,7 +311,6 @@ const sanitizeHtml = (input, isMarkdown = false) => {
         'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
         'strong', 'b', 'em', 'i', 'a', 'mark', 'sup', 'sub',
         'div', 'span', 'section', 'article',
-        'table', 'thead', 'tbody', 'tr', 'th', 'td',
       ],
       ALLOWED_ATTR: ['href', 'src', 'rel'],
       KEEP_CONTENT: true,
