@@ -41,9 +41,10 @@ const BLOCK_ELEMENTS = new Set([
   'br', 'hr',
 ]);
 
-// Per-call base URL for resolving relative image URLs in serializeNode.
-// Set by sanitizeHtml before invoking the serializer and cleared after.
-let _currentBaseUrl = '';
+// Per-call state for the serializer — set by sanitizeHtml before each invocation.
+let _currentBaseUrl = '';  // site origin for resolving relative image URLs
+let _imgIndex = [];        // [{src,srcset,alt,dataSrc,dataSrcset}] — raw strings before JSDOM
+
 const _resolveUrl = (url) => {
   if (!url || !_currentBaseUrl) return url;
   try { return new URL(url, _currentBaseUrl).href; } catch { return url; }
@@ -222,10 +223,9 @@ function serializeNode(node) {
     return { block: true, html: `<${tag}>${items.join('')}</${tag}>` };
   }
 
-  // Images → pass through as block with best-resolution absolute src.
+  // Images → look up original URL strings from imgIndex by data-imgidx to avoid
+  // JSDOM truncating long CDN URLs (e.g. Wix paths ending in /HASH~mv2.jpg).
   if (tag === 'img') {
-    // Pick best URL from srcset / data-srcset (highest width descriptor),
-    // falling back to src / data-src for lazy-loaded images (e.g. Wix).
     const pickBestFromSrcset = (srcset) => {
       if (!srcset) return '';
       const entries = srcset.split(',').map(s => {
@@ -235,24 +235,25 @@ function serializeNode(node) {
       if (entries.length === 0) return '';
       return entries.reduce((a, b) => b.width > a.width ? b : a).url;
     };
-
-    // Filter out data URIs and blob URLs (lazy-load placeholders)
     const isPlaceholder = (url) => !url || url.startsWith('data:') || url.startsWith('blob:');
 
-    // Resolve all URLs via _resolveUrl (uses siteOrigin) so relative paths like
-    // "q_90/abc~mv2.jpg" become "https://site.com/q_90/abc~mv2.jpg".
-    const rawSrc = node.getAttribute('src') || '';
+    // Retrieve original URL strings from the pre-built index (keyed by data-imgidx)
+    const idxAttr = node.getAttribute('data-imgidx');
+    const entry = (idxAttr !== null && _imgIndex[parseInt(idxAttr, 10)]) || null;
+    const rawSrc    = entry ? entry.src    : (node.getAttribute('src')    || '');
+    const rawSrcset = entry ? entry.srcset : (node.getAttribute('srcset') || '');
+    const rawDataSrc    = entry ? entry.dataSrc    : '';
+    const rawDataSrcset = entry ? entry.dataSrcset : '';
+    const alt = (entry ? entry.alt : null) || node.getAttribute('alt') || '';
 
     const bestSrc =
-      _resolveUrl(pickBestFromSrcset(node.getAttribute('srcset'))) ||
-      _resolveUrl(pickBestFromSrcset(node.getAttribute('data-srcset'))) ||
+      _resolveUrl(pickBestFromSrcset(rawSrcset)) ||
+      _resolveUrl(pickBestFromSrcset(rawDataSrcset)) ||
       (!isPlaceholder(rawSrc) ? _resolveUrl(rawSrc) : '') ||
-      _resolveUrl(node.getAttribute('data-src')) ||
+      _resolveUrl(rawDataSrc) ||
       '';
 
     if (!bestSrc || isPlaceholder(bestSrc)) return '';
-
-    const alt = node.getAttribute('alt') || node.getAttribute('data-alt') || '';
     return { block: true, html: `<img src="${bestSrc}" alt="${alt}">` };
   }
 
@@ -342,6 +343,7 @@ const sanitizeHtml = (input, isMarkdown = false, baseUrl = '') => {
     try { siteOrigin = new URL(baseUrl).origin; } catch { siteOrigin = baseUrl; }
   }
   _currentBaseUrl = siteOrigin;
+  _imgIndex = [];
 
   // Single JSDOM instance serves both DOMPurify and content parsing.
   // Providing the article URL as the document base lets JSDOM resolve
@@ -359,13 +361,35 @@ const sanitizeHtml = (input, isMarkdown = false, baseUrl = '') => {
     // d) Remove <button> elements entirely.
     // e) Convert <br><br> (and variants) into </p><p> so that sources like SunTCI
     //    that use double line-breaks as paragraph separators get proper paragraphs.
+    // Pre-process: strip unwanted elements.
+    // Also build an index of gallery image URLs from the raw HTML string *before*
+    // DOMPurify or JSDOM can mangle them. JSDOM truncates long Wix CDN URLs that
+    // contain path segments resembling filenames (e.g. ".../q_90/HASH~mv2.jpg").
+    // We extract src/srcset as raw strings here and look them up by index later.
+    const imgIndex = []; // [{src, srcset, alt}, ...]
+
     const stripped = rawHtml
       .replace(/<figure[\s\S]*?<\/figure>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<button[\s\S]*?<\/button>/gi, '')
       .replace(/<img[^>]*data-hook="gallery-item-image-img-preload"[^>]*\/?>/gi, '')
       .replace(/<img[^>]*class="[^"]*blur[^"]*"[^>]*\/?>/gi, '')
-      .replace(/(<br\s*\/?>[\s\u00a0]*){2,}/gi, '</p><p>');
+      .replace(/(<br\s*\/?>[\s\u00a0]*){2,}/gi, '</p><p>')
+      // Replace each <img> with a placeholder carrying only its index
+      .replace(/<img(\s[^>]*?)>/gi, (match, attrs) => {
+        const src    = attrs.match(/\bsrc="([^"]*)"/i)?.[1]    || '';
+        const srcset = attrs.match(/\bsrcset="([^"]*)"/i)?.[1] || '';
+        const alt    = attrs.match(/\balt="([^"]*)"/i)?.[1]    || '';
+        const dataSrc    = attrs.match(/\bdata-src="([^"]*)"/i)?.[1]    || '';
+        const dataSrcset = attrs.match(/\bdata-srcset="([^"]*)"/i)?.[1] || '';
+        const idx = imgIndex.length;
+        imgIndex.push({ src, srcset, alt, dataSrc, dataSrcset });
+        return `<img data-imgidx="${idx}">`;
+      });
+
+    // Expose imgIndex to serializeNode via the module-level variable
+    _imgIndex = imgIndex;
+
     const cleanHtml = DOMPurify.sanitize(stripped, {
       ALLOWED_TAGS: [
         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -374,7 +398,7 @@ const sanitizeHtml = (input, isMarkdown = false, baseUrl = '') => {
         'div', 'span', 'section', 'article',
         'img',
       ],
-      ALLOWED_ATTR: ['href', 'src', 'srcset', 'data-src', 'data-srcset', 'data-alt', 'rel', 'alt'],
+      ALLOWED_ATTR: ['href', 'data-imgidx', 'rel', 'alt'],
       KEEP_CONTENT: true,
     });
 
