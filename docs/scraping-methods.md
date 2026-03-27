@@ -1,155 +1,124 @@
 # Scraping Methods
 
-Mango News supports two scraping methods: **Open Source** (Puppeteer) and **Firecrawl** (API-based).
+Mango News supports two scraping methods, configured per source.
 
-## Open Source Scraping (Puppeteer)
+## Open Source (Puppeteer)
 
-Uses a headless browser to navigate websites and extract content via CSS selectors.
-
-### When to Use
-
-- Need fine-grained control over scraping
-- Sites with dynamic JavaScript content
-- Prefer self-hosted solution
+A headless Chromium browser navigates each site and extracts content via CSS selectors. Best for JavaScript-rendered sites and when you need full control over extraction.
 
 ### Configuration
 
-Set `scraping_method: 'opensource'` on the source.
+Set `scraping_method: 'opensource'` on the source. Then configure selectors:
 
-**Required Selectors:**
-- `os_content_selector` - Main article content area
+| Selector field | What it targets | Required? |
+|---|---|---|
+| `os_content_selector` | Main article body | Yes |
+| `os_title_selector` | Article headline | No |
+| `os_date_selector` | Publication date | No |
+| `os_author_selector` | Author name | No |
+| `os_thumbnail_selector` | Featured image | No |
+| `os_topics_selector` | Category/tag links | No |
+| `include_selectors` | Restrict content to these areas | No |
+| `exclude_selectors` | Remove elements (ads, nav, related posts) | No |
 
-**Optional Selectors:**
-- `os_title_selector` - Article title
-- `os_date_selector` - Publication date
-- `os_author_selector` - Author name
-- `os_thumbnail_selector` - Featured image
-- `os_topics_selector` - Category/topic tags
-
-**Content Filtering:**
-- `include_selectors` - CSS selectors to include
-- `exclude_selectors` - Elements to remove (ads, sidebars)
+See [CSS Selectors](css-selectors.md) for selector syntax, examples, and debugging.
 
 ### Article Discovery
 
-The scraper discovers article URLs by:
-
-1. Loading the source homepage
-2. Finding links matching `article_link_template`
-3. Crawling up to depth 1 from homepage
-4. Filtering URLs matching the source domain
-
-**Article Link Template Examples:**
-```
-https://example.com/news/{slug}
-https://example.com/\d{4}/\d{2}/{slug}/
-```
-
-**Exclude Patterns:** Strip query parameters from discovered URLs:
-```
-utm_source,utm_medium,share,fbclid
-```
+1. Load the source homepage
+2. Find all links matching `article_link_template` (regex pattern)
+3. Filter to source domain only
+4. Strip query parameters listed in `exclude_patterns` (e.g. `utm_source,fbclid,share`)
+5. Skip URLs in `backend/config/blacklist.json` (prefix match)
+6. Skip articles older than `scrape_after_date` if set
 
 ### Browser Pool
 
-A single Puppeteer browser instance is shared across all scraping operations to conserve memory. See [`backend/src/browserPool.js`](../backend/src/browserPool.js).
+A single Puppeteer instance (`src/browserPool.js`) is shared across all scraping operations to conserve memory. The backend logs `[BROWSER] Connected: true, PID: XXXX` to confirm it's alive.
 
-## Firecrawl Scraping
+## Firecrawl (API-based)
 
-Uses the Firecrawl API for managed content extraction.
-
-### When to Use
-
-- Prefer API-based simplicity
-- Don't want to manage headless browsers
-- Need structured markdown output
+Sends article URLs to the [Firecrawl](https://firecrawl.dev) API and receives clean markdown/HTML back. Simpler to configure — no selectors needed.
 
 ### Configuration
 
-1. Set `FIRECRAWL_API_KEY` in environment
+1. Set `FIRECRAWL_API_KEY` in `backend/.env`
 2. Set `scraping_method: 'firecrawl'` on the source
 
-### How It Works
+No CSS selectors required. Firecrawl handles extraction and returns structured content.
 
-1. Backend sends article URL to Firecrawl API
-2. Firecrawl returns clean content (markdown/HTML)
-3. Backend processes and stores the content
+### When to use Firecrawl vs Open Source
 
-## AI Features
+| | Open Source | Firecrawl |
+|---|---|---|
+| CSS selectors required | Yes | No |
+| Works offline / self-hosted | Yes | No (external API) |
+| Handles JS-heavy sites | Yes (headless Chrome) | Yes |
+| Cost | Free | Paid API |
+| Control | Full | Limited |
 
-AI processing runs after content extraction:
-
-| Feature | API | Description |
-|---------|-----|-------------|
-| **Summary** | Groq (Llama) | SEO-optimized article summary |
-| **Topics** | Groq | Assigns 3 topics from 31 predefined categories |
-| **Image** | fal.ai (FLUX.2 Turbo) | Generates relevant image if no thumbnail found |
-| **Translations** | Groq | Spanish and Haitian Creole translations |
-
-### AI Toggle Logic
-
-**Scheduled/Full Scrapes:** Feature enabled if:
-- Global toggle is ON (from request or default)
-- AND source-level toggle is ON
-
-**Per-Source Scrapes:** Feature enabled if:
-- Source-level toggle is ON
-- (Global toggles are ignored)
-
-### Enable AI Per-Source
-
-In source configuration:
-- `enable_ai_summary` - Generate summaries
-- `enable_ai_tags` - Assign topic tags
-- `enable_ai_image` - Generate missing images
-- `enable_ai_translations` - Generate translations
+---
 
 ## HTML Sanitization Pipeline
 
-Raw HTML from the open-source scraper passes through a multi-stage sanitization pipeline in `scraper.js` before being stored:
+Raw HTML from the Open Source scraper passes through a four-stage pipeline in `scraper.js` before being stored.
 
-1. **Pre-processing** — Strips `<figure>`/`<figcaption>` blocks entirely (prevents image captions leaking into article text). Converts double `<br><br>` sequences into paragraph breaks for sources that use line breaks instead of `<p>` tags (e.g. SunTCI).
+### Stage 1 — Pre-processing
 
-2. **DOMPurify** — Removes scripts, iframes, and unsafe attributes. Preserves structural tags (`p`, `h1–h6`, `ul`, `ol`, `li`, `blockquote`, `strong`, `em`, `a`, `div`, `span`, etc.).
+- Strips `<figure>` / `<figcaption>` blocks entirely (prevents image captions leaking into body text)
+- Converts `<br><br>` sequences into `<p>` breaks (handles sources like SunTCI that use line breaks instead of paragraphs)
 
-3. **Drop-cap removal** — CMS-injected single-letter `<span>` elements (drop-cap styling) are replaced with plain text nodes before serialization so they don't render as oversized floating letters.
+### Stage 2 — DOMPurify
 
-4. **Structured serialization** — A DOM walker produces clean, consistently structured output:
-   - `<p>` tags → `serializeParagraph()`: each paragraph becomes its own block; a `<p>` whose only child is `<strong>`/`<b>` is promoted to `<h3>`
-   - `<div>`, `<section>`, `<article>` → `serializeContainer()`: children are recursed so div-based paragraph structures (e.g. TC Weekly News) get proper breaks
-   - `<ul>`, `<ol>` → preserved with full `<li>` structure
-   - `<h1>`–`<h6>` → preserved as-is
-   - `<blockquote>` → preserved
-   - `<strong>`, `<em>`, `<a>`, `<code>`, `<mark>`, `<sup>`, `<sub>` → preserved as inline formatting
+Removes scripts, iframes, event handlers, and unsafe attributes. Preserves structural and inline tags: `p`, `h1–h6`, `ul`, `ol`, `li`, `blockquote`, `strong`, `em`, `a`, `div`, `span`, etc.
 
-This pipeline handles the four main source HTML patterns found in TCI news sites:
+### Stage 3 — Drop-cap removal
 
-| Source | HTML pattern | Handled by |
-| ------ | ----------- | ---------- |
+CMS-injected single-letter `<span>` elements (used for decorative drop caps) are replaced with plain text nodes so they don't render as oversized floating letters. The CSS in `article-content.css` applies its own drop-cap styling to the first paragraph instead.
+
+### Stage 4 — Structured serialization
+
+A DOM walker produces consistently structured output:
+
+- `<p>` → `serializeParagraph()` — each paragraph becomes its own block; a `<p>` whose only child is `<strong>`/`<b>` is promoted to `<h3>`
+- `<div>`, `<section>`, `<article>` → `serializeContainer()` — children are recursed so div-per-paragraph structures get proper breaks
+- `<ul>`, `<ol>`, `<h1>–<h6>`, `<blockquote>` → preserved as-is
+- `<strong>`, `<em>`, `<a>`, `<code>`, `<mark>`, `<sup>`, `<sub>` → preserved as inline formatting
+
+### Source HTML patterns handled
+
+| Source type | HTML pattern | Handled by |
+|---|---|---|
 | Magnetic Media | Standard `<p>` tags | `serializeParagraph` |
 | NewslineTCI (Wix) | `<p>` with nested `<span>` | `serializeParagraph` + inline pass-through |
 | TC Weekly News | One `<div>` per paragraph | `serializeContainer` |
-| SunTCI | Plain text with `<br><br>` | Pre-processing → `<p>` conversion |
+| SunTCI | Plain text + `<br><br>` | Stage 1 pre-processing |
 
-## Scrape After Date
+---
 
-Set `scrape_after_date` on a source to ignore articles published before that date. Useful for avoiding historical content during initial setup.
+## AI Processing
 
-## URL Blacklist
+After content extraction, AI runs on each article (respecting per-source toggles):
 
-Exclude specific URLs from scraping via `backend/config/blacklist.json`:
+| Feature | Service | Details |
+|---|---|---|
+| Summary | Groq Llama 3.3 70B | SEO-optimized, 80–100 words, 10K char input limit |
+| Topics | Groq Llama 3.1 8B | 3 from 31 predefined categories, 5K char limit |
+| Image | fal.ai FLUX.2 Turbo | Generated only when no thumbnail exists |
+| Translations | Groq Llama 3.3 70B | ES + HT, all 6 fields in parallel |
 
-```json
-[
-  "https://example.com/page-to-skip",
-  "https://example.com/category/excluded/"
-]
-```
+### AI toggle logic
 
-Matching uses prefix comparison, so partial URLs block all matching pages.
+- **Scheduled / full scrapes**: feature runs if global toggle AND source-level toggle are both on
+- **Single-source scrapes**: only source-level toggle applies
+
+See [AI Optimization Analysis](ai-optimization-analysis.md) for caching, retry, and rate-limiting details.
+
+---
 
 ## Related Documentation
 
-- [CSS Selectors](css-selectors.md) - Selector syntax guide
+- [CSS Selectors](css-selectors.md) - Selector syntax, examples, debugging
 - [Admin UI](admin-ui.md) - Source configuration interface
-- [Backend Setup](backend-setup.md) - Environment configuration
+- [AI Optimization Analysis](ai-optimization-analysis.md) - AI service architecture
+- [Troubleshooting](troubleshooting.md) - Common scraping issues

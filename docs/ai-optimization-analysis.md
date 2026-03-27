@@ -1,129 +1,92 @@
-# AI Tasks Analysis & Optimization
+# AI Optimization Analysis
 
-## Overview
+Documents the AI services used, the optimizations implemented, and how to monitor and tune the AI layer.
 
-This document describes the AI services used in Mango News, the optimizations applied, and the current architecture.
+## AI Services
 
-## AI Services Used
+| Service | Provider | Used for |
+|---|---|---|
+| Groq API (Llama) | Groq | Summaries, topic classification, translations, weekly digest |
+| fal.ai FLUX.2 Turbo | fal.ai | Article thumbnail and Sunday Edition image generation |
+| Unreal Speech | Unreal Speech | Sunday Edition MP3 narration (async) |
 
-| Service | Provider | Purpose | File |
-| ------- | -------- | ------- | ---- |
-| Groq API (Llama) | Groq | Summaries, topics, translations, weekly summary | `services/aiService.js` |
-| fal.ai (FLUX.2 Turbo) | fal.ai | AI image generation for thumbnails | `sundayEditionGenerator.js` |
-| Unreal Speech API | Unreal Speech | Text-to-speech narration for Sunday Edition | `sundayEditionGenerator.js` |
+All Groq-based operations are centralized in `backend/src/services/aiService.js`. `scraper.js` and `sundayEditionGenerator.js` call this service — no direct Groq calls outside it.
 
 ## AI Tasks
 
-### 1. Summary Generation
+### Per-article (triggered during scraping)
 
-- **Function:** `aiService.generateSummary()`
-- **Purpose:** SEO-optimized article summary, max 80–100 words
-- **Input limit:** 10,000 characters
+| Task | Function | Model | Input limit |
+|---|---|---|---|
+| Summary | `generateSummary(content)` | Llama 3.3 70B | 10,000 chars |
+| Topic classification | `assignTopics(content)` | Llama 3.1 8B | 5,000 chars |
+| Translation (×6) | `translateBatch(items, lang)` | Llama 3.3 70B | — |
+| Image prompt | `optimizeImagePrompt(content, title)` | Llama 3.3 70B | — |
+| Image generation | `generateAIImage()` | fal.ai FLUX.2 Turbo | — |
 
-### 2. Topic Assignment
+### Sunday Edition (weekly)
 
-- **Function:** `aiService.assignTopics()`
-- **Purpose:** Assign 3 topics from 31 predefined categories
-- **Input limit:** 5,000 characters
+| Task | Function | Details |
+|---|---|---|
+| Weekly digest | `generateWeeklySummary(articles)` | 4,000–4,200 chars, 80K char input limit |
+| Audio narration | `generateNarration()` | Unreal Speech, async MP3 via S3 |
+| Header image | `generateSundayEditionImage()` | fal.ai FLUX.2 Turbo |
 
-### 3. Translation
+## Optimizations
 
-- **Function:** `aiService.translateText()` / `aiService.translateBatch()`
-- **Purpose:** Translate title, summary, and body to Spanish and Haitian Creole
-- **Processing:** All 6 translations run in parallel via `translateBatch()`
-
-### 4. Sunday Edition Summary
-
-- **Function:** `aiService.generateWeeklySummary()`
-- **Purpose:** Weekly broadcast-ready news digest (4,000–4,200 chars)
-- **Input limit:** 80,000 characters
-
-### 5. Image Prompt Optimization
-
-- **Function:** `aiService.optimizeImagePrompt()`
-- **Purpose:** Generate a structured visual prompt for fal.ai from article content
-
-### 6. AI Image Generation
-
-- **Function:** `generateAIImage()` in `sundayEditionGenerator.js`
-- **API:** fal.ai FLUX.2 Turbo
-- **Trigger:** Only when no thumbnail URL exists for an article
-
-### 7. Audio Narration
-
-- **Function:** `generateNarration()` in `sundayEditionGenerator.js`
-- **API:** Unreal Speech
-- **Purpose:** MP3 audio for Sunday Edition
-
-## Architecture
-
-All Groq-based AI functions are consolidated in a single centralized service:
-
-```text
-backend/src/services/
-└── aiService.js   # Groq client, caching, retry, rate limiting, batch translation
-```
-
-`scraper.js` and `sundayEditionGenerator.js` call `aiService` — no direct Groq calls outside of it.
-
-## Optimizations Implemented
-
-### 1. Centralized AI Service (resolved)
+### 1. Centralized AI service
 
 All AI functions extracted from `scraper.js` and `sundayEditionGenerator.js` into `aiService.js`. Eliminates duplication and ensures consistent retry/caching behaviour across all callers.
 
-### 2. Parallel Translation (resolved)
+### 2. Parallel translation
 
-All 6 translations (title/summary/content × ES/HT) are dispatched in a single `translateBatch()` call using `Promise.all()` internally. Previously sequential — ~80% latency reduction for the translation step.
+All 6 translations (title/summary/content × ES/HT) dispatched in a single `translateBatch()` call using `Promise.all()`. Previously sequential — approximately 80% latency reduction for the translation step.
 
-### 3. Topic Translation Caching (resolved)
+### 3. Topic translation caching
 
-Topic translations are pre-computed and cached in memory. Repeated scrapes of articles with the same topics skip AI calls entirely.
+Topic name translations (31 predefined topics) are computed once and cached in memory. Repeated scrapes of articles with the same topics skip AI calls entirely.
 
-### 4. Retry Logic with Exponential Backoff (resolved)
+### 4. Retry with exponential backoff
 
-All AI calls retry up to 3 times with exponential backoff on transient failures.
+All AI calls retry up to `AI_MAX_RETRIES` times (default 3) on transient failures, with delay doubling each attempt starting at `AI_RETRY_DELAY` ms (default 1000).
 
-### 5. Rate Limiting (resolved)
+### 5. Rate limiting
 
-`aiService` enforces a per-minute request cap to avoid hitting Groq API limits during batch processing.
+`aiService` tracks requests per minute and enforces a cap (`AI_RATE_LIMIT_PER_MINUTE`, default 60) to prevent Groq API throttling during batch processing.
 
-### 6. Batch Topic DB Lookup (resolved)
+### 6. Batch topic DB lookup
 
-Topic existence checks use `SELECT ... WHERE name = ANY($1)` — one query per article instead of one query per topic. Previously N sequential round-trips per article.
+Topic existence checks use `SELECT ... WHERE name = ANY($1)` — one query per article instead of one query per topic name.
 
-### 7. Batch `article_topics` Insert (resolved)
+### 7. Batch article_topics insert
 
-All topic associations for an article are written in a single `INSERT ... VALUES (...),(...)` statement with `ON CONFLICT DO NOTHING`. Previously one `INSERT` per topic per article.
+All topic associations for an article are written in a single `INSERT ... VALUES (...),(...)` with `ON CONFLICT DO NOTHING`.
 
-### 8. Single JSDOM Instance in Sanitizer (resolved)
+### 8. Single JSDOM instance in sanitizer
 
-`sanitizeHtml()` previously created two JSDOM instances (one for DOMPurify, one for content parsing). Now uses a single instance for both, halving DOM allocation overhead per article.
+`sanitizeHtml()` previously created two JSDOM instances (one for DOMPurify, one for parsing). Now uses one instance for both, halving DOM allocation overhead per article.
 
-### 9. Dead Code Removal (resolved)
+### 9. Set-based container tag lookup
 
-`scrapeSource()` — a legacy function that was defined but never called — has been removed.
+Container tag detection in the HTML serializer uses a `Set` for O(1) lookup instead of `Array.includes()` on every DOM node.
 
-### 10. Set-Based Container Tag Lookup (resolved)
+## Monitoring
 
-Container tag detection in the HTML serializer (`div`, `section`, `article`, etc.) uses a `Set` for O(1) lookup instead of an array `.includes()` call on every DOM node.
+### `GET /api/ai-service/stats` _(authenticated)_
 
-## HTML Sanitization Pipeline
-
-See [Scraping Methods — HTML Sanitization Pipeline](scraping-methods.md#html-sanitization-pipeline) for the full breakdown of how raw scraped HTML is cleaned and structured.
-
-## Monitoring Endpoints
-
-### GET `/api/ai-service/stats` _(authenticated)_
-
-Returns current cache size, rate limit state, and model configuration.
+Returns current cache size, rate limit state, and active model configuration:
 
 ```json
 {
-  "cache": { "size": 42 },
+  "cache": { "size": 42, "sampleKeys": ["topic:Politics:es", "..."] },
   "rateLimit": { "currentCount": 15, "limit": 60, "resetInMs": 45000 },
   "config": {
-    "models": { "SUMMARY": "...", "TRANSLATION": "...", "TOPICS": "..." },
+    "models": {
+      "SUMMARY": "llama-3.3-70b-versatile",
+      "TRANSLATION": "llama-3.3-70b-versatile",
+      "TOPICS": "llama-3.1-8b-instant",
+      "PROMPT_OPTIMIZATION": "llama-3.3-70b-versatile"
+    },
     "maxRetries": 3,
     "cacheTtlMs": 86400000,
     "rateLimitPerMinute": 60
@@ -131,40 +94,39 @@ Returns current cache size, rate limit state, and model configuration.
 }
 ```
 
-### POST `/api/ai-service/clear-cache` _(authenticated)_
+### `POST /api/ai-service/clear-cache` _(authenticated)_
 
-Clears the in-memory translation cache.
+Clears the in-memory translation cache. Use when topic translations need to be regenerated.
 
-```json
-{ "message": "AI service cache cleared successfully." }
-```
+## Tuning via Environment Variables
 
-## Environment Variables
+All optional — defaults shown:
 
 ```env
-# Required
-GROQ_API_KEY=your_groq_key
-FAL_KEY=your_fal_ai_key
+AI_SUMMARY_MODEL=llama-3.3-70b-versatile
+AI_TRANSLATION_MODEL=llama-3.3-70b-versatile
+AI_TOPICS_MODEL=llama-3.1-8b-instant
+AI_PROMPT_MODEL=llama-3.3-70b-versatile
 
-# Optional tuning (with defaults)
-AI_CACHE_MAX_SIZE=1000
 AI_MAX_RETRIES=3
-AI_RETRY_DELAY=1000
-AI_CACHE_TTL=86400000
+AI_RETRY_DELAY=1000          # ms, doubles each retry
+
+AI_CACHE_TTL=86400000        # 24 hours
+AI_CACHE_MAX_SIZE=1000       # LRU eviction above this
+
 AI_RATE_LIMIT_PER_MINUTE=60
 ```
-
-## Related Files
-
-- [`backend/src/services/aiService.js`](../backend/src/services/aiService.js) - Centralized AI service
-- [`backend/src/scraper.js`](../backend/src/scraper.js) - Scraping with AI integration
-- [`backend/src/sundayEditionGenerator.js`](../backend/src/sundayEditionGenerator.js) - Sunday Edition
-- [`docs/multilingual-support.md`](multilingual-support.md) - Translation documentation
-- [`docs/scraping-methods.md`](scraping-methods.md) - Scraper configuration and HTML pipeline
 
 ## Version History
 
 | Date | Change |
-| ---- | ------ |
+|---|---|
 | 2026-03-26 | Batch topic DB lookup, batch article_topics insert, single JSDOM instance, dead code removal, Set-based container lookup |
 | 2025-11-30 | Centralized AI service, parallel translation, topic caching, retry logic, rate limiting |
+
+## Related Documentation
+
+- [Backend Setup](backend-setup.md) - Environment variables and AI service methods
+- [Scraping Methods](scraping-methods.md) - HTML sanitization pipeline and AI toggle logic
+- [Sunday Edition](sunday-edition.md) - Weekly summary and audio generation
+- [Multilingual Support](multilingual-support.md) - Translation architecture

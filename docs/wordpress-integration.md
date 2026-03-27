@@ -1,114 +1,83 @@
 # WordPress Integration
 
-Embed Mango News content in WordPress sites using widgets or HTML snippets.
-
-## Integration Methods
-
-### 1. Elementor Widget
-
-For sites using Elementor:
-
-1. Open page in Elementor editor
-2. Drag "HTML Code" widget to your page
-3. Paste content from `widgets/mango-news-content.html`
-
-**Language Control:** Set `displayLanguage` in the JavaScript config:
-```javascript
-const config = {
-  displayLanguage: 'es',  // 'en', 'es', or 'ht'
-  // ...
-};
-```
-
-### 2. Direct HTML/JS Embed
-
-Copy snippets directly into your theme or page:
-
-**Files:**
-- `widgets/mango-news-content.html` - Full news feed
-- `widgets/mango-news-single-article.html` - Single article display
-- `widgets/mango-news-styles.html` - CSS styling
-
-### 3. PHP Function / Shortcode
-
-Add to your theme's `functions.php` or use the provided widget file.
-
-**PHP Function:**
-```php
-<?php mango_news_feed(['language' => 'es']); ?>
-```
-
-**Shortcode:**
-```
-[mango_news_feed language="ht"]
-```
+Embed Mango News content in WordPress using pre-built HTML/JS widget files in the `widgets/` directory.
 
 ## Widget Files
 
 | File | Purpose |
-|------|---------|
-| `widgets/mango-news-content.html` | Main news feed HTML/JS |
-| `widgets/mango-news-single-article.html` | Single article embed |
-| `widgets/mango-news-styles.html` | CSS styles |
+|---|---|
+| `widgets/mango-news-content.html` | Full paginated news feed |
+| `widgets/mango-news-single-article.html` | Single article display |
+| `widgets/mango-news-styles.html` | Shared CSS styles |
 
-## Multilingual Support
+## Integration Methods
 
-The widgets respect the `displayLanguage` setting:
+### 1. Elementor HTML Widget
 
-- `en` - English (default)
-- `es` - Spanish
-- `ht` - Haitian Creole
+1. Edit the page in Elementor
+2. Drag an **HTML Code** widget to the page
+3. Paste the contents of `widgets/mango-news-content.html`
+4. Save
 
-Translated content (titles, summaries, topics) is automatically displayed based on the configured language. Falls back to English if translation unavailable.
+### 2. Direct HTML Embed
 
-## Configuration Options
+Paste the widget file content directly into any theme template, page builder block, or custom HTML area. Include `mango-news-styles.html` once per page if using multiple widgets.
 
-In the JavaScript config object:
+### 3. PHP Shortcode
+
+If your theme supports it:
+
+```php
+<?php mango_news_feed(['language' => 'es']); ?>
+```
+
+Or as a shortcode: `[mango_news_feed language="ht"]`
+
+## Widget Configuration
+
+Each widget contains a JavaScript config object at the top:
 
 ```javascript
 const config = {
-  apiUrl: 'https://your-backend-url.com/api',
-  displayLanguage: 'en',
+  apiUrl: 'https://your-backend-url.com/api',  // required
+  displayLanguage: 'en',    // 'en', 'es', or 'ht'
   articlesPerPage: 10,
   showImages: true,
   showSummary: true,
   showTopics: true,
-  topicFilter: null,  // Filter by specific topic
+  topicFilter: null,        // restrict to one topic, e.g. 'Politics'
 };
 ```
 
-## Editing Widgets in WordPress
+Set `apiUrl` to your deployed backend URL. The widget fetches from `GET /api/articles` and `GET /api/topics` — ensure your backend CORS config allows requests from your WordPress domain.
 
-1. Log in to WordPress admin
-2. Navigate to the page with the widget
-3. Click "Edit with Elementor"
-4. Select the HTML Code widget
-5. Modify the code/settings
-6. Save changes
+## Multilingual Support
+
+Set `displayLanguage` to `en`, `es`, or `ht`. The widget displays translated titles, summaries, and topics when available, falling back to English if a translation is missing.
+
+## CORS Configuration
+
+The backend must allow requests from your WordPress domain. In `backend/src/index.js`, the CORS configuration uses the `cors` package. If your WordPress site is on a different domain than the backend, add it to the allowed origins in the CORS config or set a permissive policy for public read endpoints.
 
 ## Styling
 
-The `mango-news-styles.html` file contains CSS that can be customized:
+`mango-news-styles.html` contains scoped CSS. To customize:
+- Copy the CSS into your theme's stylesheet
+- Adjust colors, fonts, card layout, and responsive breakpoints as needed
+- Widget classes are prefixed to avoid conflicts with theme styles
 
-- Colors and fonts
-- Card layouts
-- Responsive breakpoints
-- Image sizing
+## API Endpoints Used
 
-For custom styling, copy and modify the CSS classes.
+The widgets call these public (unauthenticated) endpoints:
 
-## API Requirements
+- `GET /api/articles` — article list with pagination and filtering
+- `GET /api/articles/:id` — single article detail
+- `GET /api/topics` — topic list for filter UI
 
-Widgets fetch data from the backend API:
-
-- `GET /api/articles` - Article list
-- `GET /api/articles/:id` - Single article
-- `GET /api/topics` - Topic list
-
-Ensure your backend CORS settings allow requests from your WordPress domain.
+See [API Documentation](api-documentation.md) for query parameters and response shapes.
 
 ## Related Documentation
 
-- [Frontend UI](frontend-ui.md) - Reference implementation
-- [API Documentation](api-documentation.md) - Endpoint details
+- [API Documentation](api-documentation.md) - Endpoint details and query parameters
 - [Multilingual Support](multilingual-support.md) - Translation system
+- [Frontend UI](frontend-ui.md) - Reference implementation of the same API

@@ -1,256 +1,209 @@
 # Troubleshooting
 
-Common issues and solutions for Mango News.
+Common issues and solutions for Mango News. For configuration reference, see [Backend Setup](backend-setup.md) and [Deployment](deployment.md).
 
-## Backend Issues
+---
 
-### Server Won't Start
+## Backend
 
-**Symptoms:** Server crashes on startup
+### Server won't start
 
-**Solutions:**
+1. Check Node.js version: `node --version` — requires v18+
+2. Run `npm install` in the `backend/` directory
+3. Verify `backend/.env` exists with all required variables (see [Backend Setup](backend-setup.md#environment-variables))
+4. Check the console output for the specific error
 
-1. Check Node.js version: `node --version` (requires v18+)
-2. Install dependencies: `npm install` in backend directory
-3. Verify `.env` file exists with all required variables
-4. Check database connection settings
-5. Review console output for specific error messages
+### Database connection failed
 
-### Database Connection Failed
+**Error:** `connect ECONNREFUSED` or `password authentication failed`
 
-**Symptoms:** `Error: connect ECONNREFUSED` or similar
+1. Confirm PostgreSQL is running
+2. Verify `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` in `.env`
+3. Ensure the database and user exist with correct permissions
+4. Check firewall or network rules if using a remote host
 
-**Solutions:**
+### Schema errors — "relation does not exist"
 
-1. Verify PostgreSQL is running
-2. Check `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` in `.env`
-3. Ensure database exists and user has permissions
-4. Check firewall/network if using remote database
+The schema hasn't been applied or a migration is missing:
 
-### Scraping Fails
+```bash
+# Fresh install
+psql -U mangoadmin -d mangonews -f db/schema.sql
 
-**Symptoms:** No articles scraped, errors in logs
+# Existing database — apply missing migrations
+psql -U mangoadmin -d mangonews -f db/migrations/add_translation_columns.sql
+psql -U mangoadmin -d mangonews -f db/migrations/add_sunday_editions_table.sql
+# apply others in db/migrations/ as needed
+```
 
-**Solutions:**
+### Connection pool exhausted
 
-1. **Check CSS selectors** - Website may have changed structure
-2. **Test selectors** in browser console: `document.querySelector('selector')`
-3. **Verify source is active** - Check `is_active` flag
-4. **Check article_link_template** - May be too restrictive or too broad
-5. **Review blacklist** - URL might be in `backend/config/blacklist.json`
-6. **Check network** - Site may be blocking requests
+**Error:** "too many connections" or slow responses under load
 
-### AI Features Not Working
+- The backend uses a shared pool (max 10 connections, 30s idle timeout)
+- Restart the backend to release stale connections
+- Check for connection leaks in any custom code added outside the pool
 
-**Symptoms:** Summaries/tags/images/translations not generated
+---
 
-**Solutions:**
+## Scraping
 
-1. Verify API keys in `.env`: `GROQ_API_KEY`, `FAL_KEY`
-2. Check source-level AI toggles are enabled
-3. For manual scrapes, check global AI toggles in Settings
-4. Review backend logs for API error responses
-5. Check API rate limits/quotas
+### No articles scraped
 
-### Groq API Token Error
+1. **Verify source is active** — check `is_active` flag in Source Management
+2. **Check `article_link_template`** — may be too restrictive or not matching current URLs
+3. **Test CSS selectors** in browser console on a live article page: `document.querySelector('.entry-content')`
+4. **Check blacklist** — URL may be in `backend/config/blacklist.json`
+5. **Review backend logs** — the scraper logs what it finds at each step
+6. **Check network** — the target site may be rate-limiting or blocking headless browsers
 
-**Error:** `max_tokens must be less than or equal to 8192`
+See [CSS Selectors](css-selectors.md#debugging) for a selector debugging workflow.
 
-**Solution:** This is handled automatically. The `generateAITranslation` function caps tokens at 8192 for long content. If still occurring, update your backend code.
+### Wrong articles discovered
 
-### Blacklist Not Working
+- Make `article_link_template` more specific (tighter regex)
+- Add unwanted URL patterns to `backend/config/blacklist.json`
+- Use `exclude_patterns` to strip query parameters that create URL variants
 
-**Symptoms:** Blacklisted URLs still being scraped
+### Duplicate articles
 
-**Solution:** Ensure you're using `getBlacklist()` function from `configLoader.js`. The blacklist uses prefix matching - URLs starting with any blacklisted entry are blocked.
+The scraper deduplicates by `source_url`. Duplicates usually mean URL variants are being treated as different articles:
 
-## Frontend Issues
+1. Add varying query parameters to `exclude_patterns` (e.g. `utm_source,fbclid,share`)
+2. Check for URL variants (trailing slash, www vs non-www) in the database
 
-### Page Not Displaying
+### Old articles being scraped
 
-**Solutions:**
+Set `scrape_after_date` on the source to ignore articles published before a cutoff date.
 
-1. Ensure frontend server is running: `npm run dev`
-2. Verify backend is running and accessible
-3. Check `PUBLIC_API_URL` in frontend `.env`
-4. Clear browser cache
-5. Check browser console for JavaScript errors
+### Article text has no paragraph breaks
 
-### Theme Toggle Not Working
+**Cause:** Source uses `<div>` per paragraph or `<br><br>` instead of `<p>` tags.
 
-**Context:** Theme switcher uses a simple toggle button (not dropdown) for iOS Safari compatibility.
+The sanitizer handles this automatically (`serializeContainer` for div-based sources, pre-processing for `<br><br>` sources). If it still fails:
+1. Verify `os_content_selector` targets the correct container element
+2. Check the raw HTML source to confirm which pattern the site uses
 
-**Solutions:**
+### Drop-cap letter appears oversized
 
-1. Clear localStorage: `localStorage.removeItem('theme')`
-2. Refresh page
-3. Check for JavaScript errors in console
+**Cause:** The source CMS injects a single-letter `<span class="dropcap">` that passes through sanitization.
 
-### Authentication Errors
+The sanitizer strips these automatically using class-name and single-uppercase-letter heuristics. If it persists, find the drop-cap class name in the raw HTML and add it to the `DROP_CAP_CLASS` regex in `scraper.js`.
 
-**Symptoms:** "No token provided" on protected actions
+### Image captions appearing in article body
 
-**Solutions:**
+**Cause:** `<figure>`/`<figcaption>` content leaking through.
 
-1. Log in again - token may have expired
-2. Clear localStorage and cookies, then re-login
-3. Verify `jwtToken` exists in localStorage after login
-4. Check token is being included in requests (Authorization header)
+The sanitizer pre-strips all `<figure>` blocks before DOMPurify runs. If captions still appear, the source uses a non-standard caption element — add it to `SKIP_TAGS` in `scraper.js`.
 
-### Infinite Scroll Not Loading
-
-**Symptoms:** News feed stops loading more articles
-
-**Solutions:**
-
-1. Check browser console for API errors
-2. Verify backend is responding to paginated requests
-3. Check network tab for failed requests
-4. Try refreshing the page
-
-## Database Issues
-
-### Schema Not Applied
-
-**Symptoms:** "relation does not exist" errors
-
-**Solutions:**
-
-1. Apply schema: `psql -U user -d mangonews -f db/schema.sql`
-2. Run migrations if upgrading:
-
-   ```bash
-   psql -U user -d mangonews -f db/migrations/add_translation_columns.sql
-   psql -U user -d mangonews -f db/migrations/add_sunday_editions_table.sql
-   ```
-
-### Connection Pool Exhausted
-
-**Symptoms:** "Too many connections" errors, slow responses
-
-**Solutions:**
-
-1. The backend now uses a shared connection pool (`db.js`)
-2. Restart backend to release connections
-3. Check for connection leaks in custom code
-4. Increase `max` pool size if needed (default: 10)
-
-## Memory Issues
-
-### Server Restarts / OOM
-
-**Symptoms:** Backend crashes periodically, especially during scraping
-
-**Solutions:**
-
-1. **Browser pool is shared** - Single Puppeteer instance for all scraping
-2. **DB pool is shared** - Single PostgreSQL connection pool
-3. **JSDOM cleaned up** - Single instance closed after each sanitization
-4. **Cron job locking** - Prevents overlapping scheduled tasks
-5. Set memory limit: `node --max-old-space-size=512 src/index.js`
-6. Monitor memory: Check logs for `[MEMORY]` entries
-
-## Content Formatting Issues
-
-### Article Text Has No Paragraph Breaks
-
-**Symptoms:** Article body renders as one wall of text
-
-**Cause:** The source site uses `<div>` per paragraph or `<br><br>` for spacing instead of `<p>` tags.
-
-**Solutions:**
-
-1. Verify the `os_content_selector` targets the correct container
-2. The sanitizer handles `<div>`-based paragraphs automatically via `serializeContainer`
-3. `<br><br>` sequences are automatically converted to paragraph breaks — check source HTML to confirm the pattern
-
-### Drop-Cap Letter Appears Oversized
-
-**Symptoms:** First letter of article floats large and detached from its word
-
-**Cause:** Either the source CMS injects a `<span class="dropcap">` or the CSS `p:first-of-type::first-letter` rule is applying unexpectedly.
-
-**Solutions:**
-
-1. The sanitizer strips drop-cap spans automatically (class-name and single-uppercase-letter heuristics)
-2. If the issue persists, check the raw HTML for non-standard drop-cap markup and add the class name to the `DROP_CAP_CLASS` regex in `scraper.js`
-
-### Image Captions Appearing in Article Text
-
-**Symptoms:** Caption text (e.g. "Photo: Airport in Providenciales") merged into body paragraphs
-
-**Cause:** `<figure>`/`<figcaption>` content leaking through DOMPurify's `KEEP_CONTENT: true` setting.
-
-**Solution:** The sanitizer pre-strips all `<figure>...</figure>` blocks before DOMPurify runs. If captions still leak, check if the source uses a non-standard caption element and add it to `SKIP_TAGS` in `scraper.js`.
-
-### Bold Headings Running Inline with Paragraphs
-
-**Symptoms:** Section headings appear mid-paragraph rather than on their own line
+### Bold headings running inline with paragraphs
 
 **Cause:** CMS uses `<p><strong>Heading</strong></p>` instead of `<h>` tags.
 
-**Solution:** The sanitizer automatically promotes a `<p>` whose sole child is `<strong>`/`<b>` to `<h3>`. Standalone bold text (surrounded only by whitespace, length > 5 chars) is also split into its own block.
+The sanitizer automatically promotes `<p>` elements whose sole child is `<strong>`/`<b>` to `<h3>`. If this isn't triggering, check whether additional whitespace or sibling nodes are preventing the heuristic from matching.
 
-## Scraping-Specific Issues
+---
 
-### Wrong Articles Discovered
+## AI Features
 
-**Problem:** Non-article pages being scraped
+### Summaries / tags / images / translations not generated
 
-**Solutions:**
+1. Verify API keys in `.env`: `GROQ_API_KEY`, `FAL_KEY`
+2. Check source-level AI toggles are enabled in Source Management
+3. For manual scrapes, check global AI toggles in Settings → Global Settings
+4. Review backend logs for API error responses (rate limits, quota exceeded)
 
-1. Make `article_link_template` more specific
-2. Add unwanted URL patterns to blacklist
-3. Use `exclude_patterns` to strip query parameters
+### Groq rate limit errors
 
-### Duplicate Articles
+The AI service enforces `AI_RATE_LIMIT_PER_MINUTE` (default 60) to prevent hitting Groq's limits. If you're still hitting limits:
+- Lower the rate limit env var to be safe
+- Check `GET /api/ai-service/stats` (authenticated) to see current request count
+- Consider staggering batch processing across multiple scheduled runs
 
-**Problem:** Same article scraped multiple times
+### Translations are stale or wrong
 
-**Solutions:**
+Clear the in-memory cache:
+```bash
+curl -X POST "http://localhost:3000/api/ai-service/clear-cache" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
 
-1. Add query parameters to `exclude_patterns` (e.g., `utm_source,fbclid`)
-2. Check for URL variations in database
-3. The scraper deduplicates by `source_url`
+Then reprocess translations via the article dropdown (Rerun Translations) or bulk action.
 
-### Old Articles Being Scraped
+---
 
-**Solution:** Set `scrape_after_date` on the source to ignore historical content.
+## Frontend
 
-## Deployment Issues
+### Page not displaying / blank screen
 
-### Render Restarts
+1. Verify the frontend server is running: `npm run dev` in `frontend/`
+2. Check `PUBLIC_API_URL` in `frontend/.env` points to the running backend
+3. Open browser DevTools → Console for JavaScript errors
+4. Check Network tab for failed API requests
 
-**Symptoms:** Backend service restarts frequently
+### Authentication errors — "No token provided"
 
-**Solutions:**
+1. Log in again — the token may have expired
+2. Clear `localStorage` and re-login: `localStorage.clear()` in browser console
+3. Verify `jwtToken` is present in `localStorage` after login
 
-1. Memory optimizations are built-in (see Memory Issues above)
-2. Check Render logs for specific errors
-3. Ensure all environment variables are set
-4. Verify graceful shutdown handlers are working (`SIGTERM` handling)
+### Infinite scroll stops loading
 
-### Frontend Build Fails
+1. Check browser console for API errors
+2. Verify backend is responding to paginated requests: `GET /api/articles?page=2`
+3. Check Network tab for failed or cancelled requests
+4. Refresh the page to reset scroll state
 
-**Solutions:**
+### Theme toggle not working (iOS Safari)
 
-1. Check for TypeScript errors
-2. Ensure all dependencies installed: `npm install`
-3. Clear `.astro` cache directory
-4. Check Node.js version compatibility
+The theme switcher uses a simple button (not a dropdown) for iOS Safari compatibility. If it's unresponsive:
+```javascript
+localStorage.removeItem('theme');
+location.reload();
+```
 
-## Getting Help
+---
 
-If issues persist:
+## Memory and Performance
 
-1. Check backend logs for detailed error messages
-2. Review relevant documentation linked below
-3. Search for error messages in codebase
-4. Check GitHub issues if this is a public repo
+### Backend restarts / OOM crashes
+
+The backend includes several memory optimizations already:
+- Shared browser pool (single Puppeteer instance)
+- Shared DB connection pool
+- Cron job locking prevents overlapping scheduled tasks
+- Graceful shutdown handlers on `SIGTERM`/`SIGINT`
+
+If still crashing:
+1. Set a heap limit: `node --max-old-space-size=512 src/index.js`
+2. Watch `[MEMORY]` log lines for RSS/heap trends
+3. Check Render logs for OOM signals
+4. Ensure no custom code is creating additional browser or DB connections
+
+---
+
+## Deployment
+
+### Render restarts frequently
+
+1. Check memory — add `--max-old-space-size=512` to the start command
+2. Review Render logs for the crash reason (OOM, uncaught exception, timeout)
+3. Verify all required environment variables are set in the Render dashboard
+4. Confirm graceful shutdown is working (look for `[SHUTDOWN]` log entries)
+
+### Frontend build fails on Render
+
+1. Check for TypeScript errors: `npm run build` locally first
+2. Ensure all dependencies are in `package.json` (not just `devDependencies` if needed at runtime)
+3. Clear the Render build cache and retry
+4. Verify Node.js version compatibility (v18+)
+
+---
 
 ## Related Documentation
 
 - [Backend Setup](backend-setup.md) - Configuration reference
-- [Scraping Methods](scraping-methods.md) - Scraper configuration
+- [Scraping Methods](scraping-methods.md) - Scraper internals
 - [CSS Selectors](css-selectors.md) - Selector debugging
 - [Deployment](deployment.md) - Production setup
+- [AI Optimization Analysis](ai-optimization-analysis.md) - AI monitoring endpoints
