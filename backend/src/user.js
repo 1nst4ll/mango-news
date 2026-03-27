@@ -8,9 +8,11 @@ const registrationSchema = z.object({
   username: z.string().email('Invalid email format.'),
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters.')
+    .min(12, 'Password must be at least 12 characters.')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter.')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
-    .regex(/[0-9]/, 'Password must contain at least one number.'),
+    .regex(/[0-9]/, 'Password must contain at least one number.')
+    .regex(/[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character.'),
 });
 
 // Register a new user
@@ -30,7 +32,7 @@ async function registerUser(pool, username, password) {
   } catch (error) {
     console.error('Error registering user:', error);
     if (error.code === '23505') {
-      return { success: false, message: 'Email already exists.' };
+      return { success: false, message: 'Registration failed. Please try again.' };
     }
     return { success: false, message: 'Failed to register user.' };
   }
@@ -61,9 +63,12 @@ async function loginUser(pool, username, password) {
       { expiresIn: '1h' }
     );
 
-    const refreshSecret = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET + '_refresh';
+    const refreshSecret = process.env.REFRESH_TOKEN_SECRET;
+    if (!refreshSecret) {
+      throw new Error('REFRESH_TOKEN_SECRET environment variable is not set.');
+    }
     const refreshToken = jwt.sign(
-      { userId: user.id, type: 'refresh' },
+      { userId: user.id, email: user.email, role: user.role, type: 'refresh' },
       refreshSecret,
       { expiresIn: '30d' }
     );

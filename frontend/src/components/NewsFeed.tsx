@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import useDeepCompareEffect from '../lib/hooks/useDeepCompareEffect';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button"; // Import Button component
@@ -550,7 +551,7 @@ function NewsFeed({
                           </p>
                         </CardHeader>
                         <CardContent className="flex-grow px-6 pb-4">
-                          <p className="text-foreground" dangerouslySetInnerHTML={{ __html: (displaySummary || (currentLocale !== 'en' ? `${article.summary} (${getFallbackMessage(currentLocale)})` : article.summary))?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '' }}></p>
+                          <p className="text-foreground" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize((displaySummary || (currentLocale !== 'en' ? `${article.summary} (${getFallbackMessage(currentLocale)})` : article.summary))?.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: bold;" class="text-accent-foreground">$1</span>') || '') }}></p>
                         </CardContent>
                         <div className="px-6 pb-2 grid grid-cols-2 gap-2">
                           <Button
