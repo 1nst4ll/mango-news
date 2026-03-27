@@ -120,7 +120,7 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
     setLightboxIndex(i => (i !== null ? (i - 1 + images.length) % images.length : 0));
   };
 
-  // Close on Escape and backdrop click
+  // Keyboard navigation
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -129,15 +129,8 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
       if (e.key === 'ArrowRight') setLightboxIndex(i => (i !== null ? (i + 1) % images.length : 0));
       if (e.key === 'ArrowLeft') setLightboxIndex(i => (i !== null ? (i - 1 + images.length) % images.length : 0));
     };
-    const handleClick = (e: MouseEvent) => {
-      if (e.target === dialog) closeLightbox();
-    };
     dialog.addEventListener('keydown', handleKeyDown);
-    dialog.addEventListener('click', handleClick);
-    return () => {
-      dialog.removeEventListener('keydown', handleKeyDown);
-      dialog.removeEventListener('click', handleClick);
-    };
+    return () => dialog.removeEventListener('keydown', handleKeyDown);
   }, [images.length]);
 
   return (
@@ -147,13 +140,16 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
           <button
             key={i}
             onClick={() => openLightbox(i)}
-            className="relative aspect-square overflow-hidden rounded-md bg-muted focus:outline-none focus:ring-2 focus:ring-primary group"
+            className="group relative w-full overflow-hidden rounded-md bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label={img.alt || `Image ${i + 1}`}
+            style={{ aspectRatio: '1 / 1' }}
           >
             <img
               src={img.src}
               alt={img.alt}
-              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+              width={323}
+              height={323}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
               <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -162,48 +158,64 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
         ))}
       </div>
 
+      {/* Full-screen lightbox — clicking the backdrop (dialog itself) closes it */}
       <dialog
         ref={dialogRef}
-        className="fixed inset-0 m-auto max-w-[95vw] max-h-[95vh] w-auto h-auto bg-transparent border-0 p-0 [&::backdrop]:bg-black/80"
-        style={{ position: 'fixed' }}
+        onClick={closeLightbox}
+        className="fixed inset-0 w-screen h-screen max-w-none max-h-none m-0 bg-black/85 border-0 p-0 overflow-hidden [&::backdrop]:hidden"
       >
-        <div className="relative flex flex-col items-center justify-center">
-          {lightboxIndex !== null && (
-            <>
-              <button
-                onClick={closeLightbox}
-                className="absolute top-0 right-0 z-10 m-2 p-1 rounded-full bg-black/60 text-white hover:bg-black/80"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
+        {lightboxIndex !== null && (
+          <>
+            {/* Close button */}
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Counter */}
+            {images.length > 1 && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 text-white/70 text-sm tabular-nums">
+                {lightboxIndex + 1} / {images.length}
+              </div>
+            )}
+
+            {/* Centered image — stopPropagation only on the img itself */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <img
                 src={getFullResSrc(images[lightboxIndex].src)}
                 alt={images[lightboxIndex].alt}
-                className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                onClick={e => e.stopPropagation()}
+                className="max-w-[88vw] object-contain pointer-events-auto cursor-default"
+                style={{ maxHeight: 'calc(100vh - 2rem)' }}
               />
-              {images.length > 1 && (
-                <div className="flex items-center gap-4 mt-3">
-                  <button
-                    onClick={goPrev}
-                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/80"
-                    aria-label="Previous"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <span className="text-white text-sm">{lightboxIndex + 1} / {images.length}</span>
-                  <button
-                    onClick={goNext}
-                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/80"
-                    aria-label="Next"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+            </div>
+
+            {/* Prev arrow — left side */}
+            {images.length > 1 && (
+              <button
+                onClick={goPrev}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* Next arrow — right side */}
+            {images.length > 1 && (
+              <button
+                onClick={goNext}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+                aria-label="Next"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+          </>
+        )}
       </dialog>
     </div>
   );
