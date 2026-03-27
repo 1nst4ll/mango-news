@@ -266,12 +266,20 @@ function serializeNode(node) {
 
   // Inline formatting tags → wrap content and return as inline string
   if (INLINE_KEEP.has(tag)) {
-    const inner = serializeChildren(node);
-    if (!inner.trim()) return '';
+    // Special case: <a> wrapping only an <img> — return the image as a block, drop the link wrapper
     if (tag === 'a') {
+      const childElements = [...node.childNodes].filter(c => c.nodeType === 1);
+      if (childElements.length === 1 && childElements[0].tagName.toLowerCase() === 'img') {
+        const imgResult = serializeNode(childElements[0]);
+        if (imgResult && typeof imgResult === 'object') return imgResult;
+      }
       const href = node.getAttribute('href');
+      const inner = serializeChildren(node);
+      if (!inner.trim()) return '';
       return href ? `<a href="${href}">${inner}</a>` : inner;
     }
+    const inner = serializeChildren(node);
+    if (!inner.trim()) return '';
     // Normalise <b>→<strong>, <i>→<em>
     const outTag = tag === 'b' ? 'strong' : tag === 'i' ? 'em' : tag;
     return `<${outTag}>${inner}</${outTag}>`;
