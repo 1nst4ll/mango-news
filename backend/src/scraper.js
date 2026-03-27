@@ -228,12 +228,19 @@ function serializeNode(node) {
   if (tag === 'img') {
     const pickBestFromSrcset = (srcset) => {
       if (!srcset) return '';
-      const entries = srcset.split(',').map(s => {
+      // Only parse entries that have an explicit width descriptor (e.g. "323w").
+      // Wix CDN URLs contain commas in their path parameters (w_323,h_323,...),
+      // so splitting on "," without checking for a width descriptor produces garbage tokens.
+      const entries = srcset.split(/,\s+(?=https?:\/\/)/).map(s => {
         const parts = s.trim().split(/\s+/);
-        return { url: parts[0], width: parts[1] ? parseInt(parts[1], 10) : 0 };
-      }).filter(e => e.url);
+        const descriptor = parts[1] || '';
+        const width = /^\d+w$/i.test(descriptor) ? parseInt(descriptor, 10) : 0;
+        return { url: parts[0], width };
+      }).filter(e => e.url && e.url.startsWith('http'));
       if (entries.length === 0) return '';
-      return entries.reduce((a, b) => b.width > a.width ? b : a).url;
+      const withWidth = entries.filter(e => e.width > 0);
+      if (withWidth.length === 0) return '';  // no width descriptors → skip, use rawSrc instead
+      return withWidth.reduce((a, b) => b.width > a.width ? b : a).url;
     };
     const isPlaceholder = (url) => !url || url.startsWith('data:') || url.startsWith('blob:');
 
