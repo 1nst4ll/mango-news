@@ -1178,6 +1178,7 @@ const SettingsPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
       </TabsContent>
 
 

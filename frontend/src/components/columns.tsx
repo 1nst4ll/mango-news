@@ -33,10 +33,11 @@ export type Article = {
     handleProcessAi: (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => void;
     handleDeleteArticle: (articleId: number) => void;
     handleRescrapeArticle: (articleId: number) => void;
-    handleEditArticle: (articleId: number) => void; // New handler for editing an article
+    handleEditArticle: (articleId: number) => void;
+    handleImageClick: (url: string) => void;
   };
   
-  export const getColumns = ({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle }: ActionHandlers): ColumnDef<Article>[] => [
+  export const getColumns = ({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick }: ActionHandlers): ColumnDef<Article>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -104,7 +105,9 @@ export type Article = {
     header: "Thumbnail",
     cell: ({ row }) => {
         const article = row.original
-        return article.thumbnail_url ? <img src={article.thumbnail_url} alt="Thumbnail" className="max-w-20 max-h-20 object-cover" /> : "N/A"
+        return article.thumbnail_url
+          ? <button onClick={() => handleImageClick(article.thumbnail_url!)} className="focus:outline-none"><img src={article.thumbnail_url} alt="Thumbnail" className="max-w-20 max-h-20 object-cover rounded hover:opacity-80 transition-opacity cursor-zoom-in" /></button>
+          : "N/A"
     }
   },
   {
@@ -147,7 +150,9 @@ export type Article = {
     header: "AI Image",
     cell: ({ row }) => {
         const article = row.original
-        return article.ai_image_path ? <img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover" /> : "N/A"
+        return article.ai_image_path
+          ? <button onClick={() => handleImageClick(article.ai_image_path!)} className="focus:outline-none"><img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover rounded hover:opacity-80 transition-opacity cursor-zoom-in" /></button>
+          : "N/A"
     }
   },
   {
