@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { Button } from "./ui/button"; // Import Button component
 import { Badge } from "./ui/badge"; // Import Badge component
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"; // Import Card components
@@ -495,7 +496,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           {splitContentSegments(displayContent).map((segment, i) =>
             Array.isArray(segment)
               ? <ImageGallery key={i} images={segment} />
-              : <div key={i} dangerouslySetInnerHTML={{ __html: segment }} />
+              : <div key={i} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(segment as string) }} />
           )}
         </div>
         <div className="mt-8 pt-4 border-t border-gray-300 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">

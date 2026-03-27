@@ -32,16 +32,28 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:4321'];
 
+// In production, all CORS origins must use HTTPS
+if (process.env.NODE_ENV === 'production') {
+  allowedOrigins.forEach(origin => {
+    if (!origin.startsWith('https://')) {
+      console.error(`[FATAL] CORS origin must use HTTPS in production: ${origin}`);
+      process.exit(1);
+    }
+  });
+}
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS: origin ${origin} not allowed`));
+      console.warn(`[WARN] CORS blocked origin: ${origin}`);
+      callback(new Error('CORS: origin not allowed'));
     }
   },
   credentials: true,
   exposedHeaders: ['X-Total-Count'],
+  maxAge: 86400,
 }));
 
 app.use(helmet({
@@ -55,9 +67,12 @@ app.use(helmet({
       frameSrc:   ["'none'"],
     },
   },
-  hsts: { maxAge: 31536000, includeSubDomains: true },
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   frameguard: { action: 'deny' },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  noSniff: true,
+  xssFilter: true,
+  hidePoweredBy: true,
 }));
 
 app.use(cookieParser());
@@ -77,6 +92,15 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   message: { error: 'Too many login attempts, please try again later.' },
+});
+
+// Stricter limiter for resource-intensive AI/scraping operations
+const expensiveLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded for resource-intensive operations. Please try again later.' },
 });
 
 app.use(generalLimiter);
@@ -191,14 +215,17 @@ app.post('/api/refresh', (req, res) => {
   if (!refreshToken) {
     return res.status(401).json({ error: 'No refresh token.' });
   }
-  const refreshSecret = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET + '_refresh';
+  const refreshSecret = process.env.REFRESH_TOKEN_SECRET;
+  if (!refreshSecret) {
+    return res.status(500).json({ error: 'Server misconfiguration.' });
+  }
   const jwt = require('jsonwebtoken');
   jwt.verify(refreshToken, refreshSecret, (err, payload) => {
     if (err || payload.type !== 'refresh') {
       return res.status(403).json({ error: 'Invalid refresh token.' });
     }
     const newAccessToken = jwt.sign(
-      { userId: payload.userId },
+      { userId: payload.userId, email: payload.email, role: payload.role },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -257,8 +284,16 @@ app.get('/api/sources/:id', async (req, res) => {
 app.get('/api/sources/:sourceId/articles', async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/sources/${sourceId}/articles`;
-  const { page = 1, limit = 15, sortBy = 'publication_date', sortOrder = 'DESC', filterByAiStatus } = req.query;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const ALLOWED_SORT_COLUMNS = ['id', 'title', 'publication_date', 'created_at'];
+  const ALLOWED_SORT_ORDERS  = ['ASC', 'DESC'];
+  const rawSortBy    = req.query.sortBy    || 'publication_date';
+  const rawSortOrder = req.query.sortOrder || 'DESC';
+  const sortBy    = ALLOWED_SORT_COLUMNS.includes(rawSortBy)                        ? rawSortBy    : 'publication_date';
+  const sortOrder = ALLOWED_SORT_ORDERS.includes(rawSortOrder.toUpperCase())        ? rawSortOrder.toUpperCase() : 'DESC';
+  const filterByAiStatus = req.query.filterByAiStatus;
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+  const offset = (page - 1) * limit;
 
   let baseQuery = `
     FROM articles a
@@ -580,8 +615,10 @@ app.get('/api/topics', async (req, res) => {
 // Get all articles with pagination
 app.get('/api/articles', async (req, res) => {
   const endpoint = '/api/articles';
-  const { topic, startDate, endDate, searchTerm, source_ids, page = 1, limit = 15 } = req.query;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const { topic, startDate, endDate, searchTerm, source_ids } = req.query;
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+  const offset = (page - 1) * limit;
 
   const values = [];
   const conditions = [];
@@ -905,7 +942,7 @@ app.put('/api/articles/:id/block', authenticateToken, requireRole('admin'), asyn
 });
 
 // Endpoint to trigger AI processing for a single article
-app.post('/api/articles/:articleId/process-ai', authenticateToken, requireRole('admin'), async (req, res) => {
+app.post('/api/articles/:articleId/process-ai', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
   const articleId = req.params.articleId;
   const endpoint = `/api/articles/${articleId}/process-ai`;
   const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image', or 'translations')
@@ -988,7 +1025,7 @@ app.post('/api/articles/:articleId/rescrape', authenticateToken, requireRole('ad
 });
 
 // Trigger scraper for a specific source
-app.post('/api/scrape/run/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+app.post('/api/scrape/run/:id', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/scrape/run/${sourceId}`;
   const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
@@ -1025,7 +1062,7 @@ app.post('/api/scrape/run/:id', authenticateToken, requireRole('admin'), async (
 });
 
 // Endpoint to trigger a full scraper run
-app.post('/api/scrape/run', authenticateToken, requireRole('admin'), async (req, res) => {
+app.post('/api/scrape/run', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
   const endpoint = '/api/scrape/run';
   const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
   try {
@@ -1241,7 +1278,7 @@ app.post('/api/ai-service/clear-cache', authenticateToken, requireRole('admin'),
 });
 
 // Sunday Edition Endpoints
-app.post('/api/sunday-editions/generate', authenticateToken, requireRole('admin'), async (req, res) => {
+app.post('/api/sunday-editions/generate', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
   try {
     const result = await createSundayEdition();
     if (result.success) {
@@ -1257,8 +1294,9 @@ app.post('/api/sunday-editions/generate', authenticateToken, requireRole('admin'
 
 app.get('/api/sunday-editions', async (req, res) => {
   const endpoint = '/api/sunday-editions';
-  const { page = 1, limit = 15 } = req.query;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+  const offset = (page - 1) * limit;
 
   try {
     const countResult = await pool.query('SELECT COUNT(*) FROM sunday_editions');
@@ -1297,14 +1335,16 @@ app.get('/api/sunday-editions/:id', async (req, res) => {
 app.post('/api/unreal-speech-callback', async (req, res) => {
   const endpoint = '/api/unreal-speech-callback';
 
-  // Optional shared secret verification
+  // Required shared secret verification
   const webhookSecret = process.env.UNREAL_SPEECH_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const provided = req.headers['x-webhook-secret'];
-    if (provided !== webhookSecret) {
-      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Webhook secret mismatch from ${req.ip}`);
-      return res.status(401).json({ error: 'Unauthorized.' });
-    }
+  if (!webhookSecret) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - UNREAL_SPEECH_WEBHOOK_SECRET is not configured. Rejecting callback.`);
+    return res.status(503).json({ error: 'Webhook not configured.' });
+  }
+  const provided = req.headers['x-webhook-secret'];
+  if (provided !== webhookSecret) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Webhook secret mismatch from ${req.ip}`);
+    return res.status(401).json({ error: 'Unauthorized.' });
   }
 
   // Validate payload structure
@@ -1615,7 +1655,7 @@ app.use((err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = process.env.NODE_ENV === 'development';
   res.status(500).json({ error: 'Internal Server Error', ...(isDev && { details: err.message }) });
 });
 

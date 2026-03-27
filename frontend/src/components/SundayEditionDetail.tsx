@@ -1,5 +1,6 @@
 import React from 'react';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import AudioPlayer from './ui/AudioPlayer';
 import { Button } from "./ui/button";
 import { MessageCircleMore, Facebook } from 'lucide-react';
@@ -44,7 +45,7 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
             <AudioPlayer src={edition.narration_url} autoplay={true} /> {/* Add autoplay={true} */}
           </div>
         )}
-        <div className="article-content" dangerouslySetInnerHTML={{ __html: displaySummary }}></div>
+        <div className="article-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displaySummary) }}></div>
         <div className="mt-8 pt-4 border-t border-gray-300 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             size="sm"

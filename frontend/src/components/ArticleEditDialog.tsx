@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import DOMPurify from 'dompurify';
 import { apiFetch } from '../lib/api';
 import {
   Dialog,
@@ -230,7 +231,7 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
                           <div
                             className="border rounded-md px-4 py-3 overflow-y-auto prose prose-sm max-w-none"
                             style={{ minHeight: 400 }}
-                            dangerouslySetInnerHTML={{ __html: (articleData as any)[contentKey] || '' }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize((articleData as any)[contentKey] || '') }}
                           />
                         </div>
                       </div>
