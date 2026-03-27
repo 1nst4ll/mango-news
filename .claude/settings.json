@@ -18,7 +18,11 @@
       "Bash(node -e \":*)",
       "Bash(node --check \"d:\\\\ClaudeMCP\\\\!projects\\\\mango-news\\\\backend\\\\src\\\\scraper.js\")",
       "WebFetch(domain:www.newslinetci.com)",
-      "Bash(wc -l d:ClaudeMCP!projectsmango-newsfrontendsrccomponents/*.tsx)"
+      "Bash(wc -l d:ClaudeMCP!projectsmango-newsfrontendsrccomponents/*.tsx)",
+      "Bash(find /d/ClaudeMCP/!projects/mango-news -type f \\\\\\(-name *.js -o -name *.ts -o -name *.tsx \\\\\\) -path */middleware/* -o -name *auth*)",
+      "Bash(npm audit:*)",
+      "Bash(node --check src/user.js)",
+      "Bash(node --check src/middleware/auth.js)"
     ]
   }
 }

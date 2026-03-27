@@ -6,19 +6,28 @@ All endpoints return JSON. Errors use the shape `{ "error": "description" }`.
 
 ## Authentication
 
-Protected endpoints require a JWT in the `Authorization` header:
+Protected endpoints use **HttpOnly cookie authentication**. On a successful login the backend sets a `jwt` cookie — the browser sends it automatically on subsequent requests. No manual `Authorization` header is needed from the browser.
 
+**To authenticate from a browser (frontend):** use `credentials: 'include'` on every `fetch` call (the `apiFetch` wrapper in `frontend/src/lib/api.ts` does this automatically).
+
+**To authenticate from a non-browser API client** (curl, scripts): pass the token in the `Authorization` header as a fallback:
 ```
 Authorization: Bearer YOUR_TOKEN
 ```
 
-Obtain a token via `POST /api/login`. Protected endpoints return `401` if the token is missing or invalid.
+**Login flow:**
+1. `POST /api/login` — sets `jwt` (1-hour access cookie) and `jwt_refresh` (24h or 30-day refresh cookie, depending on `rememberMe`)
+2. On 401, call `POST /api/refresh` to silently get a new access cookie using the refresh cookie
+3. `POST /api/logout` — clears both cookies
+4. `GET /api/me` — check whether the current session is valid
 
 **Common HTTP status codes:**
-- `400` — malformed request or missing required fields
-- `401` — authentication required or token invalid/expired
+- `400` — malformed request or missing/invalid fields
+- `401` — no token / session expired
+- `403` — valid token but insufficient permissions (wrong role)
 - `404` — resource not found
-- `500` — unexpected server error
+- `429` — rate limit exceeded (5 auth attempts per 15 min; 100 req/min general)
+- `500` — unexpected server error (details only visible with `NODE_ENV != production`)
 
 ---
 
@@ -26,21 +35,57 @@ Obtain a token via `POST /api/login`. Protected endpoints return `401` if the to
 
 ### `POST /api/register`
 
-Register a new admin user. No auth required.
+Register a new admin user. No auth required. Rate-limited to 5 attempts per 15 minutes.
 
-**Body:** `{ "username": "string", "password": "string" }`
+**Body:** `{ "username": "email@example.com", "password": "string" }`
 
-**Response `201`:** `{ "message": "User registered successfully.", "user": { "id": 1, "username": "admin" } }`
+Password rules: minimum 8 characters, at least one uppercase letter, at least one number.
+
+**Response `201`:** `{ "message": "User registered successfully.", "user": { "id": 1, "email": "admin@example.com" } }`
+
+**Response `400`:** Validation error — e.g. `{ "error": "Password must be at least 8 characters." }`
 
 ---
 
 ### `POST /api/login`
 
-Login and receive a JWT token.
+Login. Sets `jwt` and `jwt_refresh` HttpOnly cookies. Rate-limited to 5 failed attempts per 15 minutes.
 
-**Body:** `{ "username": "string", "password": "string" }`
+**Body:** `{ "username": "email@example.com", "password": "string", "rememberMe": false }`
 
-**Response `200`:** `{ "message": "Login successful.", "token": "eyJ..." }`
+`rememberMe: true` extends the refresh cookie lifetime from 24 hours to 30 days.
+
+**Response `200`:** `{ "message": "Login successful." }` (token is in the cookie — not the body)
+
+---
+
+### `POST /api/logout`
+
+Clear both auth cookies. No auth required (safe to call even when not logged in).
+
+**Response `200`:** `{ "message": "Logged out successfully." }`
+
+---
+
+### `POST /api/refresh`
+
+Exchange the `jwt_refresh` cookie for a new 1-hour `jwt` access cookie. Called automatically by the `apiFetch` wrapper on 401 responses.
+
+**Response `200`:** `{ "message": "Token refreshed." }`
+
+**Response `401`:** No refresh cookie present.
+
+**Response `403`:** Refresh token invalid or expired.
+
+---
+
+### `GET /api/me`
+
+Lightweight session check — returns the current user if the `jwt` cookie is valid.
+
+**Response `200`:** `{ "userId": 1, "email": "admin@example.com" }`
+
+**Response `401`:** Not authenticated.
 
 ---
 
@@ -350,6 +395,8 @@ Get a single Sunday Edition. Public.
 
 Async callback from Unreal Speech when MP3 narration is ready. Called by Unreal Speech — not for direct client use.
 
+Payload is validated with Zod (`TaskId: string`, `TaskStatus: completed|failed|processing|pending`). If `UNREAL_SPEECH_WEBHOOK_SECRET` is set in the environment, the request must include a matching `x-webhook-secret` header.
+
 ---
 
 ## Settings
@@ -429,7 +476,7 @@ RSS feed of the latest 20 articles. Public.
 
 - Pagination: default page size is `15` for articles and Sunday Editions
 - `X-Total-Count` response header on all paginated endpoints contains the total matching count (as a string)
-- 🔒 = requires `Authorization: Bearer TOKEN` header
+- 🔒 = requires authentication (browser: `jwt` cookie sent automatically; API clients: `Authorization: Bearer TOKEN` header)
 
 ## Related Documentation
 

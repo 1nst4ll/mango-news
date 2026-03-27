@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Button } from "./ui/button";
 import { DataTable } from "./ui/data-table";
@@ -48,7 +49,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [isRescraping, setIsRescraping] = useState<boolean>(false); // New state for rescraping loading
 
   const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev
-  const [jwtToken, setJwtToken] = useState<string | null>(null);
 
   // State for ArticleEditDialog
   const [isArticleEditDialogOpen, setIsArticleEditDialogOpen] = useState(false);
@@ -66,11 +66,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   });
   const [pageCount, setPageCount] = useState(0); // Total number of pages
 
-  useEffect(() => {
-    // Retrieve the token from localStorage when the component mounts
-    const token = localStorage.getItem('jwtToken');
-    setJwtToken(token);
-  }, []);
 
   const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
     setProcessingLoading(prev => ({
@@ -79,12 +74,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     }));
 
     try {
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}/process-ai`, {
+      const response = await apiFetch(`/api/articles/${articleId}/process-ai`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }), // Add Authorization header if token exists
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ featureType }),
       });
       const data = await response.json();
@@ -121,12 +113,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     }));
 
     try {
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}`, {
+      const response = await apiFetch(`/api/articles/${articleId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }), // Add Authorization header if token exists
-        },
       });
 
       if (!response.ok) {
@@ -164,12 +152,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       [articleId]: { ...prev[articleId], rescraping: true } // Add a rescraping state for individual articles
     }));
     try {
-      const response = await fetch(`${apiUrl}/api/articles/${articleId}/rescrape`, {
+      const response = await apiFetch(`/api/articles/${articleId}/rescrape`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.json();
       if (!response.ok) {
@@ -286,12 +271,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     if (sourceSettings.enable_ai_summary) {
       setArticleProcessingLoading(prev => ({ ...prev, summary: true }));
       processingPromises.push(
-        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+        apiFetch(`/api/process-missing-ai/${sourceId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ featureType: 'summary' }),
         })
         .then(response => response.json())
@@ -316,12 +298,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     if (sourceSettings.enable_ai_tags) {
       setArticleProcessingLoading(prev => ({ ...prev, tags: true }));
       processingPromises.push(
-        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+        apiFetch(`/api/process-missing-ai/${sourceId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ featureType: 'tags' }),
         })
         .then(response => response.json())
@@ -346,12 +325,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     if (sourceSettings.enable_ai_image) {
       setArticleProcessingLoading(prev => ({ ...prev, image: true }));
       processingPromises.push(
-        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+        apiFetch(`/api/process-missing-ai/${sourceId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ featureType: 'image' }),
         })
         .then(response => response.json())
@@ -376,12 +352,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     if (sourceSettings.enable_ai_translations) {
       setArticleProcessingLoading(prev => ({ ...prev, translations: true }));
       processingPromises.push(
-        fetch(`${apiUrl}/api/process-missing-ai/${sourceId}`, {
+        apiFetch(`/api/process-missing-ai/${sourceId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` }),
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ featureType: 'translations' }),
         })
         .then(response => response.json())
@@ -410,7 +383,9 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   const handleRescrapeAllArticles = () => {
     setIsRescraping(true);
-    const eventSource = new EventSource(`${apiUrl}/api/sources/${sourceId}/rescrape-stream?token=${jwtToken}`); // Pass token as query param for SSE
+    // EventSource sends cookies automatically for same-origin requests.
+    // For cross-origin, ensure the backend ALLOWED_ORIGINS includes this frontend origin.
+    const eventSource = new EventSource(`${apiUrl}/api/sources/${sourceId}/rescrape-stream`);
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);

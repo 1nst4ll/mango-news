@@ -13,42 +13,42 @@ interface LoginDialogProps {
 export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    setError(''); // Clear previous errors
-    const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api'; // Use environment variable or fallback
+    setError('');
+    const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api';
     try {
       const response = await fetch(`${backendApiUrl}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+        body: JSON.stringify({ username, password, rememberMe }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Login successful
-        console.log('Login successful:', data);
-        // Store the token (e.g., in localStorage)
-        localStorage.setItem('jwtToken', data.token);
-        onLoginSuccess(); // Call the success callback
-        // Close the dialog
+        // Cookie is set by the backend — no localStorage needed
+        onLoginSuccess();
         setIsOpen(false);
-        // Clear form fields
         setUsername('');
         setPassword('');
+        setRememberMe(false);
       } else {
-        // Login failed
-        console.error('Login failed:', data.error);
         setError(data.error || 'Login failed.');
       }
     } catch (err) {
       console.error('Error during login:', err);
       setError('An error occurred during login.');
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleLogin();
   };
 
   return (
@@ -69,6 +69,7 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="col-span-3"
             />
           </div>
@@ -81,8 +82,21 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="col-span-3"
             />
+          </div>
+          <div className="flex items-center gap-2 col-span-4 pl-1">
+            <input
+              id="rememberMe"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 cursor-pointer"
+            />
+            <Label htmlFor="rememberMe" className="cursor-pointer font-normal">
+              Remember me for 30 days
+            </Label>
           </div>
           {error && <p className="text-red-500 text-sm col-span-4 text-center">{error}</p>}
         </div>

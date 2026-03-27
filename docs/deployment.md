@@ -48,6 +48,10 @@ AWS_SECRET_ACCESS_KEY=your_secret
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your_bucket
 
+# Security
+ALLOWED_ORIGINS=http://localhost:4321
+NODE_ENV=development
+
 # Optional
 FIRECRAWL_API_KEY=your_key
 UNREAL_SPEECH_API_KEY=your_key
@@ -65,10 +69,12 @@ cd frontend && npm run dev  # http://localhost:4321
 
 ### Create your admin account
 
+Username must be a valid email. Password must be 8+ characters with at least one uppercase letter and one number.
+
 ```bash
 curl -X POST http://localhost:3000/api/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"your_password"}'
+  -d '{"username":"admin@example.com","password":"SecurePass1"}'
 ```
 
 Then log in via the frontend at `/settings`.
@@ -114,9 +120,17 @@ AWS_ACCESS_KEY_ID=your-aws-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your-bucket
-JWT_SECRET=your-jwt-secret
-FIRECRAWL_API_KEY=your-key   # optional
-UNREAL_SPEECH_API_KEY=your-key  # optional, Sunday Edition audio
+
+# Auth & security
+JWT_SECRET=your-jwt-secret          # use a strong random value
+REFRESH_TOKEN_SECRET=your-refresh-secret  # optional but recommended
+NODE_ENV=production                  # enables Secure cookies, hides error details
+ALLOWED_ORIGINS=https://your-frontend-url.onrender.com
+
+# Optional
+FIRECRAWL_API_KEY=your-key
+UNREAL_SPEECH_API_KEY=your-key       # Sunday Edition audio
+UNREAL_SPEECH_WEBHOOK_SECRET=your-webhook-secret  # optional webhook security
 ```
 
 ### 3. Frontend Web Service

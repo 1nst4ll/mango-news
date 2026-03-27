@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { ArticlesPerSourceBarChart } from "./charts/ArticlesPerSourceBarChart";
@@ -76,7 +77,6 @@ interface ModalFormData {
 
 
 const SettingsPage: React.FC = () => {
-  const [jwtToken, setJwtToken] = useState<string | null>(null);
 
   // State for Scheduled Tasks
   const [mainScraperFrequency, setMainScraperFrequency] = useState<string>('0 * * * *');
@@ -141,16 +141,8 @@ const SettingsPage: React.FC = () => {
   // Effects for fetching scheduler settings
   useEffect(() => {
     const fetchSchedulerSettings = async () => {
-      if (!jwtToken) return; // Don't fetch if no token
-
       try {
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jwtToken}`,
-        };
-
-        const response = await fetch(`${apiUrl}/api/settings/scheduler`, { headers });
+        const response = await apiFetch('/api/settings/scheduler');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -171,14 +163,11 @@ const SettingsPage: React.FC = () => {
     };
 
     fetchSchedulerSettings();
-  }, [jwtToken]);
+  }, []);
 
   // Effects from admin/page.tsx
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('jwtToken');
-      setJwtToken(token); // Set the JWT token in state
-
       const savedSummaryToggle = localStorage.getItem('enableGlobalAiSummary');
       if (savedSummaryToggle !== null) {
         setEnableGlobalAiSummary(JSON.parse(savedSummaryToggle));
@@ -189,18 +178,7 @@ const SettingsPage: React.FC = () => {
       setStatsLoading(true);
       setStatsError(null);
       try {
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-        const token = localStorage.getItem('jwtToken'); // Get the JWT token from localStorage
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`${apiUrl}/api/stats`, {
-          headers: headers,
-        });
+        const response = await apiFetch('/api/stats');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -218,7 +196,7 @@ const SettingsPage: React.FC = () => {
     };
 
     fetchStats();
-  }, [jwtToken]); // Re-fetch stats if token changes
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -306,18 +284,10 @@ const SettingsPage: React.FC = () => {
   const handleTriggerScraper = async () => {
     setLoading(true);
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/scrape/run`, {
+      const response = await apiFetch('/api/scrape/run', {
         method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }), // Include new toggle
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -345,17 +315,9 @@ const SettingsPage: React.FC = () => {
     setIsConfirmDialogOpen(false);
     setPurgeLoading(true);
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/articles/purge`, {
+      const response = await apiFetch('/api/articles/purge', {
         method: 'POST',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.json();
       if (!response.ok) {
@@ -377,19 +339,9 @@ const SettingsPage: React.FC = () => {
   const handleGenerateSundayEdition = async () => {
     setSundayEditionLoading(true);
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json', // Explicitly request JSON response
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/sunday-editions/generate`, {
+      const response = await apiFetch('/api/sunday-editions/generate', {
         method: 'POST',
-        headers: headers,
-        // Ensure an empty body is sent if no data is required, to explicitly set Content-Type
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({}),
       });
       const data = await response.json();
@@ -413,18 +365,10 @@ const SettingsPage: React.FC = () => {
     setSourceScrapingLoading(prev => ({ ...prev, [sourceId]: true }));
     setSourceScrapingStatus(prev => ({ ...prev, [sourceId]: null }));
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/scrape/run/${sourceId}`, {
+      const response = await apiFetch(`/api/scrape/run/${sourceId}`, {
         method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }), // Include new toggle
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -457,17 +401,9 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/sources/${sourceId}`, {
+      const response = await apiFetch(`/api/sources/${sourceId}`, {
         method: 'PUT',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: false }),
       });
 
@@ -523,15 +459,9 @@ const SettingsPage: React.FC = () => {
   const handleSaveScheduleSettings = async () => {
     setSavingSchedule(true);
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`,
-      };
-
-      const response = await fetch(`${apiUrl}/api/settings/scheduler`, {
+      const response = await apiFetch('/api/settings/scheduler', {
         method: 'POST',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           main_scraper_frequency: mainScraperFrequency,
           missing_ai_frequency: missingAiFrequency,
@@ -570,17 +500,9 @@ const SettingsPage: React.FC = () => {
     setSourceArticleDeletionLoading(prev => ({ ...prev, [sourceId]: true }));
     setSourceArticleDeletionStatus(prev => ({ ...prev, [sourceId]: null }));
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/articles/purge/${sourceId}`, {
+      const response = await apiFetch(`/api/articles/purge/${sourceId}`, {
         method: 'POST',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.json();
       if (!response.ok) {
@@ -620,17 +542,9 @@ const SettingsPage: React.FC = () => {
       return;
     }
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/sources`, {
+      const response = await apiFetch('/api/sources', {
         method: 'POST',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(modalFormData),
       });
       if (!response.ok) {
@@ -661,17 +575,9 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
-      }
-
-      const response = await fetch(`${apiUrl}/api/sources/${editingSource.id}`, {
+      const response = await apiFetch(`/api/sources/${editingSource.id}`, {
         method: 'PUT',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(modalFormData),
       });
       if (!response.ok) {
@@ -706,8 +612,7 @@ const SettingsPage: React.FC = () => {
     setConfirmDialogSourceId(null);
 
     try {
-      const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-      const response = await fetch(`${apiUrl}/api/sources/${id}`, {
+      const response = await apiFetch(`/api/sources/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) {

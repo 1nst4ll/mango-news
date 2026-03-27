@@ -37,8 +37,10 @@ const Header: React.FC = () => {
   const { t, currentLocale } = useTranslations(); // Use the translation hook
 
   useEffect(() => {
-    const token = localStorage.getItem('jwtToken');
-    setIsLoggedIn(!!token);
+    const apiUrl = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:3000';
+    fetch(`${apiUrl}/api/me`, { credentials: 'include' })
+      .then(res => setIsLoggedIn(res.ok))
+      .catch(() => setIsLoggedIn(false));
   }, []);
 
   const filteredNavItems = navItems.filter(item =>

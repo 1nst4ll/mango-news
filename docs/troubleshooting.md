@@ -122,8 +122,12 @@ The AI service enforces `AI_RATE_LIMIT_PER_MINUTE` (default 60) to prevent hitti
 
 ### Translations are stale or wrong
 
-Clear the in-memory cache:
+Clear the in-memory cache via the Settings page, or with curl using a saved session cookie:
 ```bash
+# With cookie file saved from login
+curl -b cookies.txt -X POST "http://localhost:3000/api/ai-service/clear-cache"
+
+# Or with a raw token (non-browser clients)
 curl -X POST "http://localhost:3000/api/ai-service/clear-cache" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
@@ -141,11 +145,20 @@ Then reprocess translations via the article dropdown (Rerun Translations) or bul
 3. Open browser DevTools → Console for JavaScript errors
 4. Check Network tab for failed API requests
 
-### Authentication errors — "No token provided"
+### Authentication errors — "No token provided" / redirected to homepage
 
-1. Log in again — the token may have expired
-2. Clear `localStorage` and re-login: `localStorage.clear()` in browser console
-3. Verify `jwtToken` is present in `localStorage` after login
+Auth is now cookie-based. Tokens are no longer stored in `localStorage`.
+
+1. Log in again via the user menu — the session (cookie) may have expired
+2. Check browser DevTools → Application → Cookies for a `jwt` cookie on the backend domain
+3. If the cookie exists but requests still fail, verify `ALLOWED_ORIGINS` includes your frontend URL and the backend `NODE_ENV` is set correctly
+4. For cross-origin setups, ensure the frontend uses `credentials: 'include'` on all fetch calls (the `apiFetch` wrapper handles this automatically)
+5. If you previously had a `jwtToken` in `localStorage`, it is no longer used — you can clear it with `localStorage.removeItem('jwtToken')` but it has no effect on the new auth flow
+
+### Rate limit errors — 429 Too Many Requests
+
+- **Auth endpoints** (`/api/login`, `/api/register`): limited to 5 failed attempts per 15 minutes per IP. Wait 15 minutes or restart the backend (clears the in-memory counter) during development.
+- **General API**: limited to 100 requests per minute per IP.
 
 ### Infinite scroll stops loading
 

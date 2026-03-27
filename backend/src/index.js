@@ -13,8 +13,12 @@ const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); /
 const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTranslatedTopicsForSource, scrapeArticlePage } = require('./scraper'); // Import scraper functions including processMissingAiForSource and the new function
 const { createSundayEdition } = require('./sundayEditionGenerator'); // Import createSundayEdition function
 const aiService = require('./services/aiService'); // Import centralized AI service for monitoring
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
+const { z } = require('zod');
 const { registerUser, loginUser } = require('./user'); // Import user management functions
-const authenticateToken = require('./middleware/auth'); // Import authentication middleware
+const { authenticateToken, requireRole } = require('./middleware/auth'); // Import authentication middleware
 
 // Import shared database pool and browser pool for centralized resource management
 // This prevents connection exhaustion and reduces memory overhead
@@ -24,9 +28,59 @@ const { closeBrowser } = require('./browserPool');
 const app = express();
 const port = process.env.PORT || 3000;
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:4321'];
+
 app.use(cors({
-  exposedHeaders: ['X-Total-Count'], // Expose custom header for frontend to read
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
+  credentials: true,
+  exposedHeaders: ['X-Total-Count'],
 }));
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"],
+      styleSrc:   ["'self'", "'unsafe-inline'"],
+      imgSrc:     ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      frameSrc:   ["'none'"],
+    },
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true },
+  frameguard: { action: 'deny' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
+
+app.use(cookieParser());
+
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many login attempts, please try again later.' },
+});
+
+app.use(generalLimiter);
+
 app.use(express.json());
 
 // Logging middleware
@@ -38,9 +92,13 @@ app.use((req, res, next) => {
 
   let logMessage = `[INFO] ${timestamp} - ${method} ${url} from ${ip}`;
 
-  // Log request body for POST and PUT requests
+  // Log request body for POST and PUT requests, redacting sensitive fields
   if (['POST', 'PUT'].includes(method) && Object.keys(req.body).length > 0) {
-    logMessage += ` - Body: ${JSON.stringify(req.body)}`;
+    const safeBody = { ...req.body };
+    if (safeBody.password !== undefined)    safeBody.password    = '[REDACTED]';
+    if (safeBody.newPassword !== undefined) safeBody.newPassword = '[REDACTED]';
+    if (safeBody.oldPassword !== undefined) safeBody.oldPassword = '[REDACTED]';
+    logMessage += ` - Body: ${JSON.stringify(safeBody)}`;
   }
 
   console.log(logMessage);
@@ -54,7 +112,7 @@ testConnection();
 // API Endpoints
 
 // User Registration
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
   const endpoint = '/api/register';
   const { username, password } = req.body;
   if (!username || !password) {
@@ -77,18 +135,37 @@ app.post('/api/register', async (req, res) => {
 });
 
 // User Login
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
   const endpoint = '/api/login';
-  const { username, password } = req.body;
+  const { username, password, rememberMe } = req.body;
   if (!username || !password) {
     console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing username or password`);
     return res.status(400).json({ error: 'Username and password are required.' });
   }
   try {
-    const result = await loginUser(pool, username, password); // Pass pool
+    const result = await loginUser(pool, username, password);
     if (result.success) {
       console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - User logged in successfully: ${username}`);
-      res.json({ message: 'Login successful.', token: result.token });
+      const isProd = process.env.NODE_ENV === 'production';
+      const accessMaxAge  = 60 * 60 * 1000;                        // 1 hour
+      const refreshMaxAge = rememberMe
+        ? 30 * 24 * 60 * 60 * 1000  // 30 days
+        : 24 * 60 * 60 * 1000;      // 24 hours
+
+      res.cookie('jwt', result.token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'strict',
+        maxAge: accessMaxAge,
+      });
+      res.cookie('jwt_refresh', result.refreshToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'strict',
+        maxAge: refreshMaxAge,
+        path: '/api/refresh',
+      });
+      return res.json({ message: 'Login successful.' });
     } else {
       console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Login failed: ${result.message}`);
       res.status(401).json({ error: result.message });
@@ -97,6 +174,48 @@ app.post('/api/login', async (req, res) => {
     console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error during login:`, error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+// User Logout
+app.post('/api/logout', (req, res) => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'strict' };
+  res.clearCookie('jwt', cookieOpts);
+  res.clearCookie('jwt_refresh', { ...cookieOpts, path: '/api/refresh' });
+  res.json({ message: 'Logged out successfully.' });
+});
+
+// Token Refresh
+app.post('/api/refresh', (req, res) => {
+  const refreshToken = req.cookies && req.cookies.jwt_refresh;
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'No refresh token.' });
+  }
+  const refreshSecret = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET + '_refresh';
+  const jwt = require('jsonwebtoken');
+  jwt.verify(refreshToken, refreshSecret, (err, payload) => {
+    if (err || payload.type !== 'refresh') {
+      return res.status(403).json({ error: 'Invalid refresh token.' });
+    }
+    const newAccessToken = jwt.sign(
+      { userId: payload.userId },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('jwt', newAccessToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 1000,
+    });
+    res.json({ message: 'Token refreshed.' });
+  });
+});
+
+// Session check — lightweight endpoint for frontend to verify auth state
+app.get('/api/me', authenticateToken, (req, res) => {
+  res.json({ userId: req.user.userId, email: req.user.email });
 });
 
 
@@ -225,7 +344,7 @@ app.get('/api/sources/:sourceId/articles', async (req, res) => {
 });
 
 // Add a new source
-app.post('/api/sources', authenticateToken, async (req, res) => {
+app.post('/api/sources', authenticateToken, requireRole('admin'), async (req, res) => {
   const endpoint = '/api/sources';
   const { name, url, is_active, enable_ai_summary, enable_ai_tags, enable_ai_image, enable_ai_translations, include_selectors, exclude_selectors, scraping_method, scrape_after_date } = req.body;
   if (!name || !url) {
@@ -246,7 +365,7 @@ app.post('/api/sources', authenticateToken, async (req, res) => {
 });
 
 // Update a source
-app.put('/api/sources/:id', authenticateToken, async (req, res) => {
+app.put('/api/sources/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/sources/${sourceId}`;
   const { name, url, is_active, enable_ai_summary, enable_ai_tags, enable_ai_image, enable_ai_translations, os_title_selector, os_content_selector, os_date_selector, os_author_selector, os_thumbnail_selector, os_topics_selector, include_selectors, exclude_selectors, article_link_template, exclude_patterns, scraping_method, scrape_after_date } = req.body;
@@ -299,7 +418,7 @@ app.put('/api/sources/:id', authenticateToken, async (req, res) => {
 });
 
 // Reprocess translated topics for a source
-app.post('/api/sources/:sourceId/reprocess-topics', authenticateToken, async (req, res) => {
+app.post('/api/sources/:sourceId/reprocess-topics', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/sources/${sourceId}/reprocess-topics`;
   try {
@@ -321,7 +440,7 @@ app.post('/api/sources/:sourceId/reprocess-topics', authenticateToken, async (re
 });
 
 // Delete a source
-app.delete('/api/sources/:id', authenticateToken, async (req, res) => {
+app.delete('/api/sources/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/sources/${sourceId}`;
   try {
@@ -340,7 +459,7 @@ app.delete('/api/sources/:id', authenticateToken, async (req, res) => {
 });
 
 // Rescrape all articles for a specific source (SSE endpoint)
-app.get('/api/sources/:sourceId/rescrape-stream', authenticateToken, async (req, res) => {
+app.get('/api/sources/:sourceId/rescrape-stream', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/sources/${sourceId}/rescrape-stream`;
 
@@ -376,7 +495,7 @@ app.get('/api/sources/:sourceId/rescrape-stream', authenticateToken, async (req,
 });
 
 // Keep the original POST endpoint for backward compatibility or if needed for non-streaming calls
-app.post('/api/sources/:sourceId/rescrape', authenticateToken, async (req, res) => {
+app.post('/api/sources/:sourceId/rescrape', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/sources/${sourceId}/rescrape`;
   try {
@@ -583,7 +702,7 @@ app.get('/api/articles/:id', async (req, res) => {
 
 
 // Delete a single article by ID
-app.delete('/api/articles/:id', authenticateToken, async (req, res) => {
+app.delete('/api/articles/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const articleId = req.params.id;
   const endpoint = `/api/articles/${articleId}`;
   try {
@@ -610,7 +729,7 @@ app.delete('/api/articles/:id', authenticateToken, async (req, res) => {
 });
 
 // Update a single article by ID
-app.put('/api/articles/:id', authenticateToken, async (req, res) => {
+app.put('/api/articles/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const articleId = req.params.id;
   const endpoint = `/api/articles/${articleId}`;
   const {
@@ -761,7 +880,7 @@ app.put('/api/articles/:id', authenticateToken, async (req, res) => {
 });
 
 // Block a single article by ID
-app.put('/api/articles/:id/block', authenticateToken, async (req, res) => {
+app.put('/api/articles/:id/block', authenticateToken, requireRole('admin'), async (req, res) => {
   const articleId = req.params.id;
   const endpoint = `/api/articles/${articleId}/block`;
   try {
@@ -786,7 +905,7 @@ app.put('/api/articles/:id/block', authenticateToken, async (req, res) => {
 });
 
 // Endpoint to trigger AI processing for a single article
-app.post('/api/articles/:articleId/process-ai', authenticateToken, async (req, res) => {
+app.post('/api/articles/:articleId/process-ai', authenticateToken, requireRole('admin'), async (req, res) => {
   const articleId = req.params.articleId;
   const endpoint = `/api/articles/${articleId}/process-ai`;
   const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image', or 'translations')
@@ -818,7 +937,7 @@ app.post('/api/articles/:articleId/process-ai', authenticateToken, async (req, r
 
 
 // Rescrape a single article by ID
-app.post('/api/articles/:articleId/rescrape', authenticateToken, async (req, res) => {
+app.post('/api/articles/:articleId/rescrape', authenticateToken, requireRole('admin'), async (req, res) => {
   const articleId = req.params.articleId;
   const endpoint = `/api/articles/${articleId}/rescrape`;
   try {
@@ -869,7 +988,7 @@ app.post('/api/articles/:articleId/rescrape', authenticateToken, async (req, res
 });
 
 // Trigger scraper for a specific source
-app.post('/api/scrape/run/:id', authenticateToken, async (req, res) => {
+app.post('/api/scrape/run/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.id;
   const endpoint = `/api/scrape/run/${sourceId}`;
   const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
@@ -906,7 +1025,7 @@ app.post('/api/scrape/run/:id', authenticateToken, async (req, res) => {
 });
 
 // Endpoint to trigger a full scraper run
-app.post('/api/scrape/run', authenticateToken, async (req, res) => {
+app.post('/api/scrape/run', authenticateToken, requireRole('admin'), async (req, res) => {
   const endpoint = '/api/scrape/run';
   const { enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage } = req.body; // Include enableGlobalAiImage
   try {
@@ -924,7 +1043,7 @@ app.post('/api/scrape/run', authenticateToken, async (req, res) => {
 });
 
 // Endpoint to process missing AI data for a specific source
-app.post('/api/process-missing-ai/:sourceId', authenticateToken, async (req, res) => {
+app.post('/api/process-missing-ai/:sourceId', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/process-missing-ai/${sourceId}`;
   const { featureType } = req.body; // Expect featureType ('summary', 'tags', 'image', or 'translations') in the request body
@@ -954,7 +1073,7 @@ app.post('/api/process-missing-ai/:sourceId', authenticateToken, async (req, res
 
 
 // Basic endpoint for source discovery (currently calls opensourceDiscoverSources)
-app.get('/api/discover-sources', authenticateToken, async (req, res) => {
+app.get('/api/discover-sources', authenticateToken, requireRole('admin'), async (req, res) => {
   const endpoint = '/api/discover-sources';
   try {
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Triggering source discovery`);
@@ -968,7 +1087,7 @@ app.get('/api/discover-sources', authenticateToken, async (req, res) => {
 });
 
 // Endpoint to delete all articles, topics, and article links
-app.post('/api/articles/purge', authenticateToken, async (req, res) => {
+app.post('/api/articles/purge', authenticateToken, requireRole('admin'), async (req, res) => {
   const endpoint = '/api/articles/purge';
   try {
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Purging all articles, topics, and article links...`);
@@ -993,7 +1112,7 @@ app.post('/api/articles/purge', authenticateToken, async (req, res) => {
 });
 
 // Endpoint to delete all articles for a specific source
-app.post('/api/articles/purge/:sourceId', authenticateToken, async (req, res) => {
+app.post('/api/articles/purge/:sourceId', authenticateToken, requireRole('admin'), async (req, res) => {
   const sourceId = req.params.sourceId;
   const endpoint = `/api/articles/purge/${sourceId}`;
   try {
@@ -1108,7 +1227,7 @@ app.get('/api/ai-service/stats', authenticateToken, async (req, res) => {
 });
 
 // Clear AI service cache (admin action)
-app.post('/api/ai-service/clear-cache', authenticateToken, async (req, res) => {
+app.post('/api/ai-service/clear-cache', authenticateToken, requireRole('admin'), async (req, res) => {
   const endpoint = '/api/ai-service/clear-cache';
   try {
     console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Clearing AI service cache...`);
@@ -1122,7 +1241,7 @@ app.post('/api/ai-service/clear-cache', authenticateToken, async (req, res) => {
 });
 
 // Sunday Edition Endpoints
-app.post('/api/sunday-editions/generate', authenticateToken, async (req, res) => {
+app.post('/api/sunday-editions/generate', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const result = await createSundayEdition();
     if (result.success) {
@@ -1177,7 +1296,29 @@ app.get('/api/sunday-editions/:id', async (req, res) => {
 // New endpoint for Unreal Speech API callbacks
 app.post('/api/unreal-speech-callback', async (req, res) => {
   const endpoint = '/api/unreal-speech-callback';
-  const { TaskId, TaskStatus } = req.body; // OutputUri is not in the callback body
+
+  // Optional shared secret verification
+  const webhookSecret = process.env.UNREAL_SPEECH_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const provided = req.headers['x-webhook-secret'];
+    if (provided !== webhookSecret) {
+      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Webhook secret mismatch from ${req.ip}`);
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+  }
+
+  // Validate payload structure
+  const callbackSchema = z.object({
+    TaskId:     z.string().min(1),
+    TaskStatus: z.enum(['completed', 'failed', 'processing', 'pending']),
+  });
+  const parsed = callbackSchema.safeParse(req.body);
+  if (!parsed.success) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Invalid payload:`, parsed.error.flatten());
+    return res.status(400).json({ error: 'Invalid callback payload.' });
+  }
+
+  const { TaskId, TaskStatus } = parsed.data;
 
   console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Received callback for TaskId: ${TaskId}, Status: ${TaskStatus}`);
 
@@ -1389,7 +1530,7 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
 });
 
 // API endpoint to save scheduler settings
-app.post('/api/settings/scheduler', authenticateToken, async (req, res) => {
+app.post('/api/settings/scheduler', authenticateToken, requireRole('admin'), async (req, res) => {
   const endpoint = '/api/settings/scheduler';
   const { main_scraper_frequency, missing_ai_frequency, enable_scheduled_missing_summary, enable_scheduled_missing_tags, enable_scheduled_missing_image, enable_scheduled_missing_translations, sunday_edition_frequency } = req.body;
 
@@ -1474,7 +1615,8 @@ app.use((err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
-  res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.status(500).json({ error: 'Internal Server Error', ...(isDev && { details: err.message }) });
 });
 
 // ============================================================================

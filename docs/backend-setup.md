@@ -70,8 +70,15 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your_s3_bucket_name
 
-# JWT authentication
+# JWT authentication (use a long random secret in production)
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 JWT_SECRET=your_jwt_secret_key
+
+# Security
+# Comma-separated list of allowed frontend origins for CORS
+ALLOWED_ORIGINS=http://localhost:4321
+# Set to 'production' to enable Secure cookies and hide error details
+NODE_ENV=development
 ```
 
 ### Optional
@@ -79,6 +86,14 @@ JWT_SECRET=your_jwt_secret_key
 ```env
 FIRECRAWL_API_KEY=your_firecrawl_api_key  # Firecrawl scraping method
 UNREAL_SPEECH_API_KEY=your_unreal_key     # Sunday Edition audio narration
+
+# Refresh token secret (falls back to JWT_SECRET + '_refresh' if not set)
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+
+# Shared secret for Unreal Speech webhook verification
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+UNREAL_SPEECH_WEBHOOK_SECRET=your_webhook_secret
 ```
 
 ### Optional AI Tuning {#optional-ai-environment-variables}
@@ -113,24 +128,35 @@ npm start     # production
 
 ## Authentication
 
-JWT-based. All write operations and admin endpoints require a token.
+Cookie-based JWT. On login the backend sets an `HttpOnly; Secure; SameSite=Strict` cookie. The browser sends it automatically — no manual token handling needed in the frontend.
+
+**Password rules:** minimum 8 characters, at least one uppercase letter, at least one number. Username must be a valid email address.
 
 ```bash
-# Register (first time only)
+# Register (first time only — email required as username)
 curl -X POST http://localhost:3000/api/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"your_password"}'
+  -d '{"username":"admin@example.com","password":"SecurePass1"}'
 
-# Login — returns { token }
-curl -X POST http://localhost:3000/api/login \
+# Login — sets jwt cookie (and jwt_refresh cookie)
+curl -c cookies.txt -X POST http://localhost:3000/api/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"your_password"}'
+  -d '{"username":"admin@example.com","password":"SecurePass1","rememberMe":false}'
 
-# Use token
+# Use session cookie on subsequent requests
+curl -b cookies.txt http://localhost:3000/api/stats
+
+# Non-browser clients can also use the Authorization header as a fallback
 curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3000/api/stats
 ```
 
-Protected endpoints include: source CRUD, scraper triggering, article deletion/blocking, settings, statistics.
+**Session lifecycle:**
+- Access token (`jwt` cookie): 1 hour
+- Refresh token (`jwt_refresh` cookie): 24 hours (default) or 30 days (with `rememberMe: true`)
+- `POST /api/refresh` — issues a new access cookie from the refresh cookie (called automatically by the frontend's `apiFetch` wrapper)
+- `POST /api/logout` — clears both cookies
+
+Protected endpoints include: source CRUD, scraper triggering, article deletion/blocking, settings, statistics. All mutation endpoints (POST/PUT/DELETE) additionally require the `admin` role.
 
 ## URL Blacklist
 
@@ -155,8 +181,8 @@ Uses prefix matching — any URL starting with a blacklisted entry is skipped.
 | `src/db.js` | PostgreSQL connection pool (max 10, 30s idle timeout) |
 | `src/services/aiService.js` | Centralized Groq AI — caching, retry, rate limiting |
 | `src/sundayEditionGenerator.js` | Weekly AI summary + audio narration |
-| `src/user.js` | User registration and password hashing (bcrypt) |
-| `src/middleware/auth.js` | JWT verification middleware |
+| `src/user.js` | User registration (Zod validation), password hashing (bcrypt), JWT + refresh token generation |
+| `src/middleware/auth.js` | JWT verification (cookie → header → query param); `requireRole()` RBAC middleware |
 
 ### AI Service (`services/aiService.js`)
 
