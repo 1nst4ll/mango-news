@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { DataTable } from "./ui/data-table";
 import { getColumns, Article } from "./columns";
 import { toast } from "sonner";
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ArticleEditDialog from './ArticleEditDialog'; // Import the new dialog component
 
 // Interface for Source data (matching the backend endpoint response)
@@ -38,6 +38,7 @@ interface SourceArticlesProps {
 const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [sourceSettings, setSourceSettings] = useState<any>(null); // State to hold source settings
+  const [allSources, setAllSources] = useState<{ id: number; name: string }[]>([]);
 
   // New state for processing missing AI data for the current source
   const [articleProcessingLoading, setArticleProcessingLoading] = useState<{ summary?: boolean; tags?: boolean; image?: boolean; translations?: boolean } | null>(null);
@@ -230,7 +231,17 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         });
       }
     };
+    const fetchAllSources = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/sources`);
+        if (!response.ok) return;
+        const data = await response.json();
+        // Sort by id so prev/next order is consistent
+        setAllSources((data as { id: number; name: string }[]).sort((a, b) => a.id - b.id));
+      } catch {}
+    };
     fetchSourceSettings();
+    fetchAllSources();
   }, [sourceId, apiUrl]);
 
 
@@ -444,7 +455,37 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     <Card className="mb-6 pt-4">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="flex flex-col space-y-2">
-          <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
+          <div className="flex items-center gap-2">
+            {(() => {
+              const currentIndex = allSources.findIndex(s => s.id === Number(sourceId));
+              const prev = currentIndex > 0 ? allSources[currentIndex - 1] : null;
+              const next = currentIndex >= 0 && currentIndex < allSources.length - 1 ? allSources[currentIndex + 1] : null;
+              return (
+                <>
+                  <Button
+                    size="sm" variant="outline" className="h-8 w-8 p-0"
+                    disabled={!prev}
+                    onClick={() => prev && (window.location.href = `/settings/source/${prev.id}`)}
+                    title={prev ? `Previous: ${prev.name}` : undefined}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div>
+                    <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
+                    {sourceSettings && <p className="text-sm text-muted-foreground">{sourceSettings.name}</p>}
+                  </div>
+                  <Button
+                    size="sm" variant="outline" className="h-8 w-8 p-0"
+                    disabled={!next}
+                    onClick={() => next && (window.location.href = `/settings/source/${next.id}`)}
+                    title={next ? `Next: ${next.name}` : undefined}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </>
+              );
+            })()}
+          </div>
           <Button
             size="sm"
             variant="outline"
