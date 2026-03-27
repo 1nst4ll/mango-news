@@ -211,7 +211,7 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
                           onClick={() => setRawMode(prev => ({ ...prev, [lang]: !prev[lang] }))}
                           className="text-xs px-2 py-1 rounded border border-border hover:bg-accent transition-colors font-mono"
                         >
-                          {rawMode[lang] ? 'WYSIWYG' : '&lt;/&gt; HTML'}
+                          {rawMode[lang] ? 'WYSIWYG' : '</> HTML'}
                         </button>
                       </div>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
