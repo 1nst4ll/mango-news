@@ -42,6 +42,7 @@ DB_PASSWORD=your_local_password
 GROQ_API_KEY=your_groq_key
 FAL_KEY=your_fal_ai_key
 JWT_SECRET=any_random_string_for_dev
+REFRESH_TOKEN_SECRET=another_random_string_for_dev  # must be different from JWT_SECRET
 
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
@@ -55,6 +56,7 @@ NODE_ENV=development
 # Optional
 FIRECRAWL_API_KEY=your_key
 UNREAL_SPEECH_API_KEY=your_key
+UNREAL_SPEECH_WEBHOOK_SECRET=any_random_string_for_dev
 ```
 
 ### Run
@@ -69,12 +71,12 @@ cd frontend && npm run dev  # http://localhost:4321
 
 ### Create your admin account
 
-Username must be a valid email. Password must be 8+ characters with at least one uppercase letter and one number.
+Username must be a valid email. Password must be 12+ characters with at least one lowercase letter, one uppercase letter, one number, and one special character.
 
 ```bash
 curl -X POST http://localhost:3000/api/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin@example.com","password":"SecurePass1"}'
+  -d '{"username":"admin@example.com","password":"SecurePass1!"}'
 ```
 
 Then log in via the frontend at `/settings`.
@@ -122,15 +124,17 @@ AWS_REGION=us-east-1
 S3_BUCKET_NAME=your-bucket
 
 # Auth & security
-JWT_SECRET=your-jwt-secret          # use a strong random value
-REFRESH_TOKEN_SECRET=your-refresh-secret  # optional but recommended
-NODE_ENV=production                  # enables Secure cookies, hides error details
-ALLOWED_ORIGINS=https://your-frontend-url.onrender.com
+JWT_SECRET=your-jwt-secret                        # strong random value — see below
+REFRESH_TOKEN_SECRET=your-refresh-secret          # required — independent of JWT_SECRET
+NODE_ENV=production                               # enables Secure cookies, hides error details
+ALLOWED_ORIGINS=https://your-frontend-url.onrender.com  # must be HTTPS in production
+
+# Required if using Sunday Edition audio narration
+UNREAL_SPEECH_API_KEY=your-key
+UNREAL_SPEECH_WEBHOOK_SECRET=your-webhook-secret  # required when UNREAL_SPEECH_API_KEY is set
 
 # Optional
 FIRECRAWL_API_KEY=your-key
-UNREAL_SPEECH_API_KEY=your-key       # Sunday Edition audio
-UNREAL_SPEECH_WEBHOOK_SECRET=your-webhook-secret  # optional webhook security
 ```
 
 ### 3. Frontend Web Service

@@ -81,19 +81,23 @@ ALLOWED_ORIGINS=http://localhost:4321
 NODE_ENV=development
 ```
 
+### Required for production
+
+```env
+# Independent refresh token secret — must be set; no fallback
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+
+# Shared secret for Unreal Speech webhook — required if using Sunday Edition audio
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+UNREAL_SPEECH_WEBHOOK_SECRET=your_webhook_secret
+```
+
 ### Optional
 
 ```env
 FIRECRAWL_API_KEY=your_firecrawl_api_key  # Firecrawl scraping method
 UNREAL_SPEECH_API_KEY=your_unreal_key     # Sunday Edition audio narration
-
-# Refresh token secret (falls back to JWT_SECRET + '_refresh' if not set)
-# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-REFRESH_TOKEN_SECRET=your_refresh_token_secret
-
-# Shared secret for Unreal Speech webhook verification
-# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-UNREAL_SPEECH_WEBHOOK_SECRET=your_webhook_secret
 ```
 
 ### Optional AI Tuning {#optional-ai-environment-variables}
@@ -130,13 +134,13 @@ npm start     # production
 
 Cookie-based JWT. On login the backend sets an `HttpOnly; Secure; SameSite=Strict` cookie. The browser sends it automatically — no manual token handling needed in the frontend.
 
-**Password rules:** minimum 8 characters, at least one uppercase letter, at least one number. Username must be a valid email address.
+**Password rules:** minimum 12 characters, at least one lowercase letter, one uppercase letter, one number, and one special character. Username must be a valid email address.
 
 ```bash
 # Register (first time only — email required as username)
 curl -X POST http://localhost:3000/api/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin@example.com","password":"SecurePass1"}'
+  -d '{"username":"admin@example.com","password":"SecurePass1!"}'
 
 # Login — sets jwt cookie (and jwt_refresh cookie)
 curl -c cookies.txt -X POST http://localhost:3000/api/login \

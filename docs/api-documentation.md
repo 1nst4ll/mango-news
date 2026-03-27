@@ -26,8 +26,8 @@ Authorization: Bearer YOUR_TOKEN
 - `401` — no token / session expired
 - `403` — valid token but insufficient permissions (wrong role)
 - `404` — resource not found
-- `429` — rate limit exceeded (5 auth attempts per 15 min; 100 req/min general)
-- `500` — unexpected server error (details only visible with `NODE_ENV != production`)
+- `429` — rate limit exceeded (5 auth attempts per 15 min; 100 req/min general; 20/hr on AI/scrape endpoints)
+- `500` — unexpected server error (details only visible with `NODE_ENV=development`)
 
 ---
 
@@ -39,11 +39,11 @@ Register a new admin user. No auth required. Rate-limited to 5 attempts per 15 m
 
 **Body:** `{ "username": "email@example.com", "password": "string" }`
 
-Password rules: minimum 8 characters, at least one uppercase letter, at least one number.
+Password rules: minimum 12 characters, at least one lowercase letter, one uppercase letter, one number, and one special character.
 
 **Response `201`:** `{ "message": "User registered successfully.", "user": { "id": 1, "email": "admin@example.com" } }`
 
-**Response `400`:** Validation error — e.g. `{ "error": "Password must be at least 8 characters." }`
+**Response `400`:** Validation error — e.g. `{ "error": "Password must be at least 12 characters." }`
 
 ---
 
@@ -167,8 +167,9 @@ Delete a source.
 Articles for a specific source, with pagination and AI-status filtering.
 
 **Query parameters:**
-- `page` (default: `1`), `limit` (default: `15`)
-- `sortBy` (default: `publication_date`), `sortOrder` (`ASC`|`DESC`, default: `DESC`)
+- `page` (default: `1`), `limit` (default: `15`, max: `100`)
+- `sortBy` (default: `publication_date`) — allowed values: `id`, `title`, `publication_date`, `created_at`
+- `sortOrder` (`ASC`|`DESC`, default: `DESC`)
 - `filterByAiStatus`: `missing_summary`, `missing_tags`, `missing_image`, `missing_translations`, `has_summary`, `has_tags`, `has_image`, `has_translations`
 
 **Response `200`:** Array of article summaries. `X-Total-Count` header contains the total count.
@@ -395,7 +396,7 @@ Get a single Sunday Edition. Public.
 
 Async callback from Unreal Speech when MP3 narration is ready. Called by Unreal Speech — not for direct client use.
 
-Payload is validated with Zod (`TaskId: string`, `TaskStatus: completed|failed|processing|pending`). If `UNREAL_SPEECH_WEBHOOK_SECRET` is set in the environment, the request must include a matching `x-webhook-secret` header.
+Payload is validated with Zod (`TaskId: string`, `TaskStatus: completed|failed|processing|pending`). `UNREAL_SPEECH_WEBHOOK_SECRET` **must** be set in the environment; the request must include a matching `x-webhook-secret` header or it will be rejected with `401`.
 
 ---
 
@@ -474,7 +475,7 @@ RSS feed of the latest 20 articles. Public.
 
 ## Notes
 
-- Pagination: default page size is `15` for articles and Sunday Editions
+- Pagination: default page size is `15`, maximum is `100`, for articles and Sunday Editions
 - `X-Total-Count` response header on all paginated endpoints contains the total matching count (as a string)
 - 🔒 = requires authentication (browser: `jwt` cookie sent automatically; API clients: `Authorization: Bearer TOKEN` header)
 
