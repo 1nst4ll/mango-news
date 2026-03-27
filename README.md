@@ -1,110 +1,63 @@
 # Mango News - TCI News Aggregator
 
-A comprehensive news aggregation platform for the Turks and Caicos Islands. The application scrapes news from multiple sources, processes content with AI for summaries, translations, and topic tagging, and presents it through a modern web interface.
+A news aggregation platform for the Turks and Caicos Islands. Scrapes multiple sources, processes content with AI (summaries, translations, topic classification, image generation), and presents it through a multilingual web interface.
 
-## 🚀 Hosting
+**Live hosting:** [Render.com](https://render.com) — Backend API + Frontend SSR + Managed PostgreSQL.
 
-The live site runs on **[Render](https://render.com)**:
-
-| Service | Type | Root directory |
-| --- | --- | --- |
-| Backend API | Web Service (Node.js) | `backend/` |
-| Frontend | Web Service (Node.js SSR) | `frontend/` |
-| Database | Managed PostgreSQL | — |
-
-See the [Deployment Guide](docs/deployment.md) for full Render setup instructions.
-
-## 💻 Local Development
-
-### Prerequisites
-
-- Node.js v18+
-- PostgreSQL running locally
-- API keys: Groq, fal.ai, AWS S3 (and optionally Firecrawl, Unreal Speech)
-
-### Setup
+## Quick Start
 
 ```bash
 git clone https://github.com/your-repo/mango-news.git
-cd mango-news
 
 # Backend
-cd backend
-cp .env.example .env   # fill in credentials
-npm install
-npm run dev            # http://localhost:3000
+cd backend && cp .env.example .env   # fill in credentials
+npm install && npm run dev            # http://localhost:3000
 
 # Frontend (new terminal)
-cd frontend
-cp .env.example .env   # set PUBLIC_API_URL=http://localhost:3000
-npm install
-npm run dev            # http://localhost:4321
+cd frontend && cp .env.example .env  # set PUBLIC_API_URL=http://localhost:3000
+npm install && npm run dev           # http://localhost:4321
 ```
 
 Apply the database schema before first run:
 
 ```bash
-cd db
-psql -U postgres -d mangonews -f schema.sql
+cd db && psql -U postgres -d mangonews -f schema.sql
 ```
 
-For a full walkthrough including database setup, env vars, and admin account creation, see the [Deployment Guide](docs/deployment.md).
+See [Deployment](docs/deployment.md) for full setup including database, env vars, admin account creation, and production deployment.
 
-## 📚 Documentation
-
-| Document | Description |
-| --- | --- |
-| [Backend Setup](docs/backend-setup.md) | Database setup, environment variables, authentication |
-| [API Documentation](docs/api-documentation.md) | Complete API endpoint reference |
-| [Deployment Guide](docs/deployment.md) | Production deployment on Render and other platforms |
-| [Frontend UI](docs/frontend-ui.md) | Astro/React frontend architecture and components |
-| [Scraping Methods](docs/scraping-methods.md) | Open-source (Puppeteer) and Firecrawl scraping |
-| [CSS Selectors](docs/css-selectors.md) | Guide for configuring source scraping selectors |
-| [Admin UI](docs/admin-ui.md) | Settings page and source management |
-| [Multilingual Support](docs/multilingual-support.md) | Spanish & Haitian Creole translations |
-| [Sunday Edition](docs/sunday-edition.md) | Weekly AI-generated news summary feature |
-| [WordPress Integration](docs/wordpress-integration.md) | Embedding news widgets in WordPress |
-| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
-
-## 🏗️ Architecture
+## Architecture
 
 ```text
 mango-news/
-├── backend/           # Node.js/Express API server
+├── backend/        # Node.js/Express API — scraping, AI, cron jobs
 │   ├── src/
-│   │   ├── index.js          # Main server entry point
-│   │   ├── scraper.js        # Article scraping & AI processing
-│   │   ├── opensourceScraper.js  # Puppeteer-based scraper
-│   │   ├── browserPool.js    # Shared browser instance
-│   │   ├── db.js             # PostgreSQL connection pool
-│   │   └── sundayEditionGenerator.js  # Weekly summary feature
-│   └── config/
-│       └── blacklist.json    # URLs to exclude from scraping
-├── frontend/          # Astro + React frontend
+│   │   ├── index.js                  # Server entry, 50+ API routes
+│   │   ├── scraper.js                # Scraping pipeline + AI processing
+│   │   ├── opensourceScraper.js      # Puppeteer-based scraper
+│   │   ├── services/aiService.js     # Centralized Groq AI (cache, retry, rate limit)
+│   │   └── sundayEditionGenerator.js # Weekly summary feature
+│   └── config/blacklist.json         # URL exclusions
+├── frontend/       # Astro 5 + React 19 + Tailwind CSS 4
 │   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── pages/            # Astro pages with i18n routing
-│   │   ├── locales/          # Translation files (en, es, ht)
-│   │   └── layouts/          # Page layouts
-│   └── public/               # Static assets
-├── db/                # Database schema and migrations
-└── widgets/           # WordPress integration widgets
+│   │   ├── components/               # React components (NewsFeed, ArticleDetail, SettingsPage…)
+│   │   ├── pages/                    # Astro file-based routing with i18n
+│   │   └── locales/                  # UI translations (en, es, ht)
+├── db/             # PostgreSQL schema + migrations
+└── widgets/        # WordPress embed snippets
 ```
 
-## ✨ Key Features
+## Key Features
 
-- **Multi-Source Scraping:** Aggregate news from multiple TCI news sources
-- **AI-Powered Processing:**
-  - Automatic article summaries (Groq/Llama)
-  - Topic classification (31 predefined topics)
-  - AI-generated images (fal.ai FLUX.2 Turbo)
-  - Translations (Spanish, Haitian Creole)
-- **Sunday Edition:** Weekly AI-narrated news summary with audio
-- **Admin Dashboard:** Source management, scraping controls, statistics
-- **RSS Feed:** Subscribe to news updates
-- **Responsive Design:** Mobile-first with dark/light mode
+- **Multi-source scraping** — Puppeteer (Open Source) or Firecrawl API per source
+- **AI processing** — Groq/Llama for summaries, topics (31 categories), translations; fal.ai FLUX.2 Turbo for images
+- **Multilingual** — English, Spanish, Haitian Creole (UI + article content)
+- **Sunday Edition** — Weekly AI-narrated digest with Unreal Speech audio
+- **Admin dashboard** — Source management, scraper controls, cron scheduling, article editing
+- **RSS feed** — `GET /api/rss` (latest 20 articles, public)
+- **WordPress widgets** — Embeddable news feed and single-article components
 
-## 🔧 Environment Variables
+## Environment Variables
 
 ### Backend (`backend/.env`)
 
@@ -114,21 +67,22 @@ DB_HOST=localhost
 DB_NAME=mangonews
 DB_USER=mangoadmin
 DB_PASSWORD=your_password
+DB_PORT=5432
 
-# API Keys
+# Required API keys
 GROQ_API_KEY=your_groq_key
 FAL_KEY=your_fal_ai_key
-FIRECRAWL_API_KEY=your_firecrawl_key  # Optional
-UNREAL_SPEECH_API_KEY=your_unreal_key  # For Sunday Edition
+JWT_SECRET=your_jwt_secret
 
-# AWS S3
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
+# AWS S3 (AI-generated image storage)
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your_bucket
 
-# Auth
-JWT_SECRET=your_jwt_secret
+# Optional
+FIRECRAWL_API_KEY=your_key     # Firecrawl scraping method
+UNREAL_SPEECH_API_KEY=your_key # Sunday Edition audio
 ```
 
 ### Frontend (`frontend/.env`)
@@ -137,20 +91,44 @@ JWT_SECRET=your_jwt_secret
 PUBLIC_API_URL=http://localhost:3000
 ```
 
-## 🔐 Authentication
+For AI tuning variables (model selection, cache TTL, rate limits) see [Backend Setup](docs/backend-setup.md#optional-ai-environment-variables).
 
-Protected endpoints require JWT authentication:
+## Authentication
 
-1. Register: `POST /api/register`
-2. Login: `POST /api/login` → Returns JWT token
-3. Use token: `Authorization: Bearer YOUR_TOKEN`
+Protected endpoints require a JWT token:
 
-See [API Documentation](docs/api-documentation.md) for protected endpoint list.
+```bash
+# 1. Register (first time only)
+curl -X POST http://localhost:3000/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your_password"}'
 
-## 📝 License
+# 2. Login to get token
+curl -X POST http://localhost:3000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your_password"}'
+
+# 3. Use token on protected requests
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3000/api/stats
+```
+
+## Documentation
+
+| Document | Description |
+| --- | --- |
+| [Deployment](docs/deployment.md) | Local dev setup and Render production deployment |
+| [Backend Setup](docs/backend-setup.md) | Database, environment variables, architecture |
+| [API Documentation](docs/api-documentation.md) | Complete API endpoint reference |
+| [Frontend UI](docs/frontend-ui.md) | Astro/React architecture and components |
+| [Admin UI](docs/admin-ui.md) | Settings dashboard and source management |
+| [Scraping Methods](docs/scraping-methods.md) | Puppeteer vs Firecrawl, HTML sanitization pipeline |
+| [CSS Selectors](docs/css-selectors.md) | Configuring source scraping selectors |
+| [Multilingual Support](docs/multilingual-support.md) | Spanish & Haitian Creole translation system |
+| [Sunday Edition](docs/sunday-edition.md) | Weekly AI-narrated news summary feature |
+| [AI Optimization](docs/ai-optimization-analysis.md) | AI services, optimizations, and monitoring |
+| [WordPress Integration](docs/wordpress-integration.md) | Embedding news widgets in WordPress |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
+
+## License
 
 ISC
-
----
-
-For detailed documentation on specific features, see the [docs](docs/) folder.

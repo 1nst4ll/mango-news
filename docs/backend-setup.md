@@ -1,53 +1,42 @@
 # Backend Setup and Configuration
 
-This guide covers setting up and configuring the Mango News backend.
-
 ## Prerequisites
 
-- Node.js and npm installed
+- Node.js v18+
 - PostgreSQL database
-- API keys:
-  - **Groq API** - AI summaries and translations
-  - **fal.ai API** - AI image generation (FLUX.2 Turbo)
-  - **AWS S3** - Image storage
-  - **Firecrawl API** - Optional, for Firecrawl scraping method
-  - **Unreal Speech API** - Optional, for Sunday Edition audio
+- API keys: Groq (required), fal.ai (required), AWS S3 (required), Firecrawl (optional), Unreal Speech (optional)
 
 ## Database Setup
 
-### 1. Create Database
-
 ```sql
+-- Create database and user
 CREATE DATABASE mangonews;
 CREATE USER mangoadmin WITH PASSWORD 'your_password';
 GRANT ALL PRIVILEGES ON DATABASE mangonews TO mangoadmin;
 ```
 
-### 2. Apply Schema
-
 ```bash
+# Apply schema
 cd db
 psql -U mangoadmin -d mangonews -f schema.sql
-```
 
-The schema creates the following tables:
-- `users` - Authentication
-- `sources` - News source configurations
-- `articles` - Scraped articles with translations
-- `topics` - Topic tags with translations
-- `article_topics` - Article-topic relationships
-- `application_settings` - Scheduler and app settings
-- `sunday_editions` - Weekly summary posts
-
-### 3. Run Migrations
-
-For existing databases, apply migrations:
-
-```bash
+# For existing databases, apply any unapplied migrations
 psql -U mangoadmin -d mangonews -f db/migrations/add_translation_columns.sql
 psql -U mangoadmin -d mangonews -f db/migrations/add_sunday_editions_table.sql
-# Apply other migrations as needed
+# ... apply others as needed
 ```
+
+**Tables created:**
+
+| Table | Purpose |
+|-------|---------|
+| `users` | Admin authentication |
+| `sources` | News source configurations and selectors |
+| `articles` | Scraped articles with EN/ES/HT content |
+| `topics` | Category tags with translations |
+| `article_topics` | Article–topic many-to-many relationships |
+| `application_settings` | Scheduler cron expressions and feature toggles |
+| `sunday_editions` | Weekly AI-generated summary posts |
 
 ## Installation
 
@@ -59,119 +48,99 @@ cp .env.example .env
 
 ## Environment Variables
 
-Edit `backend/.env`:
+### Required
 
 ```env
 # Database
 DB_HOST=localhost
+DB_PORT=5432
 DB_NAME=mangonews
 DB_USER=mangoadmin
 DB_PASSWORD=your_database_password
 
-# AI Services
+# AI — summaries, translations, topic classification
 GROQ_API_KEY=your_groq_api_key
+
+# AI image generation (fal.ai FLUX.2 Turbo)
 FAL_KEY=your_fal_ai_key
 
-# AWS S3 (for AI-generated images)
+# Storage for AI-generated images
 AWS_ACCESS_KEY_ID=your_aws_access_key_id
 AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your_s3_bucket_name
 
-# Optional
-FIRECRAWL_API_KEY=your_firecrawl_api_key  # For Firecrawl scraping
-UNREAL_SPEECH_API_KEY=your_unreal_key     # For Sunday Edition audio
-
-# Authentication
+# JWT authentication
 JWT_SECRET=your_jwt_secret_key
+```
+
+### Optional
+
+```env
+FIRECRAWL_API_KEY=your_firecrawl_api_key  # Firecrawl scraping method
+UNREAL_SPEECH_API_KEY=your_unreal_key     # Sunday Edition audio narration
+```
+
+### Optional AI Tuning {#optional-ai-environment-variables}
+
+All have sensible defaults — only set these to override:
+
+```env
+# Model selection (Groq/Llama)
+AI_SUMMARY_MODEL=llama-3.3-70b-versatile      # default
+AI_TRANSLATION_MODEL=llama-3.3-70b-versatile  # default
+AI_TOPICS_MODEL=llama-3.1-8b-instant          # default (faster, cheaper)
+AI_PROMPT_MODEL=llama-3.3-70b-versatile       # default
+
+# Retry behaviour
+AI_MAX_RETRIES=3          # max attempts on transient failures
+AI_RETRY_DELAY=1000       # initial backoff delay (ms), doubles each retry
+
+# Cache (in-memory, for topic translations)
+AI_CACHE_TTL=86400000     # 24 hours
+AI_CACHE_MAX_SIZE=1000    # max entries before LRU eviction
+
+# Rate limiting
+AI_RATE_LIMIT_PER_MINUTE=60  # max Groq API requests per minute
 ```
 
 ## Running the Server
 
 ```bash
-# Development (with hot reload)
-npm run dev
-
-# Production
-npm start
+npm run dev   # development — nodemon hot reload, http://localhost:3000
+npm start     # production
 ```
-
-The API runs on `http://localhost:3000` by default.
 
 ## Authentication
 
-The backend uses JWT authentication:
+JWT-based. All write operations and admin endpoints require a token.
 
-1. **Register:** `POST /api/register` with `{ username, password }`
-2. **Login:** `POST /api/login` → Returns `{ token }`
-3. **Protected Routes:** Include `Authorization: Bearer YOUR_TOKEN` header
+```bash
+# Register (first time only)
+curl -X POST http://localhost:3000/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your_password"}'
 
-Protected endpoints include:
-- Source management (CRUD operations)
-- Scraper triggering
-- Article deletion/blocking
-- Statistics and settings
+# Login — returns { token }
+curl -X POST http://localhost:3000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your_password"}'
 
-See [API Documentation](api-documentation.md) for the complete endpoint reference.
+# Use token
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3000/api/stats
+```
+
+Protected endpoints include: source CRUD, scraper triggering, article deletion/blocking, settings, statistics.
 
 ## URL Blacklist
 
 Prevent scraping specific URLs by editing `backend/config/blacklist.json`:
 
 ```json
-[
-  "https://example.com/page-to-skip",
-  "https://another-site.com/unwanted-article"
-]
+["https://example.com/page-to-skip", "https://example.com/category/ads/"]
 ```
 
-The scraper checks URLs against this list using prefix matching.
-
-## AI Service Architecture
-
-The backend includes a centralized AI service (`src/services/aiService.js`) that consolidates all AI operations with built-in optimizations:
-
-### Features
-
-- **Caching**: In-memory cache with configurable TTL for translations
-- **Retry Logic**: Exponential backoff for API failures (configurable max retries)
-- **Rate Limiting**: Request counting with per-minute limits to prevent API throttling
-- **Parallel Processing**: Batch translation using `Promise.all()` for improved throughput
-
-### Optional AI Environment Variables
-
-Add these to `backend/.env` to customize AI behavior (all have sensible defaults):
-
-```env
-# AI Model Configuration (Groq/Llama models)
-AI_SUMMARY_MODEL=llama-3.3-70b-versatile      # Model for summaries (default)
-AI_TRANSLATION_MODEL=llama-3.3-70b-versatile  # Model for translations (default)
-AI_TOPICS_MODEL=llama-3.1-8b-instant          # Model for topic classification (default)
-AI_PROMPT_MODEL=llama-3.3-70b-versatile       # Model for image prompt generation (default)
-
-# Retry Configuration
-AI_MAX_RETRIES=3                        # Max retry attempts
-AI_RETRY_DELAY=1000                     # Initial retry delay (ms)
-
-# Cache Configuration
-AI_CACHE_TTL=86400000                   # Cache TTL (default: 24 hours)
-AI_CACHE_MAX_SIZE=500                   # Max in-memory cache entries (prevents unbounded growth)
-
-# Rate Limiting
-AI_RATE_LIMIT_PER_MINUTE=60             # Max Groq API requests per minute
-```
-
-### AI Service Methods
-
-| Method | Description |
-|--------|-------------|
-| `generateSummary(content)` | Generate article summary |
-| `assignTopics(content)` | Assign topics to article |
-| `translateText(text, targetLang)` | Translate single text |
-| `translateBatch(items, targetLang)` | Translate multiple items in parallel |
-| `getTopicTranslation(topicName, targetLang)` | Translate topic name (cached) |
-| `optimizeImagePrompt(content, title)` | Optimize prompt for image generation |
-| `generateWeeklySummary(articles)` | Generate Sunday Edition summary |
+Uses prefix matching — any URL starting with a blacklisted entry is skipped.
 
 ## Architecture
 
@@ -179,29 +148,46 @@ AI_RATE_LIMIT_PER_MINUTE=60             # Max Groq API requests per minute
 
 | File | Purpose |
 |------|---------|
-| `src/index.js` | Express server, API routes, graceful shutdown |
-| `src/scraper.js` | Article scraping, AI processing, cron jobs |
-| `src/services/aiService.js` | Centralized AI service with caching, retry, rate limiting |
+| `src/index.js` | Express server, 50+ API routes, graceful shutdown |
+| `src/scraper.js` | Article scraping pipeline, AI processing, cron jobs |
 | `src/opensourceScraper.js` | Puppeteer-based web scraping |
 | `src/browserPool.js` | Shared Puppeteer browser instance |
-| `src/db.js` | PostgreSQL connection pool |
-| `src/sundayEditionGenerator.js` | Weekly AI summary generation |
-| `src/user.js` | User authentication logic |
+| `src/db.js` | PostgreSQL connection pool (max 10, 30s idle timeout) |
+| `src/services/aiService.js` | Centralized Groq AI — caching, retry, rate limiting |
+| `src/sundayEditionGenerator.js` | Weekly AI summary + audio narration |
+| `src/user.js` | User registration and password hashing (bcrypt) |
 | `src/middleware/auth.js` | JWT verification middleware |
+
+### AI Service (`services/aiService.js`)
+
+All Groq-based AI operations are centralized here. `scraper.js` and `sundayEditionGenerator.js` call this service — no direct Groq calls elsewhere.
+
+| Method | Purpose |
+|--------|---------|
+| `generateSummary(content)` | SEO summary, max 80–100 words |
+| `assignTopics(content)` | 3 topics from 31 predefined categories |
+| `translateBatch(items, lang)` | Parallel translation via `Promise.all()` |
+| `getTopicTranslation(name, lang)` | Cached topic translation |
+| `optimizeImagePrompt(content, title)` | fal.ai prompt generation |
+| `generateWeeklySummary(articles)` | Sunday Edition digest |
+
+See [AI Optimization Analysis](ai-optimization-analysis.md) for caching strategy, rate limiting, and monitoring endpoints.
 
 ### Scheduled Jobs
 
-The backend runs three cron jobs (configured in Settings):
+Three cron jobs run on configurable schedules (set via Settings → Scheduled Tasks):
 
-1. **Main Scraper** - Fetches new articles from all active sources
-2. **Missing AI Processor** - Generates AI content for articles missing summaries/tags/images/translations
-3. **Sunday Edition** - Weekly news summary with audio narration
+1. **Main Scraper** (`0 * * * *` hourly) — scrapes all active sources
+2. **Missing AI Processor** (`*/20 * * * *`) — fills missing summaries/tags/images/translations
+3. **Sunday Edition** (`0 0 * * 0` Sunday midnight) — generates weekly digest
+
+Locking prevents overlapping executions.
 
 ## Related Documentation
 
 - [API Documentation](api-documentation.md) - Complete endpoint reference
-- [AI Optimization Analysis](ai-optimization-analysis.md) - AI tasks, optimizations, and monitoring
-- [Scraping Methods](scraping-methods.md) - Open-source vs Firecrawl
+- [AI Optimization Analysis](ai-optimization-analysis.md) - AI architecture, optimizations, monitoring
+- [Scraping Methods](scraping-methods.md) - Open Source vs Firecrawl, HTML pipeline
 - [CSS Selectors](css-selectors.md) - Configuring source selectors
 - [Deployment](deployment.md) - Production deployment guide
 - [Troubleshooting](troubleshooting.md) - Common issues and solutions

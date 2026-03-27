@@ -1,68 +1,47 @@
-# Settings Page - Admin Controls
+# Admin UI — Settings and Source Management
 
-The Settings page provides centralized management for news sources and scraping operations.
+**Access:** `/settings` (requires login)
 
-**Access:** `http://your-frontend-url/settings` (requires authentication)
+The Settings page is the control center for sources, scraping, AI, and scheduling.
 
 ## Overview & Stats Tab
 
-View database statistics and charts:
-
 - **Total Articles** and **Total Sources** counts
-- **Articles per Source** - Bar chart
-- **Articles per Year** - Bar chart
+- **Articles per Source** — bar chart
+- **Articles per Year** — bar chart
 
-## Global Settings & Actions Tab
+## Global Settings Tab
 
-Controls for manual scraping operations:
+AI toggles that apply to **manual** scraper runs only (scheduled runs use per-source settings):
 
-### AI Generation Toggles
+- Generate AI Summaries
+- Generate AI Tags
+- Generate AI Images
+- Generate AI Translations
 
-These apply to **manual** scraper runs only:
-
-- **Generate AI Summaries** - Enable/disable summary generation
-- **Generate AI Tags** - Enable/disable topic assignment
-- **Generate AI Images** - Enable/disable image generation
-- **Generate AI Translations** - Enable/disable Spanish/Haitian Creole translations
-
-### Actions
-
-- **Trigger Full Scraper Run** - Scrape all active sources
-- **Purge All Articles** - Delete all articles (requires confirmation)
+**Actions:**
+- **Trigger Full Scraper Run** — scrapes all active sources immediately
+- **Purge All Articles** — deletes all articles (confirmation required)
 
 ## Scheduled Tasks Tab
 
-Configure automated background jobs:
+Configure the three background cron jobs:
 
-### Main Scraper Schedule
+| Job | Default schedule | Controls |
+|-----|-----------------|---------|
+| Main Scraper | `0 * * * *` (hourly) | Cron expression |
+| Missing AI Processor | `*/20 * * * *` | Cron expression + per-feature toggles |
+| Sunday Edition | `0 0 * * 0` (Sunday midnight) | Cron expression |
 
-- **Cron Expression** - When to run the main scraper (default: `0 * * * *` hourly)
+The Missing AI Processor has individual toggles for summaries, tags, images, and translations. Click **Save Schedule Settings** to persist — changes take effect immediately without restart.
 
-### Missing AI Processor Schedule
-
-- **Cron Expression** - When to process missing AI data (default: `*/20 * * * *`)
-- **Process Missing Summaries** - Toggle scheduled summary generation
-- **Process Missing Tags** - Toggle scheduled tag assignment
-- **Process Missing Images** - Toggle scheduled image generation
-- **Process Missing Translations** - Toggle scheduled translations
-
-### Sunday Edition Schedule
-
-- **Cron Expression** - When to generate weekly summary (default: `0 0 * * 0` Sunday midnight)
-
-**Save Schedule Settings** - Persist cron configurations to database
+See [API Documentation](api-documentation.md) for the scheduler endpoints (`GET/POST /api/settings/scheduler`).
 
 ## Source Management Tab
 
 ### Source List
 
-Each source displays:
-
-- Name and URL
-- Active status
-- AI settings (summary, tags, image, translations enabled)
-- Scraping method (opensource/firecrawl)
-- Configured selectors
+Each source card shows: ID, name, URL, article count, active status, AI settings, and scraping method.
 
 ### Source Actions
 
@@ -72,77 +51,94 @@ Each source displays:
 | **Delete Articles** | Remove all articles from this source |
 | **Edit** | Open configuration dialog |
 | **Delete Source** | Remove source entirely |
-| **View Articles** | Navigate to article management page |
-| **Process Missing AI** | Generate missing AI content for all articles |
+| **View Articles** | Navigate to article management (`/settings/source/[id]`) |
 
-### Add/Edit Source Dialog
+### Add / Edit Source Dialog
 
-**Basic Settings:**
+**Basic:**
 - Name, URL, Active status
-- Scraping method (opensource/firecrawl)
+- Scraping method: `opensource` (Puppeteer) or `firecrawl`
 
 **AI Settings (per-source):**
-- Enable AI Summary
-- Enable AI Tags
-- Enable AI Image
-- Enable AI Translations
+- Enable AI Summary, Tags, Image, Translations
 
-**Open Source Selectors:**
-- Title, Content, Date, Author, Thumbnail, Topics selectors
-- Include/Exclude selectors for content filtering
+**Open Source Selectors** (CSS selectors for Puppeteer scraping):
+- Title, Content, Date, Author, Thumbnail, Topics
+- Include / Exclude selectors for content filtering
 
 **Advanced:**
-- Article Link Template - URL pattern for discovering articles
-- Exclude Patterns - Query parameters to strip from URLs
-- Scrape After Date - Ignore articles before this date
+- `article_link_template` — URL regex pattern for article discovery
+- `exclude_patterns` — query parameters to strip (e.g. `utm_source,fbclid`)
+- `scrape_after_date` — ignore articles published before this date
+
+See [CSS Selectors](css-selectors.md) for selector syntax and examples, and [Scraping Methods](scraping-methods.md) for how each method works.
+
+---
 
 ## Source Articles Page
 
-Located at `/settings/source/[sourceId]`, this page manages articles for a specific source.
+**Access:** `/settings/source/[sourceId]`
 
-### Article Table Columns
+Manages individual articles for a specific source.
 
-| Column | Description |
-|--------|-------------|
-| ID | Article database ID |
-| Title | Article title (clickable) |
-| URL | Source URL |
-| Thumbnail | Preview image |
-| Publication Date | When published |
-| AI Summary | Generated summary status |
-| AI Tags | Assigned topics |
-| AI Image | Generated image status |
+### Navigation
 
-### Article Actions (Dropdown)
+- **← / →** arrows in the header step between sources by ID
+- **Back to Settings** returns to the source list
 
-- **Copy ID** - Copy article ID to clipboard
-- **Rerun Summary** - Regenerate AI summary
-- **Rerun Tags** - Regenerate topic assignments
-- **Rerun Image** - Regenerate AI image
-- **Rerun Translations** - Regenerate translations
-- **Rescrape** - Re-fetch content from source
-- **Edit Article** - Open edit dialog
-- **Delete** - Remove article (with confirmation)
+### Article Table
+
+Rows per page: 10, 20, 50, 100 — persisted to `localStorage`. Column visibility also persisted.
+
+| Column | Notes |
+|--------|-------|
+| ID | Database ID |
+| Title | Clickable — opens article on site in new tab |
+| URL | Original source URL |
+| Thumbnail | Clickable — opens full-size lightbox |
+| Publication Date | — |
+| AI Summary | Generated summary text |
+| AI Tags | Assigned topic names |
+| AI Image | Clickable — opens full-size lightbox |
+
+### Article Actions (row dropdown)
+
+- **Copy ID** — copy to clipboard
+- **Rerun Summary / Tags / Image / Translations** — regenerate individual AI features
+- **Rescrape** — re-fetch content from source URL
+- **Edit Article** — open edit dialog (see below)
+- **Delete** — remove article
 
 ### Bulk Actions
 
-- **Rescrape All Articles** - Re-scrape all articles (streams progress via SSE)
-- **Process Missing AI Data** - Generate missing AI content for source
+- **Rescrape All Articles** — re-scrapes every article in the source, streaming progress via SSE
+- **Process Missing AI Data** — generates any missing AI content for all articles
 
-### Article Edit Dialog
+---
 
-Edit individual article fields:
+## Article Edit Dialog
 
-- Title (English, Spanish, Haitian Creole)
-- Summary (all languages)
-- Content (all languages)
-- Topics (all languages)
-- Publication date
-- Thumbnail URL
+Full-width modal (80% viewport) for editing article content.
+
+**Meta fields:**
+- Title, Author, Publication Date, Source URL, Thumbnail URL, Topics
+
+**Summary** — plain textarea (English only)
+
+**Content tabs — English / Spanish / Haitian Creole:**
+
+Each tab contains:
+- Title and Summary fields (translated tabs)
+- **WYSIWYG editor** (TipTap) — Bold, Italic, Strike, H2, H3, Bullet list, Ordered list, Blockquote, Link, Image, Undo/Redo
+- **`</> HTML` toggle** — switches to raw HTML textarea; syncs back to WYSIWYG on toggle
+- **Live preview** — renders current HTML side-by-side
+
+---
 
 ## Related Documentation
 
 - [Frontend UI](frontend-ui.md) - Overall frontend architecture
-- [Scraping Methods](scraping-methods.md) - Scraper configuration
-- [CSS Selectors](css-selectors.md) - Selector syntax guide
-- [Troubleshooting](troubleshooting.md) - Common issues
+- [Scraping Methods](scraping-methods.md) - How each scraping method works
+- [CSS Selectors](css-selectors.md) - Selector syntax and debugging
+- [API Documentation](api-documentation.md) - Source and article API endpoints
+- [Troubleshooting](troubleshooting.md) - Common issues with sources and scraping

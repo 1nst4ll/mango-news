@@ -1,145 +1,109 @@
-# Sunday Edition Feature
+# Sunday Edition
 
-The Sunday Edition is a weekly AI-generated news summary with audio narration.
+A weekly AI-generated news digest with audio narration, published every Sunday as a special post in the main feed.
 
-## Overview
+## How It Works
 
-Every Sunday, the system automatically:
+Every Sunday at midnight (configurable), the system:
 
-1. Collects all articles from the past week
-2. Generates a CNN anchor-style summary (up to 2900 characters)
-3. Creates an audio narration using Unreal Speech API
-4. Generates a relevant AI image
-5. Publishes as a special post in the news feed
+1. Collects all articles published in the past 7 days
+2. Generates a CNN anchor-style summary via Groq (up to 2,900 characters)
+3. Sends the text to Unreal Speech API for MP3 narration (async)
+4. Generates a header image via fal.ai FLUX.2 Turbo
+5. Saves the result to the `sunday_editions` table
+
+The audio generation is asynchronous — Unreal Speech calls back to `POST /api/unreal-speech-callback` when the MP3 is ready, which updates the record with the `narration_url`.
 
 ## Database Schema
 
 ```sql
 CREATE TABLE sunday_editions (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    summary TEXT,
-    narration_url TEXT,
-    image_url TEXT,
-    publication_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    unreal_speech_task_id VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id                    SERIAL PRIMARY KEY,
+    title                 VARCHAR(255) NOT NULL,
+    summary               TEXT,
+    narration_url         TEXT,            -- S3 URL to MP3 (set via callback)
+    image_url             TEXT,            -- S3 URL to header image
+    publication_date      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    unreal_speech_task_id VARCHAR(255),    -- used to match async callback
+    created_at            TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at            TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ## Backend Implementation
 
-### Key File
+**File:** `backend/src/sundayEditionGenerator.js`
 
-[`backend/src/sundayEditionGenerator.js`](../backend/src/sundayEditionGenerator.js)
-
-### Generation Process
-
-```javascript
+```
 createSundayEdition()
-├── fetchWeeklyArticles()      // Get week's articles
-├── generateSundayEditionSummary()  // LLM summarization
-├── generateNarration()        // Unreal Speech API
-├── generateSundayEditionImage()    // Ideogram API
-└── Save to database
+├── fetchWeeklyArticles()            — query past 7 days of articles
+├── generateSundayEditionSummary()   — Groq Llama 3.3 70B (aiService)
+├── generateSundayEditionImage()     — fal.ai FLUX.2 Turbo → S3
+├── generateNarration()              — Unreal Speech API (async)
+└── INSERT into sunday_editions
 ```
 
-### Environment Variables
-
+**Required environment variable:**
 ```env
-UNREAL_SPEECH_API_KEY=your_unreal_speech_key
+UNREAL_SPEECH_API_KEY=your_key   # omit to skip audio narration
 ```
+
+## Schedule
+
+Configured in Settings → Scheduled Tasks → **Sunday Edition Schedule**.
+
+Default: `0 0 * * 0` (Sunday at midnight). Includes a lock to prevent overlapping runs.
 
 ## API Endpoints
 
-### Generate Sunday Edition
-
+**Generate manually** (authenticated):
 ```http
 POST /api/sunday-editions/generate
 Authorization: Bearer YOUR_TOKEN
 ```
+Response: `{ "message": "Sunday Edition created successfully.", "id": 1 }`
 
-**Response:**
-```json
-{
-  "message": "Sunday Edition created successfully.",
-  "id": 1
-}
-```
-
-### List Sunday Editions
-
+**List editions** (paginated, public):
 ```http
 GET /api/sunday-editions?page=1&limit=15
 ```
+Returns array with `X-Total-Count` header.
 
-**Response Headers:**
-- `X-Total-Count`: Total editions count
-
-### Get Single Edition
-
+**Get single edition** (public):
 ```http
 GET /api/sunday-editions/:id
 ```
-
-**Response:**
 ```json
 {
   "id": 1,
-  "title": "Mango News Sunday Edition - November 24, 2024",
-  "summary": "This week in TCI news...",
+  "title": "Mango News Sunday Edition - March 24, 2026",
+  "summary": "This week in TCI...",
   "narration_url": "https://s3.../sunday-edition-uuid.mp3",
   "image_url": "https://s3.../sunday-edition-image.png",
-  "publication_date": "2024-11-24T00:00:00Z"
+  "publication_date": "2026-03-24T00:00:00Z"
 }
 ```
 
-### Unreal Speech Callback
-
+**Audio callback** (called by Unreal Speech):
 ```http
 POST /api/unreal-speech-callback
 ```
 
-Handles async audio generation completion from Unreal Speech API.
-
-## Scheduled Generation
-
-Configure in Settings → Scheduled Tasks:
-
-- **Sunday Edition Schedule**: Cron expression (default: `0 0 * * 0` - Sunday midnight)
-
-The job includes locking to prevent overlapping executions.
-
 ## Frontend Display
 
-### News Feed Integration
+Sunday Editions appear in the main news feed alongside regular articles with a distinct **"Sunday Edition"** badge, audio player, and AI-generated image.
 
-Sunday Editions appear in the main feed alongside regular articles:
-- Distinct card design with "Sunday Edition" badge
-- Audio player for narration
-- AI-generated image
-- Social sharing buttons
-
-### Dedicated Page
-
-`/[lang]/sunday-edition/[id]` displays full edition:
+**Dedicated page:** `/[lang]/sunday-edition/[id]`
 - Large image header
-- Audio player with playback controls
+- Audio player (`frontend/src/components/ui/AudioPlayer.tsx`) with play/pause/seek
 - Full summary text
-- Publication date
+- Publication date and sharing buttons
 
-### Audio Player Component
+The `sunday_edition` key in each locale file provides the translated badge label.
 
-[`frontend/src/components/ui/AudioPlayer.tsx`](../frontend/src/components/ui/AudioPlayer.tsx)
+## Manual Trigger
 
-## Translations
-
-The `sunday_edition` key in locale files provides translations for the badge label.
-
-## Manual Triggering
-
-From Settings page or via API:
+From the Settings page or via curl:
 
 ```bash
 curl -X POST "http://localhost:3000/api/sunday-editions/generate" \
@@ -148,6 +112,7 @@ curl -X POST "http://localhost:3000/api/sunday-editions/generate" \
 
 ## Related Documentation
 
-- [Backend Setup](backend-setup.md) - Environment configuration
+- [Backend Setup](backend-setup.md) - Environment variables and AI service config
+- [AI Optimization Analysis](ai-optimization-analysis.md) - Weekly summary generation details
 - [API Documentation](api-documentation.md) - Full endpoint reference
 - [Admin UI](admin-ui.md) - Schedule configuration
