@@ -3,6 +3,17 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SettingsPage from '../components/SettingsPage'; // Import as a React component
 
+let sources = [];
+try {
+  const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+  const response = await fetch(`${apiUrl}/api/sources`);
+  if (response.ok) {
+    sources = await response.json();
+  }
+} catch (error) {
+  console.error('Error fetching sources in settings.astro:', error);
+}
+
 const pageTitle = "Settings"; // BaseLayout prepends "mango.tc news - "
 const pageDescription = "Manage your mango.tc news settings and preferences.";
 const ogImageUrl = "/logo.png"; // Assuming logo.png is in public directory
@@ -16,16 +27,34 @@ const ogType = "website";
   ogImageUrl={ogImageUrl}
   ogUrl={ogUrl}
   ogType={ogType}
+  sources={sources}
 >
   <SettingsPage client:load />
 </BaseLayout>
 
 <script define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL || 'http://localhost:3000' }}>
-  // Client-side script to verify authentication via /api/me (cookie-based)
+  // Client-side script to verify authentication via /api/me (cookie-based).
+  // Mirrors apiFetch refresh logic: on 401, attempt a silent token refresh once
+  // before redirecting, so an expired access token with a valid refresh token
+  // does not incorrectly kick the user out.
   document.addEventListener('astro:page-load', async () => {
     try {
       const res = await fetch(`${apiUrl}/api/me`, { credentials: 'include' });
-      if (!res.ok) {
+      if (res.status === 401) {
+        // Attempt silent refresh then re-check
+        const refreshRes = await fetch(`${apiUrl}/api/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (refreshRes.ok) {
+          const retryRes = await fetch(`${apiUrl}/api/me`, { credentials: 'include' });
+          if (!retryRes.ok) {
+            window.location.href = '/';
+          }
+        } else {
+          window.location.href = '/';
+        }
+      } else if (!res.ok) {
         window.location.href = '/';
       }
     } catch {
