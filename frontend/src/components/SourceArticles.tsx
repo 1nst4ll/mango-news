@@ -5,8 +5,18 @@ import { Button } from "./ui/button";
 import { DataTable } from "./ui/data-table";
 import { getColumns, Article } from "./columns";
 import { toast } from "sonner";
-import { Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Skeleton } from "./ui/skeleton";
 import ArticleEditDialog from './ArticleEditDialog';
 
@@ -59,6 +69,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   // State for image lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
+  // Bulk delete state
+  const [selectedArticles, setSelectedArticles] = useState<Article[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Pagination state for server-side pagination
   const STORAGE_KEY = 'source-articles-table';
   const [pageIndex, setPageIndex] = useState(0);
@@ -67,6 +82,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     return 10;
   });
   const [pageCount, setPageCount] = useState(0); // Total number of pages
+  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
 
 
   const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
@@ -194,6 +210,24 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     setSelectedArticleId(null);
   };
 
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    const ids = selectedArticles.map(a => a.id);
+    let successCount = 0;
+    let failCount = 0;
+    await Promise.all(ids.map(async (id) => {
+      try {
+        const response = await apiFetch(`/api/articles/${id}`, { method: 'DELETE' });
+        if (response.ok) { successCount++; } else { failCount++; }
+      } catch { failCount++; }
+    }));
+    setIsBulkDeleting(false);
+    setIsBulkDeleteDialogOpen(false);
+    if (successCount > 0) toast.success(`Deleted ${successCount} article${successCount !== 1 ? 's' : ''}`);
+    if (failCount > 0) toast.error(`Failed to delete ${failCount} article${failCount !== 1 ? 's' : ''}`);
+    fetchArticles(pageIndex, pageSize);
+  };
+
   const handleArticleSaveSuccess = () => {
     fetchArticles(pageIndex, pageSize); // Refresh articles after a successful save
   };
@@ -241,11 +275,12 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const totalCount = parseInt(response.headers.get('X-Total-Count') || '0', 10);
+      const total = parseInt(response.headers.get('X-Total-Count') || '0', 10);
       const data: Article[] = await response.json();
-      console.log(`[Frontend] Received ${data.length} articles. Total count: ${totalCount}`);
+      console.log(`[Frontend] Received ${data.length} articles. Total count: ${total}`);
       setArticles(data);
-      setPageCount(Math.ceil(totalCount / limit));
+      setTotalCount(total);
+      setPageCount(Math.ceil(total / limit));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching articles.';
       console.error(`[Frontend] Error fetching articles:`, err);
@@ -521,11 +556,24 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               pageCount={pageCount}
               pageIndex={pageIndex}
               pageSize={pageSize}
+              totalCount={totalCount}
               storageKey={STORAGE_KEY}
               onPaginationChange={({ pageIndex, pageSize }) => {
                 setPageIndex(pageIndex);
                 setPageSize(pageSize);
               }}
+              onRowSelectionChange={(rows) => setSelectedArticles(rows as Article[])}
+              bulkActions={
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setIsBulkDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Delete selected
+                </Button>
+              }
             />
         )}
       </CardContent>
@@ -535,6 +583,28 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         articleId={selectedArticleId}
         onSaveSuccess={handleArticleSaveSuccess}
       />
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedArticles.length} article{selectedArticles.length !== 1 ? 's' : ''}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedArticles.length} selected article{selectedArticles.length !== 1 ? 's' : ''}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Deleting…</> : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Image lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) setLightboxUrl(null); }}>
