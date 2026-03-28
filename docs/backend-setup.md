@@ -132,7 +132,11 @@ npm start     # production
 
 ## Authentication
 
-Cookie-based JWT. On login the backend sets an `HttpOnly; Secure; SameSite=Strict` cookie. The browser sends it automatically — no manual token handling needed in the frontend.
+Cookie-based JWT. On login the backend sets an `HttpOnly; Secure` cookie. The browser sends it automatically — no manual token handling needed in the frontend.
+
+**`SameSite` policy:**
+- `development` (`NODE_ENV=development`): `SameSite=Strict` — frontend and backend share the same origin
+- `production` (`NODE_ENV=production`): `SameSite=None; Secure` — required when frontend and backend are on different domains (e.g. `mangonews.onrender.com` vs `mango-news.onrender.com`)
 
 **Password rules:** minimum 12 characters, at least one lowercase letter, one uppercase letter, one number, and one special character. Username must be a valid email address.
 

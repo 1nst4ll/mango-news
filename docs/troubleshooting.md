@@ -147,18 +147,29 @@ Then reprocess translations via the article dropdown (Rerun Translations) or bul
 
 ### Authentication errors — "No token provided" / redirected to homepage
 
-Auth is now cookie-based. Tokens are no longer stored in `localStorage`.
+Auth is cookie-based. Tokens are no longer stored in `localStorage`.
 
 1. Log in again via the user menu — the session (cookie) may have expired
-2. Check browser DevTools → Application → Cookies for a `jwt` cookie on the backend domain
-3. If the cookie exists but requests still fail, verify `ALLOWED_ORIGINS` includes your frontend URL and the backend `NODE_ENV` is set correctly
-4. For cross-origin setups, ensure the frontend uses `credentials: 'include'` on all fetch calls (the `apiFetch` wrapper handles this automatically)
-5. If you previously had a `jwtToken` in `localStorage`, it is no longer used — you can clear it with `localStorage.removeItem('jwtToken')` but it has no effect on the new auth flow
+2. Check browser DevTools → Application → Cookies — look for a `jwt` cookie on the **backend** domain (e.g. `mango-news.onrender.com`), not the frontend domain
+3. If the cookie exists but requests still fail, verify `ALLOWED_ORIGINS` on the backend includes your exact frontend URL (e.g. `https://mangonews.onrender.com`) and `NODE_ENV=production` is set
+4. For cross-origin setups (frontend and backend on different domains), the backend must have `NODE_ENV=production` so cookies are issued with `SameSite=None; Secure` — without this, browsers will block the cookie from being sent cross-domain
+5. After changing `NODE_ENV` or cookie settings, clear old cookies in DevTools → Application → Cookies → Clear All, then log in again
+6. If you previously had a `jwtToken` in `localStorage`, it is no longer used — clear it with `localStorage.removeItem('jwtToken')`
+
+### Settings page not visible after login
+
+The Settings nav item only appears when `/api/me` returns a successful response.
+
+1. Open DevTools → Network, filter by `api/me` — check the response status
+2. A `401` means the `jwt` cookie is not being sent — see authentication errors above
+3. A `404` or network error means `PUBLIC_API_URL` on the frontend is pointing to the wrong backend URL
+4. After fixing, clear cookies and log in again — old `SameSite=Strict` cookies won't be sent cross-domain
 
 ### Rate limit errors — 429 Too Many Requests
 
-- **Auth endpoints** (`/api/login`, `/api/register`): limited to 5 failed attempts per 15 minutes per IP. Wait 15 minutes or restart the backend (clears the in-memory counter) during development.
-- **General API**: limited to 100 requests per minute per IP.
+- **Auth endpoints** (`/api/login`, `/api/register`): limited to 5 failed attempts per 15 minutes per IP
+- **General API**: limited to 100 requests per minute per IP
+- **AI/scrape endpoints** (`/api/articles/:id/process-ai`, `/api/scrape/run`, `/api/sunday-editions/generate`): limited to 20 requests per hour per IP
 
 ### Infinite scroll stops loading
 
