@@ -28,7 +28,8 @@
         console.error('Logout request failed:', err);
       }
       setIsLoggedIn(false);
-      window.location.href = '/';
+      // Force a full navigation so the page re-mounts and re-checks auth from scratch
+      window.location.replace('/');
     };
 
     // Styling will be handled by Tailwind classes now
