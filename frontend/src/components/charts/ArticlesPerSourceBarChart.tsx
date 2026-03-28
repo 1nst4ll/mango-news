@@ -1,7 +1,5 @@
-"use client";
-
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList } from "recharts";
 import { TrendingUp } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
 import {
   Card,
@@ -10,13 +8,13 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../ui/card"; // Use relative path
-import type { ChartConfig } from "../ui/chart"; // Import ChartConfig as a type
+} from "../ui/card";
+import type { ChartConfig } from "../ui/chart";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "../ui/chart"; // Import components separately
+} from "../ui/chart";
 
 interface ArticlesPerSourceBarChartProps {
   data: { source_name: string; article_count: number }[];
@@ -25,20 +23,19 @@ interface ArticlesPerSourceBarChartProps {
 const chartConfig = {
   article_count: {
     label: "Articles",
-    color: "hsl(var(--chart-1))", // Use a theme color
-  },
-  source_name: {
-    label: "Source",
-    color: "hsl(var(--background))", // Color for the label
+    color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig;
 
 export function ArticlesPerSourceBarChart({ data }: ArticlesPerSourceBarChartProps) {
-  // Use the data prop instead of hardcoded chartData
+  const total = data.reduce((sum, item) => sum + item.article_count, 0);
+  const top = data.length > 0
+    ? data.reduce((a, b) => (a.article_count >= b.article_count ? a : b))
+    : null;
 
   return (
     <Card>
-      <CardHeader className="pt-4"> {/* Added top padding */}
+      <CardHeader className="pt-4">
         <CardTitle>Articles per Source</CardTitle>
         <CardDescription>Number of articles from each source</CardDescription>
       </CardHeader>
@@ -46,58 +43,59 @@ export function ArticlesPerSourceBarChart({ data }: ArticlesPerSourceBarChartPro
         <ChartContainer config={chartConfig}>
           <BarChart
             accessibilityLayer
-            data={data} // Use the data prop
-            layout="vertical" // Use vertical layout
-            margin={{
-              right: 16,
-            }}
+            data={data}
+            layout="vertical"
+            margin={{ right: 48, left: 4 }}
           >
-            <CartesianGrid horizontal={false} /> {/* Use horizontal=false for vertical layout */}
+            <CartesianGrid horizontal={false} />
             <YAxis
-              dataKey="source_name" // Use source_name for Y axis in vertical layout
+              dataKey="source_name"
               type="category"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
-              // tickFormatter={(value) => value.slice(0, 3)} // Optional: shorten source names
-              hide // Hide Y axis labels if using LabelList
+              hide
             />
-            <XAxis dataKey="article_count" type="number" hide /> {/* Use article_count for X axis in vertical layout, hide axis */}
+            <XAxis dataKey="article_count" type="number" hide />
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="line" />} // Use line indicator for vertical layout tooltip
+              content={<ChartTooltipContent indicator="line" />}
             />
             <Bar
-              dataKey="article_count" // Use article_count for dataKey
+              dataKey="article_count"
               layout="vertical"
-              fill="var(--color-article_count)" // Use theme color
-              radius={4} // Use radius from example
+              fill="var(--color-article_count)"
+              radius={4}
             >
               <LabelList
-                dataKey="source_name" // Label with source name
-                position="insideLeft" // Position label inside bars
+                dataKey="source_name"
+                position="insideLeft"
                 offset={8}
-                className="fill-[--color-source_name]" // Use theme color for label
+                className="fill-background"
                 fontSize={12}
               />
-               <LabelList
-                dataKey="article_count" // Label with article count
-                position="right" // Position label outside bars
+              <LabelList
+                dataKey="article_count"
+                position="right"
                 offset={8}
-                className="fill-foreground" // Use foreground color for label
+                className="fill-foreground"
                 fontSize={12}
               />
             </Bar>
           </BarChart>
         </ChartContainer>
       </CardContent>
-      {/* Footer can be adapted to show relevant stats */}
-      {/* For example, total articles or average articles per source */}
-      {/* <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 font-medium leading-none">
-          Total Articles: {data.reduce((sum, item) => sum + item.article_count, 0)}
-        </div>
-      </CardFooter> */}
+      {top && (
+        <CardFooter className="flex-col items-start gap-1 text-sm pt-0">
+          <div className="flex gap-2 font-medium leading-none">
+            <TrendingUp className="h-4 w-4 text-chart-1" />
+            Top source: {top.source_name} ({top.article_count.toLocaleString()})
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {total.toLocaleString()} total articles across {data.length} source{data.length !== 1 ? 's' : ''}
+          </div>
+        </CardFooter>
+      )}
     </Card>
   );
 }
