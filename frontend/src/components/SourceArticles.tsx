@@ -481,10 +481,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     title={prev ? `Previous: ${prev.name}` : undefined}
                   >
                     <ChevronLeft className="h-4 w-4" />
+                    <span className="sr-only">{prev ? `Previous: ${prev.name}` : 'No previous source'}</span>
                   </Button>
                   <div>
                     <CardTitle className="pb-0">Articles for Source ID: {sourceId}</CardTitle>
-                    {sourceSettings && <p className="text-sm text-muted-foreground">{sourceSettings.name}</p>}
+                    {sourceSettings && <CardDescription>{sourceSettings.name}</CardDescription>}
                   </div>
                   <Button
                     size="sm" variant="outline" className="h-8 w-8 p-0"
@@ -493,6 +494,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
                     title={next ? `Next: ${next.name}` : undefined}
                   >
                     <ChevronRight className="h-4 w-4" />
+                    <span className="sr-only">{next ? `Next: ${next.name}` : 'No next source'}</span>
                   </Button>
                 </>
               );
@@ -508,7 +510,6 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
             disabled={isRescraping}
             size="sm"
             variant="outline"
-            className="mb-2" // Add some margin to separate buttons
           >
             {isRescraping ? (
               <>
