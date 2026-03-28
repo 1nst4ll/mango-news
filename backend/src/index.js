@@ -117,7 +117,7 @@ app.use((req, res, next) => {
   let logMessage = `[INFO] ${timestamp} - ${method} ${url} from ${ip}`;
 
   // Log request body for POST and PUT requests, redacting sensitive fields
-  if (['POST', 'PUT'].includes(method) && Object.keys(req.body).length > 0) {
+  if (['POST', 'PUT'].includes(method) && req.body && Object.keys(req.body).length > 0) {
     const safeBody = { ...req.body };
     if (safeBody.password !== undefined)    safeBody.password    = '[REDACTED]';
     if (safeBody.newPassword !== undefined) safeBody.newPassword = '[REDACTED]';
