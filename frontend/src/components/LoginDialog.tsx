@@ -60,45 +60,42 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
             Enter your username and password to access the admin features.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="username" className="text-right">
-              Username
-            </Label>
+        <div className="flex flex-col gap-4 py-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="username">Email</Label>
             <Input
               id="username"
+              type="email"
+              placeholder="admin@example.com"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="col-span-3"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="password" className="text-right">
-              Password
-            </Label>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="col-span-3"
             />
           </div>
-          <div className="flex items-center gap-2 col-span-4 pl-1">
+          <div className="flex items-center gap-2">
             <input
               id="rememberMe"
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 cursor-pointer"
+              className="h-4 w-4 cursor-pointer accent-primary"
             />
             <Label htmlFor="rememberMe" className="cursor-pointer font-normal">
               Remember me for 30 days
             </Label>
           </div>
-          {error && <p className="text-red-500 text-sm col-span-4 text-center">{error}</p>}
+          {error && <p className="text-destructive text-sm text-center">{error}</p>}
         </div>
         <DialogFooter>
           <Button type="submit" onClick={handleLogin}>Login</Button>
