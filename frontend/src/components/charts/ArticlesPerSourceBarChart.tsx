@@ -63,7 +63,6 @@ export function ArticlesPerSourceBarChart({ data }: ArticlesPerSourceBarChartPro
             />
             <Bar
               dataKey="article_count"
-              layout="vertical"
               fill="var(--color-article_count)"
               radius={4}
             >

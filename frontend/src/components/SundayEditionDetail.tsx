@@ -22,7 +22,7 @@ interface SundayEditionDetailProps {
 
 const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang }) => {
   const { t, currentLocale } = useTranslations();
-  const displaySummary = marked.parse(edition.summary);
+  const displaySummary = marked.parse(edition.summary) as string;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">

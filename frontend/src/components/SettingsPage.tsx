@@ -3,8 +3,10 @@ import { format } from 'date-fns';
 import { apiFetch } from '../lib/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { ArticlesPerSourceBarChart } from "./charts/ArticlesPerSourceBarChart";
-import { ArticlesPerYearBarChart } from "./charts/ArticlesPerYearAreaChart";
+import { SourceDistributionPieChart } from "./charts/SourceDistributionPieChart";
+import { ArticlesTimelineChart } from "./charts/ArticlesTimelineChart";
+import { SourceBarChart } from "./charts/SourceBarChart";
+import { AiCoverageChart } from "./charts/AiCoverageChart";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
@@ -15,7 +17,7 @@ import { Switch } from "./ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
 import { Badge } from "./ui/badge";
-import { MoreHorizontal, RefreshCw, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, RefreshCw, AlertTriangle, Newspaper, Globe, Zap, FileText, Tag, Image, Languages } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -797,9 +799,16 @@ const SettingsPage: React.FC = () => {
             TAB 1 — Overview & Stats
         ================================================================ */}
         <TabsContent value="overview">
-          <Card className="mb-6 pt-4">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle>Database</CardTitle>
+          <div className="space-y-6">
+
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">Dashboard</h2>
+                <p className="text-sm text-muted-foreground">
+                  Overview of your news aggregation platform
+                </p>
+              </div>
               <div className="flex items-center gap-3">
                 {statsLastUpdated && (
                   <span className="text-xs text-muted-foreground">
@@ -811,114 +820,178 @@ const SettingsPage: React.FC = () => {
                   Refresh
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {statsError && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{statsError}</AlertDescription>
-                </Alert>
-              )}
+            </div>
 
-              {/* Stat cards + charts */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-                <div className="grid grid-cols-1 gap-4 lg:col-span-2">
-                  <Card>
-                    <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
-                      <div className="space-y-1">
-                        <CardDescription>Total Articles</CardDescription>
-                        {statsLoading ? (
-                          <Skeleton className="h-8 w-24" />
-                        ) : (
-                          <CardTitle className="text-2xl">{stats.totalArticles ?? 'N/A'}</CardTitle>
-                        )}
-                      </div>
-                      <img src="/file.svg" alt="" className="w-8 h-8 opacity-50" />
-                    </CardHeader>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
-                      <div className="space-y-1">
-                        <CardDescription>Total Sources</CardDescription>
-                        {statsLoading ? (
-                          <Skeleton className="h-8 w-16" />
-                        ) : (
-                          <>
-                            <CardTitle className="text-2xl">{stats.totalSources ?? 'N/A'}</CardTitle>
-                            {stats.totalSources !== null && (
-                              <p className="text-xs text-muted-foreground">{activeSources} active</p>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <img src="/globe.svg" alt="" className="w-8 h-8 opacity-50" />
-                    </CardHeader>
-                  </Card>
-                </div>
-                <div className="lg:col-span-2">
+            {statsError && (
+              <Alert variant="destructive">
+                <AlertDescription>{statsError}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* KPI stat cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
+                  <CardDescription className="text-xs font-medium">Total Articles</CardDescription>
+                  <Newspaper className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="pb-4">
                   {statsLoading ? (
-                    <Card className="h-full">
-                      <CardHeader className="pt-4">
-                        <Skeleton className="h-5 w-40" />
-                        <Skeleton className="h-3 w-56 mt-1" />
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-40 w-full" />
-                      </CardContent>
-                    </Card>
+                    <Skeleton className="h-8 w-24" />
                   ) : (
-                    <ArticlesPerSourceBarChart data={stats.articlesPerSource || []} />
+                    <div className="text-3xl font-bold tracking-tight">
+                      {(stats.totalArticles ?? 0).toLocaleString()}
+                    </div>
                   )}
-                </div>
-                <div className="lg:col-span-2">
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
+                  <CardDescription className="text-xs font-medium">Total Sources</CardDescription>
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="pb-4">
                   {statsLoading ? (
-                    <Card className="h-full">
-                      <CardHeader className="pt-4">
-                        <Skeleton className="h-5 w-36" />
-                        <Skeleton className="h-3 w-48 mt-1" />
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-40 w-full" />
-                      </CardContent>
-                    </Card>
+                    <Skeleton className="h-8 w-16" />
                   ) : (
-                    <ArticlesPerYearBarChart data={stats.articlesPerYear || []} />
+                    <>
+                      <div className="text-3xl font-bold tracking-tight">
+                        {stats.totalSources ?? 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="text-emerald-500 font-medium">{activeSources} active</span>
+                        {(stats.totalSources ?? 0) - activeSources > 0 && (
+                          <span> / {(stats.totalSources ?? 0) - activeSources} inactive</span>
+                        )}
+                      </p>
+                    </>
                   )}
-                </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
+                  <CardDescription className="text-xs font-medium">Avg. per Source</CardDescription>
+                  <Zap className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="pb-4">
+                  {statsLoading ? (
+                    <Skeleton className="h-8 w-20" />
+                  ) : (
+                    <div className="text-3xl font-bold tracking-tight">
+                      {stats.totalSources && stats.totalArticles
+                        ? Math.round(stats.totalArticles / stats.totalSources).toLocaleString()
+                        : '0'}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
+                  <CardDescription className="text-xs font-medium">Years Covered</CardDescription>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="pb-4">
+                  {statsLoading ? (
+                    <Skeleton className="h-8 w-12" />
+                  ) : (
+                    <>
+                      <div className="text-3xl font-bold tracking-tight">
+                        {stats.articlesPerYear.length}
+                      </div>
+                      {stats.articlesPerYear.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {Math.min(...stats.articlesPerYear.map(y => y.year))} &ndash; {Math.max(...stats.articlesPerYear.map(y => y.year))}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main charts row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Timeline chart — spans 2 cols */}
+              <div className="lg:col-span-2">
+                {statsLoading ? (
+                  <Card className="h-full">
+                    <CardHeader className="pt-4">
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-3 w-56 mt-1" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-[200px] w-full" />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <ArticlesTimelineChart data={stats.articlesPerYear || []} />
+                )}
               </div>
 
-              {/* AI coverage */}
-              {aiCoverage && (
-                <Card>
-                  <CardHeader className="pb-3 pt-4">
-                    <CardTitle className="text-sm font-semibold">AI Coverage</CardTitle>
-                    <CardDescription>Articles covered by AI features, based on per-source configuration</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {([
-                        { label: 'Summaries', value: aiCoverage.withSummary },
-                        { label: 'Tags', value: aiCoverage.withTags },
-                        { label: 'Images', value: aiCoverage.withImage },
-                        { label: 'Translations', value: aiCoverage.withTranslations },
-                      ] as const).map(({ label, value }) => {
-                        const pct = Math.round((value / aiCoverage.total) * 100);
-                        return (
-                          <div key={label} className="space-y-2">
-                            <div className="flex justify-between text-xs">
-                              <span className="font-medium">{label}</span>
-                              <span className="text-muted-foreground">{pct}%</span>
-                            </div>
-                            <Progress value={pct} className="h-2" />
-                            <p className="text-xs text-muted-foreground">{value.toLocaleString()} / {aiCoverage.total.toLocaleString()} articles</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
+              {/* Pie chart — 1 col */}
+              <div>
+                {statsLoading ? (
+                  <Card className="h-full">
+                    <CardHeader className="pt-4 items-center">
+                      <Skeleton className="h-5 w-36" />
+                      <Skeleton className="h-3 w-32 mt-1" />
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                      <Skeleton className="h-[180px] w-[180px] rounded-full" />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <SourceDistributionPieChart data={stats.articlesPerSource || []} />
+                )}
+              </div>
+            </div>
+
+            {/* AI Coverage radial charts */}
+            {aiCoverage && (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-sm font-semibold">AI Coverage</h3>
+                  <p className="text-xs text-muted-foreground">Processing status based on per-source configuration</p>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <AiCoverageChart
+                    label="Summaries"
+                    value={aiCoverage.withSummary}
+                    total={aiCoverage.total}
+                    color="var(--chart-1)"
+                    icon={<FileText className="h-3 w-3" />}
+                  />
+                  <AiCoverageChart
+                    label="Tags"
+                    value={aiCoverage.withTags}
+                    total={aiCoverage.total}
+                    color="var(--chart-2)"
+                    icon={<Tag className="h-3 w-3" />}
+                  />
+                  <AiCoverageChart
+                    label="Images"
+                    value={aiCoverage.withImage}
+                    total={aiCoverage.total}
+                    color="var(--chart-4)"
+                    icon={<Image className="h-3 w-3" />}
+                  />
+                  <AiCoverageChart
+                    label="Translations"
+                    value={aiCoverage.withTranslations}
+                    total={aiCoverage.total}
+                    color="var(--chart-5)"
+                    icon={<Languages className="h-3 w-3" />}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Full bar chart */}
+            {!statsLoading && (stats.articlesPerSource?.length ?? 0) > 0 && (
+              <SourceBarChart data={stats.articlesPerSource} />
+            )}
+
+          </div>
         </TabsContent>
 
         {/* ================================================================
