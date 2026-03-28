@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import {
   ColumnDef,
@@ -26,6 +24,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -45,7 +44,6 @@ const DEFAULT_COLUMN_VISIBILITY: VisibilityState = {
   ai_summary: false,
   ai_image_path: false,
   source_url: false,
-  select: false,
 }
 
 interface DataTableProps<TData, TValue> {
@@ -54,7 +52,10 @@ interface DataTableProps<TData, TValue> {
   pageCount: number;
   pageIndex: number;
   pageSize: number;
+  totalCount?: number;
   onPaginationChange: (pagination: { pageIndex: number; pageSize: number }) => void;
+  onRowSelectionChange?: (selectedRows: TData[]) => void;
+  bulkActions?: React.ReactNode;
   storageKey?: string;
 }
 
@@ -64,7 +65,10 @@ export function DataTable<TData, TValue>({
   pageCount: controlledPageCount,
   pageIndex: controlledPageIndex,
   pageSize: controlledPageSize,
+  totalCount,
   onPaginationChange,
+  onRowSelectionChange,
+  bulkActions,
   storageKey,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -100,7 +104,7 @@ export function DataTable<TData, TValue>({
     onPaginationChange(pagination)
   }, [storageKey, controlledPageSize, onPaginationChange])
 
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({})
 
   const table = useReactTable({
     data,
@@ -136,11 +140,20 @@ export function DataTable<TData, TValue>({
     },
   })
 
+  // Notify parent when selection changes
+  React.useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedRows = table.getFilteredSelectedRowModel().rows.map(r => r.original)
+      onRowSelectionChange(selectedRows)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowSelection])
+
   return (
     <div>
         <div className="flex items-center py-4">
             <Input
-            placeholder="Filter by title or topics..."
+            placeholder="Filter by title, ID, or topics..."
             value={globalFilter ?? ""}
             onChange={(event) =>
                 setGlobalFilter(event.target.value)
@@ -221,15 +234,21 @@ export function DataTable<TData, TValue>({
         </Table>
         </div>
         <div className="flex flex-col gap-4 md:flex-row items-center justify-between px-2 py-4">
-            <div className="flex-1 text-sm text-muted-foreground">
-                {table.getFilteredSelectedRowModel().rows.length > 0 &&
-                    `${table.getFilteredSelectedRowModel().rows.length} of ${
-                    table.getPaginationRowModel().rows.length
-                    } row(s) selected.`}
+            <div className="flex flex-1 items-center gap-3 text-sm text-muted-foreground">
+                {totalCount !== undefined && (
+                    <span>{totalCount.toLocaleString()} article{totalCount !== 1 ? 's' : ''} total</span>
+                )}
+                {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                    <>
+                        <span>·</span>
+                        <span>{table.getFilteredSelectedRowModel().rows.length} selected</span>
+                        {bulkActions}
+                    </>
+                )}
             </div>
             <div className="flex items-center justify-end flex-wrap gap-4">
                 <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium">Rows per page</p>
+                <Label className="text-sm font-medium">Rows per page</Label>
                 <Select
                     value={`${table.getState().pagination.pageSize}`}
                     onValueChange={(value) => {

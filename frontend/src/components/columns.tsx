@@ -1,5 +1,3 @@
-"use client"
-
 import { ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, ArrowUpDown } from "lucide-react"
 
@@ -89,7 +87,7 @@ export type Article = {
       },
     cell: ({ row }) => {
         const article = row.original
-        return <a href={`/article/${article.id}`} target="_blank" rel="noopener noreferrer" className="min-w-[200px] break-words whitespace-pre-wrap block hover:underline text-blue-500">{article.title}</a>
+        return <a href={`/article/${article.id}`} target="_blank" rel="noopener noreferrer" className="min-w-[200px] break-words whitespace-pre-wrap block hover:underline text-primary">{article.title}</a>
     }
   },
   {
@@ -97,7 +95,7 @@ export type Article = {
     header: "URL",
     cell: ({ row }) => {
         const article = row.original
-        return <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline min-w-[200px] whitespace-pre-wrap block">{article.source_url}</a>
+        return <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline min-w-[200px] whitespace-pre-wrap block">{article.source_url}</a>
     }
   },
   {
@@ -106,8 +104,8 @@ export type Article = {
     cell: ({ row }) => {
         const article = row.original
         return article.thumbnail_url
-          ? <button onClick={() => handleImageClick(article.thumbnail_url!)} className="focus:outline-none"><img src={article.thumbnail_url} alt="Thumbnail" className="max-w-20 max-h-20 object-cover rounded hover:opacity-80 transition-opacity cursor-zoom-in" /></button>
-          : "N/A"
+          ? <Button variant="ghost" size="icon" className="h-auto w-auto p-0" onClick={() => handleImageClick(article.thumbnail_url!)}><img src={article.thumbnail_url} alt="Thumbnail" className="max-w-20 max-h-20 object-cover rounded hover:opacity-80 transition-opacity cursor-zoom-in" /></Button>
+          : <span className="text-muted-foreground text-sm">N/A</span>
     }
   },
   {
@@ -125,7 +123,7 @@ export type Article = {
       },
     cell: ({ row }) => {
         const article = row.original
-        return article.publication_date ? new Date(article.publication_date).toLocaleDateString() : 'N/A'
+        return article.publication_date ? new Date(article.publication_date).toLocaleDateString() : <span className="text-muted-foreground text-sm">N/A</span>
     }
   },
   {
@@ -151,8 +149,8 @@ export type Article = {
     cell: ({ row }) => {
         const article = row.original
         return article.ai_image_path
-          ? <button onClick={() => handleImageClick(article.ai_image_path!)} className="focus:outline-none"><img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover rounded hover:opacity-80 transition-opacity cursor-zoom-in" /></button>
-          : "N/A"
+          ? <Button variant="ghost" size="icon" className="h-auto w-auto p-0" onClick={() => handleImageClick(article.ai_image_path!)}><img src={article.ai_image_path} alt="AI Image" className="max-w-20 max-h-20 object-cover rounded hover:opacity-80 transition-opacity cursor-zoom-in" /></Button>
+          : <span className="text-muted-foreground text-sm">N/A</span>
     }
   },
   {
@@ -184,7 +182,7 @@ export type Article = {
             <DropdownMenuItem onClick={() => handleRescrapeArticle(article.id)}>Rescrape Article</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleEditArticle(article.id)}>Edit Article</DropdownMenuItem> {/* New menu item for editing */}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleDeleteArticle(article.id)} className="text-red-600">Delete</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDeleteArticle(article.id)} className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )
