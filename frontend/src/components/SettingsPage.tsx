@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { apiFetch } from '../lib/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -8,16 +8,46 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Textarea } from "./ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Switch } from "./ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"; // Import Tabs components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert"; // Import Alert components
-import { Info, MoreHorizontal } from 'lucide-react'; // Import icons
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu"; // Import DropdownMenu components
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"; // Import Accordion components
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Badge } from "./ui/badge";
+import { MoreHorizontal, RefreshCw, AlertTriangle } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+/** Parse a 5-field cron expression into a human-readable string. */
+function parseCron(expr: string): string {
+  if (!expr) return '';
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length !== 5) return 'Custom schedule';
+  const [min, hour, dom, month, dow] = parts;
+
+  // Common patterns
+  if (expr === '* * * * *') return 'Every minute';
+  if (min.startsWith('*/') && hour === '*' && dom === '*' && month === '*' && dow === '*') {
+    const n = parseInt(min.slice(2));
+    return `Every ${n} minute${n !== 1 ? 's' : ''}`;
+  }
+  if (min === '0' && hour.startsWith('*/') && dom === '*' && month === '*' && dow === '*') {
+    const n = parseInt(hour.slice(2));
+    return `Every ${n} hour${n !== 1 ? 's' : ''}`;
+  }
+  if (min === '0' && hour !== '*' && dom === '*' && month === '*' && dow === '*') {
+    return `Daily at ${hour.padStart(2, '0')}:00`;
+  }
+  if (min === '0' && hour !== '*' && dom === '*' && month === '*' && dow !== '*') {
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dayNames = dow.split(',').map(d => days[parseInt(d)] ?? d).join(', ');
+    return `Every ${dayNames} at ${hour.padStart(2, '0')}:00`;
+  }
+  if (min === '0' && hour !== '*' && dom !== '*' && month === '*' && dow === '*') {
+    return `Monthly on day ${dom} at ${hour.padStart(2, '0')}:00`;
+  }
+  return 'Custom schedule';
+}
 
 
 
@@ -135,8 +165,22 @@ const SettingsPage: React.FC = () => {
 
   // State for confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [confirmDialogAction, setConfirmDialogAction] = useState<'purgeAll' | 'deleteSourceArticles' | 'deleteSource' | null>(null);
+  const [confirmDialogAction, setConfirmDialogAction] = useState<'purgeAll' | 'deleteSourceArticles' | 'deleteSource' | 'bulkDelete' | null>(null);
   const [confirmDialogSourceId, setConfirmDialogSourceId] = useState<number | null>(null);
+
+  // Stats refresh
+  const [statsLastUpdated, setStatsLastUpdated] = useState<Date | null>(null);
+
+  // Source scrape result badges
+  const [sourceScrapeResult, setSourceScrapeResult] = useState<{ [key: number]: string | null }>({});
+
+  // Source search/filter
+  const [sourceSearch, setSourceSearch] = useState('');
+  const [sourceFilterStatus, setSourceFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+
+  // Bulk actions
+  const [selectedSources, setSelectedSources] = useState<Set<number>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   // Effects for fetching scheduler settings
   useEffect(() => {
@@ -172,6 +216,14 @@ const SettingsPage: React.FC = () => {
       if (savedSummaryToggle !== null) {
         setEnableGlobalAiSummary(JSON.parse(savedSummaryToggle));
       }
+      const savedTagsToggle = localStorage.getItem('enableGlobalAiTags');
+      if (savedTagsToggle !== null) {
+        setEnableGlobalAiTags(JSON.parse(savedTagsToggle));
+      }
+      const savedImageToggle = localStorage.getItem('enableGlobalAiImage');
+      if (savedImageToggle !== null) {
+        setEnableGlobalAiImage(JSON.parse(savedImageToggle));
+      }
     }
 
     const fetchStats = async () => {
@@ -184,6 +236,7 @@ const SettingsPage: React.FC = () => {
         }
         const data: ArticleStats = await response.json();
         setStats(data);
+        setStatsLastUpdated(new Date());
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching stats.';
         setStatsError(errorMessage);
@@ -214,12 +267,6 @@ const SettingsPage: React.FC = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('enableGlobalAiImage', JSON.stringify(enableGlobalAiImage));
     }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('enableGlobalAiImage', JSON.stringify(enableGlobalAiImage));
-    }
   }, [enableGlobalAiImage]);
 
   // New effect for global AI translations toggle
@@ -239,44 +286,43 @@ const SettingsPage: React.FC = () => {
   }, [enableGlobalAiTranslations]);
 
   // Effects from admin/sources/page.tsx
-  useEffect(() => {
-    const fetchSources = async () => {
-      try {
-        const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000'; // Fallback for local dev if variable not set
-        const response = await fetch(`${apiUrl}/api/sources`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setSources(data.map((source: Source) => ({
-          ...source,
-          enable_ai_summary: source.enable_ai_summary !== undefined ? source.enable_ai_summary : true,
-          enable_ai_tags: source.enable_ai_tags !== undefined ? source.enable_ai_tags : true, // Include enable_ai_tags field
-          enable_ai_translations: source.enable_ai_translations !== undefined ? source.enable_ai_translations : true, // Include enable_ai_translations field
-          is_active: source.is_active !== undefined ? source.is_active : true,
-          include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
-          exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
-          scraping_method: source.scraping_method !== undefined ? source.scraping_method : 'opensource',
-          os_title_selector: source.os_title_selector !== undefined ? source.os_title_selector : null,
-          os_content_selector: source.os_content_selector !== undefined ? source.os_content_selector : null,
-          os_date_selector: source.os_date_selector !== undefined ? source.os_date_selector : null,
-          os_author_selector: source.os_author_selector !== undefined ? source.os_author_selector : null,
-          os_thumbnail_selector: source.os_thumbnail_selector !== undefined ? source.os_thumbnail_selector : null,
-          os_topics_selector: source.os_topics_selector !== undefined ? source.os_topics_selector : null,
-          article_link_template: source.article_link_template !== undefined ? source.article_link_template : null, // Include new field
-          exclude_patterns: source.exclude_patterns !== undefined ? source.exclude_patterns : null, // Include new field
-        })));
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while fetching sources.';
-        setSourcesError(error);
-        toast.error("Error Fetching Sources", {
-          description: errorMessage,
-        });
-      } finally {
-        setSourcesLoading(false);
+  const fetchSources = async () => {
+    try {
+      const response = await apiFetch('/api/sources');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      const data = await response.json();
+      setSources(data.map((source: Source) => ({
+        ...source,
+        enable_ai_summary: source.enable_ai_summary !== undefined ? source.enable_ai_summary : true,
+        enable_ai_tags: source.enable_ai_tags !== undefined ? source.enable_ai_tags : true,
+        enable_ai_translations: source.enable_ai_translations !== undefined ? source.enable_ai_translations : true,
+        is_active: source.is_active !== undefined ? source.is_active : true,
+        include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
+        exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
+        scraping_method: source.scraping_method !== undefined ? source.scraping_method : 'opensource',
+        os_title_selector: source.os_title_selector !== undefined ? source.os_title_selector : null,
+        os_content_selector: source.os_content_selector !== undefined ? source.os_content_selector : null,
+        os_date_selector: source.os_date_selector !== undefined ? source.os_date_selector : null,
+        os_author_selector: source.os_author_selector !== undefined ? source.os_author_selector : null,
+        os_thumbnail_selector: source.os_thumbnail_selector !== undefined ? source.os_thumbnail_selector : null,
+        os_topics_selector: source.os_topics_selector !== undefined ? source.os_topics_selector : null,
+        article_link_template: source.article_link_template !== undefined ? source.article_link_template : null,
+        exclude_patterns: source.exclude_patterns !== undefined ? source.exclude_patterns : null,
+      })));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while fetching sources.';
+      setSourcesError(error);
+      toast.error("Error Fetching Sources", {
+        description: errorMessage,
+      });
+    } finally {
+      setSourcesLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchSources();
   }, []);
 
@@ -374,6 +420,7 @@ const SettingsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || `Failed to trigger scraper for source ${sourceId}`);
       }
+      setSourceScrapeResult(prev => ({ ...prev, [sourceId]: `+${data.articlesAdded ?? 0} articles` }));
       toast.success("Source Scrape Triggered", {
         description: `${data.message}. Found ${data.linksFound} potential article links, added ${data.articlesAdded} new articles.`,
       });
@@ -396,10 +443,6 @@ const SettingsPage: React.FC = () => {
 
   // Handler to block a source from scraping
   const handleBlockSource = async (sourceId: number) => {
-    if (!confirm('Are you sure you want to block this source from scraping? This will set its status to inactive.')) {
-      return;
-    }
-
     try {
       const response = await apiFetch(`/api/sources/${sourceId}`, {
         method: 'PUT',
@@ -411,39 +454,7 @@ const SettingsPage: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Refetch sources to update the list
-      const fetchSources = async () => {
-        try {
-          const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-          const response = await fetch(`${apiUrl}/api/sources`);
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const data = await response.json();
-          setSources(data.map((source: Source) => ({
-            ...source,
-            enable_ai_summary: source.enable_ai_summary !== undefined ? source.enable_ai_summary : true,
-            enable_ai_tags: source.enable_ai_tags !== undefined ? source.enable_ai_tags : true,
-            is_active: source.is_active !== undefined ? source.is_active : true,
-            include_selectors: source.include_selectors !== undefined ? source.include_selectors : null,
-            exclude_selectors: source.exclude_selectors !== undefined ? source.exclude_selectors : null,
-            scraping_method: source.scraping_method !== undefined ? source.scraping_method : 'opensource',
-            os_title_selector: source.os_title_selector !== undefined ? source.os_title_selector : null,
-            os_content_selector: source.os_content_selector !== undefined ? source.os_content_selector : null,
-            os_date_selector: source.os_date_selector !== undefined ? source.os_date_selector : null,
-            os_author_selector: source.os_author_selector !== undefined ? source.os_author_selector : null,
-            os_thumbnail_selector: source.os_thumbnail_selector !== undefined ? source.os_thumbnail_selector : null,
-            os_topics_selector: source.os_topics_selector !== undefined ? source.os_topics_selector : null,
-            article_link_template: source.article_link_template !== undefined ? source.article_link_template : null,
-            exclude_patterns: source.exclude_patterns !== undefined ? source.exclude_patterns : null,
-          })));
-        } catch (error: unknown) {
-          setSourcesError(error);
-        } finally {
-          setSourcesLoading(false);
-        }
-      };
-      fetchSources();
+      await fetchSources();
 
       toast.success("Source Blocked", {
         description: `Source ${sourceId} blocked successfully.`,
@@ -631,6 +642,87 @@ const SettingsPage: React.FC = () => {
   };
 
 
+  const filteredSources = useMemo(() => {
+    return sources.filter(source => {
+      const matchesSearch = source.name.toLowerCase().includes(sourceSearch.toLowerCase()) ||
+        source.url.toLowerCase().includes(sourceSearch.toLowerCase());
+      const matchesStatus =
+        sourceFilterStatus === 'all' ||
+        (sourceFilterStatus === 'active' && source.is_active) ||
+        (sourceFilterStatus === 'inactive' && !source.is_active);
+      return matchesSearch && matchesStatus;
+    });
+  }, [sources, sourceSearch, sourceFilterStatus]);
+
+  const handleToggleSelectSource = (id: number) => {
+    setSelectedSources(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allIds = filteredSources.map(s => s.id);
+    const allSelected = allIds.every(id => selectedSources.has(id));
+    if (allSelected) {
+      setSelectedSources(prev => {
+        const next = new Set(prev);
+        allIds.forEach(id => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedSources(prev => new Set([...prev, ...allIds]));
+    }
+  };
+
+  const handleBulkToggleActive = async (active: boolean) => {
+    if (selectedSources.size === 0) return;
+    setBulkActionLoading(true);
+    try {
+      await Promise.all([...selectedSources].map(id =>
+        apiFetch(`/api/sources/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: active }),
+        })
+      ));
+      await fetchSources();
+      setSelectedSources(new Set());
+      toast.success(`${active ? 'Activated' : 'Deactivated'} ${selectedSources.size} source(s)`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'An unknown error occurred.';
+      toast.error('Bulk action failed', { description: msg });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedSources.size === 0) return;
+    setConfirmDialogAction('bulkDelete');
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    setIsConfirmDialogOpen(false);
+    setBulkActionLoading(true);
+    try {
+      await Promise.all([...selectedSources].map(id =>
+        apiFetch(`/api/sources/${id}`, { method: 'DELETE' })
+      ));
+      setSources(prev => prev.filter(s => !selectedSources.has(s.id)));
+      const count = selectedSources.size;
+      setSelectedSources(new Set());
+      toast.success(`Deleted ${count} source(s)`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'An unknown error occurred.';
+      toast.error('Bulk delete failed', { description: msg });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   const openAddModal = () => {
     setEditingSource(null);
     setModalFormData({
@@ -671,7 +763,7 @@ const SettingsPage: React.FC = () => {
       os_title_selector: source.os_title_selector,
       os_content_selector: source.os_content_selector,
       os_date_selector: source.os_date_selector,
-      os_author_selector: null,
+      os_author_selector: source.os_author_selector,
       os_thumbnail_selector: source.os_thumbnail_selector,
       os_topics_selector: source.os_topics_selector,
       article_link_template: source.article_link_template, // Populate from source
@@ -727,8 +819,32 @@ const SettingsPage: React.FC = () => {
 
       <TabsContent value="overview">
         <Card className="mb-6 pt-4">
-          <CardHeader>
-            <CardTitle className="pb-4">Database</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>Database</CardTitle>
+            <div className="flex items-center gap-3">
+              {statsLastUpdated && (
+                <span className="text-xs text-muted-foreground">
+                  Updated {statsLastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStatsLoading(true);
+                  setStatsError(null);
+                  apiFetch('/api/stats')
+                    .then(r => r.json())
+                    .then((data: ArticleStats) => { setStats(data); setStatsLastUpdated(new Date()); })
+                    .catch((err: unknown) => setStatsError(err instanceof Error ? err.message : 'Error'))
+                    .finally(() => setStatsLoading(false));
+                }}
+                disabled={statsLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${statsLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Dashboard Statistics and Charts */}
@@ -789,100 +905,74 @@ const SettingsPage: React.FC = () => {
       </TabsContent>
 
       <TabsContent value="global">
-        <Card className="mb-6 pt-4">
-          <CardHeader>
-            <CardTitle className="pb-4">Global Settings & Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Controls */}
-            <div className="mb-4">
-              <ul className="space-y-4">
-                <li>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="enableGlobalAiSummary"
-                      checked={enableGlobalAiSummary}
-                      onCheckedChange={(checked: boolean) => setEnableGlobalAiSummary(checked)}
-                    />
-                    <Label htmlFor="enableGlobalAiSummary">
-                      For next manual scrape: Generate AI Summaries
-                  </Label>
-                </div>
-              </li>
-              <li>
+        <div className="space-y-6">
+          {/* Manual Scrape Options */}
+          <Card className="pt-4">
+            <CardHeader>
+              <CardTitle className="pb-2">Manual Scrape Options</CardTitle>
+              <CardDescription>These toggles apply only to the next manual scrape triggered below.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableGlobalAiTags"
-                    checked={enableGlobalAiTags}
-                    onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)}
-                  />
-                  <Label htmlFor="enableGlobalAiTags">
-                    For next manual scrape: Generate AI Tags
-                  </Label>
+                  <Switch id="enableGlobalAiSummary" checked={enableGlobalAiSummary} onCheckedChange={(checked: boolean) => setEnableGlobalAiSummary(checked)} />
+                  <Label htmlFor="enableGlobalAiSummary">Generate AI Summaries</Label>
                 </div>
-              </li>
-              <li>
                 <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableGlobalAiImage"
-                    checked={enableGlobalAiImage}
-                    onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)}
-                  />
-                  <Label htmlFor="enableGlobalAiImage">
-                    For next manual scrape: Generate AI Images
-                  </Label>
+                  <Switch id="enableGlobalAiTags" checked={enableGlobalAiTags} onCheckedChange={(checked: boolean) => setEnableGlobalAiTags(checked)} />
+                  <Label htmlFor="enableGlobalAiTags">Generate AI Tags</Label>
                 </div>
-              </li>
-              <li>
                 <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enableGlobalAiTranslations"
-                    checked={enableGlobalAiTranslations}
-                    onCheckedChange={(checked: boolean) => setEnableGlobalAiTranslations(checked)}
-                  />
-                  <Label htmlFor="enableGlobalAiTranslations">
-                    For next manual scrape: Generate AI Translations
-                  </Label>
+                  <Switch id="enableGlobalAiImage" checked={enableGlobalAiImage} onCheckedChange={(checked: boolean) => setEnableGlobalAiImage(checked)} />
+                  <Label htmlFor="enableGlobalAiImage">Generate AI Images</Label>
                 </div>
-              </li>
-              <li>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={handleTriggerScraper}
-                        disabled={loading}
-                      >
-                        {loading ? 'Triggering...' : 'Run Scraper'}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Triggers a full scrape run for all active sources.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </li>
-              <li>
-                <Button
-                  onClick={handlePurgeArticles}
-                  disabled={purgeLoading}
-                  variant="destructive"
-                >
-                  {purgeLoading ? 'Purging...' : 'Purge All Articles'}
+                <div className="flex items-center space-x-2">
+                  <Switch id="enableGlobalAiTranslations" checked={enableGlobalAiTranslations} onCheckedChange={(checked: boolean) => setEnableGlobalAiTranslations(checked)} />
+                  <Label htmlFor="enableGlobalAiTranslations">Generate AI Translations</Label>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="gap-3 pt-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handleTriggerScraper} disabled={loading}>
+                      {loading ? 'Triggering...' : 'Run Scraper'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Triggers a full scrape run for all active sources.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button onClick={handleGenerateSundayEdition} disabled={sundayEditionLoading} variant="outline">
+                {sundayEditionLoading ? 'Generating...' : 'Generate Sunday Edition'}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Danger Zone */}
+          <Card className="border-red-200 pt-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>These actions are irreversible. Proceed with caution.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between rounded-md border border-red-200 p-4">
+                <div>
+                  <p className="font-medium text-sm">Purge All Articles</p>
+                  <p className="text-xs text-muted-foreground">Permanently deletes every article in the database.</p>
+                </div>
+                <Button onClick={handlePurgeArticles} disabled={purgeLoading} variant="destructive" size="sm">
+                  {purgeLoading ? 'Purging...' : 'Purge All'}
                 </Button>
-              </li>
-              <li>
-                <Button
-                  onClick={handleGenerateSundayEdition}
-                  disabled={sundayEditionLoading}
-                >
-                  {sundayEditionLoading ? 'Generating...' : 'Generate Sunday Edition'}
-                </Button>
-              </li>
-            </ul>
-          </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </TabsContent>
 
       <TabsContent value="scheduled">
@@ -904,7 +994,7 @@ const SettingsPage: React.FC = () => {
                     onChange={(e) => setMainScraperFrequency(e.target.value)}
                     placeholder="e.g., 0 * * * *"
                   />
-                  <p className="text-sm text-gray-500">Current: Runs every hour. <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
+                  <p className="text-sm text-muted-foreground">{parseCron(mainScraperFrequency)} &mdash; <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
                 </div>
               </div>
 
@@ -920,22 +1010,9 @@ const SettingsPage: React.FC = () => {
                     onChange={(e) => setMissingAiFrequency(e.target.value)}
                     placeholder="e.g., */20 * * * *"
                   />
-                  <p className="text-sm text-gray-500">Current: Runs every 20 minutes. <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
+                  <p className="text-sm text-muted-foreground">{parseCron(missingAiFrequency)} &mdash; <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
                 </div>
                 <div className="mt-4 space-y-2">
-                  {/* Sunday Edition Schedule */}
-                  <h5 className="text-md font-semibold mb-2">Sunday Edition Schedule</h5>
-                  <div className="grid gap-2">
-                    <Label htmlFor="sundayEditionFrequency">Cron Schedule:</Label>
-                    <Input
-                      id="sundayEditionFrequency"
-                      name="sundayEditionFrequency"
-                      value={sundayEditionFrequency}
-                      onChange={(e) => setSundayEditionFrequency(e.target.value)}
-                      placeholder="e.g., 0 0 * * 0"
-                    />
-                    <p className="text-sm text-gray-500">Current: Runs every Sunday at midnight. <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
-                  </div>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="enableScheduledMissingSummary"
@@ -962,7 +1039,7 @@ const SettingsPage: React.FC = () => {
                       checked={enableScheduledMissingImage}
                       onCheckedChange={(checked: boolean) => setEnableScheduledMissingImage(checked)}
                     />
-                    <Label htmlFor="enableGlobalAiImage">
+                    <Label htmlFor="enableScheduledMissingImage">
                       Process Missing Images
                     </Label>
                   </div>
@@ -976,6 +1053,22 @@ const SettingsPage: React.FC = () => {
                       Process Missing Translations
                     </Label>
                   </div>
+                </div>
+              </div>
+
+              {/* Sunday Edition Schedule */}
+              <div>
+                <h5 className="text-md font-semibold mb-2">Sunday Edition Schedule</h5>
+                <div className="grid gap-2">
+                  <Label htmlFor="sundayEditionFrequency">Cron Schedule:</Label>
+                  <Input
+                    id="sundayEditionFrequency"
+                    name="sundayEditionFrequency"
+                    value={sundayEditionFrequency}
+                    onChange={(e) => setSundayEditionFrequency(e.target.value)}
+                    placeholder="e.g., 0 0 * * 0"
+                  />
+                  <p className="text-sm text-muted-foreground">{parseCron(sundayEditionFrequency)} &mdash; <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a></p>
                 </div>
               </div>
             </div>
@@ -992,44 +1085,96 @@ const SettingsPage: React.FC = () => {
       <TabsContent value="sources">
         <Card className="mb-6 pt-4">
           <CardHeader>
-            <CardTitle className="pb-4">Sources</CardTitle>
+            <div className="flex items-center justify-between pb-2">
+              <CardTitle>Sources</CardTitle>
+              <Button onClick={openAddModal} size="sm">Add New Source</Button>
+            </div>
+            {/* Search & Filter */}
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Input
+                placeholder="Search by name or URL..."
+                value={sourceSearch}
+                onChange={(e) => setSourceSearch(e.target.value)}
+                className="sm:max-w-xs"
+              />
+              <Select value={sourceFilterStatus} onValueChange={(v) => setSourceFilterStatus(v as 'all' | 'active' | 'inactive')}>
+                <SelectTrigger className="sm:w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
-            {/* Existing Sources Section */}
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-md font-semibold">Existing Sources</h4>
-                <Button onClick={openAddModal} size="sm">
-                  Add New Source
-                </Button>
-              </div>
-              {sourcesLoading ? (
-                <div>Loading sources...</div>
-              ) : sourcesError ? (
-                <div className="text-red-500">Error loading sources: {sourcesError instanceof Error ? sourcesError.message : 'An unknown error occurred'}</div>
-              ) : sources.length === 0 ? (
-                <div className="text-gray-600">No sources found.</div>
-              ) : (
+            {sourcesLoading ? (
+              <div>Loading sources...</div>
+            ) : sourcesError ? (
+              <div className="text-red-500">Error loading sources: {sourcesError instanceof Error ? sourcesError.message : 'An unknown error occurred'}</div>
+            ) : sources.length === 0 ? (
+              <div className="text-gray-600">No sources found.</div>
+            ) : (
+              <>
+                {/* Bulk action toolbar */}
+                {filteredSources.length > 0 && (
+                  <div className="flex items-center gap-3 mb-4 p-2 rounded-md bg-muted/50">
+                    <Checkbox
+                      id="selectAll"
+                      checked={filteredSources.length > 0 && filteredSources.every(s => selectedSources.has(s.id))}
+                      onCheckedChange={handleSelectAllFiltered}
+                    />
+                    <Label htmlFor="selectAll" className="text-sm cursor-pointer">
+                      {selectedSources.size > 0 ? `${selectedSources.size} selected` : 'Select all'}
+                    </Label>
+                    {selectedSources.size > 0 && (
+                      <div className="flex gap-2 ml-2">
+                        <Button size="sm" variant="outline" disabled={bulkActionLoading} onClick={() => handleBulkToggleActive(true)}>Activate</Button>
+                        <Button size="sm" variant="outline" disabled={bulkActionLoading} onClick={() => handleBulkToggleActive(false)}>Deactivate</Button>
+                        <Button size="sm" variant="destructive" disabled={bulkActionLoading} onClick={handleBulkDelete}>Delete</Button>
+                      </div>
+                    )}
+                    <span className="ml-auto text-xs text-muted-foreground">{filteredSources.length} of {sources.length} sources</span>
+                  </div>
+                )}
+
                 <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {sources.map((source) => (
-                    <Card key={source.id} className="p-4 shadow-sm pt-4 flex flex-col"> {/* Added flex flex-col to make card content stretch */}
+                  {filteredSources.map((source) => (
+                    <Card key={source.id} className={`p-4 shadow-sm pt-4 flex flex-col ${selectedSources.has(source.id) ? 'ring-2 ring-primary' : ''}`}>
                       <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
-                        <div>
-                          <div className="text-sm text-muted-foreground">ID: {source.id}</div>
-                          <CardTitle className="text-lg font-medium">{source.name}</CardTitle>
-                          <CardDescription className="text-sm text-muted-foreground">
-                            URL: <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Checkbox
+                              checked={selectedSources.has(source.id)}
+                              onCheckedChange={() => handleToggleSelectSource(source.id)}
+                            />
+                            <Badge variant={source.is_active ? 'default' : 'secondary'} className="text-xs">
+                              {source.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">{source.scraping_method || 'opensource'}</Badge>
+                            {sourceScrapeResult[source.id] && (
+                              <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                                {sourceScrapeResult[source.id]}
+                              </Badge>
+                            )}
+                          </div>
+                          <CardTitle className="text-base font-medium truncate">{source.name}</CardTitle>
+                          <CardDescription className="text-xs truncate">
+                            <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" aria-label={`Open ${source.name} URL in new tab`}>{source.url}</a>
                           </CardDescription>
-                          <CardDescription className="text-sm text-muted-foreground">
-                            Articles: {stats.articlesPerSource.find(s => s.source_name === source.name)?.article_count || 0}
+                          <CardDescription className="text-xs mt-1">
+                            {stats.articlesPerSource.find(s => s.source_name === source.name)?.article_count || 0} articles
                           </CardDescription>
-                          <CardDescription className="text-sm text-muted-foreground">
-                            Active: {source.is_active ? 'Yes' : 'No'} | AI Summary: {source.enable_ai_summary ? 'Yes' : 'No'} | Method: {source.scraping_method || 'N/A'}
-                          </CardDescription>
-                          {source.include_selectors && <CardDescription className="text-sm text-muted-foreground break-words">Include: {source.include_selectors}</CardDescription>}
-                          {source.exclude_selectors && <CardDescription className="text-sm text-muted-foreground">Exclude: {source.exclude_selectors}</CardDescription>}
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {source.enable_ai_summary && <Badge variant="outline" className="text-xs">Summary</Badge>}
+                            {source.enable_ai_tags && <Badge variant="outline" className="text-xs">Tags</Badge>}
+                            {source.enable_ai_image && <Badge variant="outline" className="text-xs">Image</Badge>}
+                            {source.enable_ai_translations && <Badge variant="outline" className="text-xs">Translations</Badge>}
+                          </div>
                         </div>
-                        <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 mt-2 md:mt-0">
+                        <div className="mt-2 md:mt-0 md:ml-2">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="outline" size="sm" className="h-8 w-8 p-0">
@@ -1066,21 +1211,25 @@ const SettingsPage: React.FC = () => {
                         </div>
                       </div>
 
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <Button
-                        onClick={() => window.location.href = `/settings/source/${source.id}`}
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                      >
-                        View Articles
-                      </Button>
-                    </div>
+                      <div className="mt-auto pt-4 border-t border-gray-200">
+                        <Button
+                          onClick={() => window.location.href = `/settings/source/${source.id}`}
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                        >
+                          View Articles
+                        </Button>
+                      </div>
                     </Card>
                   ))}
                 </ul>
-              )}
-            </div>
+
+                {filteredSources.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8">No sources match your search.</div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -1152,6 +1301,17 @@ const SettingsPage: React.FC = () => {
                   name="enable_ai_image"
                   checked={modalFormData.enable_ai_image}
                   onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_image: Boolean(checked) })}
+                  className="md:col-span-3"
+                />
+              </div>
+              {/* Enable AI Translations Toggle */}
+              <div className="grid grid-cols-1 gap-2 md:gap-4 md:grid-cols-4 md:items-center">
+                <Label htmlFor="enable_ai_translations" className="md:text-right">Enable AI Translations:</Label>
+                <Switch
+                  id="enable_ai_translations"
+                  name="enable_ai_translations"
+                  checked={modalFormData.enable_ai_translations}
+                  onCheckedChange={(checked) => setModalFormData({ ...modalFormData, enable_ai_translations: Boolean(checked) })}
                   className="md:col-span-3"
                 />
               </div>
@@ -1247,6 +1407,9 @@ const SettingsPage: React.FC = () => {
             {confirmDialogAction === 'deleteSource' && (
               <p>Are you sure you want to delete this source? This action cannot be undone.</p>
             )}
+            {confirmDialogAction === 'bulkDelete' && (
+              <p>Are you sure you want to delete {selectedSources.size} selected source(s)? This action cannot be undone.</p>
+            )}
           </div>
           <DialogFooter>
             <Button onClick={() => setIsConfirmDialogOpen(false)} variant="outline">Cancel</Button>
@@ -1258,6 +1421,8 @@ const SettingsPage: React.FC = () => {
                   handleConfirmDeleteArticlesForSource();
                 } else if (confirmDialogAction === 'deleteSource') {
                   handleConfirmDeleteSource();
+                } else if (confirmDialogAction === 'bulkDelete') {
+                  handleConfirmBulkDelete();
                 }
               }}
               variant="destructive"
