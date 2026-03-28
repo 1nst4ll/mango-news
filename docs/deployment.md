@@ -191,6 +191,8 @@ server {
 
 Use Render's automatic SSL or Let's Encrypt for HTTPS. Ensure `PUBLIC_API_URL` uses `https://`.
 
+> **Cross-domain cookies:** If the frontend and backend are on different domains (e.g. separate Render services), the JWT cookies are set with `SameSite=None; Secure` in production. This requires HTTPS on both ends (enforced by Render). If you consolidate both services under a single custom domain via a reverse proxy, you can switch back to `SameSite=Strict` for tighter security.
+
 ---
 
 ## Memory Optimization
