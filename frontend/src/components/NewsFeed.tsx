@@ -410,7 +410,7 @@ function NewsFeed({
                   const sundayEditionInfo = `${t.sunday_edition_summary_for_week} ${weekPeriodText}.`;
 
                   return (
-                    <Card key={`sunday-${edition.id}`} className="flex flex-col h-full border-2 border-[#FF7F50]">
+                    <Card key={`sunday-${edition.id}`} className="flex flex-col h-full border-2 border-accent">
                       <div
                         className="block cursor-pointer"
                         onClick={() => {
