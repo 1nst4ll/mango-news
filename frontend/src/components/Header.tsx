@@ -3,6 +3,7 @@ import { navItems } from '../lib/nav-items';
 import { ModeToggle } from './ModeToggle';
 import { LoginButton } from './LoginButton';
 import LanguageSwitcher from './LanguageSwitcher';
+import { Button } from './ui/button';
 import { Rss, Menu, X } from 'lucide-react';
 
 // Import locale files
@@ -58,9 +59,10 @@ const Header: React.FC = () => {
         <div className="md:hidden flex w-full justify-between items-center">
           {/* Left: Hamburger Icon */}
           <div className="flex-none">
-            <button onClick={toggleMobileMenu} className="text-sidebar-foreground focus:outline-none">
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            <Button variant="ghost" size="icon" onClick={toggleMobileMenu} className="text-sidebar-foreground">
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              <span className="sr-only">{isMobileMenuOpen ? 'Close menu' : 'Open menu'}</span>
+            </Button>
           </div>
           {/* Center: Logo */}
           <div className="flex-grow flex justify-center">
@@ -85,16 +87,15 @@ const Header: React.FC = () => {
         </div>
         {/* Desktop Navigation (Center) */}
           <nav className="hidden md:block">
-            <ul className="flex space-x-4 items-center">
+            <ul className="flex space-x-1 items-center">
               {filteredNavItems.map(item => (
                 <li key={item.href}>
-                  <a 
-                    href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`} 
-                    className="hover:underline flex items-center space-x-1"
-                  >
-                    {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
-                    <span>{t[item.titleKey as keyof typeof t]}</span>
-                  </a>
+                  <Button asChild variant="ghost" size="sm">
+                    <a href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`}>
+                      {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
+                      <span>{t[item.titleKey as keyof typeof t] as string}</span>
+                    </a>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -114,14 +115,12 @@ const Header: React.FC = () => {
             <ul className="flex flex-col space-y-2">
               {filteredNavItems.map(item => (
                 <li key={item.href}>
-                  <a 
-                    href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`} 
-                    className="block px-4 py-2 hover:bg-sidebar-muted hover:underline flex items-center space-x-1"
-                    onClick={() => setIsMobileMenuOpen(false)} // Close menu on click
-                  >
-                    {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
-                    <span>{t[item.titleKey as keyof typeof t]}</span>
-                  </a>
+                  <Button asChild variant="ghost" className="w-full justify-start" onClick={() => setIsMobileMenuOpen(false)}>
+                    <a href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`}>
+                      {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
+                      <span>{t[item.titleKey as keyof typeof t] as string}</span>
+                    </a>
+                  </Button>
                 </li>
               ))}
             </ul>
