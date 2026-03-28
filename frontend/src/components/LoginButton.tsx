@@ -1,89 +1,79 @@
-  import React, { useState } from 'react';
-  import { Button } from './ui/button';
-  import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-  } from './ui/popover'; // Changed to Popover
-  // DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator will be replaced with basic elements
-  import { User, Settings, LogOut } from 'lucide-react'; // Import User, Settings, and LogOut icons
-  import { LoginDialog } from './LoginDialog'; // Import the LoginDialog component
+import React, { useState } from 'react';
+import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import { User, Settings, LogOut } from 'lucide-react';
+import { LoginDialog } from './LoginDialog';
 
-  interface LoginButtonProps {
-    isLoggedIn: boolean;
-    setIsLoggedIn: (isLoggedIn: boolean) => void;
-  }
+interface LoginButtonProps {
+  isLoggedIn: boolean;
+  setIsLoggedIn: (isLoggedIn: boolean) => void;
+}
 
-  export function LoginButton({ isLoggedIn, setIsLoggedIn }: LoginButtonProps) {
-    const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+export function LoginButton({ isLoggedIn, setIsLoggedIn }: LoginButtonProps) {
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
 
-    const handleLogout = async () => {
-      const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api';
-      try {
-        await fetch(`${backendApiUrl}/logout`, {
-          method: 'POST',
-          credentials: 'include',
-        });
-      } catch (err) {
-        console.error('Logout request failed:', err);
-      }
-      setIsLoggedIn(false);
-      // Force a full navigation so the page re-mounts and re-checks auth from scratch
-      window.location.replace('/');
-    };
+  const handleLogout = async () => {
+    const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api';
+    try {
+      await fetch(`${backendApiUrl}/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('Logout request failed:', err);
+    }
+    setIsLoggedIn(false);
+    window.location.replace('/');
+  };
 
-    // Styling will be handled by Tailwind classes now
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <User className="h-[1.2rem] w-[1.2rem]" />
+            <span className="sr-only">Toggle user menu</span>
+          </Button>
+        </DropdownMenuTrigger>
 
-    return (
-      <>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" onTouchStart={() => {}}>
-              <User className="h-[1.2rem] w-[1.2rem]" /> {/* User icon */}
-              <span className="sr-only">Toggle user menu</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-56 p-1 bg-popover text-popover-foreground rounded-md border shadow-md"> {/* Added base PopoverContent styling */}
-            {isLoggedIn ? (
-              <div className="flex flex-col">
-                <div className="px-2 py-1.5 text-sm font-semibold">My Account</div> {/* Label style */}
-                <div className="bg-border -mx-1 my-1 h-px" /> {/* Separator style */}
-                <button
-                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
-                  onClick={() => window.location.href = '/settings'}
-                >
-                  <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span>Settings</span>
-                </button>
-                <button
-                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span>Sign out</span>
-                </button>
-              </div>
-            ) : (
-              <button
-                className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left"
-                onClick={() => setIsLoginDialogOpen(true)}
-              >
-                <User className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span>Login</span>
-              </button>
-            )}
-          </PopoverContent>
-        </Popover>
+        <DropdownMenuContent align="end" className="w-48">
+          {isLoggedIn ? (
+            <>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { window.location.href = '/settings'; }}>
+                <Settings className="h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem onClick={() => setIsLoginDialogOpen(true)}>
+              <User className="h-4 w-4" />
+              Login
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        {/* Render the LoginDialog, controlled by isLoginDialogOpen state */}
-        <LoginDialog
-          isOpen={isLoginDialogOpen}
-          setIsOpen={setIsLoginDialogOpen}
-          onLoginSuccess={() => {
-            setIsLoggedIn(true); // Update isLoggedIn state in Header on successful login
-            window.location.reload(); // Reload the page to update UI based on login status
-          }}
-        />
-      </>
-    );
-  }
+      <LoginDialog
+        isOpen={isLoginDialogOpen}
+        setIsOpen={setIsLoginDialogOpen}
+        onLoginSuccess={() => {
+          setIsLoggedIn(true);
+          window.location.reload();
+        }}
+      />
+    </>
+  );
+}
