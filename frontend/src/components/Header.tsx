@@ -38,7 +38,7 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const apiUrl = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:3000';
-    fetch(`${apiUrl}/api/me`, { credentials: 'include' })
+    fetch(`${apiUrl}/api/me`, { credentials: 'include', cache: 'no-store' })
       .then(res => setIsLoggedIn(res.ok))
       .catch(() => setIsLoggedIn(false));
   }, []);
