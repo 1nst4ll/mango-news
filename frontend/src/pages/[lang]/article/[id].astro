@@ -8,7 +8,17 @@ export const prerender = false; // Mark this page for dynamic rendering
 const { id } = Astro.params;
 
 // Fetch article data server-side
-const apiUrl = import.meta.env.PUBLIC_API_URL;
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+
+let sources = [];
+try {
+  const sourcesResponse = await fetch(`${apiUrl}/api/sources`);
+  if (sourcesResponse.ok) {
+    sources = await sourcesResponse.json();
+  }
+} catch (error) {
+  console.error('Failed to fetch sources:', error);
+}
 const articleResponse = await fetch(`${apiUrl}/api/articles/${id}`);
 
 let article = null;
@@ -45,7 +55,7 @@ const ogUrl = Astro.url.href;
 const ogType = "article";
 ---
 
-<BaseLayout 
+<BaseLayout
   title={pageTitle}
   description={pageDescription}
   ogImageUrl={ogImageUrl}
@@ -53,6 +63,7 @@ const ogType = "article";
   ogImageHeight={ogImageHeight}
   ogUrl={ogUrl}
   ogType={ogType}
+  sources={sources}
 >
   {/* The ArticleDetail component will fetch data client-side */}
   <ArticleDetail id={id} client:load />
