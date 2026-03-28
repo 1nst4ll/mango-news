@@ -5,8 +5,10 @@ import { Button } from "./ui/button";
 import { DataTable } from "./ui/data-table";
 import { getColumns, Article } from "./columns";
 import { toast } from "sonner";
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import ArticleEditDialog from './ArticleEditDialog'; // Import the new dialog component
+import { Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { Skeleton } from "./ui/skeleton";
+import ArticleEditDialog from './ArticleEditDialog';
 
 // Interface for Source data (matching the backend endpoint response)
 interface Source {
@@ -461,11 +463,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               );
             })()}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            title="Go back to Settings"
-          >
+          <Button asChild size="sm" variant="outline" title="Go back to Settings">
             <a href={`/settings?tab=sources`}>Back to Settings</a>
           </Button>
         </div>
@@ -511,7 +509,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div>Loading articles...</div>
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full rounded-md" />
+            ))}
+          </div>
         ) : (
             <DataTable
               columns={columns}
@@ -535,26 +537,18 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
       />
 
       {/* Image lightbox */}
-      {lightboxUrl && (
-        <dialog
-          open
-          onClick={() => setLightboxUrl(null)}
-          style={{
-            position: 'fixed', inset: 0, width: '100vw', height: '100vh',
-            maxWidth: '100vw', maxHeight: '100vh', margin: 0, padding: 0,
-            border: 'none', background: 'rgba(0,0,0,0.88)', overflow: 'hidden', zIndex: 50,
-          }}
-        >
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+      <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) setLightboxUrl(null); }}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 flex items-center justify-center bg-black/90 border-none">
+          <DialogTitle className="sr-only">Image Preview</DialogTitle>
+          {lightboxUrl && (
             <img
               src={lightboxUrl}
               alt=""
-              onClick={e => e.stopPropagation()}
-              style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', pointerEvents: 'auto', cursor: 'default', borderRadius: 8 }}
+              className="max-w-full max-h-[90vh] object-contain rounded-md"
             />
-          </div>
-        </dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -22,7 +22,14 @@
       "Bash(find /d/ClaudeMCP/!projects/mango-news -type f \\\\\\(-name *.js -o -name *.ts -o -name *.tsx \\\\\\) -path */middleware/* -o -name *auth*)",
       "Bash(npm audit:*)",
       "Bash(node --check src/user.js)",
-      "Bash(node --check src/middleware/auth.js)"
+      "Bash(node --check src/middleware/auth.js)",
+      "mcp__shadcn__get_project_registries",
+      "mcp__shadcn__get_audit_checklist",
+      "mcp__shadcn__list_items_in_registries",
+      "mcp__shadcn__get_add_command_for_items",
+      "Bash(npx shadcn@latest add alert-dialog skeleton progress --yes)",
+      "Bash(npx shadcn@latest add alert-dialog skeleton progress)",
+      "mcp__shadcn__view_items_in_registries"
     ]
   }
 }

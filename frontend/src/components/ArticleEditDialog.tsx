@@ -14,6 +14,9 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from './ui/alert';
+import { Skeleton } from './ui/skeleton';
+import { Card, CardContent } from './ui/card';
 
 const HtmlEditor = lazy(() => import('./HtmlEditor'));
 
@@ -128,9 +131,22 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading…</div>
+            <div className="flex flex-col gap-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-1">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-9 w-full" />
+                  </div>
+                ))}
+              </div>
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
           ) : error ? (
-            <div className="text-red-500 text-center py-8">{error}</div>
+            <Alert variant="destructive" className="my-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : articleData ? (
             <div className="flex flex-col gap-6">
 
@@ -199,13 +215,15 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">Content ({label})</Label>
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => setRawMode(prev => ({ ...prev, [lang]: !prev[lang] }))}
-                          className="text-xs px-2 py-1 rounded border border-border hover:bg-accent transition-colors font-mono"
+                          className="font-mono text-xs h-7 px-2"
                         >
                           {rawMode[lang] ? 'WYSIWYG' : '</> HTML'}
-                        </button>
+                        </Button>
                       </div>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div>
@@ -228,11 +246,13 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
                         </div>
                         <div className="flex flex-col gap-1">
                           <Label className="text-xs text-muted-foreground uppercase tracking-wide">Preview</Label>
-                          <div
-                            className="border rounded-md px-4 py-3 overflow-y-auto prose prose-sm max-w-none"
-                            style={{ minHeight: 400 }}
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize((articleData as any)[contentKey] || '') }}
-                          />
+                          <Card className="overflow-hidden">
+                            <CardContent
+                              className="px-4 py-3 overflow-y-auto prose prose-sm max-w-none"
+                              style={{ minHeight: 400 }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize((articleData as any)[contentKey] || '') }}
+                            />
+                          </Card>
                         </div>
                       </div>
                     </div>
@@ -242,7 +262,9 @@ const ArticleEditDialog: React.FC<ArticleEditDialogProps> = ({ isOpen, onClose, 
 
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">No article data available.</div>
+            <Alert className="my-4">
+              <AlertDescription>No article data available.</AlertDescription>
+            </Alert>
           )}
         </div>
 

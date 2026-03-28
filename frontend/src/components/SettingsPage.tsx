@@ -10,6 +10,7 @@ import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { Switch } from "./ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
@@ -18,6 +19,9 @@ import { MoreHorizontal, RefreshCw, AlertTriangle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Progress } from "./ui/progress";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Skeleton } from "./ui/skeleton";
 
 // ---------------------------------------------------------------------------
 // Cron helpers
@@ -765,11 +769,11 @@ const SettingsPage: React.FC = () => {
         className={error ? 'border-red-500 focus-visible:ring-red-500' : ''}
       />
       {error ? (
-        <p className="text-xs text-red-500">{error}</p>
+        <p className="text-xs text-destructive">{error}</p>
       ) : (
         <p className="text-xs text-muted-foreground">
           {parseCron(value) || 'Custom schedule'} &mdash;{' '}
-          <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Cron Helper</a>
+          <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Cron Helper</a>
         </p>
       )}
     </div>
@@ -810,7 +814,9 @@ const SettingsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               {statsError && (
-                <p className="text-sm text-red-500 mb-4">{statsError}</p>
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{statsError}</AlertDescription>
+                </Alert>
               )}
 
               {/* Stat cards + charts */}
@@ -818,24 +824,30 @@ const SettingsPage: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4 lg:col-span-2">
                   <Card>
                     <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
-                      <div>
+                      <div className="space-y-1">
                         <CardDescription>Total Articles</CardDescription>
-                        <CardTitle className="text-2xl">
-                          {statsLoading ? <span className="text-muted-foreground text-base">Loading…</span> : (stats.totalArticles ?? 'N/A')}
-                        </CardTitle>
+                        {statsLoading ? (
+                          <Skeleton className="h-8 w-24" />
+                        ) : (
+                          <CardTitle className="text-2xl">{stats.totalArticles ?? 'N/A'}</CardTitle>
+                        )}
                       </div>
                       <img src="/file.svg" alt="" className="w-8 h-8 opacity-50" />
                     </CardHeader>
                   </Card>
                   <Card>
                     <CardHeader className="pb-2 pt-4 flex flex-row items-center justify-between">
-                      <div>
+                      <div className="space-y-1">
                         <CardDescription>Total Sources</CardDescription>
-                        <CardTitle className="text-2xl">
-                          {statsLoading ? <span className="text-muted-foreground text-base">Loading…</span> : (stats.totalSources ?? 'N/A')}
-                        </CardTitle>
-                        {!statsLoading && stats.totalSources !== null && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{activeSources} active</p>
+                        {statsLoading ? (
+                          <Skeleton className="h-8 w-16" />
+                        ) : (
+                          <>
+                            <CardTitle className="text-2xl">{stats.totalSources ?? 'N/A'}</CardTitle>
+                            {stats.totalSources !== null && (
+                              <p className="text-xs text-muted-foreground">{activeSources} active</p>
+                            )}
+                          </>
                         )}
                       </div>
                       <img src="/globe.svg" alt="" className="w-8 h-8 opacity-50" />
@@ -843,40 +855,67 @@ const SettingsPage: React.FC = () => {
                   </Card>
                 </div>
                 <div className="lg:col-span-2">
-                  <ArticlesPerSourceBarChart data={stats.articlesPerSource || []} />
+                  {statsLoading ? (
+                    <Card className="h-full">
+                      <CardHeader className="pt-4">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-3 w-56 mt-1" />
+                      </CardHeader>
+                      <CardContent>
+                        <Skeleton className="h-40 w-full" />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <ArticlesPerSourceBarChart data={stats.articlesPerSource || []} />
+                  )}
                 </div>
                 <div className="lg:col-span-2">
-                  <ArticlesPerYearBarChart data={stats.articlesPerYear || []} />
+                  {statsLoading ? (
+                    <Card className="h-full">
+                      <CardHeader className="pt-4">
+                        <Skeleton className="h-5 w-36" />
+                        <Skeleton className="h-3 w-48 mt-1" />
+                      </CardHeader>
+                      <CardContent>
+                        <Skeleton className="h-40 w-full" />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <ArticlesPerYearBarChart data={stats.articlesPerYear || []} />
+                  )}
                 </div>
               </div>
 
               {/* AI coverage */}
               {aiCoverage && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">AI Coverage (by source config)</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {([
-                      { label: 'Summaries', value: aiCoverage.withSummary },
-                      { label: 'Tags', value: aiCoverage.withTags },
-                      { label: 'Images', value: aiCoverage.withImage },
-                      { label: 'Translations', value: aiCoverage.withTranslations },
-                    ] as const).map(({ label, value }) => {
-                      const pct = Math.round((value / aiCoverage.total) * 100);
-                      return (
-                        <div key={label} className="space-y-1">
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>{label}</span>
-                            <span>{pct}%</span>
+                <Card>
+                  <CardHeader className="pb-3 pt-4">
+                    <CardTitle className="text-sm font-semibold">AI Coverage</CardTitle>
+                    <CardDescription>Articles covered by AI features, based on per-source configuration</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {([
+                        { label: 'Summaries', value: aiCoverage.withSummary },
+                        { label: 'Tags', value: aiCoverage.withTags },
+                        { label: 'Images', value: aiCoverage.withImage },
+                        { label: 'Translations', value: aiCoverage.withTranslations },
+                      ] as const).map(({ label, value }) => {
+                        const pct = Math.round((value / aiCoverage.total) * 100);
+                        return (
+                          <div key={label} className="space-y-2">
+                            <div className="flex justify-between text-xs">
+                              <span className="font-medium">{label}</span>
+                              <span className="text-muted-foreground">{pct}%</span>
+                            </div>
+                            <Progress value={pct} className="h-2" />
+                            <p className="text-xs text-muted-foreground">{value.toLocaleString()} / {aiCoverage.total.toLocaleString()} articles</p>
                           </div>
-                          <div className="h-2 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
-                          </div>
-                          <p className="text-xs text-muted-foreground">{value.toLocaleString()} / {aiCoverage.total.toLocaleString()} articles</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </CardContent>
           </Card>
@@ -1114,9 +1153,19 @@ const SettingsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               {sourcesLoading ? (
-                <div className="text-muted-foreground">Loading sources…</div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="rounded-lg border p-4 space-y-3">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-3 w-3/4" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                  ))}
+                </div>
               ) : sourcesError ? (
-                <div className="text-red-500">Error loading sources: {sourcesError instanceof Error ? sourcesError.message : 'An unknown error occurred'}</div>
+                <Alert variant="destructive">
+                  <AlertDescription>Error loading sources: {sourcesError instanceof Error ? sourcesError.message : 'An unknown error occurred'}</AlertDescription>
+                </Alert>
               ) : sources.length === 0 ? (
                 <div className="text-muted-foreground">No sources found.</div>
               ) : (
@@ -1179,7 +1228,7 @@ const SettingsPage: React.FC = () => {
                             </Tooltip>
 
                             <CardDescription className="text-xs truncate">
-                              <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                              <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                                 {source.url}
                               </a>
                             </CardDescription>
@@ -1239,9 +1288,9 @@ const SettingsPage: React.FC = () => {
                         </div>
 
                         <div className="mt-auto pt-4 border-t border-border">
-                          <a href={`/settings/source/${source.id}`} className="w-full">
-                            <Button size="sm" variant="outline" className="w-full">View Articles</Button>
-                          </a>
+                          <Button asChild size="sm" variant="outline" className="w-full">
+                            <a href={`/settings/source/${source.id}`}>View Articles</a>
+                          </Button>
                         </div>
                       </Card>
                     ))}
@@ -1295,7 +1344,7 @@ const SettingsPage: React.FC = () => {
                     placeholder="https://example.com/news"
                     className={urlError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
-                  {urlError && <p className="text-xs text-red-500">{urlError}</p>}
+                  {urlError && <p className="text-xs text-destructive">{urlError}</p>}
                 </div>
 
                 {/* Scraping Method */}
@@ -1450,29 +1499,29 @@ const SettingsPage: React.FC = () => {
       {/* ================================================================
           Confirmation Dialog
       ================================================================ */}
-      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-          </DialogHeader>
-          <div className="text-sm text-muted-foreground">
-            {confirmDialogAction === 'purgeAll' && (
-              <p>Are you sure you want to delete <strong>ALL articles</strong>? This action cannot be undone.</p>
-            )}
-            {confirmDialogAction === 'deleteSourceArticles' && (
-              <p>Are you sure you want to delete all articles for this source? This action cannot be undone.</p>
-            )}
-            {confirmDialogAction === 'deleteSource' && (
-              <p>Are you sure you want to delete this source? This action cannot be undone.</p>
-            )}
-            {confirmDialogAction === 'bulkDelete' && (
-              <p>Are you sure you want to delete <strong>{selectedSources.size} selected source(s)</strong>? This action cannot be undone.</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsConfirmDialogOpen(false)} variant="outline">Cancel</Button>
-            <Button
-              variant="destructive"
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDialogAction === 'purgeAll' && (
+                <>Are you sure you want to delete <strong>ALL articles</strong>? This action cannot be undone.</>
+              )}
+              {confirmDialogAction === 'deleteSourceArticles' && (
+                <>Are you sure you want to delete all articles for this source? This action cannot be undone.</>
+              )}
+              {confirmDialogAction === 'deleteSource' && (
+                <>Are you sure you want to delete this source? This action cannot be undone.</>
+              )}
+              {confirmDialogAction === 'bulkDelete' && (
+                <>Are you sure you want to delete <strong>{selectedSources.size} selected source(s)</strong>? This action cannot be undone.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (confirmDialogAction === 'purgeAll') handleConfirmPurgeArticles();
                 else if (confirmDialogAction === 'deleteSourceArticles') handleConfirmDeleteArticlesForSource();
@@ -1481,10 +1530,10 @@ const SettingsPage: React.FC = () => {
               }}
             >
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </TooltipProvider>
   );
