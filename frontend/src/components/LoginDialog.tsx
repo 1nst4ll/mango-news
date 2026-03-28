@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Checkbox } from './ui/checkbox';
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -84,12 +85,10 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
             />
           </div>
           <div className="flex items-center gap-2">
-            <input
+            <Checkbox
               id="rememberMe"
-              type="checkbox"
               checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 cursor-pointer accent-primary"
+              onCheckedChange={(checked) => setRememberMe(checked === true)}
             />
             <Label htmlFor="rememberMe" className="cursor-pointer font-normal">
               Remember me for 30 days
