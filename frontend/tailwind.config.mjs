@@ -19,7 +19,7 @@ export default {
       }),
       colors: {
         accent: {
-          DEFAULT: '#FF7F50', // Custom accent color
+          DEFAULT: '#FFB88C', // Pastel orange accent
         },
       },
     },
