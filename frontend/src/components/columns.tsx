@@ -2,6 +2,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, ArrowUpDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -131,7 +132,9 @@ export type Article = {
     header: "AI Summary",
     cell: ({ row }) => {
         const article = row.original
-        return <div className="min-w-[200px] whitespace-pre-wrap">{article.ai_summary}</div>
+        return article.ai_summary
+          ? <div className="min-w-[200px] whitespace-pre-wrap">{article.ai_summary}</div>
+          : <span className="text-muted-foreground text-sm">N/A</span>
     }
   },
   {
@@ -140,7 +143,13 @@ export type Article = {
     accessorFn: (row) => row.ai_tags?.join(', ') || '',
     cell: ({ row }) => {
         const article = row.original
-        return article.ai_tags ? article.ai_tags.join(', ') : ''
+        return article.ai_tags?.length ? (
+          <div className="flex flex-wrap gap-1 min-w-[150px]">
+            {article.ai_tags.map(tag => (
+              <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+            ))}
+          </div>
+        ) : <span className="text-muted-foreground text-sm">N/A</span>
     }
   },
   {
