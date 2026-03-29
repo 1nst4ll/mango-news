@@ -45,6 +45,13 @@ const dynamicDescription = description === "mango.tc news - Your source for news
 ---
 
 <script is:inline>
+	// Register service worker for offline support
+	if ('serviceWorker' in navigator) {
+		window.addEventListener('load', () => {
+			navigator.serviceWorker.register('/sw.js').catch(() => {});
+		});
+	}
+
 	const getThemePreference = () => {
 		if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
 			return localStorage.getItem('theme');

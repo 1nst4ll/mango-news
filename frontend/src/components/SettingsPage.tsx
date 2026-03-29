@@ -1,209 +1,32 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { format } from 'date-fns';
 import { apiFetch } from '../lib/api';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { SourceDistributionPieChart } from "./charts/SourceDistributionPieChart";
-import { ArticlesTimelineChart } from "./charts/ArticlesTimelineChart";
-import { SourceBarChart } from "./charts/SourceBarChart";
-import { AiCoverageChart } from "./charts/AiCoverageChart";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { Switch } from "./ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
-import { Badge } from "./ui/badge";
-import { MoreHorizontal, RefreshCw, AlertTriangle, Newspaper, Globe, Zap, FileText, Tag, Image, Languages, ExternalLink, ImagePlus, Volume2, Mic } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Progress } from "./ui/progress";
-import { Alert, AlertDescription } from "./ui/alert";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+import {
+  type Source,
+  type ModalFormData,
+  type SundayEditionAdmin,
+  type ArticleStats,
+  emptyModalForm,
+  validateCron,
+} from './settings/types';
 import { Skeleton } from "./ui/skeleton";
 
-// ---------------------------------------------------------------------------
-// Cron helpers
-// ---------------------------------------------------------------------------
-
-/** Validate a 5-field cron expression. Returns null if valid, error string if not. */
-function validateCron(expr: string): string | null {
-  if (!expr || !expr.trim()) return 'Cron expression is required.';
-  const parts = expr.trim().split(/\s+/);
-  if (parts.length !== 5) return 'Must have exactly 5 fields: minute hour day month weekday.';
-  const ranges = [
-    { name: 'minute',  min: 0, max: 59 },
-    { name: 'hour',    min: 0, max: 23 },
-    { name: 'day',     min: 1, max: 31 },
-    { name: 'month',   min: 1, max: 12 },
-    { name: 'weekday', min: 0, max: 7  },
-  ];
-  for (let i = 0; i < 5; i++) {
-    const field = parts[i];
-    const { name, min, max } = ranges[i];
-    if (field === '*') continue;
-    // */n
-    if (/^\*\/\d+$/.test(field)) {
-      const n = parseInt(field.slice(2));
-      if (n < 1) return `${name}: step must be ≥ 1.`;
-      continue;
-    }
-    // n-m
-    if (/^\d+-\d+$/.test(field)) {
-      const [a, b] = field.split('-').map(Number);
-      if (a < min || b > max || a > b) return `${name}: range ${field} is out of bounds (${min}-${max}).`;
-      continue;
-    }
-    // list: 1,2,3 or ranges in list
-    if (/^[\d,]+$/.test(field)) {
-      const nums = field.split(',').map(Number);
-      if (nums.some(n => n < min || n > max)) return `${name}: value out of bounds (${min}-${max}).`;
-      continue;
-    }
-    // plain number
-    if (/^\d+$/.test(field)) {
-      const n = parseInt(field);
-      if (n < min || n > max) return `${name}: ${n} is out of bounds (${min}-${max}).`;
-      continue;
-    }
-    return `${name}: unrecognised pattern "${field}".`;
-  }
-  return null;
-}
-
-/** Parse a 5-field cron expression into a human-readable string. */
-function parseCron(expr: string): string {
-  if (!expr) return '';
-  const parts = expr.trim().split(/\s+/);
-  if (parts.length !== 5) return '';
-  const [min, hour, dom, month, dow] = parts;
-
-  if (expr === '* * * * *') return 'Every minute';
-  if (min.startsWith('*/') && hour === '*' && dom === '*' && month === '*' && dow === '*') {
-    const n = parseInt(min.slice(2));
-    return `Every ${n} minute${n !== 1 ? 's' : ''}`;
-  }
-  if (min === '0' && hour.startsWith('*/') && dom === '*' && month === '*' && dow === '*') {
-    const n = parseInt(hour.slice(2));
-    return `Every ${n} hour${n !== 1 ? 's' : ''}`;
-  }
-  if (min === '0' && hour !== '*' && dom === '*' && month === '*' && dow === '*') {
-    return `Daily at ${hour.padStart(2, '0')}:00`;
-  }
-  if (min === '0' && hour !== '*' && dom === '*' && month === '*' && dow !== '*') {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayNames = dow.split(',').map(d => days[parseInt(d)] ?? d).join(', ');
-    return `Every ${dayNames} at ${hour.padStart(2, '0')}:00`;
-  }
-  if (min === '0' && hour !== '*' && dom !== '*' && month === '*' && dow === '*') {
-    return `Monthly on day ${dom} at ${hour.padStart(2, '0')}:00`;
-  }
-  // step on hour field: */n with specific minute
-  if (hour.startsWith('*/') && dom === '*' && month === '*' && dow === '*') {
-    const n = parseInt(hour.slice(2));
-    return `Every ${n} hour${n !== 1 ? 's' : ''} at :${min.padStart(2, '0')}`;
-  }
-  return 'Custom schedule';
-}
-
-// ---------------------------------------------------------------------------
-// Interfaces
-// ---------------------------------------------------------------------------
-
-interface SundayEditionStatsData {
-  total: number;
-  withAudio: number;
-  withImage: number;
-  oldest: string | null;
-  newest: string | null;
-}
-
-interface ArticleStats {
-  totalArticles: number | null;
-  totalSources: number | null;
-  articlesPerSource: { source_name: string; article_count: number }[];
-  articlesPerYear: { year: number; article_count: number }[];
-  sundayEditionStats?: SundayEditionStatsData;
-}
-
-interface Source {
-  id: number;
-  name: string;
-  url: string;
-  is_active: boolean;
-  enable_ai_summary: boolean;
-  enable_ai_tags: boolean;
-  enable_ai_image: boolean;
-  enable_ai_translations: boolean;
-  include_selectors: string | null;
-  exclude_selectors: string | null;
-  scraping_method?: string;
-  os_title_selector: string | null;
-  os_content_selector: string | null;
-  os_date_selector: string | null;
-  os_author_selector: string | null;
-  os_thumbnail_selector: string | null;
-  os_topics_selector: string | null;
-  article_link_template: string | null;
-  exclude_patterns: string | null;
-  scrape_after_date: string | null;
-}
-
-interface ModalFormData {
-  name: string;
-  url: string;
-  enable_ai_summary: boolean;
-  enable_ai_tags: boolean;
-  enable_ai_image: boolean;
-  enable_ai_translations: boolean;
-  include_selectors: string | null;
-  exclude_selectors: string | null;
-  scraping_method: string;
-  os_title_selector: string | null;
-  os_content_selector: string | null;
-  os_date_selector: string | null;
-  os_author_selector: string | null;
-  os_thumbnail_selector: string | null;
-  os_topics_selector: string | null;
-  article_link_template: string | null;
-  exclude_patterns: string | null;
-  scrape_after_date: string | null;
-}
-
-interface SundayEditionAdmin {
-  id: number;
-  title: string;
-  summary: string;
-  narration_url: string | null;
-  image_url: string | null;
-  publication_date: string;
-  created_at: string;
-  updated_at: string;
-}
-
-const emptyModalForm: ModalFormData = {
-  name: '',
-  url: '',
-  enable_ai_summary: true,
-  enable_ai_tags: true,
-  enable_ai_image: true,
-  enable_ai_translations: true,
-  include_selectors: null,
-  exclude_selectors: null,
-  scraping_method: 'opensource',
-  os_title_selector: null,
-  os_content_selector: null,
-  os_date_selector: null,
-  os_author_selector: null,
-  os_thumbnail_selector: null,
-  os_topics_selector: null,
-  article_link_template: null,
-  exclude_patterns: null,
-  scrape_after_date: null,
-};
+const OverviewStats = React.lazy(() => import('./settings/OverviewStats'));
+const ScraperControls = React.lazy(() => import('./settings/ScraperControls'));
+const ScheduledTasks = React.lazy(() => import('./settings/ScheduledTasks'));
+const SourceManagement = React.lazy(() => import('./settings/SourceManagement'));
+const SundayEditionsAdminTab = React.lazy(() => import('./settings/SundayEditionsAdmin'));
 
 // ---------------------------------------------------------------------------
 // Component
@@ -904,39 +727,6 @@ const SettingsPage: React.FC = () => {
   };
 
   // ---------------------------------------------------------------------------
-  // Cron field helpers
-  // ---------------------------------------------------------------------------
-
-  const CronField = ({
-    id, value, onChange, error, onBlur,
-  }: {
-    id: string;
-    value: string;
-    onChange: (v: string) => void;
-    error: string | null;
-    onBlur: () => void;
-  }) => (
-    <div className="grid gap-1">
-      <Input
-        id={id}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        onBlur={onBlur}
-        placeholder="e.g., 0 * * * *"
-        className={error ? 'border-red-500 focus-visible:ring-red-500' : ''}
-      />
-      {error ? (
-        <p className="text-xs text-destructive">{error}</p>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          {parseCron(value) || 'Custom schedule'} &mdash;{' '}
-          <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Cron Helper</a>
-        </p>
-      )}
-    </div>
-  );
-
-  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -951,854 +741,136 @@ const SettingsPage: React.FC = () => {
           <TabsTrigger value="sunday-editions" className="flex-shrink-0">Sunday Editions</TabsTrigger>
         </TabsList>
 
-        {/* ================================================================
-            TAB 1 — Overview & Stats
-        ================================================================ */}
+        {/* TAB 1 — Overview & Stats */}
         <TabsContent value="overview">
-          <div className="space-y-6">
-
-            {/* Header row */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight">Dashboard</h2>
-                <p className="text-sm text-muted-foreground">
-                  Overview of your news aggregation platform
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                {statsLastUpdated && (
-                  <span className="text-xs text-muted-foreground">
-                    Updated {format(statsLastUpdated, 'MMM d, HH:mm:ss')}
-                  </span>
-                )}
-                <Button variant="outline" size="sm" onClick={fetchStats} disabled={statsLoading}>
-                  <RefreshCw className={`h-4 w-4 mr-1 ${statsLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
-            </div>
-
-            {statsError && (
-              <Alert variant="destructive">
-                <AlertDescription>{statsError}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* KPI stat cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
-                  <CardDescription className="text-xs font-medium">Total Articles</CardDescription>
-                  <Newspaper className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="pb-4">
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-24" />
-                  ) : (
-                    <div className="text-3xl font-bold tracking-tight">
-                      {(stats.totalArticles ?? 0).toLocaleString()}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
-                  <CardDescription className="text-xs font-medium">Total Sources</CardDescription>
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="pb-4">
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <>
-                      <div className="text-3xl font-bold tracking-tight">
-                        {stats.totalSources ?? 0}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        <span className="text-emerald-500 font-medium">{activeSources} active</span>
-                        {(stats.totalSources ?? 0) - activeSources > 0 && (
-                          <span> / {(stats.totalSources ?? 0) - activeSources} inactive</span>
-                        )}
-                      </p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
-                  <CardDescription className="text-xs font-medium">Avg. per Source</CardDescription>
-                  <Zap className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="pb-4">
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-20" />
-                  ) : (
-                    <div className="text-3xl font-bold tracking-tight">
-                      {stats.totalSources && stats.totalArticles
-                        ? Math.round(stats.totalArticles / stats.totalSources).toLocaleString()
-                        : '0'}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
-                  <CardDescription className="text-xs font-medium">Years Covered</CardDescription>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="pb-4">
-                  {statsLoading ? (
-                    <Skeleton className="h-8 w-12" />
-                  ) : (
-                    <>
-                      <div className="text-3xl font-bold tracking-tight">
-                        {stats.articlesPerYear.length}
-                      </div>
-                      {stats.articlesPerYear.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {Math.min(...stats.articlesPerYear.map(y => y.year))} &ndash; {Math.max(...stats.articlesPerYear.map(y => y.year))}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sunday Edition stats */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
-                <CardDescription className="text-xs font-medium">Sunday Editions</CardDescription>
-                <Mic className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="pb-4">
-                {statsLoading ? (
-                  <Skeleton className="h-8 w-32" />
-                ) : (
-                  <div className="flex items-baseline gap-6 flex-wrap">
-                    <div>
-                      <span className="text-3xl font-bold tracking-tight">{stats.sundayEditionStats?.total ?? 0}</span>
-                      <span className="text-sm text-muted-foreground ml-1">total</span>
-                    </div>
-                    <div className="flex gap-4 text-sm">
-                      <span>
-                        <span className="font-medium text-green-600">{stats.sundayEditionStats?.withImage ?? 0}</span>
-                        <span className="text-muted-foreground ml-1">with image</span>
-                      </span>
-                      <span>
-                        <span className="font-medium text-green-600">{stats.sundayEditionStats?.withAudio ?? 0}</span>
-                        <span className="text-muted-foreground ml-1">with audio</span>
-                      </span>
-                      {(stats.sundayEditionStats?.total ?? 0) > 0 && stats.sundayEditionStats?.newest && (
-                        <span>
-                          <span className="text-muted-foreground">Latest: </span>
-                          <span className="font-medium">{new Date(stats.sundayEditionStats.newest).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Main charts row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Timeline chart — spans 2 cols */}
-              <div className="lg:col-span-2">
-                {statsLoading ? (
-                  <Card className="h-full">
-                    <CardHeader className="pt-4">
-                      <Skeleton className="h-5 w-40" />
-                      <Skeleton className="h-3 w-56 mt-1" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-[200px] w-full" />
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <ArticlesTimelineChart data={stats.articlesPerYear || []} />
-                )}
-              </div>
-
-              {/* Pie chart — 1 col */}
-              <div>
-                {statsLoading ? (
-                  <Card className="h-full">
-                    <CardHeader className="pt-4 items-center">
-                      <Skeleton className="h-5 w-36" />
-                      <Skeleton className="h-3 w-32 mt-1" />
-                    </CardHeader>
-                    <CardContent className="flex justify-center">
-                      <Skeleton className="h-[180px] w-[180px] rounded-full" />
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <SourceDistributionPieChart data={stats.articlesPerSource || []} />
-                )}
-              </div>
-            </div>
-
-            {/* AI Coverage radial charts */}
-            {aiCoverage && (
-              <div className="space-y-3">
-                <div>
-                  <h3 className="text-sm font-semibold">AI Coverage</h3>
-                  <p className="text-xs text-muted-foreground">Processing status based on per-source configuration</p>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <AiCoverageChart
-                    label="Summaries"
-                    value={aiCoverage.withSummary}
-                    total={aiCoverage.total}
-                    color="var(--chart-1)"
-                    icon={<FileText className="h-3 w-3" />}
-                  />
-                  <AiCoverageChart
-                    label="Tags"
-                    value={aiCoverage.withTags}
-                    total={aiCoverage.total}
-                    color="var(--chart-2)"
-                    icon={<Tag className="h-3 w-3" />}
-                  />
-                  <AiCoverageChart
-                    label="Images"
-                    value={aiCoverage.withImage}
-                    total={aiCoverage.total}
-                    color="var(--chart-4)"
-                    icon={<Image className="h-3 w-3" />}
-                  />
-                  <AiCoverageChart
-                    label="Translations"
-                    value={aiCoverage.withTranslations}
-                    total={aiCoverage.total}
-                    color="var(--chart-5)"
-                    icon={<Languages className="h-3 w-3" />}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Full bar chart */}
-            {!statsLoading && (stats.articlesPerSource?.length ?? 0) > 0 && (
-              <SourceBarChart data={stats.articlesPerSource} />
-            )}
-
-          </div>
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <OverviewStats
+            stats={stats}
+            statsLoading={statsLoading}
+            statsError={statsError}
+            statsLastUpdated={statsLastUpdated}
+            fetchStats={fetchStats}
+            activeSources={activeSources}
+            aiCoverage={aiCoverage}
+          />
+          </React.Suspense>
         </TabsContent>
 
-        {/* ================================================================
-            TAB 2 — Scraper Controls
-        ================================================================ */}
+        {/* TAB 2 — Scraper Controls */}
         <TabsContent value="global">
-          <div className="space-y-6">
-            {/* Manual Scrape */}
-            <Card className="pt-4">
-              <CardHeader>
-                <CardTitle className="pb-1">Manual Scrape</CardTitle>
-                <CardDescription>
-                  These AI options are saved per-browser and apply to the next manual scrape run below.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch id="enableGlobalAiSummary" checked={enableGlobalAiSummary} onCheckedChange={setEnableGlobalAiSummary} />
-                    <Label htmlFor="enableGlobalAiSummary">Generate AI Summaries</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="enableGlobalAiTags" checked={enableGlobalAiTags} onCheckedChange={setEnableGlobalAiTags} />
-                    <Label htmlFor="enableGlobalAiTags">Generate AI Tags</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="enableGlobalAiImage" checked={enableGlobalAiImage} onCheckedChange={setEnableGlobalAiImage} />
-                    <Label htmlFor="enableGlobalAiImage">Generate AI Images</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="enableGlobalAiTranslations" checked={enableGlobalAiTranslations} onCheckedChange={setEnableGlobalAiTranslations} />
-                    <Label htmlFor="enableGlobalAiTranslations">Generate AI Translations</Label>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="pt-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={handleTriggerScraper} disabled={loading}>
-                      {loading ? 'Triggering…' : 'Run Scraper'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Triggers a full scrape run for all active sources.</TooltipContent>
-                </Tooltip>
-              </CardFooter>
-            </Card>
-
-            {/* Sunday Edition */}
-            <Card className="pt-4">
-              <CardHeader>
-                <CardTitle className="pb-1">Sunday Edition</CardTitle>
-                <CardDescription>Manually generate this week's Sunday edition digest.</CardDescription>
-              </CardHeader>
-              <CardFooter className="pt-2">
-                <Button onClick={handleGenerateSundayEdition} disabled={sundayEditionLoading} variant="outline">
-                  {sundayEditionLoading ? 'Generating…' : 'Generate Sunday Edition'}
-                </Button>
-              </CardFooter>
-            </Card>
-
-            {/* Danger Zone */}
-            <Card className="border-red-200 pt-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-600">
-                  <AlertTriangle className="h-5 w-5" />
-                  Danger Zone
-                </CardTitle>
-                <CardDescription>These actions are irreversible. Proceed with caution.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between rounded-md border border-red-200 p-4">
-                  <div>
-                    <p className="font-medium text-sm">Purge All Articles</p>
-                    <p className="text-xs text-muted-foreground">Permanently deletes every article in the database.</p>
-                  </div>
-                  <Button onClick={handlePurgeArticles} disabled={purgeLoading} variant="destructive" size="sm">
-                    {purgeLoading ? 'Purging…' : 'Purge All'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <ScraperControls
+            enableGlobalAiSummary={enableGlobalAiSummary}
+            setEnableGlobalAiSummary={setEnableGlobalAiSummary}
+            enableGlobalAiTags={enableGlobalAiTags}
+            setEnableGlobalAiTags={setEnableGlobalAiTags}
+            enableGlobalAiImage={enableGlobalAiImage}
+            setEnableGlobalAiImage={setEnableGlobalAiImage}
+            enableGlobalAiTranslations={enableGlobalAiTranslations}
+            setEnableGlobalAiTranslations={setEnableGlobalAiTranslations}
+            loading={loading}
+            sundayEditionLoading={sundayEditionLoading}
+            purgeLoading={purgeLoading}
+            handleTriggerScraper={handleTriggerScraper}
+            handleGenerateSundayEdition={handleGenerateSundayEdition}
+            handlePurgeArticles={handlePurgeArticles}
+          />
+          </React.Suspense>
         </TabsContent>
 
-        {/* ================================================================
-            TAB 3 — Scheduled Tasks
-        ================================================================ */}
+        {/* TAB 3 — Scheduled Tasks */}
         <TabsContent value="scheduled">
-          <Card className="mb-6 pt-4">
-            <CardHeader>
-              <CardTitle className="pb-2">Scheduled Tasks</CardTitle>
-              <CardDescription>Configure cron schedules for automated background jobs. Changes take effect after saving.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-
-                {/* Main Scraper */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-sm font-semibold">Main Scraper</h5>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="mainScraperEnabled"
-                        checked={mainScraperEnabled}
-                        onCheckedChange={setMainScraperEnabled}
-                        className="scale-90"
-                      />
-                      <Label htmlFor="mainScraperEnabled" className="text-xs text-muted-foreground cursor-pointer">
-                        {mainScraperEnabled ? 'Enabled' : 'Disabled'}
-                      </Label>
-                    </div>
-                  </div>
-                  <div className={mainScraperEnabled ? '' : 'opacity-50 pointer-events-none'}>
-                    <Label htmlFor="mainScraperFrequency" className="text-xs mb-1 block">Cron Schedule</Label>
-                    <CronField
-                      id="mainScraperFrequency"
-                      value={mainScraperFrequency}
-                      onChange={v => { setMainScraperFrequency(v); setMainCronError(null); }}
-                      error={mainCronError}
-                      onBlur={() => setMainCronError(validateCron(mainScraperFrequency))}
-                    />
-                  </div>
-                </div>
-
-                {/* Missing AI Processor */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-sm font-semibold">Missing AI Processor</h5>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="missingAiEnabled"
-                        checked={missingAiEnabled}
-                        onCheckedChange={setMissingAiEnabled}
-                        className="scale-90"
-                      />
-                      <Label htmlFor="missingAiEnabled" className="text-xs text-muted-foreground cursor-pointer">
-                        {missingAiEnabled ? 'Enabled' : 'Disabled'}
-                      </Label>
-                    </div>
-                  </div>
-                  <div className={missingAiEnabled ? '' : 'opacity-50 pointer-events-none'}>
-                    <Label htmlFor="missingAiFrequency" className="text-xs mb-1 block">Cron Schedule</Label>
-                    <CronField
-                      id="missingAiFrequency"
-                      value={missingAiFrequency}
-                      onChange={v => { setMissingAiFrequency(v); setMissingAiCronError(null); }}
-                      error={missingAiCronError}
-                      onBlur={() => setMissingAiCronError(validateCron(missingAiFrequency))}
-                    />
-                    <div className="mt-3 space-y-2">
-                      {([
-                        { id: 'enableScheduledMissingSummary', label: 'Process Missing Summaries', value: enableScheduledMissingSummary, set: setEnableScheduledMissingSummary },
-                        { id: 'enableScheduledMissingTags', label: 'Process Missing Tags', value: enableScheduledMissingTags, set: setEnableScheduledMissingTags },
-                        { id: 'enableScheduledMissingImage', label: 'Process Missing Images', value: enableScheduledMissingImage, set: setEnableScheduledMissingImage },
-                        { id: 'enableScheduledMissingTranslations', label: 'Process Missing Translations', value: enableScheduledMissingTranslations, set: setEnableScheduledMissingTranslations },
-                      ] as const).map(({ id, label, value, set }) => (
-                        <div key={id} className="flex items-center space-x-2">
-                          <Switch id={id} checked={value} onCheckedChange={set} />
-                          <Label htmlFor={id} className="text-sm">{label}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sunday Edition */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-sm font-semibold">Sunday Edition</h5>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="sundayEditionEnabled"
-                        checked={sundayEditionEnabled}
-                        onCheckedChange={setSundayEditionEnabled}
-                        className="scale-90"
-                      />
-                      <Label htmlFor="sundayEditionEnabled" className="text-xs text-muted-foreground cursor-pointer">
-                        {sundayEditionEnabled ? 'Enabled' : 'Disabled'}
-                      </Label>
-                    </div>
-                  </div>
-                  <div className={sundayEditionEnabled ? '' : 'opacity-50 pointer-events-none'}>
-                    <Label htmlFor="sundayEditionFrequency" className="text-xs mb-1 block">Cron Schedule</Label>
-                    <CronField
-                      id="sundayEditionFrequency"
-                      value={sundayEditionFrequency}
-                      onChange={v => { setSundayEditionFrequency(v); setSundayCronError(null); }}
-                      error={sundayCronError}
-                      onBlur={() => setSundayCronError(validateCron(sundayEditionFrequency))}
-                    />
-                  </div>
-                </div>
-
-              </div>
-            </CardContent>
-            <CardFooter className="pt-4">
-              <Button onClick={handleSaveScheduleSettings} disabled={savingSchedule}>
-                {savingSchedule ? 'Saving…' : 'Save Schedule Settings'}
-              </Button>
-            </CardFooter>
-          </Card>
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <ScheduledTasks
+            mainScraperFrequency={mainScraperFrequency}
+            setMainScraperFrequency={setMainScraperFrequency}
+            mainScraperEnabled={mainScraperEnabled}
+            setMainScraperEnabled={setMainScraperEnabled}
+            missingAiFrequency={missingAiFrequency}
+            setMissingAiFrequency={setMissingAiFrequency}
+            missingAiEnabled={missingAiEnabled}
+            setMissingAiEnabled={setMissingAiEnabled}
+            enableScheduledMissingSummary={enableScheduledMissingSummary}
+            setEnableScheduledMissingSummary={setEnableScheduledMissingSummary}
+            enableScheduledMissingTags={enableScheduledMissingTags}
+            setEnableScheduledMissingTags={setEnableScheduledMissingTags}
+            enableScheduledMissingImage={enableScheduledMissingImage}
+            setEnableScheduledMissingImage={setEnableScheduledMissingImage}
+            enableScheduledMissingTranslations={enableScheduledMissingTranslations}
+            setEnableScheduledMissingTranslations={setEnableScheduledMissingTranslations}
+            sundayEditionFrequency={sundayEditionFrequency}
+            setSundayEditionFrequency={setSundayEditionFrequency}
+            sundayEditionEnabled={sundayEditionEnabled}
+            setSundayEditionEnabled={setSundayEditionEnabled}
+            savingSchedule={savingSchedule}
+            handleSaveScheduleSettings={handleSaveScheduleSettings}
+            mainCronError={mainCronError}
+            setMainCronError={setMainCronError}
+            missingAiCronError={missingAiCronError}
+            setMissingAiCronError={setMissingAiCronError}
+            sundayCronError={sundayCronError}
+            setSundayCronError={setSundayCronError}
+          />
+          </React.Suspense>
         </TabsContent>
 
-        {/* ================================================================
-            TAB 4 — Source Management
-        ================================================================ */}
+        {/* TAB 4 — Source Management */}
         <TabsContent value="sources">
-          <Card className="mb-6 pt-4">
-            <CardHeader>
-              <div className="flex items-center justify-between pb-2">
-                <CardTitle>Sources</CardTitle>
-                <Button onClick={openAddModal} size="sm">Add New Source</Button>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Input
-                  placeholder="Search by name or URL…"
-                  value={sourceSearch}
-                  onChange={e => setSourceSearch(e.target.value)}
-                  className="sm:max-w-xs"
-                />
-                <Select value={sourceFilterStatus} onValueChange={v => setSourceFilterStatus(v as 'all' | 'active' | 'inactive')}>
-                  <SelectTrigger className="sm:w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {sourcesLoading ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="rounded-lg border p-4 space-y-3">
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-3 w-3/4" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
-                  ))}
-                </div>
-              ) : sourcesError ? (
-                <Alert variant="destructive">
-                  <AlertDescription>Error loading sources: {sourcesError instanceof Error ? sourcesError.message : 'An unknown error occurred'}</AlertDescription>
-                </Alert>
-              ) : sources.length === 0 ? (
-                <div className="text-muted-foreground">No sources found.</div>
-              ) : (
-                <>
-                  {/* Bulk toolbar */}
-                  {filteredSources.length > 0 && (
-                    <div className="flex items-center gap-3 mb-4 p-2 rounded-md bg-muted/50">
-                      <Checkbox
-                        id="selectAll"
-                        checked={filteredSources.length > 0 && filteredSources.every(s => selectedSources.has(s.id))}
-                        onCheckedChange={handleSelectAllFiltered}
-                      />
-                      <Label htmlFor="selectAll" className="text-sm cursor-pointer">
-                        {selectedSources.size > 0 ? `${selectedSources.size} selected` : 'Select all'}
-                      </Label>
-                      {selectedSources.size > 0 && (
-                        <div className="flex gap-2 ml-2">
-                          <Button size="sm" variant="outline" disabled={bulkActionLoading} onClick={() => handleBulkToggleActive(true)}>
-                            {bulkActionLoading ? '…' : 'Activate'}
-                          </Button>
-                          <Button size="sm" variant="outline" disabled={bulkActionLoading} onClick={() => handleBulkToggleActive(false)}>
-                            {bulkActionLoading ? '…' : 'Deactivate'}
-                          </Button>
-                          <Button size="sm" variant="destructive" disabled={bulkActionLoading} onClick={handleBulkDelete}>
-                            {bulkActionLoading ? '…' : 'Delete'}
-                          </Button>
-                        </div>
-                      )}
-                      <span className="ml-auto text-xs text-muted-foreground">{filteredSources.length} of {sources.length} sources</span>
-                    </div>
-                  )}
-
-                  <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredSources.map(source => (
-                      <Card key={source.id} className={`p-4 shadow-sm pt-4 flex flex-col ${selectedSources.has(source.id) ? 'ring-2 ring-primary' : ''}`}>
-                        <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Checkbox
-                                checked={selectedSources.has(source.id)}
-                                onCheckedChange={() => handleToggleSelectSource(source.id)}
-                              />
-                              <Badge variant={source.is_active ? 'default' : 'secondary'} className="text-xs">
-                                {source.is_active ? 'Active' : 'Inactive'}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">{source.scraping_method || 'opensource'}</Badge>
-                              {sourceScrapeResult[source.id] && (
-                                <Badge variant="outline" className="text-xs text-green-600 border-green-300">
-                                  {sourceScrapeResult[source.id]}
-                                </Badge>
-                              )}
-                            </div>
-
-                            {/* Name with tooltip for truncation */}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <CardTitle className="text-base font-medium truncate cursor-default">{source.name}</CardTitle>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">{source.name}</TooltipContent>
-                            </Tooltip>
-
-                            <CardDescription className="text-xs truncate">
-                              <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                {source.url}
-                              </a>
-                            </CardDescription>
-                            <CardDescription className="text-xs mt-1">
-                              {(articleCountMap.get(source.name) ?? 0).toLocaleString()} articles
-                            </CardDescription>
-
-                            {/* AI feature badges — always show all 4, dim disabled ones */}
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {([
-                                { key: 'enable_ai_summary', label: 'Summary' },
-                                { key: 'enable_ai_tags', label: 'Tags' },
-                                { key: 'enable_ai_image', label: 'Image' },
-                                { key: 'enable_ai_translations', label: 'Translations' },
-                              ] as const).map(({ key, label }) => (
-                                <Badge
-                                  key={key}
-                                  variant="outline"
-                                  className={`text-xs ${source[key] ? '' : 'opacity-30'}`}
-                                >
-                                  {label}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="mt-2 md:mt-0 md:ml-2">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Open menu</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => handleTriggerScraperForSource(source.id)}
-                                  disabled={sourceScrapingLoading[source.id]}
-                                >
-                                  {sourceScrapingLoading[source.id] ? 'Scraping…' : 'Scrape Now'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteArticlesForSource(source.id)}
-                                  disabled={sourceArticleDeletionLoading[source.id]}
-                                  className="text-red-600"
-                                >
-                                  {sourceArticleDeletionLoading[source.id] ? 'Deleting…' : 'Delete Articles'}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => openEditModal(source)}>Edit Source</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteSource(source.id)} className="text-red-600">
-                                  Delete Source
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-
-                        <div className="mt-auto pt-4 border-t border-border">
-                          <Button asChild size="sm" variant="outline" className="w-full">
-                            <a href={`/settings/source/${source.id}`}>View Articles</a>
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
-                  </ul>
-
-                  {filteredSources.length === 0 && (
-                    <div className="text-center text-muted-foreground py-8">No sources match your search.</div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <SourceManagement
+            sources={sources}
+            filteredSources={filteredSources}
+            sourcesLoading={sourcesLoading}
+            sourcesError={sourcesError}
+            sourceSearch={sourceSearch}
+            setSourceSearch={setSourceSearch}
+            sourceFilterStatus={sourceFilterStatus}
+            setSourceFilterStatus={setSourceFilterStatus}
+            selectedSources={selectedSources}
+            articleCountMap={articleCountMap}
+            sourceScrapingLoading={sourceScrapingLoading}
+            sourceArticleDeletionLoading={sourceArticleDeletionLoading}
+            sourceScrapeResult={sourceScrapeResult}
+            bulkActionLoading={bulkActionLoading}
+            openAddModal={openAddModal}
+            openEditModal={openEditModal}
+            handleToggleSelectSource={handleToggleSelectSource}
+            handleSelectAllFiltered={handleSelectAllFiltered}
+            handleBulkToggleActive={handleBulkToggleActive}
+            handleBulkDelete={handleBulkDelete}
+            handleTriggerScraperForSource={handleTriggerScraperForSource}
+            handleDeleteArticlesForSource={handleDeleteArticlesForSource}
+            handleDeleteSource={handleDeleteSource}
+          />
+          </React.Suspense>
         </TabsContent>
 
-        {/* ================================================================
-            TAB 5 — Sunday Editions Management
-        ================================================================ */}
+        {/* TAB 5 — Sunday Editions */}
         <TabsContent value="sunday-editions">
-          <div className="space-y-6">
-
-            {/* Stats summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-xs text-muted-foreground">Total Editions</p>
-                  <p className="text-2xl font-bold">{sundayEditions.length}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-xs text-muted-foreground">With Image</p>
-                  <p className="text-2xl font-bold text-green-600">{sundayEditions.filter(e => e.image_url).length}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-xs text-muted-foreground">With Audio</p>
-                  <p className="text-2xl font-bold text-green-600">{sundayEditions.filter(e => e.narration_url).length}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-xs text-muted-foreground">Pending Audio</p>
-                  <p className="text-2xl font-bold text-amber-600">{sundayEditions.filter(e => !e.narration_url).length}</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Main management card */}
-            <Card className="pt-4">
-              <CardHeader>
-                <div className="flex items-center justify-between pb-2">
-                  <div>
-                    <CardTitle>Sunday Editions</CardTitle>
-                    <CardDescription className="mt-1">View, edit, and manage all generated Sunday Edition digests.</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={() => { handleGenerateSundayEdition(); }} disabled={sundayEditionLoading} size="sm">
-                      {sundayEditionLoading ? 'Generating…' : 'Generate New'}
-                    </Button>
-                    <Button onClick={fetchSundayEditions} variant="outline" size="sm" disabled={sundayEditionsLoading}>
-                      <RefreshCw className={`h-4 w-4 mr-1 ${sundayEditionsLoading ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </Button>
-                    {sundayEditions.length > 0 && (
-                      <Button onClick={handlePurgeSundayEditions} disabled={sundayEditionPurgeLoading} variant="destructive" size="sm">
-                        {sundayEditionPurgeLoading ? 'Purging…' : 'Purge All'}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {sundayEditionsLoading ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="rounded-lg border p-4 space-y-3">
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-3 w-3/4" />
-                        <Skeleton className="h-3 w-1/3" />
-                      </div>
-                    ))}
-                  </div>
-                ) : sundayEditions.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No Sunday Editions found. Generate one to get started.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sundayEditions.map(edition => (
-                      <div key={edition.id} className="rounded-lg border p-4">
-                        {sundayEditionEditId === edition.id ? (
-                          <div className="space-y-3">
-                            <div>
-                              <Label htmlFor={`edit-title-${edition.id}`} className="text-xs mb-1 block">Title</Label>
-                              <Input
-                                id={`edit-title-${edition.id}`}
-                                value={sundayEditionEditForm.title}
-                                onChange={e => setSundayEditionEditForm(prev => ({ ...prev, title: e.target.value }))}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`edit-summary-${edition.id}`} className="text-xs mb-1 block">Summary (Markdown)</Label>
-                              <textarea
-                                id={`edit-summary-${edition.id}`}
-                                value={sundayEditionEditForm.summary}
-                                onChange={e => setSundayEditionEditForm(prev => ({ ...prev, summary: e.target.value }))}
-                                rows={10}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">{sundayEditionEditForm.summary.length} characters</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button size="sm" onClick={() => handleSaveSundayEdition(edition.id)} disabled={sundayEditionSaving}>
-                                {sundayEditionSaving ? 'Saving…' : 'Save'}
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={handleCancelEditSundayEdition}>
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-4">
-                            {/* Thumbnail preview — click to open lightbox */}
-                            {edition.image_url && (
-                              <div
-                                className="flex-shrink-0 hidden sm:block cursor-pointer"
-                                onClick={() => setLightboxImage({ src: edition.image_url!, alt: edition.title })}
-                              >
-                                <img
-                                  src={edition.image_url}
-                                  alt={edition.title}
-                                  className="w-28 h-20 object-cover rounded-md border hover:opacity-80 transition-opacity"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <a
-                                  href={`/en/sunday-edition/${edition.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-semibold text-sm truncate hover:underline"
-                                >
-                                  {edition.title}
-                                </a>
-                                <Badge variant="secondary" className="text-xs flex-shrink-0">ID: {edition.id}</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground mb-1">
-                                Published: {new Date(edition.publication_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                                {edition.updated_at && (
-                                  <span className="ml-2">Updated: {new Date(edition.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                                {edition.summary?.substring(0, 250)}{(edition.summary?.length ?? 0) > 250 ? '…' : ''}
-                              </p>
-                              <div className="flex items-center gap-3 text-xs">
-                                {edition.image_url ? (
-                                  <span className="text-green-600 font-medium">Image: Yes</span>
-                                ) : (
-                                  <span className="text-amber-600 font-medium">Image: Missing</span>
-                                )}
-                                {edition.narration_url ? (
-                                  <span className="text-green-600 font-medium">Audio: Yes</span>
-                                ) : (
-                                  <span className="text-amber-600 font-medium">Audio: Pending</span>
-                                )}
-                                <span className="text-muted-foreground">{edition.summary?.length ?? 0} chars</span>
-                              </div>
-                            </div>
-                            {/* Action buttons */}
-                            <div className="flex flex-col gap-1 flex-shrink-0">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleStartEditSundayEdition(edition)}
-                                  >
-                                    <FileText className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit title and summary</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0"
-                                    disabled={!!sundayEditionImageLoading[edition.id]}
-                                    onClick={() => handleRegenerateImage(edition.id)}
-                                  >
-                                    {sundayEditionImageLoading[edition.id]
-                                      ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                      : <ImagePlus className="h-3.5 w-3.5" />
-                                    }
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Regenerate AI image</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0"
-                                    disabled={!!sundayEditionAudioLoading[edition.id]}
-                                    onClick={() => handleRegenerateAudio(edition.id)}
-                                  >
-                                    {sundayEditionAudioLoading[edition.id]
-                                      ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                      : <Volume2 className="h-3.5 w-3.5" />
-                                    }
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Regenerate audio narration</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleDeleteSundayEdition(edition.id)}
-                                  >
-                                    <AlertTriangle className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Delete this edition</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <SundayEditionsAdminTab
+            sundayEditions={sundayEditions}
+            sundayEditionsLoading={sundayEditionsLoading}
+            sundayEditionLoading={sundayEditionLoading}
+            sundayEditionEditId={sundayEditionEditId}
+            sundayEditionEditForm={sundayEditionEditForm}
+            setSundayEditionEditForm={setSundayEditionEditForm}
+            sundayEditionSaving={sundayEditionSaving}
+            sundayEditionPurgeLoading={sundayEditionPurgeLoading}
+            sundayEditionImageLoading={sundayEditionImageLoading}
+            sundayEditionAudioLoading={sundayEditionAudioLoading}
+            handleGenerateSundayEdition={handleGenerateSundayEdition}
+            fetchSundayEditions={fetchSundayEditions}
+            handlePurgeSundayEditions={handlePurgeSundayEditions}
+            handleStartEditSundayEdition={handleStartEditSundayEdition}
+            handleCancelEditSundayEdition={handleCancelEditSundayEdition}
+            handleSaveSundayEdition={handleSaveSundayEdition}
+            handleRegenerateImage={handleRegenerateImage}
+            handleRegenerateAudio={handleRegenerateAudio}
+            handleDeleteSundayEdition={handleDeleteSundayEdition}
+            setLightboxImage={setLightboxImage}
+          />
+          </React.Suspense>
         </TabsContent>
       </Tabs>
 

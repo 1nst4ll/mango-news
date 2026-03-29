@@ -219,6 +219,66 @@ Or query `GET /api/stats` (authenticated) for database statistics.
 
 ---
 
+## Database Backup & Recovery
+
+### Render Managed PostgreSQL
+
+Render automatically creates daily backups of managed PostgreSQL databases. To access:
+
+1. Go to your PostgreSQL dashboard on Render
+2. Click **Backups** tab to see available snapshots
+3. Use **Manual Backup** before destructive operations (schema changes, purges)
+
+### Manual Backup via pg_dump
+
+For additional safety, create manual backups before major operations:
+
+```bash
+# Full database dump (requires external hostname + SSL)
+PGPASSWORD='your_password' pg_dump \
+  -h dpg-XXXXX-a.ohio-postgres.render.com \
+  -U mangonewsadmin -d mangonews \
+  --no-owner --no-privileges \
+  -F c -f mangonews_backup_$(date +%Y%m%d).dump
+
+# Restore from backup
+PGPASSWORD='your_password' pg_restore \
+  -h dpg-XXXXX-a.ohio-postgres.render.com \
+  -U mangonewsadmin -d mangonews \
+  --no-owner --no-privileges \
+  mangonews_backup_20260329.dump
+```
+
+### When to Back Up
+
+- Before applying database migrations
+- Before running article/edition purge operations
+- Before rotating database credentials
+- Before any schema changes
+
+### S3 Media Storage
+
+Generated images and audio files are stored in the `mangonewsimages` S3 bucket. S3 provides built-in durability (99.999999999%) but consider enabling:
+
+- **S3 Versioning** — protects against accidental deletion
+- **Lifecycle Rules** — auto-delete old/unused files after N days to control costs
+
+---
+
+## Cron Job Locking
+
+Scheduled tasks (scraper, missing AI processor, Sunday Edition) use database-based locking via rows in the `application_settings` table. This prevents overlapping executions even if the server restarts mid-job.
+
+Lock names: `lock_main_scraper`, `lock_missing_ai`, `lock_sunday_edition`
+
+Stale locks (older than 2 hours) are automatically cleaned up. To manually clear a stuck lock:
+
+```sql
+DELETE FROM application_settings WHERE setting_name = 'lock_main_scraper';
+```
+
+---
+
 ## Related Documentation
 
 - [Backend Setup](backend-setup.md) - Full environment variable reference
