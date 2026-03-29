@@ -35,6 +35,11 @@ frontend/src/
 │   ├── SourceArticles.tsx     # Per-source article management table
 │   ├── ArticleEditDialog.tsx  # Rich article editor (80% width modal)
 │   ├── HtmlEditor.tsx         # TipTap WYSIWYG wrapper
+│   ├── charts/                # Dashboard data visualizations
+│   │   ├── AiCoverageChart.tsx           # Radial gauge per AI feature
+│   │   ├── ArticlesTimelineChart.tsx     # Gradient area chart (yearly)
+│   │   ├── SourceBarChart.tsx            # Horizontal bar chart
+│   │   └── SourceDistributionPieChart.tsx # Donut pie chart
 │   ├── LanguageSwitcher.tsx   # Flag-based locale selector
 │   ├── SundayEditionDetail.tsx
 │   ├── LoginDialog.tsx
@@ -42,7 +47,7 @@ frontend/src/
 │   ├── footer.tsx
 │   └── columns.tsx            # TanStack Table column definitions
 ├── pages/                     # Astro file-based routing
-│   ├── index.astro            # Homepage (English, no /en/ prefix)
+│   ├── index.astro            # Root redirect (reads localStorage for preferred locale)
 │   ├── settings.astro         # Admin settings
 │   ├── article/[id].astro     # Article (non-locale fallback)
 │   ├── [lang]/                # Locale-prefixed routes (es, ht)
@@ -93,7 +98,7 @@ Full article view at `/article/[id]`:
 
 Tabbed dashboard at `/settings` (requires login):
 
-1. **Overview & Stats** — articles per source/year bar charts (Recharts)
+1. **Overview & Stats** — KPI cards, area/pie/bar charts, AI coverage radial gauges (Recharts)
 2. **Global Settings** — AI feature toggles for manual scraper runs
 3. **Scheduled Tasks** — cron expression editor for all three background jobs
 4. **Source Management** — CRUD for news sources, per-source scraping config
@@ -171,7 +176,7 @@ Fonts: `Lora` (regular, italic, bold) + `Playfair Display` (bold) via Google Fon
 
 - **Tailwind CSS 4** — utility-first, no config file (CSS-based config)
 - **CSS variables** in `global.css` — light/dark mode via `ModeToggle.tsx`, persisted to `localStorage`
-- **Accent color**: coral `#FF7F50`
+- **Accent color**: pastel orange `#FFB88C`
 
 ## Responsive Design
 

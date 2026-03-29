@@ -6,9 +6,28 @@ The Settings page is the control center for sources, scraping, AI, and schedulin
 
 ## Overview & Stats Tab
 
-- **Total Articles** and **Total Sources** counts
-- **Articles per Source** — bar chart
-- **Articles per Year** — bar chart
+Dashboard with KPI cards, charts, and AI coverage gauges.
+
+### KPI Cards
+
+| Card | Description |
+|------|-------------|
+| Total Articles | Aggregate article count |
+| Total Sources | With active/inactive breakdown |
+| Avg. per Source | Calculated average articles per source |
+| Years Covered | Date range of indexed content |
+
+### Charts
+
+- **Articles Over Time** — gradient area chart showing yearly publication trend with year-over-year percentage change
+- **Source Distribution** — donut pie chart with center total; top 4 sources shown individually, remainder grouped as "Other"
+- **Articles by Source** — horizontal bar chart with inline labels, dynamically sized to fit all sources
+
+### AI Coverage
+
+Four radial gauge charts (one per AI feature) showing the percentage of articles covered by each feature based on per-source configuration:
+
+- Summaries, Tags, Images, Translations
 
 ## Global Settings Tab
 

@@ -1,8 +1,27 @@
 ---
-// This page redirects to the default locale's index page.
-// Hardcoding 'en' as the default locale for the redirect to ensure build stability.
-export const prerender = true; // Prerender this page for static redirect
+// This page redirects to the user's preferred locale (or 'en' by default).
+// Uses a client-side script to read localStorage before redirecting.
+export const prerender = true;
 ---
 
-<meta http-equiv="refresh" content="0;url=/en/" />
-<a href="/en/">Redirecting to /en/</a>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <noscript>
+      <meta http-equiv="refresh" content="0;url=/en/" />
+    </noscript>
+    <script is:inline>
+      var locale = 'en';
+      try {
+        var stored = localStorage.getItem('preferredLocale');
+        if (stored === 'es' || stored === 'ht' || stored === 'en') {
+          locale = stored;
+        }
+      } catch (e) {}
+      window.location.replace('/' + locale + '/');
+    </script>
+  </head>
+  <body>
+    <a href="/en/">Redirecting&hellip;</a>
+  </body>
+</html>
