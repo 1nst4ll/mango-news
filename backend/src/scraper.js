@@ -1011,10 +1011,25 @@ cron.schedule('0 * * * *', async () => {
     console.log('[CRON] Main scraper job is already running. Skipping this execution.');
     return;
   }
-  
+
+  // Check if the main scraper is enabled
+  try {
+    const enabledResult = await pool.query(
+      `SELECT setting_value FROM application_settings WHERE setting_name = 'main_scraper_enabled'`
+    );
+    const isEnabled = enabledResult.rows[0]?.setting_value !== 'false';
+    if (!isEnabled) {
+      console.log('[CRON] Main scraper is disabled. Skipping this execution.');
+      return;
+    }
+  } catch (err) {
+    // If settings table doesn't exist yet, run anyway (default enabled)
+    console.warn('[CRON] Could not check main_scraper_enabled setting, running by default.');
+  }
+
   isMainScraperRunning = true;
   console.log('[CRON] Starting scheduled scraping job...');
-  
+
   try {
     await runScraper();
   } catch (error) {
@@ -1034,17 +1049,25 @@ cron.schedule('0 0 * * 0', async () => {
     console.log('[CRON] Sunday Edition job is already running. Skipping this execution.');
     return;
   }
-  
+
+  // Check if the Sunday Edition job is enabled
+  try {
+    const enabledResult = await pool.query(
+      `SELECT setting_value FROM application_settings WHERE setting_name = 'sunday_edition_enabled'`
+    );
+    const isEnabled = enabledResult.rows[0]?.setting_value !== 'false';
+    if (!isEnabled) {
+      console.log('[CRON] Sunday Edition is disabled. Skipping this execution.');
+      return;
+    }
+  } catch (err) {
+    console.warn('[CRON] Could not check sunday_edition_enabled setting, running by default.');
+  }
+
   isSundayEditionRunning = true;
   console.log('[CRON] Running scheduled Sunday Edition generation job...');
-  
+
   try {
-    // Fetch the Sunday Edition schedule from application_settings
-    const settingsResult = await pool.query(
-      `SELECT setting_value FROM application_settings WHERE setting_name = 'sunday_edition_frequency'`
-    );
-    const sundayEditionFrequency = settingsResult.rows[0]?.setting_value || '0 0 * * 0';
-    console.log(`[CRON] Sunday Edition scheduled frequency: ${sundayEditionFrequency}`);
     await createSundayEdition();
   } catch (error) {
     console.error('[CRON] Error in Sunday Edition generation job:', error);
@@ -1063,7 +1086,21 @@ cron.schedule('*/20 * * * *', async () => {
     console.log('[CRON] Missing AI data job is already running. Skipping this execution.');
     return;
   }
-  
+
+  // Check if the missing AI job is enabled
+  try {
+    const enabledResult = await pool.query(
+      `SELECT setting_value FROM application_settings WHERE setting_name = 'missing_ai_enabled'`
+    );
+    const isEnabled = enabledResult.rows[0]?.setting_value !== 'false';
+    if (!isEnabled) {
+      console.log('[CRON] Missing AI processor is disabled. Skipping this execution.');
+      return;
+    }
+  } catch (err) {
+    console.warn('[CRON] Could not check missing_ai_enabled setting, running by default.');
+  }
+
   isMissingAiJobRunning = true;
   console.log('[CRON] Running scheduled missing AI data processing job...');
   

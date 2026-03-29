@@ -164,6 +164,17 @@ interface ModalFormData {
   scrape_after_date: string | null;
 }
 
+interface SundayEditionAdmin {
+  id: number;
+  title: string;
+  summary: string;
+  narration_url: string | null;
+  image_url: string | null;
+  publication_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const emptyModalForm: ModalFormData = {
   name: '',
   url: '',
@@ -235,10 +246,19 @@ const SettingsPage: React.FC = () => {
   const [modalFormData, setModalFormData] = useState<ModalFormData>(emptyModalForm);
   const [urlError, setUrlError] = useState<string | null>(null);
 
+  // --- Sunday Editions admin state ---
+  const [sundayEditions, setSundayEditions] = useState<SundayEditionAdmin[]>([]);
+  const [sundayEditionsLoading, setSundayEditionsLoading] = useState<boolean>(true);
+  const [sundayEditionEditId, setSundayEditionEditId] = useState<number | null>(null);
+  const [sundayEditionEditForm, setSundayEditionEditForm] = useState<{ title: string; summary: string }>({ title: '', summary: '' });
+  const [sundayEditionSaving, setSundayEditionSaving] = useState(false);
+  const [sundayEditionPurgeLoading, setSundayEditionPurgeLoading] = useState(false);
+
   // Confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [confirmDialogAction, setConfirmDialogAction] = useState<'purgeAll' | 'deleteSourceArticles' | 'deleteSource' | 'bulkDelete' | null>(null);
+  const [confirmDialogAction, setConfirmDialogAction] = useState<'purgeAll' | 'deleteSourceArticles' | 'deleteSource' | 'bulkDelete' | 'deleteSundayEdition' | 'purgeSundayEditions' | null>(null);
   const [confirmDialogSourceId, setConfirmDialogSourceId] = useState<number | null>(null);
+  const [confirmDialogEditionId, setConfirmDialogEditionId] = useState<number | null>(null);
 
   // Search / filter / bulk
   const [sourceSearch, setSourceSearch] = useState('');
@@ -343,6 +363,7 @@ const SettingsPage: React.FC = () => {
   }, [enableGlobalAiTranslations]);
 
   useEffect(() => { fetchSources(); }, []);
+  useEffect(() => { fetchSundayEditions(); }, []);
 
   // ---------------------------------------------------------------------------
   // Data fetchers
@@ -397,6 +418,22 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const fetchSundayEditions = async () => {
+    setSundayEditionsLoading(true);
+    try {
+      const response = await apiFetch('/api/sunday-editions?limit=100');
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data: SundayEditionAdmin[] = await response.json();
+      setSundayEditions(data);
+    } catch (error: unknown) {
+      toast.error("Error Fetching Sunday Editions", {
+        description: error instanceof Error ? error.message : 'An unknown error occurred.',
+      });
+    } finally {
+      setSundayEditionsLoading(false);
+    }
+  };
+
   // ---------------------------------------------------------------------------
   // Handlers — scraper / global actions
   // ---------------------------------------------------------------------------
@@ -430,10 +467,86 @@ const SettingsPage: React.FC = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to generate Sunday edition');
       toast.success("Sunday Edition Generated", { description: data.message || 'Sunday edition generated successfully.' });
+      fetchSundayEditions();
     } catch (error: unknown) {
       toast.error("Sunday Edition Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
     } finally {
       setSundayEditionLoading(false);
+    }
+  };
+
+  const handleDeleteSundayEdition = (id: number) => {
+    setConfirmDialogAction('deleteSundayEdition');
+    setConfirmDialogEditionId(id);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDeleteSundayEdition = async () => {
+    if (confirmDialogEditionId === null) return;
+    const id = confirmDialogEditionId;
+    setIsConfirmDialogOpen(false);
+    setConfirmDialogEditionId(null);
+    try {
+      const response = await apiFetch(`/api/sunday-editions/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete Sunday Edition');
+      }
+      toast.success("Sunday Edition Deleted");
+      setSundayEditions(prev => prev.filter(e => e.id !== id));
+    } catch (error: unknown) {
+      toast.error("Delete Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
+    }
+  };
+
+  const handlePurgeSundayEditions = () => {
+    setConfirmDialogAction('purgeSundayEditions');
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmPurgeSundayEditions = async () => {
+    setIsConfirmDialogOpen(false);
+    setSundayEditionPurgeLoading(true);
+    try {
+      const response = await apiFetch('/api/sunday-editions/purge', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to purge Sunday Editions');
+      toast.success("Sunday Editions Purged", { description: data.message });
+      setSundayEditions([]);
+    } catch (error: unknown) {
+      toast.error("Purge Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
+    } finally {
+      setSundayEditionPurgeLoading(false);
+    }
+  };
+
+  const handleStartEditSundayEdition = (edition: SundayEditionAdmin) => {
+    setSundayEditionEditId(edition.id);
+    setSundayEditionEditForm({ title: edition.title, summary: edition.summary });
+  };
+
+  const handleCancelEditSundayEdition = () => {
+    setSundayEditionEditId(null);
+    setSundayEditionEditForm({ title: '', summary: '' });
+  };
+
+  const handleSaveSundayEdition = async (id: number) => {
+    setSundayEditionSaving(true);
+    try {
+      const response = await apiFetch(`/api/sunday-editions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sundayEditionEditForm),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update Sunday Edition');
+      toast.success("Sunday Edition Updated");
+      setSundayEditions(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+      setSundayEditionEditId(null);
+    } catch (error: unknown) {
+      toast.error("Update Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
+    } finally {
+      setSundayEditionSaving(false);
     }
   };
 
@@ -793,6 +906,7 @@ const SettingsPage: React.FC = () => {
           <TabsTrigger value="global" className="flex-shrink-0">Scraper Controls</TabsTrigger>
           <TabsTrigger value="scheduled" className="flex-shrink-0">Scheduled Tasks</TabsTrigger>
           <TabsTrigger value="sources" className="flex-shrink-0">Source Management</TabsTrigger>
+          <TabsTrigger value="sunday-editions" className="flex-shrink-0">Sunday Editions</TabsTrigger>
         </TabsList>
 
         {/* ================================================================
@@ -1377,6 +1491,131 @@ const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ================================================================
+            TAB 5 — Sunday Editions Management
+        ================================================================ */}
+        <TabsContent value="sunday-editions">
+          <Card className="mb-6 pt-4">
+            <CardHeader>
+              <div className="flex items-center justify-between pb-2">
+                <div>
+                  <CardTitle>Sunday Editions</CardTitle>
+                  <CardDescription className="mt-1">View, edit, and manage all generated Sunday Edition digests.</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleGenerateSundayEdition} disabled={sundayEditionLoading} size="sm">
+                    {sundayEditionLoading ? 'Generating…' : 'Generate New'}
+                  </Button>
+                  {sundayEditions.length > 0 && (
+                    <Button onClick={handlePurgeSundayEditions} disabled={sundayEditionPurgeLoading} variant="destructive" size="sm">
+                      {sundayEditionPurgeLoading ? 'Purging…' : 'Purge All'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sundayEditionsLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="rounded-lg border p-4 space-y-3">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-3 w-3/4" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                  ))}
+                </div>
+              ) : sundayEditions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No Sunday Editions found. Generate one to get started.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sundayEditions.map(edition => (
+                    <div key={edition.id} className="rounded-lg border p-4">
+                      {sundayEditionEditId === edition.id ? (
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor={`edit-title-${edition.id}`} className="text-xs mb-1 block">Title</Label>
+                            <Input
+                              id={`edit-title-${edition.id}`}
+                              value={sundayEditionEditForm.title}
+                              onChange={e => setSundayEditionEditForm(prev => ({ ...prev, title: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`edit-summary-${edition.id}`} className="text-xs mb-1 block">Summary</Label>
+                            <textarea
+                              id={`edit-summary-${edition.id}`}
+                              value={sundayEditionEditForm.summary}
+                              onChange={e => setSundayEditionEditForm(prev => ({ ...prev, summary: e.target.value }))}
+                              rows={8}
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleSaveSundayEdition(edition.id)} disabled={sundayEditionSaving}>
+                              {sundayEditionSaving ? 'Saving…' : 'Save'}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleCancelEditSundayEdition}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-sm truncate">{edition.title}</h4>
+                              <Badge variant="secondary" className="text-xs flex-shrink-0">ID: {edition.id}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Published: {new Date(edition.publication_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                            </p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {edition.summary?.substring(0, 200)}{(edition.summary?.length ?? 0) > 200 ? '…' : ''}
+                            </p>
+                            <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                              {edition.image_url ? (
+                                <span className="text-green-600">Image: Yes</span>
+                              ) : (
+                                <span className="text-amber-600">Image: No</span>
+                              )}
+                              {edition.narration_url ? (
+                                <span className="text-green-600">Audio: Yes</span>
+                              ) : (
+                                <span className="text-amber-600">Audio: Pending</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline" onClick={() => handleStartEditSundayEdition(edition)}>
+                                  Edit
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit title and summary</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="destructive" onClick={() => handleDeleteSundayEdition(edition.id)}>
+                                  Delete
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Permanently delete this edition</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* ================================================================
@@ -1589,6 +1828,12 @@ const SettingsPage: React.FC = () => {
               {confirmDialogAction === 'bulkDelete' && (
                 <>Are you sure you want to delete <strong>{selectedSources.size} selected source(s)</strong>? This action cannot be undone.</>
               )}
+              {confirmDialogAction === 'deleteSundayEdition' && (
+                <>Are you sure you want to delete this Sunday Edition? This action cannot be undone.</>
+              )}
+              {confirmDialogAction === 'purgeSundayEditions' && (
+                <>Are you sure you want to delete <strong>ALL Sunday Editions</strong>? This action cannot be undone.</>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1600,6 +1845,8 @@ const SettingsPage: React.FC = () => {
                 else if (confirmDialogAction === 'deleteSourceArticles') handleConfirmDeleteArticlesForSource();
                 else if (confirmDialogAction === 'deleteSource') handleConfirmDeleteSource();
                 else if (confirmDialogAction === 'bulkDelete') handleConfirmBulkDelete();
+                else if (confirmDialogAction === 'deleteSundayEdition') handleConfirmDeleteSundayEdition();
+                else if (confirmDialogAction === 'purgeSundayEditions') handleConfirmPurgeSundayEditions();
               }}
             >
               Delete

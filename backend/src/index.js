@@ -1451,6 +1451,75 @@ app.post('/api/unreal-speech-callback', async (req, res) => {
   }
 });
 
+// Update a Sunday Edition by ID (admin only)
+app.put('/api/sunday-editions/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  const editionId = req.params.id;
+  const endpoint = `/api/sunday-editions/${editionId}`;
+  const { title, summary, image_url, publication_date } = req.body;
+
+  const updates = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (title !== undefined) { updates.push(`title = $${paramIndex++}`); values.push(title); }
+  if (summary !== undefined) { updates.push(`summary = $${paramIndex++}`); values.push(summary); }
+  if (image_url !== undefined) { updates.push(`image_url = $${paramIndex++}`); values.push(image_url); }
+  if (publication_date !== undefined) { updates.push(`publication_date = $${paramIndex++}`); values.push(publication_date); }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update.' });
+  }
+
+  updates.push(`updated_at = CURRENT_TIMESTAMP`);
+  values.push(editionId);
+
+  try {
+    const result = await pool.query(
+      `UPDATE sunday_editions SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Sunday Edition not found.' });
+    }
+    console.log(`[INFO] ${new Date().toISOString()} - PUT ${endpoint} - Updated Sunday Edition ID ${editionId}`);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error updating Sunday Edition:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Delete a Sunday Edition by ID (admin only)
+app.delete('/api/sunday-editions/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  const editionId = req.params.id;
+  const endpoint = `/api/sunday-editions/${editionId}`;
+  try {
+    const result = await pool.query('DELETE FROM sunday_editions WHERE id = $1 RETURNING id', [editionId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Sunday Edition not found.' });
+    }
+    console.log(`[INFO] ${new Date().toISOString()} - DELETE ${endpoint} - Deleted Sunday Edition ID ${editionId}`);
+    res.status(204).send();
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - DELETE ${endpoint} - Error deleting Sunday Edition:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Purge all Sunday Editions (admin only)
+app.post('/api/sunday-editions/purge', authenticateToken, requireRole('admin'), async (req, res) => {
+  const endpoint = '/api/sunday-editions/purge';
+  try {
+    const result = await pool.query('DELETE FROM sunday_editions RETURNING id');
+    const count = result.rowCount;
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Purged ${count} Sunday Editions`);
+    res.json({ message: `Successfully purged ${count} Sunday Edition(s).`, count });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error purging Sunday Editions:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // RSS Feed Endpoint
 app.get('/api/rss', async (req, res) => {
   const endpoint = '/api/rss';
@@ -1542,7 +1611,7 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
     // Fetch settings from the database
     const settingsResult = await pool.query(
       `SELECT setting_name, setting_value FROM application_settings
-       WHERE setting_name IN ('main_scraper_frequency', 'missing_ai_frequency', 'enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations', 'sunday_edition_frequency')`
+       WHERE setting_name IN ('main_scraper_frequency', 'missing_ai_frequency', 'enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations', 'sunday_edition_frequency', 'main_scraper_enabled', 'missing_ai_enabled', 'sunday_edition_enabled')`
     );
 
     const settings = settingsResult.rows.reduce((acc, row) => {
@@ -1559,6 +1628,9 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
       enable_scheduled_missing_image: settings.enable_scheduled_missing_image !== undefined ? settings.enable_scheduled_missing_image === 'true' : true, // Default to true, convert string to boolean
       enable_scheduled_missing_translations: settings.enable_scheduled_missing_translations !== undefined ? settings.enable_scheduled_missing_translations === 'true' : true, // Default to true, convert string to boolean
       sunday_edition_frequency: settings.sunday_edition_frequency || '0 0 * * 0', // Default to every Sunday at midnight
+      main_scraper_enabled: settings.main_scraper_enabled !== undefined ? settings.main_scraper_enabled === 'true' : true,
+      missing_ai_enabled: settings.missing_ai_enabled !== undefined ? settings.missing_ai_enabled === 'true' : true,
+      sunday_edition_enabled: settings.sunday_edition_enabled !== undefined ? settings.sunday_edition_enabled === 'true' : true,
     };
 
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched scheduler settings: ${JSON.stringify(responseSettings)}`);
@@ -1576,6 +1648,9 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
          enable_scheduled_missing_image: true,
          enable_scheduled_missing_translations: true,
          sunday_edition_frequency: '0 0 * * 0',
+         main_scraper_enabled: true,
+         missing_ai_enabled: true,
+         sunday_edition_enabled: true,
        });
     } else {
       res.status(500).json({ error: 'Internal Server Error' });
@@ -1586,7 +1661,7 @@ app.get('/api/settings/scheduler', authenticateToken, async (req, res) => {
 // API endpoint to save scheduler settings
 app.post('/api/settings/scheduler', authenticateToken, requireRole('admin'), async (req, res) => {
   const endpoint = '/api/settings/scheduler';
-  const { main_scraper_frequency, missing_ai_frequency, enable_scheduled_missing_summary, enable_scheduled_missing_tags, enable_scheduled_missing_image, enable_scheduled_missing_translations, sunday_edition_frequency } = req.body;
+  const { main_scraper_frequency, missing_ai_frequency, enable_scheduled_missing_summary, enable_scheduled_missing_tags, enable_scheduled_missing_image, enable_scheduled_missing_translations, sunday_edition_frequency, main_scraper_enabled, missing_ai_enabled, sunday_edition_enabled } = req.body;
 
   if (main_scraper_frequency === undefined || missing_ai_frequency === undefined || enable_scheduled_missing_summary === undefined || enable_scheduled_missing_tags === undefined || enable_scheduled_missing_image === undefined || enable_scheduled_missing_translations === undefined || sunday_edition_frequency === undefined) {
      console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Missing required scheduler settings in request body`);
@@ -1613,6 +1688,9 @@ app.post('/api/settings/scheduler', authenticateToken, requireRole('admin'), asy
     await upsert('enable_scheduled_missing_image', String(enable_scheduled_missing_image));
     await upsert('enable_scheduled_missing_translations', String(enable_scheduled_missing_translations));
     await upsert('sunday_edition_frequency', sunday_edition_frequency);
+    if (main_scraper_enabled !== undefined) await upsert('main_scraper_enabled', String(main_scraper_enabled));
+    if (missing_ai_enabled !== undefined) await upsert('missing_ai_enabled', String(missing_ai_enabled));
+    if (sunday_edition_enabled !== undefined) await upsert('sunday_edition_enabled', String(sunday_edition_enabled));
 
     await client.query('COMMIT');
 
