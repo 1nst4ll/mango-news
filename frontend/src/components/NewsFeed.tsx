@@ -466,7 +466,7 @@ function NewsFeed({
                             window.open(whatsappUrl, '_blank');
                           }}
                         >
-                          <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+                          <MessageCircleMore className="h-4 w-4 mr-1 shrink-0" /> {t.share_on_whatsapp}
                         </Button>
                         <Button
                           variant="outline"
@@ -479,7 +479,7 @@ function NewsFeed({
                             window.open(facebookUrl, '_blank');
                           }}
                         >
-                          <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
+                          <Facebook className="h-4 w-4 mr-1 shrink-0" /> {t.share_on_facebook}
                         </Button>
                       </div>
                     </Card>
@@ -567,7 +567,7 @@ function NewsFeed({
                               window.open(whatsappUrl, '_blank');
                             }}
                           >
-                            <MessageCircleMore className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">{t.share_on_whatsapp}</span>
+                            <MessageCircleMore className="h-4 w-4 mr-1 shrink-0" /> {t.share_on_whatsapp}
                           </Button>
                           <Button
                             variant="outline"
@@ -580,7 +580,7 @@ function NewsFeed({
                               window.open(facebookUrl, '_blank');
                             }}
                           >
-                            <Facebook className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">{t.share_on_facebook}</span>
+                            <Facebook className="h-4 w-4 mr-1 shrink-0" /> {t.share_on_facebook}
                           </Button>
                         </div>
                       </Card>
