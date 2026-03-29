@@ -58,7 +58,17 @@ const { t, currentLocale } = useTranslations();
 
 ### Language Switcher
 
-`LanguageSwitcher.tsx` shows a flag for the current locale. Selecting a language navigates to the locale-prefixed equivalent of the current page and saves the preference to `localStorage`.
+`LanguageSwitcher.tsx` shows a flag for the current locale. Selecting a language navigates to the locale-prefixed equivalent of the current page and saves the preference to `localStorage` under the key `preferredLocale`.
+
+### Language Persistence
+
+The chosen language is persisted across visits:
+
+1. When the user selects a language, `preferredLocale` is saved to `localStorage`
+2. The root page (`/`) reads this value on load and redirects to `/{locale}/` accordingly
+3. If no preference is stored (first visit) or JavaScript is disabled, the default redirect is `/en/`
+
+This means returning visitors automatically land in their last-chosen language without needing to switch again.
 
 ### Display Logic
 
