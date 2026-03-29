@@ -96,53 +96,15 @@ function getFullResSrc(src: string): string {
   return m ? m[1] : src;
 }
 
-/** Lightbox + thumbnail gallery component */
+/** Thumbnail grid for consecutive images (gallery). Lightbox is handled globally. */
 function ImageGallery({ images }: { images: GalleryImage[] }) {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  const openLightbox = (index: number) => {
-    setLightboxIndex(index);
-    dialogRef.current?.showModal();
-  };
-
-  const closeLightbox = () => {
-    setLightboxIndex(null);
-    dialogRef.current?.close();
-  };
-
-  const goNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLightboxIndex(i => (i !== null ? (i + 1) % images.length : 0));
-  };
-
-  const goPrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLightboxIndex(i => (i !== null ? (i - 1 + images.length) % images.length : 0));
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') setLightboxIndex(i => (i !== null ? (i + 1) % images.length : 0));
-      if (e.key === 'ArrowLeft') setLightboxIndex(i => (i !== null ? (i - 1 + images.length) % images.length : 0));
-    };
-    dialog.addEventListener('keydown', handleKeyDown);
-    return () => dialog.removeEventListener('keydown', handleKeyDown);
-  }, [images.length]);
-
   return (
     <div className="not-prose my-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {images.map((img, i) => (
-          <button
+          <div
             key={i}
-            onClick={() => openLightbox(i)}
-            className="group relative w-full overflow-hidden rounded-md bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label={img.alt || `Image ${i + 1}`}
+            className="group relative w-full overflow-hidden rounded-md bg-muted"
             style={{ aspectRatio: '1 / 1' }}
           >
             <img
@@ -150,82 +112,14 @@ function ImageGallery({ images }: { images: GalleryImage[] }) {
               alt={img.alt}
               width={323}
               height={323}
-              data-gallery-thumb
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
               <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-          </button>
+          </div>
         ))}
       </div>
-
-      {/* Full-screen lightbox */}
-      <dialog
-        ref={dialogRef}
-        onClick={closeLightbox}
-        style={{
-          position: 'fixed', inset: 0, width: '100vw', height: '100vh',
-          maxWidth: '100vw', maxHeight: '100vh', margin: 0, padding: 0,
-          border: 'none', background: 'rgba(0,0,0,0.88)', overflow: 'hidden',
-        }}
-      >
-        {lightboxIndex !== null && (
-          <>
-            {/* Close */}
-            <button
-              onClick={closeLightbox}
-              style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
-              aria-label="Close"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {/* Counter */}
-            {images.length > 1 && (
-              <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}
-                className="text-white/70 text-sm tabular-nums">
-                {lightboxIndex + 1} / {images.length}
-              </div>
-            )}
-
-            {/* Prev arrow */}
-            {images.length > 1 && (
-              <button
-                onClick={goPrev}
-                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
-                className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
-                aria-label="Previous"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-            )}
-
-            {/* Next arrow */}
-            {images.length > 1 && (
-              <button
-                onClick={goNext}
-                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
-                className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
-                aria-label="Next"
-              >
-                <ChevronRight className="h-6 w-6" />
-              </button>
-            )}
-
-            {/* Image — centered, clicking image doesn't close */}
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <img
-                src={getFullResSrc(images[lightboxIndex].src)}
-                alt={images[lightboxIndex].alt}
-                onClick={e => e.stopPropagation()}
-                style={{ maxWidth: '88vw', maxHeight: '100vh', objectFit: 'contain', pointerEvents: 'auto', cursor: 'default' }}
-              />
-            </div>
-          </>
-        )}
-      </dialog>
     </div>
   );
 }
@@ -241,6 +135,12 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [loadingRelated, setLoadingRelated] = useState<boolean>(false);
   const [relatedError, setRelatedError] = useState<string | null>(null);
+
+  // Global lightbox for all article images
+  const contentRef = useRef<HTMLDivElement>(null);
+  const lightboxRef = useRef<HTMLDialogElement>(null);
+  const [lightboxImages, setLightboxImages] = useState<GalleryImage[]>([]);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   useEffect(() => {
     // Load article list from localStorage
@@ -392,6 +292,45 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
     );
   }
 
+  // Wire up lightbox click handlers on all <img> in article content
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+    // Small delay to ensure dangerouslySetInnerHTML has rendered
+    const timer = setTimeout(() => {
+      const imgs = container.querySelectorAll('img');
+      const allImages: GalleryImage[] = [];
+      imgs.forEach(img => {
+        allImages.push({ src: img.getAttribute('src') || '', alt: img.getAttribute('alt') || '' });
+      });
+      setLightboxImages(allImages);
+
+      imgs.forEach((img, idx) => {
+        img.style.cursor = 'pointer';
+        img.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setLightboxIdx(idx);
+          lightboxRef.current?.showModal();
+        };
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [article, currentLocale]);
+
+  // Lightbox keyboard navigation
+  useEffect(() => {
+    const dialog = lightboxRef.current;
+    if (!dialog) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setLightboxIdx(null); dialog.close(); }
+      if (e.key === 'ArrowRight') setLightboxIdx(i => i !== null ? (i + 1) % lightboxImages.length : 0);
+      if (e.key === 'ArrowLeft') setLightboxIdx(i => i !== null ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0);
+    };
+    dialog.addEventListener('keydown', handleKeyDown);
+    return () => dialog.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxImages.length]);
+
   const displayTitle = getTranslatedText(article, 'title', currentLocale);
   // Helper to get translated raw content with fallback
   const getTranslatedRawContent = (article: Article, locale: string) => {
@@ -492,13 +431,75 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             ))}
           </div>
         </div>
-        <div className="article-content">
+        <div className="article-content" ref={contentRef}>
           {splitContentSegments(displayContent).map((segment, i) =>
             Array.isArray(segment)
               ? <ImageGallery key={i} images={segment} />
               : <div key={i} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(segment as string) }} />
           )}
         </div>
+
+        {/* Global lightbox for all article images */}
+        <dialog
+          ref={lightboxRef}
+          onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); }}
+          style={{
+            position: 'fixed', inset: 0, width: '100vw', height: '100vh',
+            maxWidth: '100vw', maxHeight: '100vh', margin: 0, padding: 0,
+            border: 'none', background: 'rgba(0,0,0,0.88)', overflow: 'hidden',
+          }}
+        >
+          {lightboxIdx !== null && lightboxImages[lightboxIdx] && (
+            <>
+              <button
+                onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); }}
+                style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {lightboxImages.length > 1 && (
+                <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}
+                  className="text-white/70 text-sm tabular-nums">
+                  {lightboxIdx + 1} / {lightboxImages.length}
+                </div>
+              )}
+
+              {lightboxImages.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => i !== null ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0); }}
+                  style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
+                  className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+              )}
+
+              {lightboxImages.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => i !== null ? (i + 1) % lightboxImages.length : 0); }}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
+                  className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+                  aria-label="Next"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              )}
+
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <img
+                  src={getFullResSrc(lightboxImages[lightboxIdx].src)}
+                  alt={lightboxImages[lightboxIdx].alt}
+                  onClick={e => e.stopPropagation()}
+                  style={{ maxWidth: '88vw', maxHeight: '100vh', objectFit: 'contain', pointerEvents: 'auto', cursor: 'default' }}
+                />
+              </div>
+            </>
+          )}
+        </dialog>
         <div className="mt-8 pt-4 border-t border-gray-300 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             size="sm"
