@@ -184,8 +184,10 @@ Uses prefix matching — any URL starting with a blacklisted entry is skipped.
 |------|---------|
 | `src/index.js` | Express server, 50+ API routes, graceful shutdown |
 | `src/scraper.js` | Article scraping pipeline, AI processing, cron jobs |
-| `src/opensourceScraper.js` | Puppeteer-based web scraping |
-| `src/browserPool.js` | Shared Puppeteer browser instance |
+| `src/opensourceScraper.js` | Puppeteer-based web scraping with fallback extraction and heuristic discovery |
+| `src/onboardSource.js` | Automated source onboarding — CMS detection, selector proposal, validation |
+| `src/browserPool.js` | Shared Puppeteer browser instance with configurable resource blocking |
+| `src/audit.js` | Database audit script — selector health, content quality, cross-source analysis |
 | `src/db.js` | PostgreSQL connection pool (max 10, 30s idle timeout) |
 | `src/services/aiService.js` | Centralized Groq AI — caching, retry, rate limiting |
 | `src/sundayEditionGenerator.js` | Weekly AI summary + audio narration |

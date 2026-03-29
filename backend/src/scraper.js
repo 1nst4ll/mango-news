@@ -629,7 +629,12 @@ const processScrapedData = async (data) => { // Accept a single data object
         publication_date = now.toISOString(); // Fallback to current date if no date is found
       }
       // Attempt to extract author from metadata or use a default
-      const author = (metadata?.author || 'Unknown Author').replace(/•/g, ''); // Get author from metadata and sanitize
+      // Sanitize author: strip bullet chars, "By " prefix, and excessive whitespace
+      const author = (metadata?.author || 'Unknown Author')
+        .replace(/•/g, '')
+        .replace(/^by\s+/i, '')
+        .replace(/\s+/g, ' ')
+        .trim() || 'Unknown Author';
       // Attempt to extract topics/keywords from metadata
       const topics = metadata?.keywords ? metadata.keywords.split(',').map(topic => topic.trim()) : []; // Get topics from metadata
 

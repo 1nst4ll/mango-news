@@ -12,6 +12,7 @@ const { discoverArticleUrls, scrapeArticle } = require('./opensourceScraper'); /
 // firecrawl-js is used in scraper.js, not directly here
 const { runScraper, runScraperForSource, processMissingAiForSource, reprocessTranslatedTopicsForSource, scrapeArticlePage } = require('./scraper'); // Import scraper functions including processMissingAiForSource and the new function
 const { createSundayEdition } = require('./sundayEditionGenerator'); // Import createSundayEdition function
+const { handleOnboardRequest } = require('./onboardSource'); // Import new source onboarding
 const aiService = require('./services/aiService'); // Import centralized AI service for monitoring
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
@@ -1120,6 +1121,19 @@ app.get('/api/discover-sources', authenticateToken, requireRole('admin'), async 
   } catch (error) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error during source discovery:`, error);
     res.status(500).json({ error: 'Failed to discover sources.' });
+  }
+});
+
+// Automated new source onboarding pipeline
+// Accepts a URL, detects article structure, proposes selectors, and optionally saves to DB
+app.post('/api/sources/onboard', authenticateToken, requireRole('admin'), async (req, res) => {
+  const endpoint = '/api/sources/onboard';
+  try {
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Starting source onboarding for: ${req.body.url}`);
+    await handleOnboardRequest(req, res, pool);
+  } catch (error) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error during onboarding:`, error);
+    res.status(500).json({ error: 'Failed to onboard source.' });
   }
 });
 

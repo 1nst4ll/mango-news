@@ -51,19 +51,29 @@ psql -U mangoadmin -d mangonews -f db/migrations/add_sunday_editions_table.sql
 ### No articles scraped
 
 1. **Verify source is active** — check `is_active` flag in Source Management
-2. **Check `article_link_template`** — may be too restrictive or not matching current URLs
+2. **Check `article_link_template`** — may be too restrictive or not matching current URLs. If no template is set, the scraper uses heuristic scoring which may not find articles on all sites
 3. **Test CSS selectors** in browser console on a live article page: `document.querySelector('.entry-content')`
 4. **Check blacklist** — URL may be in `backend/config/blacklist.json`
-5. **Review backend logs** — the scraper logs what it finds at each step
+5. **Review backend logs** — look for `[discovery]` log lines showing what links were found and their scores
 6. **Check network** — the target site may be rate-limiting or blocking headless browsers
+7. **Try the onboarding pipeline** — `node src/onboardSource.js <url>` will show what the pipeline detects and where it fails
 
 See [CSS Selectors](css-selectors.md#debugging) for a selector debugging workflow.
 
+### Content extracted but empty or too short
+
+The scraper has fallback extraction — if the configured `os_content_selector` returns nothing, it tries common selectors (`.entry-content`, `.post-content`, `[itemprop="articleBody"]`, `article`, etc.). If content is still empty:
+
+1. The site may use JS-rendered content — the scraper uses `networkidle2` but SPAs may need Firecrawl
+2. The content container may use a non-standard class — inspect the page and set `os_content_selector` explicitly
+3. Check if `exclude_selectors` is too broad and removing the content
+
 ### Wrong articles discovered
 
-- Make `article_link_template` more specific (tighter regex)
+- Make `article_link_template` more specific — use placeholder syntax like `https://example.com/{YYYY}/{MM}/{article_slug}/`
 - Add unwanted URL patterns to `backend/config/blacklist.json`
 - Use `exclude_patterns` to strip query parameters that create URL variants
+- The scraper auto-skips 40+ common non-article paths (`/contact`, `/about`, `/login`, etc.) — check `NON_ARTICLE_PATTERNS` in `opensourceScraper.js` if you need to add more
 
 ### Duplicate articles
 
@@ -193,7 +203,8 @@ location.reload();
 ### Backend restarts / OOM crashes
 
 The backend includes several memory optimizations already:
-- Shared browser pool (single Puppeteer instance)
+- Shared browser pool (single Puppeteer instance) with configurable resource blocking
+- Images, fonts, stylesheets, and media blocked by default during scraping to reduce memory
 - Shared DB connection pool
 - Cron job locking prevents overlapping scheduled tasks
 - Graceful shutdown handlers on `SIGTERM`/`SIGINT`

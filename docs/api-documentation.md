@@ -326,6 +326,51 @@ List distinct topics. Supports the same filters as `GET /api/articles` to return
 
 ---
 
+## Source Onboarding
+
+### `POST /api/sources/onboard` 🔒
+
+Automated source onboarding — analyzes a news page URL, detects CMS type, proposes selectors, validates extraction, and optionally saves the source.
+
+**Body:**
+```json
+{
+  "url": "https://example.com/news/",
+  "name": "Example News",
+  "saveToDB": false
+}
+```
+
+**Response `200`:**
+```json
+{
+  "sourceUrl": "https://example.com/news/",
+  "steps": {
+    "fetchSource": { "success": true, "siteName": "Example News", "articleLinksFound": 15 },
+    "fetchArticle": { "success": true, "url": "https://example.com/news/article-1" },
+    "detectSelectors": { "success": true, "selectors": { "os_title_selector": "h1.entry-title", "..." : "..." } },
+    "validate": { "success": true, "fieldResults": { "title": "OK", "content": "OK (450 words)" } },
+    "crossValidate": { "success": true }
+  },
+  "proposedConfig": {
+    "name": "Example News",
+    "url": "https://example.com/news/",
+    "scraping_method": "opensource",
+    "os_title_selector": "h1.entry-title",
+    "os_content_selector": ".entry-content",
+    "article_link_template": "https://example.com/{YYYY}/{MM}/{article_slug}/",
+    "_cms_detected": "wordpress"
+  },
+  "validation": { "valid": true, "issues": [] },
+  "saved": false,
+  "errors": []
+}
+```
+
+Set `saveToDB: true` to save the source configuration to the database. Dry run (default) returns the proposed config without saving.
+
+---
+
 ## Scraping
 
 ### `POST /api/scrape/run/:id` 🔒

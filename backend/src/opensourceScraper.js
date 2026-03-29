@@ -14,192 +14,231 @@ const { loadUrlBlacklist, getBlacklist } = require('./configLoader'); // Import 
  * @returns {Promise<object|null>} - A promise that resolves with the scraped article data or null if scraping fails after retries or if the article is older than scrapeAfterDate.
  */
 async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3, delay = 1000) {
-  console.log(`[opensourceScraper] Starting article scraping for: ${url} (Attempt ${4 - retries})`);
-  await loadUrlBlacklist(); // Ensure blacklist is loaded before checking
+  console.log(`[scrape] ${url} (attempt ${4 - retries})`);
+  await loadUrlBlacklist();
 
-  // Check if the URL is in the blacklist by checking if it starts with any blacklisted entry
   const blacklist = getBlacklist();
-  const isBlacklisted = blacklist.some(blacklistedUrl => url.startsWith(blacklistedUrl));
-  if (isBlacklisted) {
-    console.log(`[opensourceScraper] URL ${url} is in the opensource blacklist. Skipping scraping.`);
-    return null; // Skip scraping if blacklisted
+  if (blacklist.some(b => url.startsWith(b))) {
+    console.log(`[scrape] Blacklisted, skipping: ${url}`);
+    return null;
   }
 
   let page = null;
   try {
-    // Use shared browser pool instead of launching new browser each time
-    // This prevents memory leaks from 100-300MB per browser instance
     page = await getPage();
 
-    console.log(`[opensourceScraper] Attempting to navigate to ${url}`);
     try {
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      console.log(`[opensourceScraper] Successfully navigated to ${url}`);
+      // Use networkidle2 for better JS-rendered content support
+      // Falls back to domcontentloaded if networkidle2 times out
+      try {
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 25000 });
+      } catch (niError) {
+        if (niError.name === 'TimeoutError') {
+          console.log(`[scrape] networkidle2 timed out for ${url}, falling back to domcontentloaded`);
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        } else {
+          throw niError;
+        }
+      }
       // Scroll to trigger lazy-load JS (e.g. Wix gallery images) then wait briefly
-      // for image src attributes to be populated before extracting HTML.
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (navError) {
-      console.error(`[opensourceScraper] Navigation failed for ${url}:`, navError.message);
-      await closePage(page); // Clean up page before retry
+      console.error(`[scrape] Navigation failed for ${url}:`, navError.message);
+      await closePage(page);
       if (retries > 0) {
-        console.log(`[opensourceScraper] Retrying navigation for ${url} in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
+        return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2);
       }
-      return null; // Return null if navigation fails after retries
+      return null;
     }
 
     try {
-        // Extract data using the provided selectors
+        // Extract data using the provided selectors with fallback extraction
         const articleData = await page.evaluate((selectors) => {
+          // --- Helper functions ---
           const getText = (selector) => {
+            if (!selector) return null;
             try {
-              const element = document.querySelector(selector);
-              console.log(`Attempting to get text for selector: ${selector}`);
-              const text = element ? element.innerText.trim() : null;
-              console.log(`Text for selector ${selector}: ${text ? text.substring(0, 100) + '...' : 'null'}`);
-              return text;
-            } catch (e) {
-              console.error(`Error getting text for selector ${selector}:`, e);
-              return null;
-            }
+              const el = document.querySelector(selector);
+              return el ? el.innerText.trim() : null;
+            } catch { return null; }
           };
 
           const getHtml = (selector) => {
+            if (!selector) return null;
             try {
-              const element = document.querySelector(selector);
-              console.log(`Attempting to get HTML for selector: ${selector}`);
-              const html = element ? element.innerHTML : null;
-              console.log(`HTML for selector ${selector}: ${html ? html.substring(0, 100) + '...' : 'null'}`);
-              return html;
-            } catch (e) {
-              console.error(`Error getting HTML for selector ${selector}:`, e);
-              return null;
-            }
+              const el = document.querySelector(selector);
+              return el ? el.innerHTML : null;
+            } catch { return null; }
           };
 
           const getAttribute = (selector, attribute) => {
+            if (!selector) return null;
             try {
-              const element = document.querySelector(selector);
-              console.log(`Attempting to get attribute "${attribute}" for selector: ${selector}`);
-              const attr = element ? element.getAttribute(attribute) : null;
-              console.log(`Attribute "${attribute}" for selector ${selector}: ${attr ? attr.substring(0, 100) + '...' : 'null'}`);
-              return attr;
-            } catch (e) {
-              console.error(`Error getting attribute ${attribute} for selector ${selector}:`, e);
-              return null;
-            }
+              const el = document.querySelector(selector);
+              return el ? el.getAttribute(attribute) : null;
+            } catch { return null; }
           };
 
           const getMultipleText = (selector) => {
+            if (!selector) return [];
             try {
-              const elements = document.querySelectorAll(selector);
-              console.log(`Attempting to get multiple text for selector: ${selector}`);
-              const texts = Array.from(elements).map(el => el.innerText.trim()).filter(text => text);
-              console.log(`Multiple text for selector ${selector}: Found ${texts.length} elements`);
-              return texts;
-            } catch (e) {
-              console.error(`Error getting multiple text for selector ${selector}:`, e);
-              return [];
-            }
+              return Array.from(document.querySelectorAll(selector)).map(el => el.innerText.trim()).filter(Boolean);
+            } catch { return []; }
           };
 
+          // --- Content extraction with fallback ---
           let content = '';
 
-          // Handle include selectors first
           if (selectors.include) {
-            const includeSelectors = selectors.include.split(',').map(s => s.trim()).filter(s => s);
-            console.log(`Processing include selectors: ${includeSelectors.join(', ')}`);
-            includeSelectors.forEach(includeSelector => {
-              try {
-                document.querySelectorAll(includeSelector).forEach(el => {
-                  content += el.innerHTML; // Concatenate HTML from included elements
-                });
-              } catch (e) {
-                 console.error(`Error processing include selector ${includeSelector}:`, e);
-              }
+            const includeSelectors = selectors.include.split(',').map(s => s.trim()).filter(Boolean);
+            includeSelectors.forEach(sel => {
+              try { document.querySelectorAll(sel).forEach(el => { content += el.innerHTML; }); } catch {}
             });
-             console.log(`Content after include selectors: ${content ? content.substring(0, 200) + '...' : 'empty'}`);
           } else if (selectors.content) {
-             // If no include selectors, use the main content selector
-             console.log(`Processing main content selector: ${selectors.content}`);
-             content = getHtml(selectors.content);
-             console.log(`Content from main selector: ${content ? content.substring(0, 200) + '...' : 'null'}`);
+            content = getHtml(selectors.content);
           }
 
+          // Fallback: if configured selector returned nothing, try common content containers
+          if (!content || content.replace(/<[^>]*>/g, '').trim().length < 50) {
+            const fallbackSelectors = [
+              'article .entry-content', '.entry-content', '.post-content', '.article-content',
+              'article .content', '[class*="article-body"]', '[class*="post-body"]',
+              'div.page-content', 'div.story-body', '.story-content',
+              '[itemprop="articleBody"]', '[data-component="text-block"]',
+              'main article', 'article',
+            ];
+            for (const fb of fallbackSelectors) {
+              try {
+                const el = document.querySelector(fb);
+                if (el) {
+                  const fbContent = el.innerHTML;
+                  const fbText = el.innerText.trim();
+                  if (fbText.length > 100) {
+                    console.log(`[scrape] Fallback content found via: ${fb} (${fbText.length} chars)`);
+                    content = fbContent;
+                    break;
+                  }
+                }
+              } catch {}
+            }
+          }
 
           // Handle exclude selectors
           if (content && selectors.exclude) {
-              const excludeSelectors = selectors.exclude ? selectors.exclude.split(',').map(s => s.trim()) : [];
-              console.log(`Processing exclude selectors: ${excludeSelectors.join(', ')}`);
-              // Create a temporary DOM element to perform exclusions without affecting the actual page structure
+              const excludeSelectors = selectors.exclude.split(',').map(s => s.trim()).filter(Boolean);
               const tempDiv = document.createElement('div');
-              tempDiv.innerHTML = content; // Use innerHTML to parse the content as HTML
-
-              excludeSelectors.forEach(excludeSelector => {
-                try {
-                  tempDiv.querySelectorAll(excludeSelector).forEach(el => {
-                      if (el.parentElement) {
-                          el.parentElement.removeChild(el);
-                      }
-                  });
-                } catch (e) {
-                   console.error(`Error processing exclude selector ${excludeSelector}:`, e);
-                }
+              tempDiv.innerHTML = content;
+              excludeSelectors.forEach(sel => {
+                try { tempDiv.querySelectorAll(sel).forEach(el => el.remove()); } catch {}
               });
-              // Get the cleaned content from the temporary element
-              content = tempDiv.innerHTML; // Use innerHTML to get the text content
-              console.log(`Content after exclude selectors: ${content ? content.substring(0, 200) + '...' : 'empty'}`);
+              content = tempDiv.innerHTML;
           }
 
           // Absolutize relative links within the content
           if (content) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = content;
-            const links = tempDiv.querySelectorAll('a');
-            links.forEach(link => {
+            tempDiv.querySelectorAll('a[href]').forEach(link => {
               const href = link.getAttribute('href');
               if (href && !href.startsWith('http') && !href.startsWith('#')) {
-                try {
-                  const absoluteUrl = new URL(href, window.location.href).href;
-                  link.setAttribute('href', absoluteUrl);
-                  console.log(`Transformed relative link "${href}" to absolute: "${absoluteUrl}"`);
-                } catch (e) {
-                  console.error(`Could not transform relative link "${href}":`, e);
-                }
+                try { link.setAttribute('href', new URL(href, window.location.href).href); } catch {}
               }
             });
             content = tempDiv.innerHTML;
           }
 
-          const scrapedTitle = getText(selectors.title);
-          // Check if the date selector targets a meta tag
-          const scrapedDate = selectors.date?.startsWith('meta[')
-            ? getAttribute(selectors.date, 'content')
-            : getText(selectors.date);
-          const scrapedAuthor = getText(selectors.author)?.replace(/•/g, '');
+          // --- Title extraction with fallback ---
+          let scrapedTitle = getText(selectors.title);
+          if (!scrapedTitle) {
+            // Try common title selectors
+            scrapedTitle = getText('h1.entry-title') || getText('h1.post-title') ||
+              getText('h1[itemprop="headline"]') || getText('article h1') || getText('main h1') ||
+              getAttribute('meta[property="og:title"]', 'content') ||
+              getText('h1');
+            if (scrapedTitle) console.log(`[scrape] Fallback title: "${scrapedTitle.substring(0, 60)}"`);
+          }
+
+          // --- Date extraction with fallback ---
+          let scrapedDate = null;
+          if (selectors.date) {
+            scrapedDate = selectors.date.startsWith('meta[')
+              ? getAttribute(selectors.date, 'content')
+              : getText(selectors.date);
+          }
+          if (!scrapedDate) {
+            // Try common date sources (meta tags first — most reliable)
+            scrapedDate = getAttribute('meta[property="article:published_time"]', 'content') ||
+              getAttribute('meta[name="pubdate"]', 'content') ||
+              getAttribute('meta[name="date"]', 'content') ||
+              getAttribute('meta[name="DC.date.issued"]', 'content') ||
+              getAttribute('time[datetime]', 'datetime') ||
+              getAttribute('time[itemprop="datePublished"]', 'datetime') ||
+              getText('time[datetime]') || getText('time');
+            if (scrapedDate) console.log(`[scrape] Fallback date: ${scrapedDate}`);
+          }
+
+          // --- Author extraction with fallback ---
+          let scrapedAuthor = getText(selectors.author);
+          if (!scrapedAuthor) {
+            scrapedAuthor = getAttribute('meta[name="author"]', 'content') ||
+              getAttribute('meta[property="article:author"]', 'content') ||
+              getText('[rel="author"]') || getText('[itemprop="author"]') ||
+              getText('.author-name') || getText('.byline');
+            if (scrapedAuthor) console.log(`[scrape] Fallback author: ${scrapedAuthor}`);
+          }
+          // Clean author
+          if (scrapedAuthor) {
+            scrapedAuthor = scrapedAuthor.replace(/•/g, '').replace(/^by\s+/i, '').replace(/\s+/g, ' ').trim();
+          }
+
           if (content) {
             content = content.replace(/Share this:.*$/, '').trim();
           }
-          let scrapedThumbnailUrl = null;
 
-          // Handle thumbnail extraction based on selector format
+          // --- Thumbnail extraction with fallback ---
+          let scrapedThumbnailUrl = null;
           if (selectors.thumbnail) {
             const parts = selectors.thumbnail.split('::');
             const selector = parts[0];
             const attribute = parts[1];
-            const jsonKey = parts[2] || null; // Optional JSON key
-
+            const jsonKey = parts[2] || null;
             if (attribute) {
-              scrapedThumbnailUrl = getAttribute(selector, attribute, jsonKey);
-              // For Wix images, construct the full URL
+              scrapedThumbnailUrl = getAttribute(selector, attribute);
               if (jsonKey === 'uri' && scrapedThumbnailUrl) {
-                 scrapedThumbnailUrl = `https://static.wixstatic.com/media/${scrapedThumbnailUrl}`;
+                scrapedThumbnailUrl = `https://static.wixstatic.com/media/${scrapedThumbnailUrl}`;
               }
             } else {
-               // Default to getting the src attribute if only a selector is provided
-               scrapedThumbnailUrl = getAttribute(selector, 'src');
+              scrapedThumbnailUrl = getAttribute(selector, 'src');
+            }
+          }
+          if (!scrapedThumbnailUrl) {
+            // Try og:image, then first large image in content
+            const ogImage = getAttribute('meta[property="og:image"]', 'content');
+            if (ogImage && !ogImage.includes('logo') && !ogImage.includes('favicon') && !ogImage.includes('icon')) {
+              scrapedThumbnailUrl = ogImage;
+              console.log(`[scrape] Fallback thumbnail from og:image`);
+            } else if (content) {
+              // Find first image in content that looks like a real photo (not icon/logo)
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = content;
+              const imgs = tempDiv.querySelectorAll('img[src]');
+              for (const img of imgs) {
+                const src = img.getAttribute('src');
+                const width = parseInt(img.getAttribute('width') || '0');
+                const height = parseInt(img.getAttribute('height') || '0');
+                // Skip tiny images (icons, tracking pixels)
+                if (width > 0 && width < 100) continue;
+                if (height > 0 && height < 100) continue;
+                if (src && !src.includes('logo') && !src.includes('icon') && !src.includes('avatar') && !src.includes('emoji')) {
+                  try {
+                    scrapedThumbnailUrl = new URL(src, window.location.href).href;
+                    console.log(`[scrape] Fallback thumbnail from content image`);
+                    break;
+                  } catch {}
+                }
+              }
             }
           }
 
@@ -207,30 +246,16 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
           if (content && scrapedThumbnailUrl) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = content;
-            const images = tempDiv.querySelectorAll('img');
-            images.forEach(img => {
-              // Resolve the image src to an absolute URL to compare with the thumbnail URL
-              const absoluteSrc = new URL(img.getAttribute('src'), window.location.href).href;
-              if (absoluteSrc === scrapedThumbnailUrl) {
-                img.remove();
-                console.log(`Removed thumbnail image from content: ${absoluteSrc}`);
-              }
+            tempDiv.querySelectorAll('img').forEach(img => {
+              try {
+                const absoluteSrc = new URL(img.getAttribute('src'), window.location.href).href;
+                if (absoluteSrc === scrapedThumbnailUrl) img.remove();
+              } catch {}
             });
             content = tempDiv.innerHTML;
           }
 
-
           const scrapedTopics = getMultipleText(selectors.topics);
-
-          // Log missing optional fields
-          if (!scrapedDate) console.warn(`Missing publication date for ${window.location.href}`);
-          if (!scrapedAuthor) console.warn(`Missing author for ${window.location.href}`);
-          if (!scrapedThumbnailUrl) console.warn(`Missing thumbnail URL for ${window.location.href}`);
-          if (scrapedTopics.length === 0) console.warn(`Missing topics for ${window.location.href}`);
-
-
-          console.log('Scraped Title:', scrapedTitle); // Log scraped title
-          console.log('Scraped Content (first 200 chars):', content ? content.substring(0, 200) + '...' : 'empty'); // Log scraped content
 
           return {
             title: scrapedTitle,
@@ -239,70 +264,56 @@ async function scrapeArticle(url, selectors, scrapeAfterDate = null, retries = 3
             author: scrapedAuthor,
             thumbnail_url: scrapedThumbnailUrl,
             topics: scrapedTopics,
-            url: window.location.href // Get the final URL after redirects
+            url: window.location.href
           };
         }, selectors);
 
-        // Basic validation of scraped data
+        // Basic validation — allow retry if essential data is missing
         if (!articleData || !articleData.title || !articleData.content) {
-            console.warn(`[opensourceScraper] Scraped data incomplete for ${url}:`, articleData);
-            await closePage(page); // Clean up page before retry
-             if (retries > 0) {
-                console.log(`[opensourceScraper] Retrying scraping for ${url} in ${delay}ms...`);
+            console.warn(`[scrape] Incomplete data for ${url}: title=${!!articleData?.title}, content=${!!articleData?.content}`);
+            await closePage(page);
+            if (retries > 0) {
                 await new Promise(resolve => setTimeout(resolve, delay));
-                return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
+                return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2);
             }
-            return null; // Return null if essential data is missing after retries
+            return null;
         }
 
-        // --- Date Filtering Logic ---
+        // Date filtering
         if (scrapeAfterDate && articleData.publication_date) {
           const articleDate = new Date(articleData.publication_date);
           const filterDate = new Date(scrapeAfterDate);
-
-          // Set time to midnight for comparison to compare only dates
           articleDate.setHours(0, 0, 0, 0);
           filterDate.setHours(0, 0, 0, 0);
-
           if (articleDate < filterDate) {
-            console.log(`[opensourceScraper] Article "${articleData.title}" (${url}) is older than the scrape after date (${scrapeAfterDate}). Skipping.`);
-            await closePage(page); // Clean up page
-            return null; // Return null if the article is older than the filter date
+            console.log(`[scrape] Skipping old article: "${articleData.title}" (${articleData.publication_date})`);
+            await closePage(page);
+            return null;
           }
-           console.log(`[opensourceScraper] Article "${articleData.title}" (${url}) is on or after the scrape after date (${scrapeAfterDate}). Including.`);
-        } else if (scrapeAfterDate && !articleData.publication_date) {
-           console.warn(`[opensourceScraper] Scrape after date is set (${scrapeAfterDate}), but no publication date found for article "${articleData.title}" (${url}). Including as date cannot be verified.`);
         }
-        // --- End Date Filtering Logic ---
 
-
-        console.log(`[opensourceScraper] Successfully scraped article from ${url}`);
-        await closePage(page); // Clean up page after successful scrape
+        console.log(`[scrape] Success: "${articleData.title}" (${url})`);
+        await closePage(page);
         return articleData;
     } catch (evalError) {
-        console.error(`[opensourceScraper] Error during page evaluation for ${url}:`, evalError.message);
-        await closePage(page); // Clean up page before retry
-         if (retries > 0) {
-            console.log(`[opensourceScraper] Retrying scraping for ${url} in ${delay}ms...`);
+        console.error(`[scrape] Evaluation error for ${url}:`, evalError.message);
+        await closePage(page);
+        if (retries > 0) {
             await new Promise(resolve => setTimeout(resolve, delay));
-            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
+            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2);
         }
         return null;
     }
 
-
       } catch (error) {
-        console.error(`[opensourceScraper] Error scraping article from ${url}:`, error.message);
-        await closePage(page); // Clean up page before retry
-         if (retries > 0) {
-            console.log(`[opensourceScraper] Retrying scraping for ${url} in ${delay}ms...`);
+        console.error(`[scrape] Error for ${url}:`, error.message);
+        await closePage(page);
+        if (retries > 0) {
             await new Promise(resolve => setTimeout(resolve, delay));
-            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2); // Exponential backoff
+            return scrapeArticle(url, selectors, scrapeAfterDate, retries - 1, delay * 2);
         }
         return null;
       }
-      // Note: We don't close the browser here anymore since we're using a shared pool
-      // The page is closed in the individual try/catch blocks or on success
     }
 
 // Helper function to build regex from article link template
@@ -314,9 +325,8 @@ function buildTemplateRegex(template) {
   let match;
 
   while ((match = placeholderRegex.exec(template)) !== null) {
-    const fullPlaceholder = match[0]; // e.g., {article_slug} or {id2:(111|129|135)}
-    const placeholderName = match[1]; // e.g., article_slug or id2
-    const customRegex = match[2]; // e.g., undefined or (111|129|135)
+    const placeholderName = match[1];
+    const customRegex = match[2];
 
     // Add the literal part before the placeholder, escaped
     const literalPart = template.substring(lastIndex, match.index);
@@ -333,15 +343,111 @@ function buildTemplateRegex(template) {
 
   regexString += '$'; // Anchor to the end of the string
 
-  console.log(`Constructed regex string from template "${template}": ${regexString}`);
+  console.log(`[discovery] Template regex: ${regexString}`);
 
   return new RegExp(regexString);
 }
 
+// Common non-article path patterns to skip during heuristic discovery
+const NON_ARTICLE_PATTERNS = /^\/(contact|about|privacy|terms|login|register|search|category|tag|tags|archive|feed|sitemap|schedule|podcasts|faq|careers|jobs|vacancy|recruitment|staff|team|leadership|departments|services|gallery|events|donate|subscribe|newsletter|cart|checkout|account|profile|settings|admin|wp-admin|wp-login|wp-content|wp-includes|cdn-cgi|assets|static|media|images|img|css|js|fonts|api)\b/i;
+
+// Common pagination URL patterns
+const PAGINATION_PATTERNS = /[?&](page|p|pg|offset|start)=\d+|\/page\/\d+\/?$/i;
 
 /**
- * Discovers potential article URLs from a given source URL using a provided template.
- * This function prioritizes matching links against the articleLinkTemplate.
+ * Detect pagination links on a page.
+ * Returns URLs of subsequent pages (page 2, 3, etc.).
+ */
+function detectPaginationLinks(links, sourceUrl, sourceHostname) {
+  const paginationUrls = [];
+  const sourcePath = new URL(sourceUrl).pathname;
+
+  for (const link of links) {
+    try {
+      const url = new URL(link);
+      if (url.hostname !== sourceHostname) continue;
+
+      // Match /page/N/ patterns (WordPress, Elementor)
+      const pageMatch = url.pathname.match(/^(.+?)\/page\/(\d+)\/?$/);
+      if (pageMatch) {
+        const basePath = pageMatch[1] || '/';
+        const pageNum = parseInt(pageMatch[2]);
+        // Only follow if this pagination is for our source page
+        if (sourcePath.startsWith(basePath) || basePath.startsWith(sourcePath.replace(/\/$/, ''))) {
+          if (pageNum >= 2 && pageNum <= 20) { // Cap at 20 pages to avoid runaway crawls
+            paginationUrls.push({ url: link, page: pageNum });
+          }
+        }
+        continue;
+      }
+
+      // Match ?page=N, ?p=N, ?pg=N, ?offset=N patterns
+      const params = new URLSearchParams(url.search);
+      for (const [key, value] of params) {
+        if (/^(page|p|pg)$/i.test(key) && /^\d+$/.test(value)) {
+          const pageNum = parseInt(value);
+          if (pageNum >= 2 && pageNum <= 20) {
+            paginationUrls.push({ url: link, page: pageNum });
+          }
+        }
+      }
+    } catch { /* skip invalid */ }
+  }
+
+  // Deduplicate and sort by page number
+  const seen = new Set();
+  return paginationUrls
+    .filter(p => { if (seen.has(p.url)) return false; seen.add(p.url); return true; })
+    .sort((a, b) => a.page - b.page)
+    .map(p => p.url);
+}
+
+/**
+ * Heuristic: score a link as likely being an article vs. navigation.
+ * Higher score = more likely an article. Used when no template is set.
+ */
+function scoreArticleLikelihood(url, anchorText, anchorContext) {
+  let score = 0;
+  const path = new URL(url).pathname;
+
+  // Penalize known non-article patterns
+  if (NON_ARTICLE_PATTERNS.test(path)) return -10;
+
+  // Penalize very short paths (likely top-level nav)
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length === 0) return -10;
+
+  // Reward longer slugs (articles tend to have descriptive slugs)
+  const lastSegment = segments[segments.length - 1];
+  if (lastSegment.length > 20) score += 2;
+  if (lastSegment.includes('-') && lastSegment.split('-').length >= 3) score += 3; // slug-like
+
+  // Reward date patterns in URL (/2026/03/article-slug)
+  if (/\/\d{4}\/\d{2}\//.test(path)) score += 4;
+
+  // Reward paths containing article-like segments
+  if (/\/(news|article|post|blog|press|story|update|report|release|announcement)\b/i.test(path)) score += 3;
+
+  // Reward meaningful anchor text (articles have descriptive titles)
+  if (anchorText && anchorText.length > 15) score += 2;
+  if (anchorText && anchorText.length > 40) score += 1;
+
+  // Reward links inside article containers
+  if (anchorContext && /article|post|entry|story|news|card|feed|item/i.test(anchorContext)) score += 3;
+
+  // Penalize file extensions that aren't articles
+  if (/\.(pdf|xml|json|rss|atom|zip|gz|mp3|mp4|mov|avi)$/i.test(path)) return -10;
+
+  // Penalize pagination-looking URLs
+  if (PAGINATION_PATTERNS.test(url)) return -5;
+
+  return score;
+}
+
+/**
+ * Discovers potential article URLs from a given source URL.
+ * Supports template matching, heuristic discovery, and pagination following.
+ *
  * @param {string} sourceUrl - The URL of the source to discover articles from.
  * @param {string} articleLinkTemplate - The template for article links.
  * @param {string} excludePatterns - Comma-separated query parameter names to exclude.
@@ -349,149 +455,161 @@ function buildTemplateRegex(template) {
  * @returns {Promise<Array<string>>} - A promise that resolves with an array of discovered article URLs.
  */
 async function discoverArticleUrls(sourceUrl, articleLinkTemplate, excludePatterns, limit = 100) {
-  await loadUrlBlacklist(); // Ensure blacklist is loaded before discovery
+  await loadUrlBlacklist();
   let page = null;
   const articleUrls = new Set();
   const excludeParams = excludePatterns ? excludePatterns.split(',').map(p => p.trim()) : [];
   const visitedUrls = new Set();
-  const urlsToVisit = [{ url: sourceUrl, depth: 0 }];
-  const maxDepth = 1; // Limit crawling depth for discovery
+  const urlsToVisit = [{ url: sourceUrl, depth: 0, type: 'source' }];
+  const maxDepth = 2; // Increased: source → pagination/category → articles
 
-  console.log(`[opensourceScraper] Starting article URL discovery for: ${sourceUrl} (Limit: ${limit})`);
+  console.log(`[discovery] Starting for: ${sourceUrl} (limit: ${limit})`);
 
   try {
-    // Use shared browser pool instead of launching new browser
     page = await getPage();
     const sourceHostname = new URL(sourceUrl).hostname;
+    const blacklist = getBlacklist();
 
-    // Convert template to a regex pattern using the helper function
+    // Build template regex if provided
     let templateRegex = null;
     if (articleLinkTemplate) {
       try {
         templateRegex = buildTemplateRegex(articleLinkTemplate);
-        console.log(`Generated template regex from "${articleLinkTemplate}": ${templateRegex}`);
       } catch (e) {
-        console.error(`Error creating regex from template "${articleLinkTemplate}":`, e);
-        templateRegex = null; // Invalidate regex if creation fails
+        console.error(`[discovery] Bad template "${articleLinkTemplate}":`, e.message);
       }
     }
 
-
     while (urlsToVisit.length > 0 && articleUrls.size < limit) {
-      const { url: currentUrl, depth } = urlsToVisit.shift();
+      const { url: currentUrl, depth, type } = urlsToVisit.shift();
 
-      if (visitedUrls.has(currentUrl) || depth > maxDepth) {
-        console.log(`Skipping already visited or max depth reached: ${currentUrl} (Depth ${depth})`);
-        continue;
-      }
-
-      console.log(`Visiting for discovery (Depth ${depth}): ${currentUrl}`);
-      // Mark the current URL as visited *before* processing its links
+      if (visitedUrls.has(currentUrl) || depth > maxDepth) continue;
       visitedUrls.add(currentUrl);
 
-      try {
-        await page.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-        console.log(`Successfully navigated to ${currentUrl} for discovery`);
+      console.log(`[discovery] Visiting (depth ${depth}, ${type}): ${currentUrl}`);
 
-        const links = await page.evaluate(() => {
-          const anchors = Array.from(document.querySelectorAll('a'));
-          return anchors.map(anchor => anchor.href).filter(href => href.startsWith('http'));
+      try {
+        // Use networkidle0 for source/pagination pages to catch JS-rendered content
+        // Use domcontentloaded for deeper pages (faster, less important)
+        const waitStrategy = depth === 0 ? 'networkidle2' : 'domcontentloaded';
+        await page.goto(currentUrl, { waitUntil: waitStrategy, timeout: 20000 });
+
+        // For source pages, scroll to trigger lazy-loaded content (Elementor, infinite scroll)
+        if (depth === 0) {
+          await page.evaluate(async () => {
+            // Scroll down in steps to trigger lazy loading
+            const scrollStep = Math.max(window.innerHeight, 800);
+            const maxScroll = document.body.scrollHeight;
+            for (let y = 0; y < maxScroll; y += scrollStep) {
+              window.scrollTo(0, y);
+              await new Promise(r => setTimeout(r, 300));
+            }
+            window.scrollTo(0, document.body.scrollHeight);
+          });
+          await new Promise(r => setTimeout(r, 1500)); // Wait for lazy content to load
+        }
+
+        // Extract links with context (parent element classes for heuristic scoring)
+        const linkData = await page.evaluate(() => {
+          const anchors = Array.from(document.querySelectorAll('a[href]'));
+          return anchors
+            .map(a => {
+              const href = a.href;
+              if (!href || !href.startsWith('http')) return null;
+              const text = a.textContent?.trim() || '';
+              // Capture parent context for heuristic scoring
+              const parent = a.closest('article, [class*="post"], [class*="news"], [class*="story"], [class*="card"], [class*="entry"], [class*="item"], [class*="feed"], li, .elementor-post');
+              const context = parent?.className || '';
+              return { href, text, context };
+            })
+            .filter(Boolean);
         });
 
-        console.log(`Found ${links.length} links on ${currentUrl}`);
+        console.log(`[discovery] Found ${linkData.length} links on ${currentUrl}`);
 
-        // Process links in the Node.js environment
-        for (const link of links) {
-          try {
-            const url = new URL(link);
-
-            // Exclude social media share links
-            if (url.search.includes('?share=')) {
-              console.log(`Excluding social share link: ${link}`);
-              continue;
+        // Detect pagination on source/pagination pages
+        if (type === 'source' || type === 'pagination') {
+          const allHrefs = linkData.map(l => l.href);
+          const paginationUrls = detectPaginationLinks(allHrefs, sourceUrl, sourceHostname);
+          for (const pagUrl of paginationUrls) {
+            if (!visitedUrls.has(pagUrl)) {
+              urlsToVisit.push({ url: pagUrl, depth: depth + 1, type: 'pagination' });
+              visitedUrls.add(pagUrl); // Prevent duplicate queue entries
+              console.log(`[discovery] Queued pagination page: ${pagUrl}`);
             }
+          }
+        }
+
+        // Process each link
+        for (const { href, text, context } of linkData) {
+          try {
+            const url = new URL(href);
+
+            // Basic exclusions
+            if (url.hostname !== sourceHostname) continue;
+            if (url.search.includes('?share=') || href.includes('?page_id=')) continue;
 
             // Remove excluded query parameters
             if (excludeParams.length > 0) {
               const params = new URLSearchParams(url.search);
+              let changed = false;
               excludeParams.forEach(param => {
-                if (params.has(param)) {
-                  params.delete(param);
-                  console.log(`Removed excluded parameter "${param}" from link: ${link}`);
-                }
+                if (params.has(param)) { params.delete(param); changed = true; }
               });
-              url.search = params.toString();
+              if (changed) url.search = params.toString();
             }
 
-            // Remove hash fragment
             url.hash = '';
-        const cleanedLink = url.toString();
+            const cleanedLink = url.toString();
 
-            // Exclude URLs with ?page_id=
-            if (cleanedLink.includes('?page_id=')) {
-                console.log(`Excluding link with page_id: ${cleanedLink}`);
-                continue;
-            }
+            // Blacklist check
+            if (blacklist.some(b => cleanedLink.startsWith(b))) continue;
 
-            // Check if the link is on the same domain and not in the blacklist by checking if it starts with any blacklisted entry
-            const blacklist = getBlacklist();
-            const isBlacklistedStartsWith = blacklist.some(blacklistedUrl => cleanedLink.startsWith(blacklistedUrl));
-            const isBlacklistedIncludes = blacklist.some(blacklistedUrl => cleanedLink.includes(blacklistedUrl));
-            console.log(`Checking link against blacklist: ${cleanedLink} (Length: ${cleanedLink.length}). Blacklist contains: ${blacklist.map(b => `${b} (Length: ${b.length})`).join(', ')}. Is blacklisted (startsWith): ${isBlacklistedStartsWith}. Is blacklisted (includes): ${isBlacklistedIncludes}`); // Add this log
-            if (url.hostname === sourceHostname && !isBlacklistedStartsWith) {
-              let isPotentialArticle = false;
+            // Skip pagination URLs as articles
+            if (PAGINATION_PATTERNS.test(cleanedLink)) continue;
 
-              // Prioritize matching against the articleLinkTemplate if provided
-              console.log(`Checking link: ${cleanedLink} against regex: ${templateRegex}`);
-              if (templateRegex && templateRegex.test(cleanedLink)) {
-                isPotentialArticle = true;
-                console.log(`Link "${cleanedLink}" matches articleLinkTemplate "${articleLinkTemplate}". Including.`);
-              } else {
-                 console.log(`Link "${cleanedLink}" does not match articleLinkTemplate "${articleLinkTemplate}". Excluding based on template.`);
-              }
+            let isPotentialArticle = false;
 
-              if (isPotentialArticle) {
-                 // Check if we have already found this article URL
-                 if (!articleUrls.has(cleanedLink)) {
-                    articleUrls.add(cleanedLink);
-                    console.log(`Added potential article URL: ${cleanedLink}. Total found: ${articleUrls.size}`);
-                 } else {
-                    console.log(`Link "${cleanedLink}" already discovered.`);
-                 }
-              } else {
-                 // If it's not a potential article but is on the same domain and not visited, add it to urlsToVisit
-                 if (!visitedUrls.has(cleanedLink) && depth + 1 <= maxDepth) {
-                    urlsToVisit.push({ url: cleanedLink, depth: depth + 1 });
-                    console.log(`Link "${cleanedLink}" is not an article but on same domain. Added to urlsToVisit. Queue size: ${urlsToVisit.length}`);
-                    // Mark as visited here to prevent adding it multiple times to the queue
-                    visitedUrls.add(cleanedLink);
-                 } else {
-                    console.log(`Link "${cleanedLink}" is not an article, on same domain, but already visited or max depth reached.`);
-                 }
-              }
+            if (templateRegex) {
+              // Template-based matching (primary)
+              isPotentialArticle = templateRegex.test(cleanedLink);
             } else {
-               console.log(`Link "${cleanedLink}" is on a different domain (${url.hostname}). Excluding.`);
+              // Heuristic-based matching (when no template configured)
+              const score = scoreArticleLikelihood(cleanedLink, text, context);
+              isPotentialArticle = score >= 3;
+              if (isPotentialArticle) {
+                console.log(`[discovery] Heuristic match (score ${score}): ${cleanedLink}`);
+              }
             }
-          } catch (e) {
-            // Ignore invalid URLs
-            console.warn(`Skipping invalid URL: ${link}`, e);
-          }
+
+            if (isPotentialArticle && !articleUrls.has(cleanedLink)) {
+              articleUrls.add(cleanedLink);
+              console.log(`[discovery] Found article: ${cleanedLink} (total: ${articleUrls.size})`);
+            } else if (!isPotentialArticle && !visitedUrls.has(cleanedLink) && depth + 1 <= maxDepth) {
+              // Queue non-article same-domain links for deeper crawling
+              // But only if they look like category/section pages, not random nav
+              const path = url.pathname;
+              if (!NON_ARTICLE_PATTERNS.test(path) && type === 'source') {
+                urlsToVisit.push({ url: cleanedLink, depth: depth + 1, type: 'crawl' });
+                visitedUrls.add(cleanedLink);
+              }
+            }
+          } catch { /* skip invalid URLs */ }
         }
       } catch (e) {
-        console.error(`Error visiting ${currentUrl} for discovery:`, e);
+        console.error(`[discovery] Error visiting ${currentUrl}:`, e.message);
       }
     }
 
-    console.log(`[opensourceScraper] Finished discovery. Discovered ${articleUrls.size} potential article URLs.`);
-    await closePage(page); // Clean up page
+    console.log(`[discovery] Complete. Found ${articleUrls.size} article URLs.`);
+    await closePage(page);
     return Array.from(articleUrls);
 
   } catch (error) {
-    console.error(`[opensourceScraper] Error discovering article URLs from ${sourceUrl}:`, error.message);
-    await closePage(page); // Clean up page on error
+    console.error(`[discovery] Fatal error for ${sourceUrl}:`, error.message);
+    await closePage(page);
     return [];
   }
-  // Note: We don't close the browser here anymore since we're using a shared pool
 }
 
 

@@ -1,0 +1,1057 @@
+{
+  "reports": [
+    {
+      "source_id": 1,
+      "source_name": "TC Weekly News",
+      "source_url": "https://tcweeklynews.com/",
+      "scraping_method": "opensource",
+      "is_active": true,
+      "article_count": 693,
+      "selectors": {
+        "Title": {
+          "value": "h1.pageheading.layout_pageheading",
+          "status": "SET"
+        },
+        "Content": {
+          "value": ".pagebody.layout_pagebody",
+          "status": "SET"
+        },
+        "Date": {
+          "value": "div.pageissuedate.layout_pageissuedate",
+          "status": "SET"
+        },
+        "Author": {
+          "value": "div.pagebyline.layout_pagebyline",
+          "status": "SET"
+        },
+        "Thumbnail": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Topics": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Include": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Exclude": {
+          "value": "div.pagebyline.layout_pagebyline, div.pageissuedate.layout_pageissuedate",
+          "status": "SET"
+        },
+        "Link Template": {
+          "value": "https://tcweeklynews.com/{slug}-p{id1}-{id2}.htm",
+          "status": "SET"
+        }
+      },
+      "selector_issues": [],
+      "articles_audited": [
+        {
+          "db_id": 2996,
+          "title": "Public asked to help find Roxzan Lockhart wanted in fraud investigation",
+          "source_url": "https://tcweeklynews.com/public-asked-to-help-find-roxzan-lockhart-wanted-in-fraud-investigation-p15771-155.htm",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 71
+            },
+            "content": {
+              "status": "OK",
+              "chars": 1040,
+              "words": 169
+            },
+            "author": {
+              "status": "OK",
+              "value": "Weekly News reporter"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-27"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://mangonewsimages.s3.us-east-2.amazonaws.com/sunday-editions/images/dd7a4fea-b8da-4b2f-9bb2-a9bbe4833ee5.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 64
+            },
+            "ai_image": {
+              "status": "OK"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "Roxzan Lockhart, 39, is wanted in connection with a fraud investigation, and the Royal Turks and Caicos Islands Police Force (RTCIPF) is appealing to ..."
+        },
+        {
+          "db_id": 2994,
+          "title": "Starlink one step closer to Turks and Caicos debut -Broadband giant promises connectivity revolution, but regulators maintain a firm grip",
+          "source_url": "https://tcweeklynews.com/starlink-one-step-closer-to-turks-and-caicos-debut-broadband-giant-promise-p15770-155.htm",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 137
+            },
+            "content": {
+              "status": "OK",
+              "chars": 8012,
+              "words": 1265
+            },
+            "author": {
+              "status": "OK",
+              "value": "Olivia Rose"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-27"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://mangonewsimages.s3.us-east-2.amazonaws.com/sunday-editions/images/1e6f1299-abfb-48ce-9f3d-55caf42b6857.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 75
+            },
+            "ai_image": {
+              "status": "OK"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "Billionaire Elon Musk’s satellite company Starlink is one step closer to providing broadband services to consumers in the Turks and Caicos Islands. Th..."
+        },
+        {
+          "db_id": 2993,
+          "title": "TCWN March 13 - April 28, 2026",
+          "source_url": "https://tcweeklynews.com/tcwn-march-april-p15781-153.htm",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 30
+            },
+            "content": {
+              "status": "OK",
+              "chars": 68,
+              "words": 14
+            },
+            "author": {
+              "status": "OK",
+              "value": "Unknown Author"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-27"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://mangonewsimages.s3.us-east-2.amazonaws.com/sunday-editions/images/251765d2-8643-4c24-b644-c37a6ba19371.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 85
+            },
+            "ai_image": {
+              "status": "OK"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [
+            "very short (14 words)"
+          ],
+          "author_issues": [
+            "generic \"Unknown Author\""
+          ],
+          "date_issues": [],
+          "content_preview": "CLICK TO READ: The Turks and Caicos Weekly News, March 21 - 27, 2026"
+        }
+      ],
+      "source_stats": {
+        "total": 693,
+        "has_content": 693,
+        "has_summary": 693,
+        "has_real_author": 631,
+        "unknown_author": 62,
+        "has_thumbnail": 693,
+        "has_ai_image": 693,
+        "has_date": 693,
+        "blocked": 0,
+        "has_translations_es": 693,
+        "has_translations_ht": 693,
+        "avg_content_chars": 3948,
+        "min_content_chars": 281,
+        "max_content_chars": 16776,
+        "date_range": "2025-04-25 → 2026-03-27"
+      },
+      "issues": [],
+      "recommendations": []
+    },
+    {
+      "source_id": 2,
+      "source_name": "SunTCI",
+      "source_url": "https://suntci.com/",
+      "scraping_method": "opensource",
+      "is_active": true,
+      "article_count": 1144,
+      "selectors": {
+        "Title": {
+          "value": "h1.cus-default-heading",
+          "status": "SET"
+        },
+        "Content": {
+          "value": "div.cus-default-body",
+          "status": "SET"
+        },
+        "Date": {
+          "value": "span.cus-default-date span.cus-default-date-text",
+          "status": "SET"
+        },
+        "Author": {
+          "value": "span.cus-default-byline span.text-primary",
+          "status": "SET"
+        },
+        "Thumbnail": {
+          "value": "figure.cus-default-figure img::src",
+          "status": "SET"
+        },
+        "Topics": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Include": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Exclude": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Link Template": {
+          "value": "https://suntci.com/{slug}-p{id1}-{id2}.htm",
+          "status": "SET"
+        }
+      },
+      "selector_issues": [],
+      "articles_audited": [
+        {
+          "db_id": 2995,
+          "title": "READ OUR LATEST EPAPER",
+          "source_url": "https://suntci.com/read-our-latest-epaper-p13907-129.htm",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 22
+            },
+            "content": {
+              "status": "OK",
+              "chars": 36,
+              "words": 7
+            },
+            "author": {
+              "status": "OK",
+              "value": "Unknown Author"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-27"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://suntci.com/27-03-2026-07-36-14-pm-9943093.png"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 65
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [
+            "very short (7 words)"
+          ],
+          "author_issues": [
+            "generic \"Unknown Author\""
+          ],
+          "date_issues": [],
+          "content_preview": "Click here to read our latest epaper"
+        },
+        {
+          "db_id": 2907,
+          "title": "Trump says he can do 'anything I want' with Cuba",
+          "source_url": "https://suntci.com/trump-says-he-can-do-anything-i-want-with-cuba-p13904-135.htm",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 48
+            },
+            "content": {
+              "status": "OK",
+              "chars": 2740,
+              "words": 451
+            },
+            "author": {
+              "status": "OK",
+              "value": "Unknown Author"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-24"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://mangonewsimages.s3.us-east-2.amazonaws.com/sunday-editions/images/f1cbd0fd-c622-4d79-beb6-9b13f0353c8a.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 79
+            },
+            "ai_image": {
+              "status": "OK"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [
+            "generic \"Unknown Author\""
+          ],
+          "date_issues": [],
+          "content_preview": "U.S. President Donald Trump escalated his rhetoric against Cuba on Monday, saying ‌he expected to have the \"honor\" of \"taking Cuba in some form\" and t..."
+        },
+        {
+          "db_id": 2906,
+          "title": "Cuba's national electric grid collapses, leaving millions without power",
+          "source_url": "https://suntci.com/cubas-national-electric-grid-collapses-leaving-millions-without-power-p13905-135.htm",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 71
+            },
+            "content": {
+              "status": "OK",
+              "chars": 2849,
+              "words": 453
+            },
+            "author": {
+              "status": "OK",
+              "value": "Unknown Author"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-24"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://mangonewsimages.s3.us-east-2.amazonaws.com/sunday-editions/images/0af7b78b-dccc-406b-a36e-099dfb8a6b4d.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 85
+            },
+            "ai_image": {
+              "status": "OK"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [
+            "generic \"Unknown Author\""
+          ],
+          "date_issues": [],
+          "content_preview": "Cuba's national electric grid collapsed on Monday, the country's grid operator said, leaving around 10 million people without power amid a U.S.-impose..."
+        }
+      ],
+      "source_stats": {
+        "total": 1144,
+        "has_content": 1144,
+        "has_summary": 1144,
+        "has_real_author": 411,
+        "unknown_author": 733,
+        "has_thumbnail": 1144,
+        "has_ai_image": 217,
+        "has_date": 1144,
+        "blocked": 0,
+        "has_translations_es": 1144,
+        "has_translations_ht": 1144,
+        "avg_content_chars": 3565,
+        "min_content_chars": 43,
+        "max_content_chars": 42151,
+        "date_range": "2025-02-25 → 2026-03-27"
+      },
+      "issues": [
+        "733/1144 articles have \"Unknown Author\" — author selector likely broken",
+        "5 duplicate URLs found"
+      ],
+      "recommendations": [
+        "Review os_author_selector — majority of articles have no author"
+      ]
+    },
+    {
+      "source_id": 4,
+      "source_name": "NewslineTCI",
+      "source_url": "https://www.newslinetci.com/news",
+      "scraping_method": "opensource",
+      "is_active": true,
+      "article_count": 413,
+      "selectors": {
+        "Title": {
+          "value": "h1[data-hook=\"post-title\"]",
+          "status": "SET"
+        },
+        "Content": {
+          "value": "div[data-id=\"content-viewer\"]",
+          "status": "SET"
+        },
+        "Date": {
+          "value": "meta[property=\"article:published_time\"]",
+          "status": "SET"
+        },
+        "Author": {
+          "value": "span[data-hook=\"user-name\"]",
+          "status": "SET"
+        },
+        "Thumbnail": {
+          "value": "figure[data-hook=\"figure-IMAGE\"] img",
+          "status": "SET"
+        },
+        "Topics": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Include": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Exclude": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Link Template": {
+          "value": "https://www.newslinetci.com/post/{article_slug}",
+          "status": "SET"
+        }
+      },
+      "selector_issues": [],
+      "articles_audited": [
+        {
+          "db_id": 2999,
+          "title": "Woman Killed While Attempting to Cross Leeward Highway on Saturday",
+          "source_url": "https://www.newslinetci.com/post/woman-killed-while-attempting-to-cross-leeward-highway-on-saturday",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 66
+            },
+            "content": {
+              "status": "OK",
+              "chars": 1481,
+              "words": 257
+            },
+            "author": {
+              "status": "OK",
+              "value": "Vivian Tyson, NewslineTCI Editor"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-28"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://static.wixstatic.com/media/617f3e_8eafc601a23e4dec8cfd6b57f6b4642e~mv2.png/v1/fill/w_740,h_450,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/617f3e_8eafc601a23e4dec8cfd6b57f6b4642e~mv2.png"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 57
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "A woman who was knocked down while attempting the cross a section of the Leeward Highway in Providenciales on Saturday, died while undergoing emergenc..."
+        },
+        {
+          "db_id": 2997,
+          "title": "Man in Custody After Firearm and Ammunition Find",
+          "source_url": "https://www.newslinetci.com/post/man-in-custody-after-firearm-and-ammunition-find",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 48
+            },
+            "content": {
+              "status": "OK",
+              "chars": 1073,
+              "words": 171
+            },
+            "author": {
+              "status": "OK",
+              "value": "NewslineTCI"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-28"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://mangonewsimages.s3.us-east-2.amazonaws.com/sunday-editions/images/0e1c8ea0-a30b-477c-9d6d-66be48271aec.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 59
+            },
+            "ai_image": {
+              "status": "OK"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "A 36-year-old man is in police custody following the recovery of a firearm and ammunition during a domestic-related incident in Providenciales. Accord..."
+        },
+        {
+          "db_id": 2998,
+          "title": "Blaze at Grand Turk Store Under Investigation",
+          "source_url": "https://www.newslinetci.com/post/blaze-at-grand-turk-store-under-investigation",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 45
+            },
+            "content": {
+              "status": "OK",
+              "chars": 638,
+              "words": 104
+            },
+            "author": {
+              "status": "OK",
+              "value": "NewslineTCI"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-28"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://mangonewsimages.s3.us-east-2.amazonaws.com/sunday-editions/images/65222d8e-c1ad-4b56-90d2-d6157fb4f10d.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 58
+            },
+            "ai_image": {
+              "status": "OK"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "Police are investigating a structural fire that damaged a commercial building in Grand Turk early Friday morning. According to a media release from th..."
+        }
+      ],
+      "source_stats": {
+        "total": 413,
+        "has_content": 413,
+        "has_summary": 413,
+        "has_real_author": 413,
+        "unknown_author": 0,
+        "has_thumbnail": 413,
+        "has_ai_image": 26,
+        "has_date": 413,
+        "blocked": 0,
+        "has_translations_es": 413,
+        "has_translations_ht": 413,
+        "avg_content_chars": 5145,
+        "min_content_chars": 494,
+        "max_content_chars": 35116,
+        "date_range": "2025-04-24 → 2026-03-28"
+      },
+      "issues": [],
+      "recommendations": []
+    },
+    {
+      "source_id": 6,
+      "source_name": "Magnetic Media",
+      "source_url": "https://magneticmediatv.com/category/tci-news/",
+      "scraping_method": "opensource",
+      "is_active": true,
+      "article_count": 713,
+      "selectors": {
+        "Title": {
+          "value": "h1.mvp-post-title",
+          "status": "SET"
+        },
+        "Content": {
+          "value": "div#mvp-content-main p, div#mvp-content-main",
+          "status": "SET"
+        },
+        "Date": {
+          "value": "span.mvp-post-date.updated",
+          "status": "SET"
+        },
+        "Author": {
+          "value": "span.author-name.vcard.fn.author",
+          "status": "SET"
+        },
+        "Thumbnail": {
+          "value": "div#mvp-post-feat-img img",
+          "status": "SET"
+        },
+        "Topics": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Include": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Exclude": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Link Template": {
+          "value": "https://magneticmediatv.com/{YYYY}/{MM}/{article_slug}/",
+          "status": "SET"
+        }
+      },
+      "selector_issues": [],
+      "articles_audited": [
+        {
+          "db_id": 3005,
+          "title": "Beaches Turks & Caicos shares fine dining experiences to high school students in Providenciales",
+          "source_url": "https://magneticmediatv.com/2026/03/beaches-turks-caicos-shares-fine-dining-experiences-to-high-school-students-in-providenciales/",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 95
+            },
+            "content": {
+              "status": "OK",
+              "chars": 4715,
+              "words": 705
+            },
+            "author": {
+              "status": "OK",
+              "value": "Deandrea Hamilton"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-28"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://magneticmediatv.com/wp-content/uploads/2026/03/BTC-HFLE-CHHS-4.jpg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 64
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "PROVIDENCIALES, Turks & Caicos Islands: — Students from the Clement Howell High School were recently welcomed to Beaches Turks and Caicos for an immer..."
+        },
+        {
+          "db_id": 3004,
+          "title": "Beaches Turks & Caicos adds four new PADI Dive Instructors to the cadre of professionals in the watersports department",
+          "source_url": "https://magneticmediatv.com/2026/03/beaches-turks-caicos-adds-four-new-padi-dive-instructors-to-the-cadre-of-professionals-in-the-watersports-department/",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 118
+            },
+            "content": {
+              "status": "OK",
+              "chars": 3391,
+              "words": 490
+            },
+            "author": {
+              "status": "OK",
+              "value": "Deandrea Hamilton"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-28"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://magneticmediatv.com/wp-content/uploads/2026/03/BTC-PADI-2-scaled.jpeg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 85
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "PROVIDENCIALES, Turks & Caicos Islands: — Beaches Turks & Caicos, a PADI-certified dive resort in Providenciales, continues to invest in its waterspor..."
+        },
+        {
+          "db_id": 3003,
+          "title": "Flow TCI supports ‘Stars of Tomorrow’ at Inter-Primary Track and Field Championships",
+          "source_url": "https://magneticmediatv.com/2026/03/flow-tci-supports-stars-of-tomorrow-at-inter-primary-track-and-field-championships/",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 84
+            },
+            "content": {
+              "status": "OK",
+              "chars": 2091,
+              "words": 307
+            },
+            "author": {
+              "status": "OK",
+              "value": "Deandrea Hamilton"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-03-25"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://magneticmediatv.com/wp-content/uploads/2026/03/Image-5.jpg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 82
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [],
+          "date_issues": [],
+          "content_preview": "Turks and Caicos Islands (March 25, 2026) — Fresh off an impressive high school track and field season, the Turks and Caicos Islands celebrated anothe..."
+        }
+      ],
+      "source_stats": {
+        "total": 713,
+        "has_content": 712,
+        "has_summary": 713,
+        "has_real_author": 713,
+        "unknown_author": 0,
+        "has_thumbnail": 713,
+        "has_ai_image": 2,
+        "has_date": 713,
+        "blocked": 0,
+        "has_translations_es": 713,
+        "has_translations_ht": 713,
+        "avg_content_chars": 4027,
+        "min_content_chars": 0,
+        "max_content_chars": 15824,
+        "date_range": "2018-08-21 → 2026-03-28"
+      },
+      "issues": [
+        "1 articles have empty content"
+      ],
+      "recommendations": []
+    },
+    {
+      "source_id": 8,
+      "source_name": "TACHTA",
+      "source_url": "https://turksandcaicoshta.com/tchta-blog/",
+      "scraping_method": "opensource",
+      "is_active": true,
+      "article_count": 8,
+      "selectors": {
+        "Title": {
+          "value": "h1.fl-post-title",
+          "status": "SET"
+        },
+        "Content": {
+          "value": "div.fl-post-content.clearfix",
+          "status": "SET"
+        },
+        "Date": {
+          "value": "span.fl-post-date",
+          "status": "SET"
+        },
+        "Author": {
+          "value": "span.fl-post-author",
+          "status": "SET"
+        },
+        "Thumbnail": {
+          "value": "div.fl-post-content.clearfix img",
+          "status": "SET"
+        },
+        "Topics": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Include": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Exclude": {
+          "value": null,
+          "status": "NOT SET"
+        },
+        "Link Template": {
+          "value": "https://turksandcaicoshta.com/tchta-{slug}/",
+          "status": "SET"
+        }
+      },
+      "selector_issues": [],
+      "articles_audited": [
+        {
+          "db_id": 2548,
+          "title": "TCHTA Members Maintain Global Focus on Turks and Caicos’ Luxury Market",
+          "source_url": "https://turksandcaicoshta.com/tchta-members-maintain-global-focus-on-turks-and-caicos-luxury-market/",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 70
+            },
+            "content": {
+              "status": "OK",
+              "chars": 3849,
+              "words": 525
+            },
+            "author": {
+              "status": "OK",
+              "value": "By Omega Simmons"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-02-02"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://turksandcaicoshta.com/wp-content/uploads/2025/04/TCHTA-7082r-1-1024x683.jpg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 46
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [
+            "starts with \"By \""
+          ],
+          "date_issues": [],
+          "content_preview": "Providenciales, Turks and Caicos Islands — The Turks &amp; Caicos Hotel and Tourism Association (TCHTA) continues to advance a coordinated strategy al..."
+        },
+        {
+          "db_id": 2471,
+          "title": "TCHTA Opens 2026 with Industry Insights, Advocacy Updates, and a Focus on Sustainable Growth",
+          "source_url": "https://turksandcaicoshta.com/tchta-opens-2026-with-industry-insights-advocacy-updates-and-a-focus-on-sustainable-growth/",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 92
+            },
+            "content": {
+              "status": "OK",
+              "chars": 5127,
+              "words": 710
+            },
+            "author": {
+              "status": "OK",
+              "value": "By Omega Simmons"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2026-01-19"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://turksandcaicoshta.com/wp-content/uploads/2026/01/TCHTA-GM-Jan-26-Members-816x1024.jpg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 82
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [
+            "starts with \"By \""
+          ],
+          "date_issues": [],
+          "content_preview": "Providenciales, Turks and Caicos Islands — Members of the Turks &amp; Caicos Hotel and Tourism Association (TCHTA) opened 2026 with the first General ..."
+        },
+        {
+          "db_id": 195,
+          "title": "TCHTA OFFERS INDUSTRY INSIGHT AMID ECONOMIC FLUCTUATIONS AND SHIFTING TRAVEL PATTERNS",
+          "source_url": "https://turksandcaicoshta.com/tchta-offers-industry-insight-amid-economic-fluctuations-and-shifting-travel-patterns/",
+          "fields": {
+            "title": {
+              "status": "OK",
+              "length": 85
+            },
+            "content": {
+              "status": "OK",
+              "chars": 5064,
+              "words": 725
+            },
+            "author": {
+              "status": "OK",
+              "value": "By Sonia"
+            },
+            "date": {
+              "status": "OK",
+              "value": "2025-04-28"
+            },
+            "thumbnail": {
+              "status": "OK",
+              "url": "https://turksandcaicoshta.com/wp-content/uploads/2025/04/TCHTA-7082r-1-1024x683.jpg"
+            },
+            "summary": {
+              "status": "OK",
+              "words": 59
+            },
+            "ai_image": {
+              "status": "MISSING"
+            },
+            "is_blocked": false
+          },
+          "content_issues": [],
+          "author_issues": [
+            "starts with \"By \""
+          ],
+          "date_issues": [],
+          "content_preview": "TCHTA OFFERS INDUSTRY INSIGHT AMID ECONOMIC FLUCTUATIONS AND SHIFTING TRAVEL PATTERNS Providenciales, Turks and Caicos Islands – April 20, 2025 – Foll..."
+        }
+      ],
+      "source_stats": {
+        "total": 8,
+        "has_content": 8,
+        "has_summary": 8,
+        "has_real_author": 8,
+        "unknown_author": 0,
+        "has_thumbnail": 8,
+        "has_ai_image": 1,
+        "has_date": 8,
+        "blocked": 0,
+        "has_translations_es": 8,
+        "has_translations_ht": 8,
+        "avg_content_chars": 4448,
+        "min_content_chars": 1019,
+        "max_content_chars": 8964,
+        "date_range": "2022-11-24 → 2026-02-02"
+      },
+      "issues": [],
+      "recommendations": []
+    }
+  ],
+  "analysis": {
+    "total_sources": 5,
+    "active_sources": 5,
+    "total_articles": 2971,
+    "method_breakdown": {
+      "opensource": 5
+    },
+    "field_coverage_pct": {
+      "has_content": 100,
+      "has_summary": 100,
+      "has_real_author": 73,
+      "has_thumbnail": 100,
+      "has_date": 100,
+      "has_translations_es": 100
+    },
+    "content_quality": {
+      "sources_by_avg_content": [
+        {
+          "source": "TC Weekly News",
+          "avg_chars": 3948,
+          "min_chars": 281,
+          "max_chars": 16776
+        },
+        {
+          "source": "SunTCI",
+          "avg_chars": 3565,
+          "min_chars": 43,
+          "max_chars": 42151
+        },
+        {
+          "source": "NewslineTCI",
+          "avg_chars": 5145,
+          "min_chars": 494,
+          "max_chars": 35116
+        },
+        {
+          "source": "Magnetic Media",
+          "avg_chars": 4027,
+          "min_chars": 0,
+          "max_chars": 15824
+        },
+        {
+          "source": "TACHTA",
+          "avg_chars": 4448,
+          "min_chars": 1019,
+          "max_chars": 8964
+        }
+      ],
+      "short_content_sources": [],
+      "dirty_content_articles": [
+        {
+          "source": "TC Weekly News",
+          "id": 2993,
+          "title": "TCWN March 13 - April 28, 2026",
+          "issues": [
+            "very short (14 words)"
+          ]
+        },
+        {
+          "source": "SunTCI",
+          "id": 2995,
+          "title": "READ OUR LATEST EPAPER",
+          "issues": [
+            "very short (7 words)"
+          ]
+        }
+      ]
+    },
+    "author_quality": {
+      "sources_with_unknown_author": [
+        {
+          "source": "SunTCI",
+          "unknown": 733,
+          "total": 1144
+        }
+      ]
+    },
+    "thumbnail_coverage": {
+      "sources_without_selector": [
+        "TC Weekly News"
+      ]
+    },
+    "schema_inconsistencies": [],
+    "global_recommendations": [
+      "Author extraction failing: SunTCI (733/1144)",
+      "No thumbnail selector: TC Weekly News"
+    ]
+  }
+}

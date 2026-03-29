@@ -74,23 +74,31 @@ const getBrowser = async () => {
 };
 
 /**
- * Get a new page from the shared browser
- * Includes automatic cleanup when page is closed
+ * Get a new page from the shared browser.
+ *
+ * @param {object} [options] - Page configuration options
+ * @param {boolean} [options.allowImages=false] - Allow image loading (needed for thumbnail extraction)
+ * @param {boolean} [options.allowStyles=false] - Allow stylesheet loading (needed for layout-dependent pages)
+ * @param {number} [options.timeout=30000] - Default navigation timeout in ms
  */
-const getPage = async () => {
+const getPage = async (options = {}) => {
+  const { allowImages = false, allowStyles = false, timeout = 30000 } = options;
   const browser = await getBrowser();
   const page = await browser.newPage();
-  
+
   // Set reasonable defaults
-  await page.setDefaultNavigationTimeout(30000); // 30 seconds
-  await page.setDefaultTimeout(30000);
-  
-  // Block unnecessary resources to save memory
+  await page.setDefaultNavigationTimeout(timeout);
+  await page.setDefaultTimeout(timeout);
+
+  // Block unnecessary resources to save memory — configurable per use case
   await page.setRequestInterception(true);
   page.on('request', (request) => {
     const resourceType = request.resourceType();
-    // Block images, fonts, and stylesheets to save memory during scraping
-    if (['image', 'font', 'stylesheet', 'media'].includes(resourceType)) {
+    const blockedTypes = ['font', 'media']; // Always block fonts and media
+    if (!allowImages) blockedTypes.push('image');
+    if (!allowStyles) blockedTypes.push('stylesheet');
+
+    if (blockedTypes.includes(resourceType)) {
       request.abort();
     } else {
       request.continue();
