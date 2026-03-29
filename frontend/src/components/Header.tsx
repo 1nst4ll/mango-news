@@ -67,7 +67,7 @@ const Header: React.FC = () => {
               {filteredNavItems.map(item => (
                 <li key={item.href}>
                   <Button asChild variant="ghost" size="sm">
-                    <a href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`}>
+                    <a href={item.href.startsWith('http') || item.href.startsWith('/api/') ? item.href : `/${currentLocale}${item.href}`}>
                       {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
                       <span>{t[item.titleKey as keyof typeof t] as string}</span>
                     </a>
@@ -92,7 +92,7 @@ const Header: React.FC = () => {
               {filteredNavItems.map(item => (
                 <li key={item.href}>
                   <Button asChild variant="ghost" className="w-full justify-start" onClick={() => setIsMobileMenuOpen(false)}>
-                    <a href={item.href.startsWith('http') ? item.href : `/${currentLocale}${item.href}`}>
+                    <a href={item.href.startsWith('http') || item.href.startsWith('/api/') ? item.href : `/${currentLocale}${item.href}`}>
                       {item.titleKey === "rss_feed" && <Rss className="h-4 w-4" />}
                       <span>{t[item.titleKey as keyof typeof t] as string}</span>
                     </a>
