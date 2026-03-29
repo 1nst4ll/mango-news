@@ -50,7 +50,8 @@ frontend/src/
 │   │   ├── SourceBarChart.tsx            # Horizontal bar chart
 │   │   └── SourceDistributionPieChart.tsx # Donut pie chart
 │   ├── LanguageSwitcher.tsx   # Flag-based locale selector (spinner on nav)
-│   ├── SundayEditionDetail.tsx
+│   ├── SundayEditionDetail.tsx  # Full Sunday Edition view (breadcrumbs, audio, sharing)
+│   ├── SundayEditionList.tsx    # Sunday Edition listing page (card grid)
 │   ├── LoginDialog.tsx
 │   ├── ModeToggle.tsx         # Dark/light theme toggle
 │   ├── footer.tsx
@@ -63,7 +64,9 @@ frontend/src/
 │   │   ├── index.astro
 │   │   ├── article/[id].astro
 │   │   ├── news/topic/[topicSlug].astro
-│   │   └── sunday-edition/[id].astro
+│   │   └── sunday-edition/
+│   │       ├── index.astro    # Sunday Edition listing page
+│   │       └── [id].astro     # Sunday Edition detail page
 │   └── settings/source/[sourceId].astro
 ├── layouts/BaseLayout.astro    # Root layout (registers SW, renders EmergencyBanner)
 ├── layouts/Layout.astro       # Root layout wrapper
@@ -84,6 +87,18 @@ frontend/src/
 
 ## Key Components
 
+### Navigation
+
+Navbar links are defined in `frontend/src/lib/nav-items.ts`. Current items:
+
+| Label | Route | Notes |
+|---|---|---|
+| News | `/` | Main feed |
+| Sunday Edition | `/sunday-edition` | Edition listing page |
+| RSS Feed | `/api/rss` | RSS icon shown instead of text |
+
+External mango.tc links (Home, Vehicles, Real Estate, Jobs) have been removed from the navbar.
+
 ### NewsFeed
 
 Main article feed at the home page:
@@ -91,8 +106,28 @@ Main article feed at the home page:
 - **Infinite scroll** via `IntersectionObserver`
 - **Request deduplication** — AbortController cancels stale requests
 - **Grouped by date** with visual separators
-- **Filters**: topic, source, date range, full-text search
+- **Filters**: source (including "Sunday Edition"), full-text search
 - Paginates at 15 articles per request
+- **Sunday Edition filter** — special source ID `0` controls Sunday Edition visibility without affecting backend API queries (stripped before `source_ids` param is built)
+
+### SundayEditionList
+
+Listing page at `/sunday-edition` (renders `SundayEditionList.tsx`):
+
+- Card grid (1/2/3 columns responsive) of all editions
+- Each card links to its detail page
+- Blue accent border + "Sunday Edition" badge on image
+- Data fetched server-side in the Astro page (no client-side fetch)
+
+### SundayEditionDetail
+
+Full Sunday Edition view at `/sunday-edition/[id]` (renders `SundayEditionDetail.tsx`):
+
+- **Breadcrumb trail**: News Feed › Sunday Edition › [Title]
+- **Back button**: "Back to News Feed" with `ChevronLeft` icon
+- Audio player with autoplay enabled
+- Sharing buttons (WhatsApp, Facebook)
+- Sources fetched server-side in `[id].astro` so the footer shows News Sources
 
 ### ArticleDetail
 

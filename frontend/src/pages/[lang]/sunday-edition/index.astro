@@ -1,0 +1,31 @@
+---
+import BaseLayout from '/src/layouts/BaseLayout.astro';
+import ErrorBoundary from '/src/components/ErrorBoundary';
+import SundayEditionList from '/src/components/SundayEditionList.tsx';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+
+let editions = [];
+let sources = [];
+try {
+  const [editionsRes, sourcesRes] = await Promise.all([
+    fetch(`${apiUrl}/api/sunday-editions`),
+    fetch(`${apiUrl}/api/sources`),
+  ]);
+  if (editionsRes.ok) editions = await editionsRes.json();
+  if (sourcesRes.ok) sources = await sourcesRes.json();
+} catch (error) {
+  console.error('Error fetching Sunday Editions listing:', error);
+}
+---
+
+<BaseLayout
+  title="Sunday Editions"
+  description="Read the weekly Sunday Editions from mango.tc News"
+  ogUrl={Astro.url.href}
+  sources={sources}
+>
+  <ErrorBoundary client:load fallbackMessage="Failed to load Sunday Editions">
+    <SundayEditionList editions={editions} client:load />
+  </ErrorBoundary>
+</BaseLayout>

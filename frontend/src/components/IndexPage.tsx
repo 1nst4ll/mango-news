@@ -26,6 +26,8 @@ interface Source {
   url: string;
 }
 
+const SUNDAY_EDITION_FILTER_ID = 0;
+
 interface IndexPageProps {
   sources: Source[];
 }
@@ -87,7 +89,7 @@ export default function IndexPage({ sources }: IndexPageProps) {
                 <CommandList>
                   <CommandEmpty>{t.no_sources_found}</CommandEmpty>
                   <CommandGroup>
-                    {sources.map(source => (
+                    {[{ id: SUNDAY_EDITION_FILTER_ID, name: t.sunday_edition || 'Sunday Edition', url: '' }, ...sources].map(source => (
                       <CommandItem
                         key={source.id}
                         onSelect={() => {

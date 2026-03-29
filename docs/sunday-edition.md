@@ -91,15 +91,44 @@ POST /api/unreal-speech-callback
 
 ## Frontend Display
 
+### Feed Page
+
 Sunday Editions appear in the main news feed alongside regular articles with a distinct **"Sunday Edition"** badge, audio player, and AI-generated image.
 
-**Dedicated page:** `/[lang]/sunday-edition/[id]`
+The **Sources filter** on the feed page includes a "Sunday Edition" entry (special ID `0`). This controls visibility:
+
+| Filter state | What is shown |
+|---|---|
+| Nothing selected | All articles + all Sunday Editions |
+| Only "Sunday Edition" checked | Sunday Editions only |
+| "Sunday Edition" + other sources | Articles from those sources + Sunday Editions |
+| Other sources only (no Sunday Edition) | Articles from those sources only |
+
+The special ID `0` is stripped from `source_ids` before sending to the backend API so it never reaches the database query.
+
+### Listing Page
+
+**`/[lang]/sunday-edition`** — `frontend/src/pages/[lang]/sunday-edition/index.astro`
+
+Displays all Sunday Editions in a card grid. Fetches editions and sources server-side in the Astro frontmatter (parallel `Promise.all`). Rendered by `SundayEditionList.tsx`.
+
+### Detail Page
+
+**`/[lang]/sunday-edition/[id]`** — `frontend/src/components/SundayEditionDetail.tsx`
+
+- Breadcrumb trail: **News Feed › Sunday Edition › [Title]**
+- Back to News Feed button (`ChevronLeft` icon, links to `/${currentLocale}/`)
 - Large image header
 - Audio player (`frontend/src/components/ui/AudioPlayer.tsx`) with play/pause/seek
 - Full summary text
-- Publication date and sharing buttons
+- Publication date and sharing buttons (WhatsApp, Facebook)
+- Footer News Sources section populated (sources fetched server-side in `[id].astro`)
 
-The `sunday_edition` key in each locale file provides the translated badge label.
+The `sunday_edition` key in each locale file provides the translated badge label and navigation text.
+
+### Navbar
+
+"Sunday Edition" is linked in the main navigation bar (`frontend/src/lib/nav-items.ts`), pointing to `/sunday-edition`.
 
 ## Admin Management
 

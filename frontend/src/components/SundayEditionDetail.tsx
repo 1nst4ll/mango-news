@@ -3,7 +3,15 @@ import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import AudioPlayer from './ui/AudioPlayer';
 import { Button } from "./ui/button";
-import { MessageCircleMore, Facebook } from 'lucide-react';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "./ui/breadcrumb";
+import { MessageCircleMore, Facebook, ChevronLeft } from 'lucide-react';
 import useTranslations from '../lib/hooks/useTranslations';
 
 interface SundayEdition {
@@ -26,6 +34,34 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${currentLocale}/`}>
+              {t.news_feed || 'News Feed'}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/${currentLocale}/sunday-edition`}>
+              {t.sunday_edition || 'Sunday Edition'}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{edition.title}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <div className="mb-4">
+        <Button variant="outline" size="sm" asChild>
+          <a href={`/${currentLocale}/`} className="flex items-center">
+            <ChevronLeft className="h-4 w-4 mr-1" /> {t.back_to_news_feed || 'Back to News Feed'}
+          </a>
+        </Button>
+      </div>
+
       <article className="prose prose-base sm:prose-lg dark:prose-invert max-w-3xl mx-auto font-serif text-gray-800 dark:text-gray-200">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold !leading-tight mb-4 font-sans">
           {edition.title}

@@ -55,6 +55,8 @@ interface NewsFeedProps {
   activeCategory: string;
 }
 
+const SUNDAY_EDITION_FILTER_ID = 0;
+
 // Debug logging only in development
 const isDev = import.meta.env.DEV;
 const log = isDev ? console.log.bind(console) : () => {};
@@ -110,8 +112,9 @@ function NewsFeed({
       let url = `${apiUrl}/api/articles`;
       const params = new URLSearchParams();
 
-      if (selectedSources.length > 0) {
-        params.append('source_ids', selectedSources.join(','));
+      const realSourceIds = selectedSources.filter(id => id !== SUNDAY_EDITION_FILTER_ID);
+      if (realSourceIds.length > 0) {
+        params.append('source_ids', realSourceIds.join(','));
       }
       if (searchTerm) {
         params.append('searchTerm', searchTerm);
@@ -273,14 +276,18 @@ function NewsFeed({
 
   // Combine articles and filtered Sunday Editions, then sort by publication_date (memoized)
   const combinedFeed = React.useMemo(() => {
-    return [...articles, ...filteredSundayEditions.map(edition => ({
-      ...edition,
-      type: 'sundayEdition' as const,
-      publication_date: edition.publication_date,
-    }))].sort((a, b) => {
+    const showSundayEditions = selectedSources.length === 0 || selectedSources.includes(SUNDAY_EDITION_FILTER_ID);
+    const showArticles = selectedSources.length === 0 || selectedSources.some(id => id !== SUNDAY_EDITION_FILTER_ID);
+
+    const articleItems = showArticles ? articles : [];
+    const editionItems = showSundayEditions
+      ? filteredSundayEditions.map(edition => ({ ...edition, type: 'sundayEdition' as const }))
+      : [];
+
+    return [...articleItems, ...editionItems].sort((a, b) => {
       return new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime();
     });
-  }, [articles, filteredSundayEditions]);
+  }, [articles, filteredSundayEditions, selectedSources]);
 
   // Group combined feed by date (memoized)
   const { groupedFeed, sortedDates } = React.useMemo(() => {

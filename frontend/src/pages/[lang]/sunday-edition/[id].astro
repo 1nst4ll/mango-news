@@ -6,12 +6,20 @@ import { marked } from 'marked';
 
 const { lang, id } = Astro.params;
 
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+
 let edition = null;
+let sources = [];
 try {
-  const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-  const response = await fetch(`${apiUrl}/api/sunday-editions/${id}`);
-  if (response.ok) {
-    edition = await response.json();
+  const [editionResponse, sourcesResponse] = await Promise.all([
+    fetch(`${apiUrl}/api/sunday-editions/${id}`),
+    fetch(`${apiUrl}/api/sources`),
+  ]);
+  if (editionResponse.ok) {
+    edition = await editionResponse.json();
+  }
+  if (sourcesResponse.ok) {
+    sources = await sourcesResponse.json();
   }
 } catch (error) {
   console.error(`Error fetching Sunday Edition ${id}:`, error);
@@ -28,6 +36,7 @@ const displaySummary = edition ? marked.parse(edition.summary) : '';
   ogImageHeight={edition?.image_url ? (edition.image_url.match(/h_(\d+)/) ? parseInt(edition.image_url.match(/h_(\d+)/)[1], 10) : undefined) : undefined}
   ogUrl={Astro.url.href}
   ogType="article"
+  sources={sources}
 >
   {edition ? (
     <ErrorBoundary client:load fallbackMessage="Failed to load Sunday Edition">
