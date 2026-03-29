@@ -1237,8 +1237,27 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
       article_count: parseInt(row.article_count, 10),
     }));
 
-    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched database statistics. Total Articles: ${totalArticles}, Total Sources: ${totalSources}`);
-    res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear });
+    // Sunday Edition stats
+    const sundayEditionStatsResult = await pool.query(`
+      SELECT
+          COUNT(*) AS total,
+          COUNT(narration_url) AS with_audio,
+          COUNT(image_url) AS with_image,
+          MIN(publication_date) AS oldest,
+          MAX(publication_date) AS newest
+      FROM sunday_editions
+    `);
+    const seRow = sundayEditionStatsResult.rows[0];
+    const sundayEditionStats = {
+      total: parseInt(seRow.total, 10),
+      withAudio: parseInt(seRow.with_audio, 10),
+      withImage: parseInt(seRow.with_image, 10),
+      oldest: seRow.oldest,
+      newest: seRow.newest,
+    };
+
+    console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Successfully fetched database statistics. Total Articles: ${totalArticles}, Total Sources: ${totalSources}, Sunday Editions: ${sundayEditionStats.total}`);
+    res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear, sundayEditionStats });
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error fetching stats:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -1516,6 +1535,56 @@ app.post('/api/sunday-editions/purge', authenticateToken, requireRole('admin'), 
     res.json({ message: `Successfully purged ${count} Sunday Edition(s).`, count });
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error purging Sunday Editions:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Regenerate image for a Sunday Edition (admin only)
+app.post('/api/sunday-editions/:id/regenerate-image', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
+  const editionId = req.params.id;
+  const endpoint = `/api/sunday-editions/${editionId}/regenerate-image`;
+  try {
+    const result = await pool.query('SELECT id, title, summary FROM sunday_editions WHERE id = $1', [editionId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Sunday Edition not found.' });
+    }
+    const edition = result.rows[0];
+    const imageService = require('./services/imageService');
+    const imageUrl = await imageService.generateSundayEditionImage(edition.title, edition.summary);
+    if (!imageUrl) {
+      return res.status(500).json({ error: 'Image generation failed.' });
+    }
+    await pool.query('UPDATE sunday_editions SET image_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [imageUrl, editionId]);
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Regenerated image for Sunday Edition ID ${editionId}`);
+    res.json({ message: 'Image regenerated successfully.', image_url: imageUrl });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error regenerating image:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Regenerate audio narration for a Sunday Edition (admin only)
+app.post('/api/sunday-editions/:id/regenerate-audio', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
+  const editionId = req.params.id;
+  const endpoint = `/api/sunday-editions/${editionId}/regenerate-audio`;
+  try {
+    const result = await pool.query('SELECT id, summary FROM sunday_editions WHERE id = $1', [editionId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Sunday Edition not found.' });
+    }
+    const { generateNarration } = require('./sundayEditionGenerator');
+    const taskId = await generateNarration(result.rows[0].summary);
+    if (!taskId) {
+      return res.status(500).json({ error: 'Audio generation failed to initiate.' });
+    }
+    await pool.query(
+      'UPDATE sunday_editions SET narration_url = NULL, unreal_speech_task_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [taskId, editionId]
+    );
+    console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Regenerated audio for Sunday Edition ID ${editionId}, TaskId: ${taskId}`);
+    res.json({ message: 'Audio regeneration initiated. It will be available shortly via callback.', task_id: taskId });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - Error regenerating audio:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

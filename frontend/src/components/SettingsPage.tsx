@@ -17,7 +17,7 @@ import { Switch } from "./ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
 import { Badge } from "./ui/badge";
-import { MoreHorizontal, RefreshCw, AlertTriangle, Newspaper, Globe, Zap, FileText, Tag, Image, Languages } from 'lucide-react';
+import { MoreHorizontal, RefreshCw, AlertTriangle, Newspaper, Globe, Zap, FileText, Tag, Image, Languages, ExternalLink, ImagePlus, Volume2, Mic } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -113,11 +113,20 @@ function parseCron(expr: string): string {
 // Interfaces
 // ---------------------------------------------------------------------------
 
+interface SundayEditionStatsData {
+  total: number;
+  withAudio: number;
+  withImage: number;
+  oldest: string | null;
+  newest: string | null;
+}
+
 interface ArticleStats {
   totalArticles: number | null;
   totalSources: number | null;
   articlesPerSource: { source_name: string; article_count: number }[];
   articlesPerYear: { year: number; article_count: number }[];
+  sundayEditionStats?: SundayEditionStatsData;
 }
 
 interface Source {
@@ -253,6 +262,8 @@ const SettingsPage: React.FC = () => {
   const [sundayEditionEditForm, setSundayEditionEditForm] = useState<{ title: string; summary: string }>({ title: '', summary: '' });
   const [sundayEditionSaving, setSundayEditionSaving] = useState(false);
   const [sundayEditionPurgeLoading, setSundayEditionPurgeLoading] = useState(false);
+  const [sundayEditionImageLoading, setSundayEditionImageLoading] = useState<{ [key: number]: boolean }>({});
+  const [sundayEditionAudioLoading, setSundayEditionAudioLoading] = useState<{ [key: number]: boolean }>({});
 
   // Confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -547,6 +558,36 @@ const SettingsPage: React.FC = () => {
       toast.error("Update Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
     } finally {
       setSundayEditionSaving(false);
+    }
+  };
+
+  const handleRegenerateImage = async (id: number) => {
+    setSundayEditionImageLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      const response = await apiFetch(`/api/sunday-editions/${id}/regenerate-image`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to regenerate image');
+      toast.success("Image Regenerated", { description: data.message });
+      setSundayEditions(prev => prev.map(e => e.id === id ? { ...e, image_url: data.image_url } : e));
+    } catch (error: unknown) {
+      toast.error("Image Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
+    } finally {
+      setSundayEditionImageLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleRegenerateAudio = async (id: number) => {
+    setSundayEditionAudioLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      const response = await apiFetch(`/api/sunday-editions/${id}/regenerate-audio`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to regenerate audio');
+      toast.success("Audio Regeneration Started", { description: data.message });
+      setSundayEditions(prev => prev.map(e => e.id === id ? { ...e, narration_url: null } : e));
+    } catch (error: unknown) {
+      toast.error("Audio Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
+    } finally {
+      setSundayEditionAudioLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -1023,6 +1064,42 @@ const SettingsPage: React.FC = () => {
               </Card>
             </div>
 
+            {/* Sunday Edition stats */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4">
+                <CardDescription className="text-xs font-medium">Sunday Editions</CardDescription>
+                <Mic className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="pb-4">
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-32" />
+                ) : (
+                  <div className="flex items-baseline gap-6 flex-wrap">
+                    <div>
+                      <span className="text-3xl font-bold tracking-tight">{stats.sundayEditionStats?.total ?? 0}</span>
+                      <span className="text-sm text-muted-foreground ml-1">total</span>
+                    </div>
+                    <div className="flex gap-4 text-sm">
+                      <span>
+                        <span className="font-medium text-green-600">{stats.sundayEditionStats?.withImage ?? 0}</span>
+                        <span className="text-muted-foreground ml-1">with image</span>
+                      </span>
+                      <span>
+                        <span className="font-medium text-green-600">{stats.sundayEditionStats?.withAudio ?? 0}</span>
+                        <span className="text-muted-foreground ml-1">with audio</span>
+                      </span>
+                      {(stats.sundayEditionStats?.total ?? 0) > 0 && stats.sundayEditionStats?.newest && (
+                        <span>
+                          <span className="text-muted-foreground">Latest: </span>
+                          <span className="font-medium">{new Date(stats.sundayEditionStats.newest).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Main charts row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Timeline chart — spans 2 cols */}
@@ -1496,125 +1573,230 @@ const SettingsPage: React.FC = () => {
             TAB 5 — Sunday Editions Management
         ================================================================ */}
         <TabsContent value="sunday-editions">
-          <Card className="mb-6 pt-4">
-            <CardHeader>
-              <div className="flex items-center justify-between pb-2">
-                <div>
-                  <CardTitle>Sunday Editions</CardTitle>
-                  <CardDescription className="mt-1">View, edit, and manage all generated Sunday Edition digests.</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleGenerateSundayEdition} disabled={sundayEditionLoading} size="sm">
-                    {sundayEditionLoading ? 'Generating…' : 'Generate New'}
-                  </Button>
-                  {sundayEditions.length > 0 && (
-                    <Button onClick={handlePurgeSundayEditions} disabled={sundayEditionPurgeLoading} variant="destructive" size="sm">
-                      {sundayEditionPurgeLoading ? 'Purging…' : 'Purge All'}
+          <div className="space-y-6">
+
+            {/* Stats summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">Total Editions</p>
+                  <p className="text-2xl font-bold">{sundayEditions.length}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">With Image</p>
+                  <p className="text-2xl font-bold text-green-600">{sundayEditions.filter(e => e.image_url).length}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">With Audio</p>
+                  <p className="text-2xl font-bold text-green-600">{sundayEditions.filter(e => e.narration_url).length}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">Pending Audio</p>
+                  <p className="text-2xl font-bold text-amber-600">{sundayEditions.filter(e => !e.narration_url).length}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main management card */}
+            <Card className="pt-4">
+              <CardHeader>
+                <div className="flex items-center justify-between pb-2">
+                  <div>
+                    <CardTitle>Sunday Editions</CardTitle>
+                    <CardDescription className="mt-1">View, edit, and manage all generated Sunday Edition digests.</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={() => { handleGenerateSundayEdition(); }} disabled={sundayEditionLoading} size="sm">
+                      {sundayEditionLoading ? 'Generating…' : 'Generate New'}
                     </Button>
-                  )}
+                    <Button onClick={fetchSundayEditions} variant="outline" size="sm" disabled={sundayEditionsLoading}>
+                      <RefreshCw className={`h-4 w-4 mr-1 ${sundayEditionsLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    {sundayEditions.length > 0 && (
+                      <Button onClick={handlePurgeSundayEditions} disabled={sundayEditionPurgeLoading} variant="destructive" size="sm">
+                        {sundayEditionPurgeLoading ? 'Purging…' : 'Purge All'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {sundayEditionsLoading ? (
-                <div className="space-y-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="rounded-lg border p-4 space-y-3">
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-3 w-3/4" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
-                  ))}
-                </div>
-              ) : sundayEditions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No Sunday Editions found. Generate one to get started.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {sundayEditions.map(edition => (
-                    <div key={edition.id} className="rounded-lg border p-4">
-                      {sundayEditionEditId === edition.id ? (
-                        <div className="space-y-3">
-                          <div>
-                            <Label htmlFor={`edit-title-${edition.id}`} className="text-xs mb-1 block">Title</Label>
-                            <Input
-                              id={`edit-title-${edition.id}`}
-                              value={sundayEditionEditForm.title}
-                              onChange={e => setSundayEditionEditForm(prev => ({ ...prev, title: e.target.value }))}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor={`edit-summary-${edition.id}`} className="text-xs mb-1 block">Summary</Label>
-                            <textarea
-                              id={`edit-summary-${edition.id}`}
-                              value={sundayEditionEditForm.summary}
-                              onChange={e => setSundayEditionEditForm(prev => ({ ...prev, summary: e.target.value }))}
-                              rows={8}
-                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleSaveSundayEdition(edition.id)} disabled={sundayEditionSaving}>
-                              {sundayEditionSaving ? 'Saving…' : 'Save'}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={handleCancelEditSundayEdition}>
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-sm truncate">{edition.title}</h4>
-                              <Badge variant="secondary" className="text-xs flex-shrink-0">ID: {edition.id}</Badge>
+              </CardHeader>
+              <CardContent>
+                {sundayEditionsLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="rounded-lg border p-4 space-y-3">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-3/4" />
+                        <Skeleton className="h-3 w-1/3" />
+                      </div>
+                    ))}
+                  </div>
+                ) : sundayEditions.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No Sunday Editions found. Generate one to get started.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {sundayEditions.map(edition => (
+                      <div key={edition.id} className="rounded-lg border p-4">
+                        {sundayEditionEditId === edition.id ? (
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor={`edit-title-${edition.id}`} className="text-xs mb-1 block">Title</Label>
+                              <Input
+                                id={`edit-title-${edition.id}`}
+                                value={sundayEditionEditForm.title}
+                                onChange={e => setSundayEditionEditForm(prev => ({ ...prev, title: e.target.value }))}
+                              />
                             </div>
-                            <p className="text-xs text-muted-foreground mb-2">
-                              Published: {new Date(edition.publication_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                            </p>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {edition.summary?.substring(0, 200)}{(edition.summary?.length ?? 0) > 200 ? '…' : ''}
-                            </p>
-                            <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                              {edition.image_url ? (
-                                <span className="text-green-600">Image: Yes</span>
-                              ) : (
-                                <span className="text-amber-600">Image: No</span>
-                              )}
-                              {edition.narration_url ? (
-                                <span className="text-green-600">Audio: Yes</span>
-                              ) : (
-                                <span className="text-amber-600">Audio: Pending</span>
-                              )}
+                            <div>
+                              <Label htmlFor={`edit-summary-${edition.id}`} className="text-xs mb-1 block">Summary (Markdown)</Label>
+                              <textarea
+                                id={`edit-summary-${edition.id}`}
+                                value={sundayEditionEditForm.summary}
+                                onChange={e => setSundayEditionEditForm(prev => ({ ...prev, summary: e.target.value }))}
+                                rows={10}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">{sundayEditionEditForm.summary.length} characters</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => handleSaveSundayEdition(edition.id)} disabled={sundayEditionSaving}>
+                                {sundayEditionSaving ? 'Saving…' : 'Save'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={handleCancelEditSundayEdition}>
+                                Cancel
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex gap-1 flex-shrink-0">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="outline" onClick={() => handleStartEditSundayEdition(edition)}>
-                                  Edit
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Edit title and summary</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="destructive" onClick={() => handleDeleteSundayEdition(edition.id)}>
-                                  Delete
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Permanently delete this edition</TooltipContent>
-                            </Tooltip>
+                        ) : (
+                          <div className="flex gap-4">
+                            {/* Thumbnail preview */}
+                            {edition.image_url && (
+                              <div className="flex-shrink-0 hidden sm:block">
+                                <img
+                                  src={edition.image_url}
+                                  alt={edition.title}
+                                  className="w-28 h-20 object-cover rounded-md border"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-sm truncate">{edition.title}</h4>
+                                <Badge variant="secondary" className="text-xs flex-shrink-0">ID: {edition.id}</Badge>
+                                <a
+                                  href={`/en/sunday-edition/${edition.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-shrink-0"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                                </a>
+                              </div>
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Published: {new Date(edition.publication_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                                {edition.updated_at && (
+                                  <span className="ml-2">Updated: {new Date(edition.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                                {edition.summary?.substring(0, 250)}{(edition.summary?.length ?? 0) > 250 ? '…' : ''}
+                              </p>
+                              <div className="flex items-center gap-3 text-xs">
+                                {edition.image_url ? (
+                                  <span className="text-green-600 font-medium">Image: Yes</span>
+                                ) : (
+                                  <span className="text-amber-600 font-medium">Image: Missing</span>
+                                )}
+                                {edition.narration_url ? (
+                                  <span className="text-green-600 font-medium">Audio: Yes</span>
+                                ) : (
+                                  <span className="text-amber-600 font-medium">Audio: Pending</span>
+                                )}
+                                <span className="text-muted-foreground">{edition.summary?.length ?? 0} chars</span>
+                              </div>
+                            </div>
+                            {/* Action buttons */}
+                            <div className="flex flex-col gap-1 flex-shrink-0">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleStartEditSundayEdition(edition)}
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit title and summary</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 w-8 p-0"
+                                    disabled={!!sundayEditionImageLoading[edition.id]}
+                                    onClick={() => handleRegenerateImage(edition.id)}
+                                  >
+                                    {sundayEditionImageLoading[edition.id]
+                                      ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                      : <ImagePlus className="h-3.5 w-3.5" />
+                                    }
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Regenerate AI image</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 w-8 p-0"
+                                    disabled={!!sundayEditionAudioLoading[edition.id]}
+                                    onClick={() => handleRegenerateAudio(edition.id)}
+                                  >
+                                    {sundayEditionAudioLoading[edition.id]
+                                      ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                      : <Volume2 className="h-3.5 w-3.5" />
+                                    }
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Regenerate audio narration</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleDeleteSundayEdition(edition.id)}
+                                  >
+                                    <AlertTriangle className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete this edition</TooltipContent>
+                              </Tooltip>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
