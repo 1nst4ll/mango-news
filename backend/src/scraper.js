@@ -370,7 +370,7 @@ const sanitizeHtml = (input, isMarkdown = false, baseUrl = '') => {
   const rawHtml = isMarkdown ? markdownToHtml(input) : input;
 
     // Step 2: Pre-process raw HTML before sanitizing.
-    // a) Remove figure/figcaption entirely (KEEP_CONTENT would leak caption text).
+    // a) Unwrap <figure> blocks: extract <img> tags, drop <figcaption> text.
     // b) Remove Wix blurred preload images (data-hook="gallery-item-image-img-preload").
     // c) Remove <style> blocks entirely.
     // d) Remove <button> elements entirely.
@@ -384,7 +384,14 @@ const sanitizeHtml = (input, isMarkdown = false, baseUrl = '') => {
     const imgIndex = []; // [{src, srcset, alt}, ...]
 
     const stripped = rawHtml
-      .replace(/<figure[\s\S]*?<\/figure>/gi, '')
+      // Unwrap <figure> blocks: keep <img> tags inside but drop <figcaption> text
+      .replace(/<figure[\s\S]*?<\/figure>/gi, (figBlock) => {
+        // Remove figcaption first, then strip the figure wrapper, leaving img tags
+        const withoutCaption = figBlock.replace(/<figcaption[\s\S]*?<\/figcaption>/gi, '');
+        const imgs = [];
+        withoutCaption.replace(/<img[^>]*\/?>/gi, (imgTag) => { imgs.push(imgTag); return ''; });
+        return imgs.join('');
+      })
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<button[\s\S]*?<\/button>/gi, '')
       .replace(/<img[^>]*data-hook="gallery-item-image-img-preload"[^>]*\/?>/gi, '')
