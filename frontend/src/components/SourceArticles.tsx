@@ -420,9 +420,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
 
   const handleRescrapeAllArticles = () => {
     setIsRescraping(true);
-    // EventSource sends cookies automatically for same-origin requests.
-    // For cross-origin, ensure the backend ALLOWED_ORIGINS includes this frontend origin.
-    const eventSource = new EventSource(`${apiUrl}/api/sources/${sourceId}/rescrape-stream`);
+    // withCredentials: true ensures cookies are sent on cross-origin requests
+    const eventSource = new EventSource(`${apiUrl}/api/sources/${sourceId}/rescrape-stream`, { withCredentials: true });
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
