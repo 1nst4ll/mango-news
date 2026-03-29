@@ -54,7 +54,7 @@ const _resolveUrl = (url) => {
 function normalizeInline(text) {
   return text
     .replace(/\u00a0/g, ' ')
-    .replace(/[ \t]+/g, ' ')
+    .replace(/[\s]+/g, ' ')
     .replace(/([.!?])([A-Z])/g, '$1 $2')
     .trim();
 }
