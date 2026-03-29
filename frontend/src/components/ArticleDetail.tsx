@@ -249,6 +249,45 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
     return t.translation_not_available.replace('{language}', langName);
   };
 
+  // Wire up lightbox click handlers on all <img> in article content
+  // (must be before early returns to satisfy React hook ordering rules)
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+    // Small delay to ensure dangerouslySetInnerHTML has rendered
+    const timer = setTimeout(() => {
+      const imgs = container.querySelectorAll('img');
+      const allImages: GalleryImage[] = [];
+      imgs.forEach(img => {
+        allImages.push({ src: img.getAttribute('src') || '', alt: img.getAttribute('alt') || '' });
+      });
+      setLightboxImages(allImages);
+
+      imgs.forEach((img, idx) => {
+        img.style.cursor = 'pointer';
+        img.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setLightboxIdx(idx);
+          lightboxRef.current?.showModal();
+        };
+      });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [article, currentLocale]);
+
+  // Lightbox keyboard navigation
+  useEffect(() => {
+    const dialog = lightboxRef.current;
+    if (!dialog) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setLightboxIdx(null); dialog.close(); }
+      if (e.key === 'ArrowRight') setLightboxIdx(i => i !== null ? (i + 1) % lightboxImages.length : 0);
+      if (e.key === 'ArrowLeft') setLightboxIdx(i => i !== null ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0);
+    };
+    dialog.addEventListener('keydown', handleKeyDown);
+    return () => dialog.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxImages.length]);
 
   if (loading) {
     return (
@@ -291,45 +330,6 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
       </div>
     );
   }
-
-  // Wire up lightbox click handlers on all <img> in article content
-  useEffect(() => {
-    const container = contentRef.current;
-    if (!container) return;
-    // Small delay to ensure dangerouslySetInnerHTML has rendered
-    const timer = setTimeout(() => {
-      const imgs = container.querySelectorAll('img');
-      const allImages: GalleryImage[] = [];
-      imgs.forEach(img => {
-        allImages.push({ src: img.getAttribute('src') || '', alt: img.getAttribute('alt') || '' });
-      });
-      setLightboxImages(allImages);
-
-      imgs.forEach((img, idx) => {
-        img.style.cursor = 'pointer';
-        img.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setLightboxIdx(idx);
-          lightboxRef.current?.showModal();
-        };
-      });
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [article, currentLocale]);
-
-  // Lightbox keyboard navigation
-  useEffect(() => {
-    const dialog = lightboxRef.current;
-    if (!dialog) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setLightboxIdx(null); dialog.close(); }
-      if (e.key === 'ArrowRight') setLightboxIdx(i => i !== null ? (i + 1) % lightboxImages.length : 0);
-      if (e.key === 'ArrowLeft') setLightboxIdx(i => i !== null ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0);
-    };
-    dialog.addEventListener('keydown', handleKeyDown);
-    return () => dialog.removeEventListener('keydown', handleKeyDown);
-  }, [lightboxImages.length]);
 
   const displayTitle = getTranslatedText(article, 'title', currentLocale);
   // Helper to get translated raw content with fallback
