@@ -1368,18 +1368,6 @@ app.get('/api/sunday-editions/:id', async (req, res) => {
 app.post('/api/unreal-speech-callback', async (req, res) => {
   const endpoint = '/api/unreal-speech-callback';
 
-  // Required shared secret verification
-  const webhookSecret = process.env.UNREAL_SPEECH_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    console.error(`[ERROR] ${new Date().toISOString()} - POST ${endpoint} - UNREAL_SPEECH_WEBHOOK_SECRET is not configured. Rejecting callback.`);
-    return res.status(503).json({ error: 'Webhook not configured.' });
-  }
-  const provided = req.headers['x-webhook-secret'];
-  if (provided !== webhookSecret) {
-    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Webhook secret mismatch from ${req.ip}`);
-    return res.status(401).json({ error: 'Unauthorized.' });
-  }
-
   // Validate payload structure
   const callbackSchema = z.object({
     TaskId:     z.string().min(1),
@@ -1392,6 +1380,13 @@ app.post('/api/unreal-speech-callback', async (req, res) => {
   }
 
   const { TaskId, TaskStatus } = parsed.data;
+
+  // Verify this TaskId belongs to a Sunday Edition we created (prevents spoofed callbacks)
+  const taskCheck = await pool.query('SELECT id FROM sunday_editions WHERE unreal_speech_task_id = $1', [TaskId]);
+  if (taskCheck.rows.length === 0) {
+    console.warn(`[WARN] ${new Date().toISOString()} - POST ${endpoint} - Unknown TaskId: ${TaskId}. Ignoring callback.`);
+    return res.status(404).json({ error: 'Unknown TaskId.' });
+  }
 
   console.log(`[INFO] ${new Date().toISOString()} - POST ${endpoint} - Received callback for TaskId: ${TaskId}, Status: ${TaskStatus}`);
 

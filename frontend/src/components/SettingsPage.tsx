@@ -264,6 +264,7 @@ const SettingsPage: React.FC = () => {
   const [sundayEditionPurgeLoading, setSundayEditionPurgeLoading] = useState(false);
   const [sundayEditionImageLoading, setSundayEditionImageLoading] = useState<{ [key: number]: boolean }>({});
   const [sundayEditionAudioLoading, setSundayEditionAudioLoading] = useState<{ [key: number]: boolean }>({});
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null);
 
   // Confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -1678,29 +1679,30 @@ const SettingsPage: React.FC = () => {
                           </div>
                         ) : (
                           <div className="flex gap-4">
-                            {/* Thumbnail preview */}
+                            {/* Thumbnail preview — click to open lightbox */}
                             {edition.image_url && (
-                              <div className="flex-shrink-0 hidden sm:block">
+                              <div
+                                className="flex-shrink-0 hidden sm:block cursor-pointer"
+                                onClick={() => setLightboxImage({ src: edition.image_url!, alt: edition.title })}
+                              >
                                 <img
                                   src={edition.image_url}
                                   alt={edition.title}
-                                  className="w-28 h-20 object-cover rounded-md border"
+                                  className="w-28 h-20 object-cover rounded-md border hover:opacity-80 transition-opacity"
                                 />
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-semibold text-sm truncate">{edition.title}</h4>
-                                <Badge variant="secondary" className="text-xs flex-shrink-0">ID: {edition.id}</Badge>
                                 <a
                                   href={`/en/sunday-edition/${edition.id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex-shrink-0"
-                                  onClick={e => e.stopPropagation()}
+                                  className="font-semibold text-sm truncate hover:underline"
                                 >
-                                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                                  {edition.title}
                                 </a>
+                                <Badge variant="secondary" className="text-xs flex-shrink-0">ID: {edition.id}</Badge>
                               </div>
                               <p className="text-xs text-muted-foreground mb-1">
                                 Published: {new Date(edition.publication_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
@@ -1988,6 +1990,29 @@ const SettingsPage: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* ================================================================
+          Image Lightbox
+      ================================================================ */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors z-10"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <img
+            src={lightboxImage.src}
+            alt={lightboxImage.alt}
+            onClick={e => e.stopPropagation()}
+            className="max-w-[90vw] max-h-[90vh] object-contain cursor-default rounded-lg"
+          />
+        </div>
       )}
 
       {/* ================================================================
