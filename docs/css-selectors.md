@@ -34,7 +34,7 @@ article header h1
 .post-title
 ```
 
-If omitted, the scraper falls back to the page `<title>` tag.
+If omitted, the scraper tries fallback selectors: `h1.entry-title`, `h1.post-title`, `h1[itemprop="headline"]`, `og:title`, then generic `h1`.
 
 ### Date Selector (`os_date_selector`)
 
@@ -111,22 +111,63 @@ os_topics_selector:    .cat-links a
 exclude_selectors:     .sharedaddy, .jp-relatedposts, .comments
 ```
 
+### WordPress + Elementor example
+
+Elementor sites often use different content containers:
+
+```
+os_title_selector:     h1.entry-title
+os_content_selector:   div.page-content
+os_date_selector:      meta[property='article:published_time']
+os_author_selector:    meta[name='author']
+exclude_selectors:     .elementor-post__meta-data
+article_link_template: https://example.com/{article_slug}/
+```
+
 ## Article Link Template
 
-The `article_link_template` field is a regex pattern used to discover article URLs from the source homepage. The scraper finds all links on the homepage and keeps only those matching this pattern.
+The `article_link_template` field uses placeholder syntax (not raw regex) to define the URL pattern for articles. The scraper converts placeholders to regex internally.
+
+### Placeholder syntax
+
+| Placeholder | Matches | Example |
+|------------|---------|---------|
+| `{article_slug}` | Any path segment (`[^/]+`) | `my-article-title` |
+| `{YYYY}` | 4-digit year | `2026` |
+| `{MM}` | 2-digit month | `03` |
+| `{DD}` | 2-digit day | `28` |
+| `{slug}` | Any path segment | Same as `{article_slug}` |
+| `{id:(regex)}` | Custom regex pattern | `{id:(111\|129\|135)}` |
+
+### Examples
 
 ```
-# Match date-based URLs
-https://example.com/\d{4}/\d{2}/[^/]+/
+# WordPress date-based URLs
+https://example.com/{YYYY}/{MM}/{article_slug}/
 
-# Match path prefix
-https://example.com/news/[^/]+
+# Simple slug under root
+https://example.com/{article_slug}/
 
-# Match any slug under /articles/
-https://example.com/articles/.+
+# Category + slug
+https://suntci.com/{slug}-p{id1}-{id2}.htm
+
+# Custom ID filter
+https://example.com/post/{id:(news\|sports)}/{article_slug}
 ```
 
-**Exclude patterns** — query parameters to strip from discovered URLs:
+### Heuristic discovery (no template)
+
+If `article_link_template` is not set, the scraper uses heuristic scoring to identify article links. Links are scored by:
+- URL structure (slug length, dash count, date patterns in path)
+- Path keywords (`/news/`, `/article/`, `/post/`, `/press/`)
+- Anchor text length (articles have descriptive titles, nav links are short)
+- DOM context (links inside `article`, `.post`, `.card`, `.elementor-post` containers)
+
+Links scoring 3+ are treated as potential articles. This allows sources to work without manual template configuration.
+
+### Exclude patterns
+
+Query parameters to strip from discovered URLs (comma-separated):
 ```
 utm_source,utm_medium,fbclid,share
 ```
