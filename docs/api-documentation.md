@@ -4,6 +4,8 @@
 
 All endpoints return JSON. Errors use the shape `{ "error": "description" }`.
 
+**Route organization:** The API is organized into route modules: `auth`, `articles`, `sources`, `scraping`, `sundayEditions`, `stats`, `settings`, `rss`. Each module is in `backend/src/routes/`.
+
 ## Authentication
 
 Protected endpoints use **HttpOnly cookie authentication**. On a successful login the backend sets a `jwt` cookie — the browser sends it automatically on subsequent requests. No manual `Authorization` header is needed from the browser.
@@ -26,7 +28,7 @@ Authorization: Bearer YOUR_TOKEN
 - `401` — no token / session expired
 - `403` — valid token but insufficient permissions (wrong role)
 - `404` — resource not found
-- `429` — rate limit exceeded (5 auth attempts per 15 min; 100 req/min general; 20/hr on AI/scrape endpoints)
+- `429` — rate limit exceeded (see Rate Limiting section below)
 - `500` — unexpected server error (details only visible with `NODE_ENV=development`)
 
 ---
@@ -204,14 +206,14 @@ Re-scrape all articles for a source (non-streaming).
 
 ### `GET /api/articles`
 
-List articles with pagination and filtering. Public.
+List articles with pagination and filtering. Public. Blocked articles (`is_blocked = TRUE`) are always excluded from results.
 
 **Query parameters:**
 - `page` (default: `1`), `limit` (default: `15`)
 - `topic` — comma-separated topic names
 - `source_ids` — comma-separated source IDs (e.g. `1,3,5`)
 - `startDate`, `endDate` — ISO 8601 date strings
-- `searchTerm` — full-text search in title and body
+- `searchTerm` — full-text search using trigram similarity (`%` operator) on titles for fuzzy matching, plus `ILIKE` on content. Requires the `pg_trgm` PostgreSQL extension.
 
 **Response `200`:** Array of article objects with `X-Total-Count` header.
 
@@ -437,6 +439,50 @@ Get a single Sunday Edition. Public.
 
 ---
 
+### `PUT /api/sunday-editions/:id` 🔒
+
+Update a Sunday Edition. Admin only.
+
+**Body:** Any subset of `{ "title": "string", "summary": "string", "image_url": "string", "publication_date": "ISO 8601 string" }`.
+
+**Response `200`:** Updated Sunday Edition object.
+
+---
+
+### `DELETE /api/sunday-editions/:id` 🔒
+
+Delete a Sunday Edition. Admin only.
+
+**Response `204`:** No content.
+
+---
+
+### `POST /api/sunday-editions/:id/regenerate-image` 🔒
+
+Regenerate the AI image for a Sunday Edition. Admin only. Rate-limited by the expensive limiter (20 requests/hour).
+
+**Response `200`:** `{ "message": "Image regenerated successfully.", "image_url": "https://..." }`
+
+---
+
+### `POST /api/sunday-editions/:id/regenerate-audio` 🔒
+
+Regenerate the audio narration for a Sunday Edition. Admin only. Rate-limited by the expensive limiter (20 requests/hour).
+
+**Response `200`:** `{ "message": "Audio regeneration initiated.", "task_id": "string" }`
+
+The audio is generated asynchronously via Unreal Speech. The `task_id` can be used to track progress. The `narration_url` on the Sunday Edition will be updated when the callback is received.
+
+---
+
+### `POST /api/sunday-editions/purge` 🔒
+
+Delete all Sunday Editions. Admin only.
+
+**Response `200`:** `{ "message": "All Sunday Editions purged successfully." }`
+
+---
+
 ### `POST /api/unreal-speech-callback`
 
 Async callback from Unreal Speech when MP3 narration is ready. Called by Unreal Speech — not for direct client use.
@@ -473,6 +519,30 @@ Save cron schedules and feature toggles. Takes effect immediately without restar
 **Body:** Same shape as GET response.
 
 **Response `200`:** `{ "message": "Scheduler settings saved successfully." }`
+
+---
+
+### `GET /api/settings/emergency`
+
+Get the current emergency banner settings. **Public** (no auth required) — called by the EmergencyBanner frontend component on every page load.
+
+**Response `200`:**
+```json
+{
+  "enabled": false,
+  "text": "Hurricane warning: Stay safe and follow official guidance."
+}
+```
+
+---
+
+### `PUT /api/settings/emergency` 🔒
+
+Update emergency banner settings. Admin only. Values are stored in the `application_settings` table.
+
+**Body:** `{ "enabled": true, "text": "Hurricane warning: seek shelter immediately." }` — both fields optional.
+
+**Response `200`:** `{ "message": "Emergency settings updated successfully." }`
 
 ---
 
@@ -516,6 +586,22 @@ RSS feed of the latest 20 articles. Public.
 
 **Response `200`:** `application/rss+xml` — each item includes title, link (to frontend article page), `pubDate`, description (AI summary + image), `guid` (original source URL), author (source name).
 
+Article links in the feed use the `SITE_URL` environment variable (default: `https://mango.tc`).
+
+---
+
+## Rate Limiting
+
+Three tiers of rate limiting are applied via `express-rate-limit`:
+
+| Tier | Limit | Applies to |
+|---|---|---|
+| **General** | 100 requests / minute | All endpoints |
+| **Auth** | 5 failed attempts / 15 minutes | `POST /api/login`, `POST /api/register` only |
+| **Expensive** | 20 requests / hour | AI processing, scraping, Sunday Edition generation and regeneration |
+
+When a limit is exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header.
+
 ---
 
 ## Notes
@@ -523,6 +609,8 @@ RSS feed of the latest 20 articles. Public.
 - Pagination: default page size is `15`, maximum is `100`, for articles and Sunday Editions
 - `X-Total-Count` response header on all paginated endpoints contains the total matching count (as a string)
 - 🔒 = requires authentication (browser: `jwt` cookie sent automatically; API clients: `Authorization: Bearer TOKEN` header)
+- Article search uses the `pg_trgm` PostgreSQL extension for fuzzy matching on titles
+- Blocked articles (`is_blocked = TRUE`) are excluded from all public article endpoints
 
 ## Related Documentation
 

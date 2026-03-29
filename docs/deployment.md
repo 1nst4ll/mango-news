@@ -279,8 +279,60 @@ DELETE FROM application_settings WHERE setting_name = 'lock_main_scraper';
 
 ---
 
+## Progressive Web App (PWA)
+
+The frontend is configured as a PWA with offline support:
+
+### Service Worker (`frontend/public/sw.js`)
+
+Registered in `BaseLayout.astro` on page load. Uses three caching strategies:
+
+| Content Type | Strategy | Details |
+|-------------|----------|---------|
+| HTML pages | Network-first | Falls back to cached version when offline |
+| Static assets (JS/CSS/images/fonts) | Cache-first | Served from cache, updated in background |
+| API responses | Stale-while-revalidate | Returns cached data immediately, refreshes in background |
+
+**Exclusions:** `/settings` pages and auth endpoints (`/me`, `/login`, `/logout`, `/refresh`) are never cached.
+
+**Pre-cached assets:** `/logo.png`, `/favicon.ico`, `/android-chrome-192x192.png`
+
+### Web App Manifest (`frontend/public/site.webmanifest`)
+
+- **Name:** Mango News - Turks and Caicos
+- **Start URL:** `/en/`
+- **Display:** standalone (full-screen app experience)
+- **Theme color:** `#FFB88C` (mango accent)
+- **Icons:** 192x192 and 512x512 PNG
+
+### Cache Versioning
+
+To invalidate caches after a major update, increment the version strings in `sw.js`:
+```javascript
+const CACHE_NAME = 'mango-news-v2';    // was v1
+const STATIC_CACHE = 'mango-news-static-v2';
+const API_CACHE = 'mango-news-api-v2';
+```
+Old caches are automatically deleted on service worker activation.
+
+---
+
+## Emergency Alert Banner
+
+An admin-controlled banner for hurricane warnings or other emergencies:
+
+- **Enable:** `PUT /api/settings/emergency` with `{ "enabled": true, "text": "Hurricane warning..." }`
+- **Disable:** `PUT /api/settings/emergency` with `{ "enabled": false }`
+- Stored in `application_settings` table (`emergency_banner_enabled`, `emergency_banner_text`)
+- Renders above the Header on all public pages
+- Users can dismiss per session (persisted in sessionStorage)
+- Banner is fetched on every page load via `GET /api/settings/emergency` (public, no auth)
+
+---
+
 ## Related Documentation
 
 - [Backend Setup](backend-setup.md) - Full environment variable reference
 - [Frontend UI](frontend-ui.md) - Frontend architecture
 - [Troubleshooting](troubleshooting.md) - Common deployment issues
+- [Roadmap](roadmap.md) - Future development plans

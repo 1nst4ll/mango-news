@@ -28,10 +28,19 @@ npm run dev            # http://localhost:4321
 frontend/src/
 ├── components/
 │   ├── ui/                    # shadcn/ui base components (30+)
+│   ├── ErrorBoundary.tsx      # React class component, catches render errors
+│   ├── EmergencyBanner.tsx    # Admin-toggled red banner above Header
 │   ├── Header.tsx             # Navigation bar, login button, theme toggle
 │   ├── NewsFeed.tsx           # Main article feed (infinite scroll, filters)
 │   ├── ArticleDetail.tsx      # Full article view (gallery, sharing, nav)
-│   ├── SettingsPage.tsx       # Admin dashboard (4 tabs)
+│   ├── SettingsPage.tsx       # Admin dashboard (5 tabs, lazy-loaded)
+│   ├── settings/              # Lazy-loaded SettingsPage sub-components
+│   │   ├── OverviewStats.tsx            # KPI cards, charts, AI coverage
+│   │   ├── ScraperControls.tsx          # Manual scrape triggers, AI toggles, purge
+│   │   ├── ScheduledTasks.tsx           # Cron editors for 3 jobs
+│   │   ├── SourceManagement.tsx         # Source CRUD, filters, bulk actions
+│   │   ├── SundayEditionsAdmin.tsx      # Edition list, edit, regenerate, purge
+│   │   └── types.ts                     # Shared TypeScript interfaces
 │   ├── SourceArticles.tsx     # Per-source article management table
 │   ├── ArticleEditDialog.tsx  # Rich article editor (80% width modal)
 │   ├── HtmlEditor.tsx         # TipTap WYSIWYG wrapper
@@ -40,7 +49,7 @@ frontend/src/
 │   │   ├── ArticlesTimelineChart.tsx     # Gradient area chart (yearly)
 │   │   ├── SourceBarChart.tsx            # Horizontal bar chart
 │   │   └── SourceDistributionPieChart.tsx # Donut pie chart
-│   ├── LanguageSwitcher.tsx   # Flag-based locale selector
+│   ├── LanguageSwitcher.tsx   # Flag-based locale selector (spinner on nav)
 │   ├── SundayEditionDetail.tsx
 │   ├── LoginDialog.tsx
 │   ├── ModeToggle.tsx         # Dark/light theme toggle
@@ -56,6 +65,7 @@ frontend/src/
 │   │   ├── news/topic/[topicSlug].astro
 │   │   └── sunday-edition/[id].astro
 │   └── settings/source/[sourceId].astro
+├── layouts/BaseLayout.astro    # Root layout (registers SW, renders EmergencyBanner)
 ├── layouts/Layout.astro       # Root layout wrapper
 ├── locales/                   # Static UI translation files
 │   ├── en.json
@@ -94,14 +104,39 @@ Full article view at `/article/[id]`:
 - Previous/Next article navigation
 - Clickable topic badges → filtered feed
 
+### ErrorBoundary
+
+React class component that wraps all page-level components in `.astro` pages. Catches JavaScript render errors and displays a fallback UI with a retry button. Uses Lucide icons (`AlertCircle`, `RefreshCw`).
+
+### EmergencyBanner
+
+Rendered above `Header` in `BaseLayout`. Fetches `/api/settings/emergency` on mount and, when enabled, shows a red dismissible banner with the admin-configured text. Dismiss state persists for the session via `sessionStorage`. Toggled on/off by admins through the Settings page.
+
+### LanguageSwitcher
+
+Flag-based locale selector. Now shows a `Loader2` spinner during language change navigation to provide visual feedback while the page transitions.
+
 ### SettingsPage (Admin)
 
 Tabbed dashboard at `/settings` (requires login):
 
 1. **Overview & Stats** — KPI cards, area/pie/bar charts, AI coverage radial gauges (Recharts)
-2. **Global Settings** — AI feature toggles for manual scraper runs
+2. **Scraper Controls** — AI feature toggles, manual scrape triggers, purge
 3. **Scheduled Tasks** — cron expression editor for all three background jobs
-4. **Source Management** — CRUD for news sources, per-source scraping config
+4. **Source Management** — CRUD for news sources, per-source scraping config, filters, bulk actions
+5. **Sunday Editions** — Edition list, edit, regenerate image/audio, purge
+
+SettingsPage is now an **orchestrator** that lazy-loads 5 tab components via `React.lazy()`:
+
+| Sub-component | Path | Responsibility |
+|---------------|------|----------------|
+| `OverviewStats.tsx` | `settings/OverviewStats.tsx` | KPI cards, charts, AI coverage |
+| `ScraperControls.tsx` | `settings/ScraperControls.tsx` | Manual scrape triggers, AI toggles, purge |
+| `ScheduledTasks.tsx` | `settings/ScheduledTasks.tsx` | Cron editors for 3 jobs |
+| `SourceManagement.tsx` | `settings/SourceManagement.tsx` | Source CRUD, filters, bulk actions |
+| `SundayEditionsAdmin.tsx` | `settings/SundayEditionsAdmin.tsx` | Edition list, edit, regenerate, purge |
+
+Each tab is wrapped in `React.Suspense` with a `Skeleton` fallback. Shared TypeScript interfaces live in `settings/types.ts`. This decomposition reduced the SettingsPage chunk from **522 KB to 39 KB**.
 
 See [Admin UI](admin-ui.md) for the full feature reference.
 
@@ -193,13 +228,38 @@ Dynamic OG meta tags per page type:
 - **Index** — site title, description, logo
 - **Settings** — generic admin metadata
 
+## PWA / Service Worker
+
+- `public/sw.js` registered in `BaseLayout` via an inline `<script>` block
+- **Caching strategies:**
+  - **Network-first** for HTML pages
+  - **Cache-first** for static assets (JS, CSS, images, fonts)
+  - **Stale-while-revalidate** for API responses
+- Skips auth endpoints and `/settings` pages (never cached)
+- Pre-caches logo, favicon, and app icon on install
+- `public/site.webmanifest` updated with proper `name`, `start_url`, and `theme_color`
+
 ## Performance
 
-- Lazy-loaded images throughout
+- `loading="lazy"` on all feed and article images (`NewsFeed.tsx`, `ArticleDetail.tsx`)
+- Lazy-loaded SettingsPage sub-components (5 tabs via `React.lazy`, Skeleton fallbacks)
 - `AbortController` for request cancellation on filter/navigation changes
 - `useDeepCompareEffect` to skip re-renders when filter objects haven't changed
 - TipTap editor lazy-loaded — excluded from initial bundle
 - Paginated API calls (15 articles per request)
+- Share buttons: icon-only on small screens (`<640px`), text visible on larger screens
+
+## Accessibility
+
+- Lightbox prevents body scroll when open (`overflow: hidden`)
+- Footer external links show an `ExternalLink` icon to indicate outbound navigation
+- Dark mode: `ModeToggle` reads from DOM `classList` on init (no flash of wrong theme)
+
+## UX Improvements
+
+- Share buttons: icon-only on mobile, full text on desktop
+- Language switcher shows a loading spinner during navigation
+- Removed dead 2001-date workaround (no affected articles in production)
 
 ## Related Documentation
 

@@ -2,7 +2,7 @@
 
 **Access:** `/settings` (requires login)
 
-The Settings page is the control center for sources, scraping, AI, and scheduling.
+The Settings page is the control center for sources, scraping, AI, scheduling, and Sunday Editions. It contains 5 tabs, each lazy-loaded as a separate sub-component under `components/settings/` (shared types in `settings/types.ts`).
 
 ## Overview & Stats Tab
 
@@ -29,7 +29,7 @@ Four radial gauge charts (one per AI feature) showing the percentage of articles
 
 - Summaries, Tags, Images, Translations
 
-## Global Settings Tab
+## Scraper Controls Tab
 
 AI toggles that apply to **manual** scraper runs only (scheduled runs use per-source settings):
 
@@ -91,6 +91,77 @@ Each source card shows: ID, name, URL, article count, active status, AI settings
 - `scrape_after_date` — ignore articles published before this date
 
 See [CSS Selectors](css-selectors.md) for selector syntax and examples, and [Scraping Methods](scraping-methods.md) for how each method works.
+
+## Sunday Editions Tab
+
+Manages the weekly Sunday Edition digests.
+
+### Stats Cards
+
+| Card | Description |
+|------|-------------|
+| Total Editions | Aggregate count of all Sunday Editions |
+| With Audio | Editions that have generated audio |
+| With Image | Editions that have generated images |
+| Date Range | Publication date range of all editions |
+
+### Actions
+
+- **Generate New Sunday Edition** — creates a new edition from recent articles
+
+### Edition List
+
+Each edition row shows: title, publication date, audio status, and image preview (click for lightbox).
+
+### Per-Edition Actions
+
+| Action | Description |
+|--------|-------------|
+| **Edit** | Edit title and summary inline |
+| **Regenerate Image** | Re-generate the edition thumbnail |
+| **Regenerate Audio** | Re-generate the audio narration |
+| **Delete** | Remove this edition |
+
+### Bulk Actions
+
+- **Purge All Sunday Editions** — deletes all editions (confirmation required)
+
+### Image Lightbox
+
+Clicking an edition thumbnail opens a full-screen lightbox preview of the image.
+
+## Emergency Banner
+
+Admin-controlled banner that appears above the Header on all public pages.
+
+### API Endpoints
+
+| Endpoint | Auth | Description |
+|----------|------|-------------|
+| `GET /api/settings/emergency` | Public | Returns current banner state |
+| `PUT /api/settings/emergency` | Admin | Update `enabled` (boolean) and `text` (string) |
+
+### Behavior
+
+- When `enabled` is `true`, a red banner displays the configured `text` above the site Header on every public page
+- Users can dismiss the banner; dismiss state persists for the current session via `sessionStorage`
+- Admins toggle the banner on/off and edit the text from the Settings page
+
+---
+
+## Component Architecture
+
+`SettingsPage.tsx` is an orchestrator that lazy-loads 5 tab sub-components via `React.lazy()`:
+
+| Sub-component | Path | Tab |
+|---------------|------|-----|
+| `OverviewStats.tsx` | `components/settings/` | Overview & Stats |
+| `ScraperControls.tsx` | `components/settings/` | Scraper Controls |
+| `ScheduledTasks.tsx` | `components/settings/` | Scheduled Tasks |
+| `SourceManagement.tsx` | `components/settings/` | Source Management |
+| `SundayEditionsAdmin.tsx` | `components/settings/` | Sunday Editions |
+
+Shared TypeScript interfaces live in `components/settings/types.ts`. Each tab is wrapped in `React.Suspense` with a `Skeleton` fallback.
 
 ---
 

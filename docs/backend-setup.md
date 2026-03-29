@@ -16,7 +16,7 @@ GRANT ALL PRIVILEGES ON DATABASE mangonews TO mangoadmin;
 ```
 
 ```bash
-# Apply schema
+# Apply schema (includes ALL tables and indexes for fresh deployments)
 cd db
 psql -U mangoadmin -d mangonews -f schema.sql
 
@@ -28,6 +28,8 @@ psql -U mangoadmin -d mangonews -f db/migrations/add_sunday_editions_table.sql
 
 **Tables created:**
 
+`schema.sql` now includes all tables, indexes, and extensions for a complete fresh deployment:
+
 | Table | Purpose |
 |-------|---------|
 | `users` | Admin authentication |
@@ -37,6 +39,20 @@ psql -U mangoadmin -d mangonews -f db/migrations/add_sunday_editions_table.sql
 | `article_topics` | Article–topic many-to-many relationships |
 | `application_settings` | Scheduler cron expressions and feature toggles |
 | `sunday_editions` | Weekly AI-generated summary posts |
+
+**Extensions:**
+
+- `pg_trgm` — enables trigram similarity for fuzzy full-text search on article titles
+
+**Performance indexes:**
+
+| Index | Purpose |
+|-------|---------|
+| `idx_articles_source_url` | Fast lookups by source URL |
+| `idx_articles_is_blocked` | Filter blocked articles efficiently |
+| `idx_articles_created_at` | Sort/filter by creation date |
+| `idx_articles_source_pub` | Composite index for source + publication date queries |
+| `idx_articles_title_trgm` | GIN trigram index for fuzzy text search on titles |
 
 ## Installation
 
@@ -98,6 +114,7 @@ UNREAL_SPEECH_WEBHOOK_SECRET=your_webhook_secret
 ```env
 FIRECRAWL_API_KEY=your_firecrawl_api_key  # Firecrawl scraping method
 UNREAL_SPEECH_API_KEY=your_unreal_key     # Sunday Edition audio narration
+SITE_URL=https://mango.tc                 # Base URL for RSS feed links (default: https://mango.tc)
 ```
 
 ### Optional AI Tuning {#optional-ai-environment-variables}
@@ -178,21 +195,52 @@ Uses prefix matching — any URL starting with a blacklisted entry is skipped.
 
 ## Architecture
 
-### Key Files
+### Overview
+
+`index.js` is a slim orchestrator (~200 lines) that sets up Express middleware, mounts route modules, and handles graceful shutdown. All route logic lives in `src/routes/`.
+
+### Route Modules (`src/routes/`)
 
 | File | Purpose |
 |------|---------|
-| `src/index.js` | Express server, 50+ API routes, graceful shutdown |
+| `routes/auth.js` | Authentication — login, register, refresh, logout |
+| `routes/articles.js` | Article CRUD, search, blocking |
+| `routes/sources.js` | Source management and configuration |
+| `routes/scraping.js` | Scraper triggers and status |
+| `routes/sundayEditions.js` | Sunday Edition CRUD, regenerate images/audio |
+| `routes/stats.js` | Dashboard statistics |
+| `routes/settings.js` | Application settings management |
+| `routes/rss.js` | RSS feed |
+
+### Middleware
+
+| File | Purpose |
+|------|---------|
+| `middleware/auth.js` | JWT verification (cookie -> header -> query param); `requireRole()` RBAC middleware |
+| `middleware/rateLimiter.js` | 3 rate limiters — general API, auth endpoints, scraping triggers |
+
+### Services
+
+| File | Purpose |
+|------|---------|
+| `services/aiService.js` | Centralized Groq AI — caching, retry, rate limiting |
+| `services/imageService.js` | fal.ai image generation |
+| `services/s3Service.js` | Shared S3 upload (used by image service, Sunday Editions, etc.) |
+
+### Other Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/index.js` | Express orchestrator, route mounting, graceful shutdown |
 | `src/scraper.js` | Article scraping pipeline, AI processing, cron jobs |
 | `src/opensourceScraper.js` | Puppeteer-based web scraping with fallback extraction and heuristic discovery |
+| `src/cronLock.js` | Database-based cron job locking (replaces process-local booleans) |
 | `src/onboardSource.js` | Automated source onboarding — CMS detection, selector proposal, validation |
 | `src/browserPool.js` | Shared Puppeteer browser instance with configurable resource blocking |
 | `src/audit.js` | Database audit script — selector health, content quality, cross-source analysis |
 | `src/db.js` | PostgreSQL connection pool (max 10, 30s idle timeout) |
-| `src/services/aiService.js` | Centralized Groq AI — caching, retry, rate limiting |
 | `src/sundayEditionGenerator.js` | Weekly AI summary + audio narration |
 | `src/user.js` | User registration (Zod validation), password hashing (bcrypt), JWT + refresh token generation |
-| `src/middleware/auth.js` | JWT verification (cookie → header → query param); `requireRole()` RBAC middleware |
 
 ### AI Service (`services/aiService.js`)
 
@@ -211,13 +259,15 @@ See [AI Optimization Analysis](ai-optimization-analysis.md) for caching strategy
 
 ### Scheduled Jobs
 
-Three cron jobs run on configurable schedules (set via Settings → Scheduled Tasks):
+Three cron jobs run on configurable schedules (set via Settings -> Scheduled Tasks):
 
 1. **Main Scraper** (`0 * * * *` hourly) — scrapes all active sources
 2. **Missing AI Processor** (`*/20 * * * *`) — fills missing summaries/tags/images/translations
 3. **Sunday Edition** (`0 0 * * 0` Sunday midnight) — generates weekly digest
 
-Locking prevents overlapping executions.
+### Cron Locking (`cronLock.js`)
+
+Database-based locking prevents overlapping executions across restarts and multiple instances. Three lock keys are used: `lock_main_scraper`, `lock_missing_ai`, `lock_sunday_edition`. Stale locks are automatically cleaned after 2 hours to recover from crashed processes.
 
 ## Related Documentation
 

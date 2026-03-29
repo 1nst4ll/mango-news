@@ -101,14 +101,31 @@ Sunday Editions appear in the main news feed alongside regular articles with a d
 
 The `sunday_edition` key in each locale file provides the translated badge label.
 
+## Admin Management
+
+The Settings page has a dedicated **Sunday Editions** tab (5th tab) with:
+
+- **Stats cards** — total editions, with audio, with image, date range
+- **Generate** — manual trigger button
+- **Edition list** — title, publication date, audio status, image preview
+- **Per-edition actions:**
+  - Edit title and summary
+  - Regenerate image (`POST /api/sunday-editions/:id/regenerate-image`)
+  - Regenerate audio (`POST /api/sunday-editions/:id/regenerate-audio`)
+  - Delete single edition
+- **Purge all** — delete all editions
+
 ## Manual Trigger
 
 From the Settings page or via curl:
 
 ```bash
-curl -X POST "http://localhost:3000/api/sunday-editions/generate" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+curl -b cookies.txt -X POST "http://localhost:3000/api/sunday-editions/generate"
 ```
+
+## Future: Bilingual Editions
+
+Planned enhancement: add `summary_es` and `summary_ht` columns to the `sunday_editions` table and translate via the existing `aiService.js` pipeline. See [Roadmap](roadmap.md#g2-bilingual-sunday-edition) for details.
 
 ## Related Documentation
 
