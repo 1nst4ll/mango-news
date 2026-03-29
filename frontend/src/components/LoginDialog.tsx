@@ -30,9 +30,9 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
   const handleLogin = async () => {
     setError('');
     setLoading(true);
-    const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api';
+    const apiUrl = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:3000';
     try {
-      const response = await fetch(`${backendApiUrl}/login`, {
+      const response = await fetch(`${apiUrl}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

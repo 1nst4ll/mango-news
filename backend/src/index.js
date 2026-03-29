@@ -622,7 +622,7 @@ app.get('/api/articles', async (req, res) => {
   const offset = (page - 1) * limit;
 
   const values = [];
-  const conditions = [];
+  const conditions = ['a.is_blocked = FALSE'];
   let valueIndex = 1;
 
   if (startDate) {
@@ -1612,11 +1612,12 @@ app.get('/api/rss', async (req, res) => {
       LIMIT 20
     `);
 
+    const siteUrl = process.env.SITE_URL || 'https://mango.tc';
     const feed = new RSS({
       title: 'Mango News Feed',
       description: 'Latest news from Turks and Caicos Islands',
-      feed_url: 'https://mango.tc/api/rss', // Replace with actual domain if needed
-      site_url: 'https://mango.tc', // Replace with actual domain if needed
+      feed_url: `${siteUrl}/api/rss`,
+      site_url: siteUrl,
       language: 'en-us',
       ttl: 60, // 60 minutes
     });
@@ -1632,7 +1633,7 @@ app.get('/api/rss', async (req, res) => {
 
       feed.item({
         title: article.title,
-        url: `https://mango.tc/article/${article.id}`, // Link to frontend article page
+        url: `${siteUrl}/article/${article.id}`,
         date: article.publication_date,
         description: descriptionHtml,
         guid: article.source_url, // Use original source URL as GUID
@@ -1649,11 +1650,12 @@ app.get('/api/rss', async (req, res) => {
     // If the articles or sources table doesn't exist yet, return an empty feed as a fallback
     if (err.code === '42P01') { // 'undefined_table' error code for PostgreSQL
        console.warn(`[WARN] ${new Date().toISOString()} - GET ${endpoint} - Articles or sources table not found, returning empty RSS feed. Ensure database schema is applied.`);
+       const siteUrlFallback = process.env.SITE_URL || 'https://mango.tc';
        const emptyFeed = new RSS({
          title: 'Mango News Feed',
          description: 'Latest news from Turks and Caicos Islands',
-         feed_url: 'https://mango.tc/api/rss', // Replace with actual domain if needed
-         site_url: 'https://mango.tc', // Replace with actual domain if needed
+         feed_url: `${siteUrlFallback}/api/rss`,
+         site_url: siteUrlFallback,
          language: 'en-us',
          ttl: 60, // 60 minutes
        });

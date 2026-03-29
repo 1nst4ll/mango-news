@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import NewsFeed from '@/components/NewsFeed'; // Import as a React component
 import { getCollection } from 'astro:content';
 import {
@@ -77,7 +78,9 @@ const pageDescription = `Latest news articles on ${formattedTopic} from across t
       <h1 class="text-3xl font-bold mt-4 mb-6">
         {formattedTopic}
       </h1>
-      <NewsFeed client:load activeCategory={topicSlug ? topicSlug.replace(/-/g, ' ') : ''} />
+      <ErrorBoundary client:load fallbackMessage="Failed to load news feed">
+        <NewsFeed client:load activeCategory={topicSlug ? topicSlug.replace(/-/g, ' ') : ''} />
+      </ErrorBoundary>
     </div>
   </main>
 </BaseLayout>

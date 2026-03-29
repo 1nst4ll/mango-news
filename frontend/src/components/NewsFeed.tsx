@@ -419,7 +419,7 @@ function NewsFeed({
                       >
                         {edition.image_url && (
                           <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
-                            <img src={edition.image_url} alt={edition.title} className="w-full h-full object-cover" />
+                            <img src={edition.image_url} alt={edition.title} className="w-full h-full object-cover" loading="lazy" />
                             <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
                               {t.sunday_edition}
                             </div>
@@ -498,7 +498,7 @@ function NewsFeed({
                       <Card className="flex flex-col h-full">
                         {article.thumbnail_url && (
                           <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
-                            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-full object-cover" />
+                            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-full object-cover" loading="lazy" />
                             {displayTopics && displayTopics.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
                                 <div className="flex flex-wrap gap-1">

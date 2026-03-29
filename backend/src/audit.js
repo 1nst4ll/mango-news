@@ -16,18 +16,19 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-// Production Render DB (external hostname with SSL)
+// Use environment variables for DB connection (set in .env or shell)
+// For external (non-Render) access, set DB_SSL=true
 const pool = new Pool({
-  user: 'mangoadmin',
-  host: 'REDACTED_DB_HOST',
-  database: 'mangonews',
-  password: 'REDACTED_DB_PASSWORD',
-  port: 5432,
-  ssl: { rejectUnauthorized: false },
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT || 5432,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   connectionTimeoutMillis: 15000,
 });
 
-const RENDER_API = 'https://mango-news.onrender.com';
+const RENDER_API = process.env.PUBLIC_API_URL || 'https://mango-news.onrender.com';
 
 // ============================================================================
 // HELPERS

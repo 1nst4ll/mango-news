@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '/src/layouts/BaseLayout.astro';
+import ErrorBoundary from '/src/components/ErrorBoundary';
 import SundayEditionDetail from '/src/components/SundayEditionDetail.tsx';
 import { marked } from 'marked';
 
@@ -29,7 +30,9 @@ const displaySummary = edition ? marked.parse(edition.summary) : '';
   ogType="article"
 >
   {edition ? (
-    <SundayEditionDetail edition={edition} lang={lang} client:load />
+    <ErrorBoundary client:load fallbackMessage="Failed to load Sunday Edition">
+      <SundayEditionDetail edition={edition} lang={lang} client:load />
+    </ErrorBoundary>
   ) : (
     <div class="text-center py-10">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Sunday Edition Not Found</h1>

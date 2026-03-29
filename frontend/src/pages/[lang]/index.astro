@@ -1,6 +1,7 @@
 ---
 // Main index page for the frontend, displaying the news feed.
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ErrorBoundary from '../../components/ErrorBoundary';
 import IndexPage from '../../components/IndexPage'; // Corrected import path for IndexPage
 
 let sources = [];
@@ -29,5 +30,7 @@ const ogType = "website";
   ogType={ogType}
   sources={sources}
 >
-  <IndexPage client:load sources={sources} />
+  <ErrorBoundary client:load fallbackMessage="Failed to load news feed">
+    <IndexPage client:load sources={sources} />
+  </ErrorBoundary>
 </BaseLayout>

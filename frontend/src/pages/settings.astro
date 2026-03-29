@@ -1,6 +1,7 @@
 ---
 // Settings/admin page for the frontend.
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ErrorBoundary from '../components/ErrorBoundary';
 import SettingsPage from '../components/SettingsPage'; // Import as a React component
 
 let sources = [];
@@ -29,7 +30,9 @@ const ogType = "website";
   ogType={ogType}
   sources={sources}
 >
-  <SettingsPage client:load />
+  <ErrorBoundary client:load fallbackMessage="Failed to load settings">
+    <SettingsPage client:load />
+  </ErrorBoundary>
 </BaseLayout>
 
 <script define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL || 'http://localhost:3000' }}>

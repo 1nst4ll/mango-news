@@ -1,6 +1,7 @@
 ---
 // Dynamic route for displaying individual articles.
 import BaseLayout from '../../../layouts/BaseLayout.astro'; // Corrected path
+import ErrorBoundary from '../../../components/ErrorBoundary';
 import ArticleDetail from '../../../components/ArticleDetail'; // Corrected path
 
 export const prerender = false; // Mark this page for dynamic rendering
@@ -66,5 +67,7 @@ const ogType = "article";
   sources={sources}
 >
   {/* The ArticleDetail component will fetch data client-side */}
-  <ArticleDetail id={id} client:load />
+  <ErrorBoundary client:load fallbackMessage="Failed to load article">
+    <ArticleDetail id={id} client:load />
+  </ErrorBoundary>
 </BaseLayout>

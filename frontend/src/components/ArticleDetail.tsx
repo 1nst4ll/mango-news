@@ -419,7 +419,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         </div>
         <div className="relative md:float-right md:w-1/2 md:ml-8 mb-6 clear-both">
           {article.thumbnail_url && (
-            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg shadow-lg object-cover" />
+            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg shadow-lg object-cover" loading="lazy" />
           )}
           <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
             {displayTopics.map(topic => (
@@ -574,7 +574,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
                   <Card className="flex flex-col h-full">
                     {relatedArticle.thumbnail_url && (
                       <div className="relative w-full h-32 overflow-hidden rounded-t-lg">
-                        <img src={relatedArticle.thumbnail_url} alt={relatedArticle.title} className="w-full h-full object-cover" />
+                        <img src={relatedArticle.thumbnail_url} alt={relatedArticle.title} className="w-full h-full object-cover" loading="lazy" />
                       </div>
                     )}
                     <CardHeader className="px-4 py-2">

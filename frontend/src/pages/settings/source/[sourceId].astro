@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ErrorBoundary from '../../../components/ErrorBoundary';
 import SourceArticles from '../../../components/SourceArticles.tsx';
 
 const { sourceId } = Astro.params;
@@ -22,6 +23,8 @@ const ogType = "website"; // Or "object" if we consider a source a specific type
   ogType={ogType}
 >
   <main class="container mx-auto p-4">
-    <SourceArticles client:load sourceId={sourceId} />
+    <ErrorBoundary client:load fallbackMessage="Failed to load source articles">
+      <SourceArticles client:load sourceId={sourceId} />
+    </ErrorBoundary>
   </main>
 </BaseLayout>

@@ -20,9 +20,9 @@ export function LoginButton({ isLoggedIn, setIsLoggedIn }: LoginButtonProps) {
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
 
   const handleLogout = async () => {
-    const backendApiUrl = import.meta.env.PUBLIC_BACKEND_API_URL || 'http://localhost:3000/api';
+    const apiUrl = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:3000';
     try {
-      await fetch(`${backendApiUrl}/logout`, {
+      await fetch(`${apiUrl}/api/logout`, {
         method: 'POST',
         credentials: 'include',
       });
