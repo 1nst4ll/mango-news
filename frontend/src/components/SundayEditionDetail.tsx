@@ -1,6 +1,6 @@
 import React from 'react';
 import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import DOMPurify from 'isomorphic-dompurify';
 import AudioPlayer from './ui/AudioPlayer';
 import { Button } from "./ui/button";
 import { MessageCircleMore, Facebook } from 'lucide-react';
