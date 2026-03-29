@@ -93,7 +93,7 @@ POST /api/unreal-speech-callback
 
 ### Feed Page
 
-Sunday Editions appear in the main news feed alongside regular articles with a distinct **"Sunday Edition"** badge, audio player, and AI-generated image.
+Sunday Editions appear in the main news feed alongside regular articles with a distinct **"Sunday Edition"** badge, audio player, and AI-generated image. The badge is a clickable `<a>` link to the Sunday Edition listing page (`/${locale}/sunday-edition`); `e.stopPropagation()` prevents it from also triggering the card's detail-page navigation.
 
 The **Sources filter** on the feed page includes a "Sunday Edition" entry (special ID `0`). This controls visibility:
 

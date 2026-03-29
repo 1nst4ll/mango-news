@@ -95,9 +95,11 @@ Navbar links are defined in `frontend/src/lib/nav-items.ts`. Current items:
 |---|---|---|
 | News | `/` | Main feed |
 | Sunday Edition | `/sunday-edition` | Edition listing page |
-| RSS Feed | `/api/rss` | RSS icon shown instead of text |
+| RSS Feed | `/api/rss` | RSS icon shown instead of text; `/api/` paths skip locale prefix |
 
 External mango.tc links (Home, Vehicles, Real Estate, Jobs) have been removed from the navbar.
+
+`Header.tsx` applies the locale prefix (`/${currentLocale}`) to all relative hrefs **except** those starting with `http` or `/api/` — so `/api/rss` is used as-is and never becomes `/en/api/rss`.
 
 ### NewsFeed
 
@@ -282,7 +284,7 @@ Dynamic OG meta tags per page type:
 - `useDeepCompareEffect` to skip re-renders when filter objects haven't changed
 - TipTap editor lazy-loaded — excluded from initial bundle
 - Paginated API calls (15 articles per request)
-- Share buttons: icon-only on small screens (`<640px`), text visible on larger screens
+- Share buttons: text always visible at all screen sizes; text wraps on small screens (`whitespace-normal h-auto`); icon has `shrink-0` to prevent squishing
 
 ## Accessibility
 
@@ -292,7 +294,7 @@ Dynamic OG meta tags per page type:
 
 ## UX Improvements
 
-- Share buttons: icon-only on mobile, full text on desktop
+- Share buttons: text always shown, wraps to fit on any screen size
 - Language switcher shows a loading spinner during navigation
 - Removed dead 2001-date workaround (no affected articles in production)
 

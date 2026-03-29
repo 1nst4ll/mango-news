@@ -427,9 +427,13 @@ function NewsFeed({
                         {edition.image_url && (
                           <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
                             <img src={edition.image_url} alt={edition.title} className="w-full h-full object-cover" loading="lazy" />
-                            <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
+                            <a
+                              href={`/${currentLocale}/sunday-edition`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute top-2 left-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded"
+                            >
                               {t.sunday_edition}
-                            </div>
+                            </a>
                           </div>
                         )}
                         <CardHeader className={edition.image_url ? "px-6 pt-4" : "px-6 pt-4"}>
