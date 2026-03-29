@@ -16,6 +16,7 @@
   > p:first-of-type,
   > div:first-child > p:first-of-type {
     font-size: 1.08em;
+    font-weight: 700;
     line-height: 1.75;
     margin-bottom: 1.3em;
   }
