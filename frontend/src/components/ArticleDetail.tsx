@@ -270,23 +270,27 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           e.stopPropagation();
           setLightboxIdx(idx);
           lightboxRef.current?.showModal();
+          document.body.style.overflow = 'hidden';
         };
       });
     }, 50);
     return () => clearTimeout(timer);
   }, [article, currentLocale]);
 
-  // Lightbox keyboard navigation
+  // Lightbox keyboard navigation + scroll lock cleanup
   useEffect(() => {
     const dialog = lightboxRef.current;
     if (!dialog) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setLightboxIdx(null); dialog.close(); }
+      if (e.key === 'Escape') { setLightboxIdx(null); dialog.close(); document.body.style.overflow = ''; }
       if (e.key === 'ArrowRight') setLightboxIdx(i => i !== null ? (i + 1) % lightboxImages.length : 0);
       if (e.key === 'ArrowLeft') setLightboxIdx(i => i !== null ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0);
     };
     dialog.addEventListener('keydown', handleKeyDown);
-    return () => dialog.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      dialog.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
   }, [lightboxImages.length]);
 
   if (loading) {
@@ -442,7 +446,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         {/* Global lightbox for all article images */}
         <dialog
           ref={lightboxRef}
-          onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); }}
+          onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); document.body.style.overflow = ''; }}
           style={{
             position: 'fixed', inset: 0, width: '100vw', height: '100vh',
             maxWidth: '100vw', maxHeight: '100vh', margin: 0, padding: 0,
@@ -452,7 +456,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           {lightboxIdx !== null && lightboxImages[lightboxIdx] && (
             <>
               <button
-                onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); }}
+                onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); document.body.style.overflow = ''; }}
                 style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
                 aria-label="Close"

@@ -1,4 +1,5 @@
 import React from 'react';
+import { ExternalLink } from 'lucide-react';
 import useTranslations from '../lib/hooks/useTranslations';
 
 interface Source {
@@ -33,7 +34,7 @@ const Footer: React.FC<FooterProps> = ({ sources }) => {
             <ul className="space-y-1">
               {sources.map((source) => (
                 <li key={source.id}>
-                  <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{source.name}</a>
+                  <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">{source.name} <ExternalLink className="h-3 w-3 opacity-60" /></a>
                 </li>
               ))}
             </ul>

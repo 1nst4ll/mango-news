@@ -1,6 +1,7 @@
 ---
 // Base layout component for Astro pages, including global styles, header, and footer.
 import '../styles/global.css';
+import EmergencyBanner from '../components/EmergencyBanner';
 import Header from '../components/Header';
 import Footer from '../components/footer.tsx';
 import { Toaster } from '@/components/ui/toaster';
@@ -101,6 +102,7 @@ const dynamicDescription = description === "mango.tc news - Your source for news
     {ogImageHeight && <meta name="twitter:image:height" content={String(ogImageHeight)} />}
   </head>
   <body>
+    <EmergencyBanner client:load />
     <Header client:load />
     <slot />
     <Footer client:load sources={sources} />

@@ -999,15 +999,18 @@ const runScraper = async (enableGlobalAiSummary = true, enableGlobalAiTags = tru
 };
 
 // ============================================================================
-// CRON JOB LOCKING - Prevents overlapping executions that cause memory spikes
+// CRON JOB LOCKING - Database-based to survive restarts and multi-instance
 // ============================================================================
+const { acquireLock, releaseLock, getActiveLocks } = require('./cronLock');
+
+// Process-local flags kept for memory monitoring display only
 let isMainScraperRunning = false;
 let isMissingAiJobRunning = false;
 let isSundayEditionRunning = false;
 
 // Schedule the scraper to run periodically (e.g., every hour)
 cron.schedule('0 * * * *', async () => {
-  if (isMainScraperRunning) {
+  if (!await acquireLock('lock_main_scraper')) {
     console.log('[CRON] Main scraper job is already running. Skipping this execution.');
     return;
   }
@@ -1020,10 +1023,10 @@ cron.schedule('0 * * * *', async () => {
     const isEnabled = enabledResult.rows[0]?.setting_value !== 'false';
     if (!isEnabled) {
       console.log('[CRON] Main scraper is disabled. Skipping this execution.');
+      await releaseLock('lock_main_scraper');
       return;
     }
   } catch (err) {
-    // If settings table doesn't exist yet, run anyway (default enabled)
     console.warn('[CRON] Could not check main_scraper_enabled setting, running by default.');
   }
 
@@ -1036,6 +1039,7 @@ cron.schedule('0 * * * *', async () => {
     console.error('[CRON] Error in scheduled scraping job:', error);
   } finally {
     isMainScraperRunning = false;
+    await releaseLock('lock_main_scraper');
     console.log('[CRON] Scheduled scraping job completed.');
     logMemoryUsage();
   }
@@ -1045,7 +1049,7 @@ console.log('[scraper] News scraper scheduled to run hourly.');
 
 // Schedule Sunday Edition generation (every Sunday at 00:00)
 cron.schedule('0 0 * * 0', async () => {
-  if (isSundayEditionRunning) {
+  if (!await acquireLock('lock_sunday_edition')) {
     console.log('[CRON] Sunday Edition job is already running. Skipping this execution.');
     return;
   }
@@ -1058,6 +1062,7 @@ cron.schedule('0 0 * * 0', async () => {
     const isEnabled = enabledResult.rows[0]?.setting_value !== 'false';
     if (!isEnabled) {
       console.log('[CRON] Sunday Edition is disabled. Skipping this execution.');
+      await releaseLock('lock_sunday_edition');
       return;
     }
   } catch (err) {
@@ -1073,6 +1078,7 @@ cron.schedule('0 0 * * 0', async () => {
     console.error('[CRON] Error in Sunday Edition generation job:', error);
   } finally {
     isSundayEditionRunning = false;
+    await releaseLock('lock_sunday_edition');
     console.log('[CRON] Sunday Edition job completed.');
     logMemoryUsage();
   }
@@ -1082,7 +1088,7 @@ console.log('[scraper] Sunday Edition generation scheduled to run.');
 
 // Schedule processing of missing AI data every 20 minutes
 cron.schedule('*/20 * * * *', async () => {
-  if (isMissingAiJobRunning) {
+  if (!await acquireLock('lock_missing_ai')) {
     console.log('[CRON] Missing AI data job is already running. Skipping this execution.');
     return;
   }
@@ -1095,6 +1101,7 @@ cron.schedule('*/20 * * * *', async () => {
     const isEnabled = enabledResult.rows[0]?.setting_value !== 'false';
     if (!isEnabled) {
       console.log('[CRON] Missing AI processor is disabled. Skipping this execution.');
+      await releaseLock('lock_missing_ai');
       return;
     }
   } catch (err) {
@@ -1158,6 +1165,7 @@ cron.schedule('*/20 * * * *', async () => {
     console.error('[CRON] Error in missing AI data processing job:', error);
   } finally {
     isMissingAiJobRunning = false;
+    await releaseLock('lock_missing_ai');
     console.log('[CRON] Finished scheduled missing AI data processing job.');
     logMemoryUsage();
   }

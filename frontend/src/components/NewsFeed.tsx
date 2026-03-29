@@ -431,9 +431,7 @@ function NewsFeed({
                           </CardTitle>
                           <p className="text-xs text-muted-foreground mt-1">
                             <a href="https://mango.tc/news" target="_blank" rel="noopener noreferrer" className="hover:underline" onClick={(e) => e.stopPropagation()}>mango.tc News</a> | {t.published}: {
-                              new Date(edition.publication_date).getFullYear() === 2001
-                                ? new Date(edition.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
-                                : new Date(edition.publication_date).toLocaleDateString(currentLocale)
+                              new Date(edition.publication_date).toLocaleDateString(currentLocale)
                             }
                           </p>
                         </CardHeader>
@@ -539,14 +537,10 @@ function NewsFeed({
                               <span> | {t.author}: {article.author}</span>
                             )}
                             <span> | {t.published}: {
-                              new Date(article.publication_date).getFullYear() === 2001
-                                ? new Date(article.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
-                                : new Date(article.publication_date).toLocaleDateString(currentLocale)
+                              new Date(article.publication_date).toLocaleDateString(currentLocale)
                             }</span>
                             <span> | {t.added}: {
-                              new Date(article.created_at).getFullYear() === 2001
-                                ? new Date(article.created_at).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
-                                : new Date(article.created_at).toLocaleDateString(currentLocale)
+                              new Date(article.created_at).toLocaleDateString(currentLocale)
                             }</span>
                           </p>
                         </CardHeader>
@@ -566,7 +560,7 @@ function NewsFeed({
                               window.open(whatsappUrl, '_blank');
                             }}
                           >
-                            <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
+                            <MessageCircleMore className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">{t.share_on_whatsapp}</span>
                           </Button>
                           <Button
                             variant="outline"
@@ -579,7 +573,7 @@ function NewsFeed({
                               window.open(facebookUrl, '_blank');
                             }}
                           >
-                            <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
+                            <Facebook className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">{t.share_on_facebook}</span>
                           </Button>
                         </div>
                       </Card>

@@ -97,4 +97,51 @@ router.post('/scheduler', authenticateToken, requireRole('admin'), async (req, r
   }
 });
 
+// Get emergency banner settings (public — no auth required)
+router.get('/emergency', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT setting_name, setting_value FROM application_settings
+       WHERE setting_name IN ('emergency_banner_enabled', 'emergency_banner_text')`
+    );
+    const settings = result.rows.reduce((acc, row) => {
+      acc[row.setting_name] = row.setting_value;
+      return acc;
+    }, {});
+    res.json({
+      enabled: settings.emergency_banner_enabled === 'true',
+      text: settings.emergency_banner_text || '',
+    });
+  } catch (err) {
+    // If table doesn't exist, return disabled
+    res.json({ enabled: false, text: '' });
+  }
+});
+
+// Update emergency banner settings (admin only)
+router.put('/emergency', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { enabled, text } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const upsert = (name, value) => client.query(
+      `INSERT INTO application_settings (setting_name, setting_value)
+       VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      [name, value]
+    );
+    if (enabled !== undefined) await upsert('emergency_banner_enabled', String(enabled));
+    if (text !== undefined) await upsert('emergency_banner_text', text);
+    await client.query('COMMIT');
+    console.log(`[INFO] ${new Date().toISOString()} - PUT /api/settings/emergency - Updated`);
+    res.json({ message: 'Emergency banner settings updated.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(`[ERROR] ${new Date().toISOString()} - PUT /api/settings/emergency - Error:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

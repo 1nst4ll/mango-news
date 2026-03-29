@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
-import { Globe } from 'lucide-react'; // Using Globe icon as a fallback if flags are not directly available
+import { Globe, Loader2 } from 'lucide-react';
 
 interface Language {
   code: string;
@@ -18,6 +18,7 @@ const languages: Language[] = [
 const LanguageSwitcher: React.FC = () => {
   const [currentLocale, setCurrentLocale] = useState('en');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Get the current locale from the URL path (Astro i18n prefix)
@@ -56,9 +57,10 @@ const LanguageSwitcher: React.FC = () => {
     // Store preference in localStorage (optional, but good for remembering choice)
     localStorage.setItem('preferredLocale', newLocale);
 
-    // Navigate to the new URL
-    window.location.href = newPath;
+    // Show loading state and navigate
+    setIsLoading(true);
     setIsPopoverOpen(false);
+    window.location.href = newPath;
   };
 
   const currentLanguage = languages.find(lang => lang.code === currentLocale) || languages[0]; // Fallback to English
@@ -66,8 +68,12 @@ const LanguageSwitcher: React.FC = () => {
   return (
     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <img src={currentLanguage.flag} alt={currentLanguage.name} className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="relative" disabled={isLoading}>
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <img src={currentLanguage.flag} alt={currentLanguage.name} className="h-5 w-5" />
+          )}
           <span className="sr-only">Change language</span>
         </Button>
       </PopoverTrigger>
