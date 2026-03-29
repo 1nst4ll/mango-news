@@ -13,24 +13,17 @@
  */
 
 const { fal } = require('@fal-ai/client');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { v4: uuidv4 } = require('uuid');
 
 // Import centralized AI service for prompt optimization and shared utilities
 const aiService = require('./aiService');
 
+// Import shared S3 service
+const { uploadToS3 } = require('./s3Service');
+
 // Configure fal.ai client
 fal.config({
   credentials: process.env.FAL_KEY
-});
-
-// Configure AWS S3
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
 });
 
 // ============================================================================
@@ -55,38 +48,6 @@ const CONFIG = {
   GUIDANCE_SCALE: parseFloat(process.env.FAL_GUIDANCE_SCALE) || 2.5,
   // Output format: jpeg, png, or webp
   OUTPUT_FORMAT: process.env.FAL_OUTPUT_FORMAT || 'jpeg',
-};
-
-// ============================================================================
-// S3 UPLOAD
-// ============================================================================
-
-/**
- * Upload buffer to S3
- * @param {Buffer} buffer - Image buffer
- * @param {string} folder - S3 folder path
- * @param {string} filename - File name
- * @param {string} contentType - MIME type
- * @returns {Promise<string|null>} - S3 URL or null on failure
- */
-const uploadToS3 = async (buffer, folder, filename, contentType) => {
-  const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: `${folder}/${filename}`,
-    Body: buffer,
-    ContentType: contentType
-  };
-
-  try {
-    const command = new PutObjectCommand(params);
-    await s3Client.send(command);
-    const s3Url = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
-    console.log(`[Image Service] Uploaded to S3: ${s3Url}`);
-    return s3Url;
-  } catch (error) {
-    console.error(`[Image Service] Error uploading to S3 (${folder}/${filename}): ${error.message}`);
-    return null;
-  }
 };
 
 // ============================================================================

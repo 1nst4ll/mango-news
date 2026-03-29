@@ -1,6 +1,5 @@
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const axios = require('axios');
-const { v4: uuidv4 } = require('uuid'); // For unique filenames
+const { v4: uuidv4 } = require('uuid');
 
 // Import shared database pool to prevent connection exhaustion and reduce memory
 const { pool } = require('./db');
@@ -11,14 +10,8 @@ const aiService = require('./services/aiService');
 // Import image service for AI image generation
 const imageService = require('./services/imageService');
 
-// Configure AWS S3
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    },
-});
+// Import shared S3 service
+const { uploadToS3 } = require('./services/s3Service');
 
 const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
 const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/synthesisTasks';
@@ -70,24 +63,7 @@ async function generateSundayEditionSummary(articles) {
     }
 }
 
-async function uploadToS3(buffer, folder, filename, contentType) {
-    const params = {
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: `${folder}/${filename}`,
-        Body: buffer,
-        ContentType: contentType
-    };
-
-    try {
-        const command = new PutObjectCommand(params);
-        await s3Client.send(command);
-        const s3Url = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
-        return s3Url;
-    } catch (error) {
-        console.error(`[ERROR] Error uploading to S3 (${folder}/${filename}): ${error.message}`);
-        return null;
-    }
-}
+// uploadToS3 is now imported from services/s3Service.js
 
 // Helper function to strip Markdown from text
 function stripMarkdown(markdownText) {
