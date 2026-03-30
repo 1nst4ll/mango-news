@@ -156,8 +156,8 @@ router.put('/emergency', authenticateToken, requireRole('admin'), async (req, re
   }
 });
 
-// Blacklist management + AI model settings + TTS settings
-const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS, loadTtsSettings, getTtsSettings, TTS_DEFAULTS } = require('../configLoader');
+// Blacklist management + AI model settings + TTS settings + Image settings
+const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS, loadTtsSettings, getTtsSettings, TTS_DEFAULTS, loadImageSettings, getImageSettings, IMAGE_SETTINGS_DEFAULTS } = require('../configLoader');
 
 // ============================================================================
 // AI Model Settings
@@ -182,8 +182,14 @@ const FAL_IMAGE_MODELS = [
   { id: 'fal-ai/flux/dev',                      label: 'FLUX.1 Dev' },
   { id: 'fal-ai/flux/schnell',                  label: 'FLUX.1 Schnell (fastest)' },
   { id: 'fal-ai/flux-pro/v1.1',                 label: 'FLUX1.1 Pro' },
-  // Text-in-image specialists
+  // Google
+  { id: 'fal-ai/imagen4',                       label: 'Google Imagen 4' },
+  { id: 'fal-ai/nano-banana-2',                 label: 'Google Nano Banana 2' },
+  // OpenAI
+  { id: 'fal-ai/gpt-image-1.5',                 label: 'OpenAI GPT Image 1.5' },
+  // Ideogram
   { id: 'fal-ai/ideogram/v3',                   label: 'Ideogram V3 (best text in image)' },
+  // Recraft
   { id: 'fal-ai/recraft-v3',                    label: 'Recraft V3 (text + vector)' },
   { id: 'fal-ai/recraft/v4/pro/text-to-image',  label: 'Recraft V4 Pro (text + composition)' },
 ];
@@ -224,6 +230,159 @@ router.put('/ai-models', authenticateToken, requireRole('admin'), async (req, re
     res.json({ message: 'AI model settings updated.', current: getAiModels() });
   } catch (err) {
     console.error(`[ERROR] PUT /api/settings/ai-models:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ============================================================================
+// Per-model Image Generation Settings
+// ============================================================================
+
+// Schema metadata for each model — drives the UI
+const IMAGE_MODEL_SCHEMAS = {
+  'fal-ai/flux-2/turbo': {
+    label: 'FLUX.2 Turbo',
+    fields: [
+      { key: 'image_size',           type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'guidance_scale',       type: 'number', min: 0, max: 10, step: 0.1, label: 'Guidance Scale' },
+      { key: 'output_format',        type: 'select', options: ['jpeg','png','webp'], label: 'Output Format' },
+      { key: 'enable_safety_checker',type: 'boolean', label: 'Safety Checker' },
+    ],
+  },
+  'fal-ai/flux-2-pro': {
+    label: 'FLUX.2 Pro',
+    fields: [
+      { key: 'image_size',       type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'safety_tolerance', type: 'select', options: ['1','2','3','4','5'], label: 'Safety Tolerance (1=strict, 5=permissive)' },
+      { key: 'output_format',    type: 'select', options: ['jpeg','png'], label: 'Output Format' },
+    ],
+  },
+  'fal-ai/flux-2-flex': {
+    label: 'FLUX.2 Flex',
+    fields: [
+      { key: 'image_size',            type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'guidance_scale',        type: 'number', min: 1.5, max: 10, step: 0.1, label: 'Guidance Scale' },
+      { key: 'num_inference_steps',   type: 'number', min: 2, max: 50, step: 1, label: 'Inference Steps' },
+      { key: 'safety_tolerance',      type: 'select', options: ['1','2','3','4','5'], label: 'Safety Tolerance' },
+      { key: 'output_format',         type: 'select', options: ['jpeg','png'], label: 'Output Format' },
+    ],
+  },
+  'fal-ai/flux/dev': {
+    label: 'FLUX.1 Dev',
+    fields: [
+      { key: 'image_size',            type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'guidance_scale',        type: 'number', min: 1, max: 20, step: 0.5, label: 'Guidance Scale' },
+      { key: 'num_inference_steps',   type: 'number', min: 1, max: 50, step: 1, label: 'Inference Steps' },
+      { key: 'output_format',         type: 'select', options: ['jpeg','png'], label: 'Output Format' },
+      { key: 'enable_safety_checker', type: 'boolean', label: 'Safety Checker' },
+    ],
+  },
+  'fal-ai/flux/schnell': {
+    label: 'FLUX.1 Schnell',
+    fields: [
+      { key: 'image_size',            type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'num_inference_steps',   type: 'number', min: 1, max: 50, step: 1, label: 'Inference Steps' },
+      { key: 'guidance_scale',        type: 'number', min: 1, max: 20, step: 0.5, label: 'Guidance Scale' },
+      { key: 'output_format',         type: 'select', options: ['jpeg','png'], label: 'Output Format' },
+      { key: 'enable_safety_checker', type: 'boolean', label: 'Safety Checker' },
+    ],
+  },
+  'fal-ai/flux-pro/v1.1': {
+    label: 'FLUX Pro 1.1',
+    fields: [
+      { key: 'image_size',       type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'safety_tolerance', type: 'select', options: ['1','2','3','4','5','6'], label: 'Safety Tolerance' },
+      { key: 'output_format',    type: 'select', options: ['jpeg','png'], label: 'Output Format' },
+      { key: 'enhance_prompt',   type: 'boolean', label: 'Enhance Prompt' },
+    ],
+  },
+  'fal-ai/imagen4': {
+    label: 'Google Imagen 4',
+    fields: [
+      { key: 'aspect_ratio',     type: 'select', options: ['1:1','16:9','9:16','4:3','3:4'], label: 'Aspect Ratio' },
+      { key: 'resolution',       type: 'select', options: ['1K','2K'], label: 'Resolution' },
+      { key: 'safety_tolerance', type: 'select', options: ['1','2','3','4','5','6'], label: 'Safety Tolerance' },
+      { key: 'output_format',    type: 'select', options: ['jpeg','png','webp'], label: 'Output Format' },
+    ],
+  },
+  'fal-ai/nano-banana-2': {
+    label: 'Google Nano Banana 2',
+    fields: [
+      { key: 'aspect_ratio',      type: 'select', options: ['auto','21:9','16:9','3:2','4:3','5:4','1:1','4:5','3:4','2:3','9:16'], label: 'Aspect Ratio' },
+      { key: 'resolution',        type: 'select', options: ['0.5K','1K','2K','4K'], label: 'Resolution' },
+      { key: 'safety_tolerance',  type: 'select', options: ['1','2','3','4','5','6'], label: 'Safety Tolerance' },
+      { key: 'output_format',     type: 'select', options: ['jpeg','png','webp'], label: 'Output Format' },
+      { key: 'thinking_level',    type: 'select', options: ['minimal','high'], label: 'Thinking Level' },
+      { key: 'enable_web_search', type: 'boolean', label: 'Enable Web Search' },
+    ],
+  },
+  'fal-ai/gpt-image-1.5': {
+    label: 'OpenAI GPT Image 1.5',
+    fields: [
+      { key: 'image_size',    type: 'select', options: ['1024x1024','1536x1024','1024x1536'], label: 'Image Size' },
+      { key: 'quality',       type: 'select', options: ['low','medium','high'], label: 'Quality' },
+      { key: 'background',    type: 'select', options: ['auto','transparent','opaque'], label: 'Background' },
+      { key: 'output_format', type: 'select', options: ['jpeg','png','webp'], label: 'Output Format' },
+    ],
+  },
+  'fal-ai/ideogram/v3': {
+    label: 'Ideogram V3',
+    fields: [
+      { key: 'image_size',      type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'style',           type: 'select', options: ['AUTO','GENERAL','REALISTIC','DESIGN'], label: 'Style' },
+      { key: 'rendering_speed', type: 'select', options: ['TURBO','BALANCED','QUALITY'], label: 'Rendering Speed' },
+      { key: 'negative_prompt', type: 'text', label: 'Negative Prompt' },
+      { key: 'expand_prompt',   type: 'boolean', label: 'Expand Prompt' },
+    ],
+  },
+  'fal-ai/recraft-v3': {
+    label: 'Recraft V3',
+    fields: [
+      { key: 'image_size',           type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'style',                type: 'select', options: ['realistic_image','digital_illustration','vector_illustration','realistic_image/b_and_w','digital_illustration/pixel_art','digital_illustration/hand_drawn','digital_illustration/grain','digital_illustration/infantile_sketch','digital_illustration/2d_art_poster','digital_illustration/engraving_color','digital_illustration/logo_raster','digital_illustration/antiquarian'], label: 'Style' },
+      { key: 'enable_safety_checker',type: 'boolean', label: 'Safety Checker' },
+    ],
+  },
+  'fal-ai/recraft/v4/pro/text-to-image': {
+    label: 'Recraft V4 Pro',
+    fields: [
+      { key: 'image_size',            type: 'select', options: ['square_hd','square','portrait_4_3','portrait_16_9','landscape_4_3','landscape_16_9'], label: 'Image Size' },
+      { key: 'enable_safety_checker', type: 'boolean', label: 'Safety Checker' },
+    ],
+  },
+};
+
+router.get('/image-settings', authenticateToken, async (req, res) => {
+  try {
+    res.json({
+      current: getImageSettings(),
+      defaults: IMAGE_SETTINGS_DEFAULTS,
+      schemas: IMAGE_MODEL_SCHEMAS,
+    });
+  } catch (err) {
+    console.error(`[ERROR] GET /api/settings/image-settings:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/image-settings', authenticateToken, requireRole('admin'), async (req, res) => {
+  // req.body: { modelId: string, settings: object }
+  const { modelId, settings } = req.body;
+  if (!modelId || typeof settings !== 'object') {
+    return res.status(400).json({ error: 'modelId and settings are required.' });
+  }
+  try {
+    const current = getImageSettings();
+    const updated = { ...current, [modelId]: { ...(current[modelId] || {}), ...settings } };
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value) VALUES ('ai_image_settings', $1)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      [JSON.stringify(updated)]
+    );
+    await loadImageSettings();
+    res.json({ message: 'Image settings updated.', current: getImageSettings()[modelId] });
+  } catch (err) {
+    console.error(`[ERROR] PUT /api/settings/image-settings:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

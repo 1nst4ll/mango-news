@@ -17,7 +17,7 @@ const { v4: uuidv4 } = require('uuid');
 
 // Import centralized AI service for prompt optimization and shared utilities
 const aiService = require('./aiService');
-const { getAiModels } = require('../configLoader');
+const { getAiModels, getImageSettingsForModel } = require('../configLoader');
 
 // Import shared S3 service
 const { uploadToS3 } = require('./s3Service');
@@ -49,6 +49,64 @@ const CONFIG = {
 };
 
 // ============================================================================
+// MODEL INPUT BUILDER
+// ============================================================================
+
+/**
+ * Build a model-specific input object from stored settings.
+ * Each model has different parameter names — this maps them correctly.
+ */
+function buildModelInput(modelId, prompt, settings) {
+  const base = { prompt };
+
+  // Models using aspect_ratio instead of image_size (Google models)
+  const usesAspectRatio = ['fal-ai/imagen4', 'fal-ai/nano-banana-2'].includes(modelId);
+
+  // Models using fixed image_size strings like "1024x1024" (GPT Image)
+  const usesGptImageSize = modelId === 'fal-ai/gpt-image-1.5';
+
+  if (usesAspectRatio) {
+    if (settings.aspect_ratio)    base.aspect_ratio    = settings.aspect_ratio;
+    if (settings.resolution)      base.resolution      = settings.resolution;
+    if (settings.safety_tolerance != null) base.safety_tolerance = settings.safety_tolerance;
+    if (settings.output_format)   base.output_format   = settings.output_format;
+    if (settings.num_images)      base.num_images      = settings.num_images;
+    // nano-banana extras
+    if (settings.thinking_level)  base.thinking_level  = settings.thinking_level;
+    if (settings.enable_web_search != null) base.enable_web_search = settings.enable_web_search;
+  } else if (usesGptImageSize) {
+    if (settings.image_size)      base.image_size      = settings.image_size;
+    if (settings.quality)         base.quality         = settings.quality;
+    if (settings.background)      base.background      = settings.background;
+    if (settings.output_format)   base.output_format   = settings.output_format;
+    if (settings.num_images)      base.num_images      = settings.num_images;
+  } else {
+    // All other models (FLUX, Ideogram, Recraft)
+    if (settings.image_size) {
+      base.image_size = settings.image_size === 'custom'
+        ? { width: settings.image_width || 1280, height: settings.image_height || 720 }
+        : settings.image_size;
+    }
+    if (settings.guidance_scale != null)       base.guidance_scale       = settings.guidance_scale;
+    if (settings.num_inference_steps != null)  base.num_inference_steps  = settings.num_inference_steps;
+    if (settings.safety_tolerance != null)     base.safety_tolerance     = settings.safety_tolerance;
+    if (settings.enable_safety_checker != null) base.enable_safety_checker = settings.enable_safety_checker;
+    if (settings.output_format)                base.output_format        = settings.output_format;
+    if (settings.num_images)                   base.num_images           = settings.num_images;
+    if (settings.enhance_prompt != null)       base.enhance_prompt       = settings.enhance_prompt;
+    // Ideogram-specific
+    if (settings.style && modelId.includes('ideogram'))         base.style           = settings.style;
+    if (settings.rendering_speed)                               base.rendering_speed = settings.rendering_speed;
+    if (settings.expand_prompt != null)                         base.expand_prompt   = settings.expand_prompt;
+    if (settings.negative_prompt != null)                       base.negative_prompt = settings.negative_prompt;
+    // Recraft-specific
+    if (settings.style && modelId.includes('recraft'))         base.style           = settings.style;
+  }
+
+  return base;
+}
+
+// ============================================================================
 // CORE IMAGE GENERATION
 // ============================================================================
 
@@ -76,23 +134,13 @@ const generateAIImage = async (title, summary, folder = 'ai-images') => {
     // Use shared withRetry from AI service
     return await aiService.withRetry(async () => {
       const imageModel = getAiModels().IMAGE;
-      console.log(`[Image Service] Generating image with fal.ai model: ${imageModel}`);
-      console.log(`[Image Service] Settings: ${CONFIG.IMAGE_SIZE}, guidance ${CONFIG.GUIDANCE_SCALE}`);
+      const modelSettings = getImageSettingsForModel(imageModel);
+      console.log(`[Image Service] Generating image with model: ${imageModel}`, modelSettings);
 
-      // Build image_size parameter - use preset string or custom dimensions
-      const imageSize = CONFIG.IMAGE_SIZE === 'custom'
-        ? { width: CONFIG.IMAGE_WIDTH, height: CONFIG.IMAGE_HEIGHT }
-        : CONFIG.IMAGE_SIZE;
+      const input = buildModelInput(imageModel, optimizedPrompt, modelSettings);
 
       const result = await fal.subscribe(imageModel, {
-        input: {
-          prompt: optimizedPrompt,
-          image_size: imageSize,
-          guidance_scale: CONFIG.GUIDANCE_SCALE,
-          num_images: 1,
-          enable_safety_checker: true,
-          output_format: CONFIG.OUTPUT_FORMAT,
-        },
+        input,
         logs: true,
         onQueueUpdate: (update) => {
           if (update.status === 'IN_PROGRESS') {
@@ -125,8 +173,9 @@ const generateAIImage = async (title, summary, folder = 'ai-images') => {
       const buffer = Buffer.from(arrayBuffer);
 
       // Use content_type from response or determine from output format
-      const contentType = imageData.content_type || `image/${CONFIG.OUTPUT_FORMAT}`;
-      const fileExtension = CONFIG.OUTPUT_FORMAT;
+      const outputFormat = modelSettings.output_format || 'jpeg';
+      const contentType = imageData.content_type || `image/${outputFormat}`;
+      const fileExtension = outputFormat;
       const filename = `${uuidv4()}.${fileExtension}`;
 
       // Upload to S3

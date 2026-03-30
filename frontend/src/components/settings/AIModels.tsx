@@ -7,6 +7,7 @@ import { Bot, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
 import TTSSettings from './TTSSettings';
+import ImageModelSettings from './ImageModelSettings';
 
 interface ModelOption {
   id: string;
@@ -178,6 +179,9 @@ const AIModels: React.FC = () => {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Per-model Image Settings */}
+      <ImageModelSettings />
 
       {/* TTS Settings */}
       <TTSSettings />

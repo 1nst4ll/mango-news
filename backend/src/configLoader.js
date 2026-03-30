@@ -108,6 +108,55 @@ function getTtsSettings() {
   return _ttsSettings;
 }
 
+// ============================================================================
+// Per-model Image Generation Settings
+// ============================================================================
+
+const IMAGE_SETTINGS_DEFAULTS = {
+  'fal-ai/flux-2/turbo':                 { image_size: 'landscape_16_9', guidance_scale: 2.5, output_format: 'jpeg', enable_safety_checker: true },
+  'fal-ai/flux-2-pro':                   { image_size: 'landscape_4_3', safety_tolerance: '2', output_format: 'jpeg' },
+  'fal-ai/flux-2-flex':                  { image_size: 'landscape_4_3', guidance_scale: 3.5, num_inference_steps: 28, safety_tolerance: '2', output_format: 'jpeg' },
+  'fal-ai/flux/dev':                     { image_size: 'landscape_4_3', guidance_scale: 3.5, num_inference_steps: 28, output_format: 'jpeg', enable_safety_checker: true },
+  'fal-ai/flux/schnell':                 { image_size: 'landscape_4_3', num_inference_steps: 4, guidance_scale: 3.5, output_format: 'jpeg', enable_safety_checker: true },
+  'fal-ai/flux-pro/v1.1':               { image_size: 'landscape_4_3', safety_tolerance: '2', output_format: 'jpeg', enhance_prompt: false },
+  'fal-ai/imagen4':                      { aspect_ratio: '16:9', resolution: '1K', safety_tolerance: '4', output_format: 'png' },
+  'fal-ai/nano-banana-2':               { aspect_ratio: '16:9', resolution: '1K', safety_tolerance: '4', output_format: 'png' },
+  'fal-ai/gpt-image-1.5':              { image_size: '1536x1024', quality: 'high', background: 'auto', output_format: 'png' },
+  'fal-ai/ideogram/v3':                 { image_size: 'landscape_16_9', style: 'REALISTIC', rendering_speed: 'BALANCED', expand_prompt: true, negative_prompt: '' },
+  'fal-ai/recraft-v3':                  { image_size: 'landscape_16_9', style: 'realistic_image', enable_safety_checker: false },
+  'fal-ai/recraft/v4/pro/text-to-image': { image_size: 'landscape_16_9', enable_safety_checker: true },
+};
+
+let _imageSettings = { ...IMAGE_SETTINGS_DEFAULTS };
+
+async function loadImageSettings() {
+  try {
+    const result = await pool.query(
+      `SELECT setting_value FROM application_settings WHERE setting_name = 'ai_image_settings'`
+    );
+    if (result.rows.length > 0) {
+      const parsed = JSON.parse(result.rows[0].setting_value);
+      // Merge: DB values override defaults, defaults fill missing models
+      _imageSettings = { ...IMAGE_SETTINGS_DEFAULTS };
+      for (const [model, settings] of Object.entries(parsed)) {
+        _imageSettings[model] = { ...(_imageSettings[model] || {}), ...settings };
+      }
+    }
+    console.log('[Config] Image settings loaded for', Object.keys(_imageSettings).length, 'models');
+  } catch (error) {
+    console.error('[Config] Error loading image settings from DB:', error);
+    _imageSettings = { ...IMAGE_SETTINGS_DEFAULTS };
+  }
+}
+
+function getImageSettings() {
+  return _imageSettings;
+}
+
+function getImageSettingsForModel(modelId) {
+  return _imageSettings[modelId] || {};
+}
+
 module.exports = {
   loadUrlBlacklist,
   getBlacklist,
@@ -117,4 +166,8 @@ module.exports = {
   loadTtsSettings,
   getTtsSettings,
   TTS_DEFAULTS,
+  loadImageSettings,
+  getImageSettings,
+  getImageSettingsForModel,
+  IMAGE_SETTINGS_DEFAULTS,
 };
