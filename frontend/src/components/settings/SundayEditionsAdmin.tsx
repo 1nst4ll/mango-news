@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
-import { RefreshCw, AlertTriangle, FileText, ImagePlus, Volume2 } from 'lucide-react';
+import { RefreshCw, AlertTriangle, FileText, ImagePlus, Volume2, Search } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "../ui/skeleton";
 import type { SundayEditionAdmin } from './types';
@@ -54,6 +54,18 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
   handleDeleteSundayEdition,
   setLightboxImage,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredEditions = useMemo(() => {
+    if (!searchQuery.trim()) return sundayEditions;
+    const q = searchQuery.toLowerCase();
+    return sundayEditions.filter(e =>
+      e.title.toLowerCase().includes(q) ||
+      e.summary?.toLowerCase().includes(q) ||
+      new Date(e.publication_date).toLocaleDateString().includes(q)
+    );
+  }, [sundayEditions, searchQuery]);
+
   return (
     <div className="space-y-6">
 
@@ -88,12 +100,13 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
       {/* Main management card */}
       <Card className="pt-4">
         <CardHeader>
-          <div className="flex items-center justify-between pb-2">
-            <div>
-              <CardTitle>Sunday Editions</CardTitle>
-              <CardDescription className="mt-1">View, edit, and manage all generated Sunday Edition digests.</CardDescription>
-            </div>
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-3 pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Sunday Editions</CardTitle>
+                <CardDescription className="mt-1">View, edit, and manage all generated Sunday Edition digests.</CardDescription>
+              </div>
+              <div className="flex gap-2">
               <Button onClick={() => { handleGenerateSundayEdition(); }} disabled={sundayEditionLoading} size="sm">
                 {sundayEditionLoading ? 'Generating…' : 'Generate New'}
               </Button>
@@ -106,6 +119,16 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
                   {sundayEditionPurgeLoading ? 'Purging…' : 'Purge All'}
                 </Button>
               )}
+              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search editions by title or date..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
             </div>
           </div>
         </CardHeader>
@@ -124,9 +147,13 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
             <div className="text-center py-8 text-muted-foreground">
               No Sunday Editions found. Generate one to get started.
             </div>
+          ) : filteredEditions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No editions match your search.
+            </div>
           ) : (
             <div className="space-y-4">
-              {sundayEditions.map(edition => (
+              {filteredEditions.map(edition => (
                 <div key={edition.id} className="rounded-lg border p-4">
                   {sundayEditionEditId === edition.id ? (
                     <div className="space-y-3">

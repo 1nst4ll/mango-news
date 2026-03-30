@@ -1,7 +1,6 @@
 ---
-// This page redirects to the user's preferred locale (or 'en' by default).
-// Uses a client-side script to read localStorage before redirecting.
-export const prerender = true;
+// Root redirect handled by middleware.ts (server-side, no flash).
+// This page is a fallback if middleware doesn't catch it.
 ---
 
 <html>

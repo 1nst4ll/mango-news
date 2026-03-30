@@ -72,5 +72,9 @@
   "open_menu": "Open menu",
   "close_menu": "Close menu",
   "toggle_theme": "Toggle theme",
-  "change_language": "Change language"
+  "change_language": "Change language",
+  "copy_link": "Copy Link",
+  "link_copied": "Link copied!",
+  "share": "Share",
+  "min_read": "min read"
 }

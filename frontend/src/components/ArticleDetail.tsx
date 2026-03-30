@@ -11,7 +11,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./ui/breadcrumb"; // Import Breadcrumb components
-import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react'; // Import icons
+import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight, X, ZoomIn, Link2, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
@@ -409,6 +410,11 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             {article.author && (
               <span className="mr-4"><span className="font-semibold">{t.author}:</span> {article.author}</span>
             )}
+            {article.raw_content && (() => {
+              const wordCount = article.raw_content.replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length;
+              const minutes = Math.max(1, Math.round(wordCount / 200));
+              return <span className="mr-4">{minutes} {t.min_read || 'min read'}</span>;
+            })()}
             <span className="mr-4"><span className="font-semibold">{t.published}:</span> {
               new Date(article.publication_date).getFullYear() === 2001
                 ? new Date(article.publication_date).toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' })
@@ -504,7 +510,30 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             </>
           )}
         </dialog>
-        <div className="mt-8 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="mt-8 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success(t.link_copied || 'Link copied!');
+            }}
+            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+          >
+            <Link2 className="h-4 w-4 mr-1" /> {t.copy_link || 'Copy Link'}
+          </Button>
+          {typeof navigator !== 'undefined' && 'share' in navigator && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                navigator.share({ title: displayTitle || article.title, url: window.location.href }).catch(() => {});
+              }}
+              className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+            >
+              <Share2 className="h-4 w-4 mr-1" /> {t.share || 'Share'}
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => {

@@ -48,8 +48,26 @@ statsRouter.get('/', authenticateToken, async (req, res) => {
       newest: seRow.newest,
     };
 
+    // Actual AI coverage counts (based on real article data, not source config)
+    const aiCoverageResult = await pool.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE summary IS NOT NULL AND summary != '' AND summary != 'Summary generation failed.') AS with_summary,
+        COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM article_topics WHERE article_id = articles.id)) AS with_tags,
+        COUNT(*) FILTER (WHERE ai_image_path IS NOT NULL OR (thumbnail_url IS NOT NULL AND thumbnail_url != '')) AS with_image,
+        COUNT(*) FILTER (WHERE title_es IS NOT NULL AND summary_es IS NOT NULL AND title_ht IS NOT NULL AND summary_ht IS NOT NULL) AS with_translations
+      FROM articles
+    `);
+    const aiCoverageRow = aiCoverageResult.rows[0];
+    const aiCoverage = {
+      withSummary: parseInt(aiCoverageRow.with_summary, 10),
+      withTags: parseInt(aiCoverageRow.with_tags, 10),
+      withImage: parseInt(aiCoverageRow.with_image, 10),
+      withTranslations: parseInt(aiCoverageRow.with_translations, 10),
+      total: totalArticles,
+    };
+
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Total: ${totalArticles} articles, ${totalSources} sources, ${sundayEditionStats.total} editions`);
-    res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear, sundayEditionStats });
+    res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear, sundayEditionStats, aiCoverage });
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error:`, err);
     res.status(500).json({ error: 'Internal Server Error' });

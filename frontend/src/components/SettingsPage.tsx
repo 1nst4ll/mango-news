@@ -128,18 +128,11 @@ const SettingsPage: React.FC = () => {
 
   const activeSources = useMemo(() => sources.filter(s => s.is_active).length, [sources]);
 
-  // AI coverage stats across all sources
+  // AI coverage stats from actual article data (provided by /api/stats)
   const aiCoverage = useMemo(() => {
-    const total = stats.totalArticles ?? 0;
-    if (total === 0) return null;
-    // Count per-source articles that have each feature enabled as a proxy for coverage
-    // (Real coverage would need per-article data; this shows configured capacity)
-    const withSummary = sources.filter(s => s.enable_ai_summary).reduce((acc, s) => acc + (articleCountMap.get(s.name) ?? 0), 0);
-    const withTags = sources.filter(s => s.enable_ai_tags).reduce((acc, s) => acc + (articleCountMap.get(s.name) ?? 0), 0);
-    const withImage = sources.filter(s => s.enable_ai_image).reduce((acc, s) => acc + (articleCountMap.get(s.name) ?? 0), 0);
-    const withTranslations = sources.filter(s => s.enable_ai_translations).reduce((acc, s) => acc + (articleCountMap.get(s.name) ?? 0), 0);
-    return { withSummary, withTags, withImage, withTranslations, total };
-  }, [stats.totalArticles, sources, articleCountMap]);
+    if (!stats.aiCoverage) return null;
+    return stats.aiCoverage;
+  }, [stats.aiCoverage]);
 
   // ---------------------------------------------------------------------------
   // Effects

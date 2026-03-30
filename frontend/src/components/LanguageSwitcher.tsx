@@ -56,8 +56,9 @@ const LanguageSwitcher: React.FC = () => {
       newPath = `/${newLocale}${currentPath}${window.location.search}${window.location.hash}`;
     }
 
-    // Store preference in localStorage (optional, but good for remembering choice)
+    // Store preference in localStorage and cookie for server-side detection
     localStorage.setItem('preferredLocale', newLocale);
+    document.cookie = `preferredLocale=${newLocale};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
 
     // Show loading state and navigate
     setIsLoading(true);

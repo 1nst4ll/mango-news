@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import NewsFeed from './NewsFeed';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
@@ -14,9 +15,16 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandItem,
-} from './ui/command'; // Import Command components
+} from './ui/command';
 
-import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
+import useTranslations from '../lib/hooks/useTranslations';
+
+interface Topic {
+  id: number;
+  name: string;
+  name_es: string | null;
+  name_ht: string | null;
+}
 
 interface Source {
   id: number;
@@ -34,8 +42,17 @@ export default function IndexPage({ sources }: IndexPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedSources, setSelectedSources] = useState<number[]>([]);
-  const { t, currentLocale } = useTranslations(); // Use the translation hook
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const { t, currentLocale } = useTranslations();
 
+  // Fetch topics for navigation bar
+  useEffect(() => {
+    const apiUrl = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:3000';
+    fetch(`${apiUrl}/api/topics`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setTopics(data))
+      .catch(() => {});
+  }, []);
 
   // Debounce effect for search term
   useEffect(() => {
@@ -128,6 +145,25 @@ export default function IndexPage({ sources }: IndexPageProps) {
           </Button>
         </div>
       </div>
+      {topics.length > 0 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin" role="navigation" aria-label="Topics">
+          {topics.map(topic => {
+            const displayName = currentLocale === 'es' ? (topic.name_es || topic.name)
+              : currentLocale === 'ht' ? (topic.name_ht || topic.name)
+              : topic.name;
+            return (
+              <a
+                key={topic.id}
+                href={`/${currentLocale}/news/topic/${encodeURIComponent(topic.name.toLowerCase().replace(/\s+/g, '-'))}`}
+              >
+                <Badge variant="outline" className="whitespace-nowrap hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors">
+                  {displayName}
+                </Badge>
+              </a>
+            );
+          })}
+        </div>
+      )}
       <NewsFeed
         searchTerm={debouncedSearchTerm}
         selectedSources={selectedSources}

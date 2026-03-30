@@ -10,12 +10,21 @@ export interface SundayEditionStatsData {
   newest: string | null;
 }
 
+export interface AiCoverageData {
+  withSummary: number;
+  withTags: number;
+  withImage: number;
+  withTranslations: number;
+  total: number;
+}
+
 export interface ArticleStats {
   totalArticles: number | null;
   totalSources: number | null;
   articlesPerSource: { source_name: string; article_count: number }[];
   articlesPerYear: { year: number; article_count: number }[];
   sundayEditionStats?: SundayEditionStatsData;
+  aiCoverage?: AiCoverageData;
 }
 
 export interface Source {

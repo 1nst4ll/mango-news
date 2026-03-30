@@ -11,7 +11,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./ui/breadcrumb";
-import { MessageCircleMore, Facebook, ChevronLeft } from 'lucide-react';
+import { MessageCircleMore, Facebook, ChevronLeft, Link2, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 import useTranslations from '../lib/hooks/useTranslations';
 
 interface SundayEdition {
@@ -82,7 +83,30 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
           </div>
         )}
         <div className="article-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displaySummary) }}></div>
-        <div className="mt-8 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="mt-8 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success(t.link_copied || 'Link copied!');
+            }}
+            className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+          >
+            <Link2 className="h-4 w-4 mr-1" /> {t.copy_link || 'Copy Link'}
+          </Button>
+          {typeof navigator !== 'undefined' && 'share' in navigator && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                navigator.share({ title: edition.title, url: window.location.href }).catch(() => {});
+              }}
+              className="text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+            >
+              <Share2 className="h-4 w-4 mr-1" /> {t.share || 'Share'}
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => {

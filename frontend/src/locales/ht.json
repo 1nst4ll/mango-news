@@ -72,5 +72,9 @@
   "open_menu": "Ouvri meni",
   "close_menu": "Fèmen meni",
   "toggle_theme": "Chanje tèm",
-  "change_language": "Chanje lang"
+  "change_language": "Chanje lang",
+  "copy_link": "Kopye lyen",
+  "link_copied": "Lyen kopye!",
+  "share": "Pataje",
+  "min_read": "min pou li"
 }
