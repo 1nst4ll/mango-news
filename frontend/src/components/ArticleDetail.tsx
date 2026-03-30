@@ -145,6 +145,20 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
 
   const [adjacentArticles, setAdjacentArticles] = useState<{ prev: { id: number; title: string } | null; next: { id: number; title: string } | null }>({ prev: null, next: null });
 
+  // Helper to get translated text with fallback
+  const getTranslatedText = (a: Article, field: 'title' | 'summary', locale: string) => {
+    if (locale === 'es' && a[`${field}_es`]) {
+      return a[`${field}_es`];
+    }
+    if (locale === 'ht' && a[`${field}_ht`]) {
+      return a[`${field}_ht`];
+    }
+    return a[field]; // Fallback to English
+  };
+
+  // Must be defined before useEffects that reference it
+  const displayTitle = article ? getTranslatedText(article, 'title', currentLocale) : '';
+
   useEffect(() => {
     // Load article list from localStorage
     const storedList = localStorage.getItem('articleList');
@@ -241,17 +255,6 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
     }
   }, [article]); // Re-fetch related articles when the main article data changes
 
-  // Helper to get translated text with fallback
-  const getTranslatedText = (article: Article, field: 'title' | 'summary', locale: string) => {
-    if (locale === 'es' && article[`${field}_es`]) {
-      return article[`${field}_es`];
-    }
-    if (locale === 'ht' && article[`${field}_ht`]) {
-      return article[`${field}_ht`];
-    }
-    return article[field]; // Fallback to English
-  };
-
   const getFallbackMessage = (locale: string) => {
     const langName = locale === 'es' ? 'Spanish' : 'Haitian Creole';
     return t.translation_not_available.replace('{language}', langName);
@@ -330,7 +333,6 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
     );
   }
 
-  const displayTitle = getTranslatedText(article, 'title', currentLocale);
   // Helper to get translated raw content with fallback
   const getTranslatedRawContent = (article: Article, locale: string) => {
     if (locale === 'es' && article.raw_content_es) {
