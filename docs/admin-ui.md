@@ -2,7 +2,7 @@
 
 **Access:** `/settings` (requires login)
 
-The Settings page is the control center for sources, scraping, AI, scheduling, and Sunday Editions. It contains 5 tabs, each lazy-loaded as a separate sub-component under `components/settings/` (shared types in `settings/types.ts`).
+The Settings page is the control center for sources, scraping, AI, scheduling, Sunday Editions, and topics. It contains 6 tabs, each lazy-loaded as a separate sub-component under `components/settings/` (shared types in `settings/types.ts`).
 
 ## Overview & Stats Tab
 
@@ -25,13 +25,24 @@ Dashboard with KPI cards, charts, and AI coverage gauges.
 
 ### AI Coverage
 
-Four radial gauge charts (one per AI feature) showing the percentage of articles covered by each feature based on per-source configuration:
+Four radial gauge charts (one per AI feature) showing actual article coverage based on real per-article data (not source configuration):
 
 - Summaries, Tags, Images, Translations
 
+### Article Freshness
+
+Four KPI cards showing article intake velocity and moderation status:
+
+- **Last 24h** / **Last 7d** / **Last 30d** — articles added in each period
+- **Blocked** — count of articles with `is_blocked = TRUE`
+
+### Topic Distribution
+
+Horizontal bar chart showing the top 15 topics by article count (side-by-side with source distribution).
+
 ## Scraper Controls Tab
 
-AI toggles that apply to **manual** scraper runs only (scheduled runs use per-source settings):
+AI toggles that apply to **manual** scraper runs (persisted to database via `application_settings`, not browser localStorage):
 
 - Generate AI Summaries
 - Generate AI Tags
@@ -40,6 +51,24 @@ AI toggles that apply to **manual** scraper runs only (scheduled runs use per-so
 
 **Actions:**
 - **Trigger Full Scraper Run** — scrapes all active sources immediately
+
+### Emergency Banner
+
+Admin-controlled banner management (inline in this tab):
+- **Enable/Disable toggle** — controls visibility on all public pages
+- **Message input** — the text displayed in the banner
+- Uses `GET/PUT /api/settings/emergency` endpoints
+
+### URL Blacklist
+
+Manage URLs excluded from scraping (previously required editing `config/blacklist.json` directly):
+- **Add URL** — input + add button, with Enter key support
+- **Remove URL** — hover to reveal delete button per entry
+- **Count display** — shows total blacklisted URLs
+- Uses `GET/POST/DELETE /api/settings/blacklist` endpoints
+
+### Danger Zone
+
 - **Purge All Articles** — deletes all articles (confirmation required)
 
 ## Scheduled Tasks Tab
@@ -57,6 +86,16 @@ The Missing AI Processor has individual toggles for summaries, tags, images, and
 See [API Documentation](api-documentation.md) for the scheduler endpoints (`GET/POST /api/settings/scheduler`).
 
 ## Source Management Tab
+
+### Cross-Source Article Search
+
+Search bar at the top of the tab that searches articles across all sources by title or URL. Results show:
+- Article title (clickable → opens on public site)
+- Article ID, source name (clickable → source article page), publication date
+- Blocked status badge
+- External link to original source URL
+
+Uses `GET /api/articles/admin/search?q=...` endpoint.
 
 ### Source List
 
@@ -107,11 +146,23 @@ Manages the weekly Sunday Edition digests.
 
 ### Actions
 
-- **Generate New Sunday Edition** — creates a new edition from recent articles
+- **Generate New Sunday Edition** — creates a new edition from recent articles (only available in this tab)
+
+### Search & Filter
+
+Search bar filters editions by title, summary text, or date.
 
 ### Edition List
 
-Each edition row shows: title, publication date, audio status, and image preview (click for lightbox).
+Each edition row shows: title, publication date, draft/published status badge, audio status, image status, and image preview (click for lightbox).
+
+### Draft/Publish Workflow
+
+Each edition has a clickable **Draft** / **Published** status badge. Clicking toggles between states:
+- **Published** — visible on the public site
+- **Draft** — hidden from public listing (admin can still preview via direct link)
+
+Requires running the `add_status_to_sunday_editions.sql` migration to add the `status` column.
 
 ### Per-Edition Actions
 
@@ -120,19 +171,37 @@ Each edition row shows: title, publication date, audio status, and image preview
 | **Edit** | Edit title and summary inline |
 | **Regenerate Image** | Re-generate the edition thumbnail |
 | **Regenerate Audio** | Re-generate the audio narration |
+| **Draft/Publish** | Toggle visibility on public site |
 | **Delete** | Remove this edition |
 
 ### Bulk Actions
 
 - **Purge All Sunday Editions** — deletes all editions (confirmation required)
 
-### Image Lightbox
+## Topics Tab
 
-Clicking an edition thumbnail opens a full-screen lightbox preview of the image.
+Manage the topic taxonomy used for AI-powered article classification.
+
+### Topic Table
+
+Searchable table showing all topics with columns: Name (EN), Spanish translation, Haitian Creole translation, article count. Missing translations shown with a warning indicator.
+
+### Topic Actions
+
+| Action | Description |
+|--------|-------------|
+| **Add Topic** | Create with name + translations (EN/ES/HT) |
+| **Edit** | Update name and/or translations |
+| **Merge** | Move all articles from one topic to another, then delete the source topic |
+| **Delete** | Remove topic and unlink from all articles (articles not deleted) |
+
+Uses `GET/POST/PUT/DELETE /api/admin/topics` and `POST /api/admin/topics/merge` endpoints.
+
+---
 
 ## Emergency Banner
 
-Admin-controlled banner that appears above the Header on all public pages.
+Admin-controlled banner that appears above the Header on all public pages. Management UI is in the **Scraper Controls** tab.
 
 ### API Endpoints
 
@@ -151,7 +220,7 @@ Admin-controlled banner that appears above the Header on all public pages.
 
 ## Component Architecture
 
-`SettingsPage.tsx` is an orchestrator that lazy-loads 5 tab sub-components via `React.lazy()`:
+`SettingsPage.tsx` is an orchestrator that lazy-loads 6 tab sub-components via `React.lazy()`:
 
 | Sub-component | Path | Tab |
 |---------------|------|-----|
@@ -160,6 +229,7 @@ Admin-controlled banner that appears above the Header on all public pages.
 | `ScheduledTasks.tsx` | `components/settings/` | Scheduled Tasks |
 | `SourceManagement.tsx` | `components/settings/` | Source Management |
 | `SundayEditionsAdmin.tsx` | `components/settings/` | Sunday Editions |
+| `TopicManagement.tsx` | `components/settings/` | Topics |
 
 Shared TypeScript interfaces live in `components/settings/types.ts`. Each tab is wrapped in `React.Suspense` with a `Skeleton` fallback.
 
@@ -178,7 +248,9 @@ Manages individual articles for a specific source.
 
 ### Article Table
 
-Rows per page: 10, 20, 50, 100 — persisted to `localStorage`. Column visibility also persisted.
+**Server-side search** — search by title, URL, or article ID across all articles in the source (searches all pages, not just the current one).
+
+Rows per page: 10, 20, 50, 100 — persisted to `localStorage`. Column visibility also persisted. Blocked articles show a "Blocked" badge next to their title.
 
 | Column | Notes |
 |--------|-------|
@@ -197,6 +269,7 @@ Rows per page: 10, 20, 50, 100 — persisted to `localStorage`. Column visibilit
 - **Rerun Summary / Tags / Image / Translations** — regenerate individual AI features
 - **Rescrape** — re-fetch content from source URL
 - **Edit Article** — open edit dialog (see below)
+- **Block / Unblock** — toggle `is_blocked` status (blocked articles hidden from public feed)
 - **Delete** — remove article
 
 ### Bulk Actions

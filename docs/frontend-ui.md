@@ -35,11 +35,12 @@ frontend/src/
 │   ├── ArticleDetail.tsx      # Full article view (gallery, sharing, nav)
 │   ├── SettingsPage.tsx       # Admin dashboard (5 tabs, lazy-loaded)
 │   ├── settings/              # Lazy-loaded SettingsPage sub-components
-│   │   ├── OverviewStats.tsx            # KPI cards, charts, AI coverage
-│   │   ├── ScraperControls.tsx          # Manual scrape triggers, AI toggles, purge
+│   │   ├── OverviewStats.tsx            # KPI cards, charts, AI coverage, freshness
+│   │   ├── ScraperControls.tsx          # Manual scrape, AI toggles, emergency banner, blacklist, purge
 │   │   ├── ScheduledTasks.tsx           # Cron editors for 3 jobs
-│   │   ├── SourceManagement.tsx         # Source CRUD, filters, bulk actions
-│   │   ├── SundayEditionsAdmin.tsx      # Edition list, edit, regenerate, purge
+│   │   ├── SourceManagement.tsx         # Source CRUD, filters, bulk actions, article search
+│   │   ├── SundayEditionsAdmin.tsx      # Edition list, edit, regenerate, draft/publish, purge
+│   │   ├── TopicManagement.tsx          # Topic CRUD, translations, merge
 │   │   └── types.ts                     # Shared TypeScript interfaces
 │   ├── SourceArticles.tsx     # Per-source article management table
 │   ├── ArticleEditDialog.tsx  # Rich article editor (80% width modal)
@@ -48,6 +49,7 @@ frontend/src/
 │   │   ├── AiCoverageChart.tsx           # Radial gauge per AI feature
 │   │   ├── ArticlesTimelineChart.tsx     # Gradient area chart (yearly)
 │   │   ├── SourceBarChart.tsx            # Horizontal bar chart
+│   │   ├── TopicBarChart.tsx             # Topic distribution bar chart
 │   │   └── SourceDistributionPieChart.tsx # Donut pie chart
 │   ├── LanguageSwitcher.tsx   # Flag-based locale selector (spinner on nav)
 │   ├── SundayEditionDetail.tsx  # Full Sunday Edition view (breadcrumbs, audio, sharing)
@@ -55,9 +57,11 @@ frontend/src/
 │   ├── LoginDialog.tsx
 │   ├── ModeToggle.tsx         # Dark/light theme toggle
 │   ├── footer.tsx
+│   ├── ui/ImageLightbox.tsx   # Unified image lightbox (focus trap, prev/next, keyboard)
 │   └── columns.tsx            # TanStack Table column definitions
+├── middleware.ts               # Server-side locale redirect (cookie + Accept-Language)
 ├── pages/                     # Astro file-based routing
-│   ├── index.astro            # Root redirect (reads localStorage for preferred locale)
+│   ├── index.astro            # Fallback redirect (middleware handles server-side)
 │   ├── settings.astro         # Admin settings
 │   ├── article/[id].astro     # Article (non-locale fallback)
 │   ├── [lang]/                # Locale-prefixed routes (es, ht)
@@ -105,10 +109,11 @@ External mango.tc links (Home, Vehicles, Real Estate, Jobs) have been removed fr
 
 Main article feed at the home page:
 
+- **Topic navigation bar** — horizontally scrollable pill bar fetched from `/api/topics`, locale-aware display names, links to topic pages
 - **Infinite scroll** via `IntersectionObserver`
 - **Request deduplication** — AbortController cancels stale requests
 - **Grouped by date** with visual separators
-- **Filters**: source (including "Sunday Edition"), full-text search
+- **Filters**: source (including "Sunday Edition"), full-text search (server-side)
 - Paginates at 15 articles per request
 - **Sunday Edition filter** — special source ID `0` controls Sunday Edition visibility without affecting backend API queries (stripped before `source_ids` param is built)
 
@@ -127,18 +132,19 @@ Full Sunday Edition view at `/sunday-edition/[id]` (renders `SundayEditionDetail
 
 - **Breadcrumb trail**: News Feed › Sunday Edition › [Title]
 - **Back button**: "Back to News Feed" with `ChevronLeft` icon
-- Audio player with autoplay enabled
-- Sharing buttons (WhatsApp, Facebook)
+- Audio player (autoplay disabled for WCAG 1.4.2)
+- Sharing buttons (Copy Link, native Share API, WhatsApp, Facebook)
 - Sources fetched server-side in `[id].astro` so the footer shows News Sources
 
 ### ArticleDetail
 
 Full article view at `/article/[id]`:
 
-- **Image gallery** — consecutive images grouped into a lightbox grid; click backdrop or use arrow keys to navigate
+- **Image lightbox** — unified `ImageLightbox` component with focus trap, arrow key navigation, Escape to close, focus restoration. Thumbnail + all content images in one gallery
 - **Wix CDN** — resize parameters stripped to load full-resolution images
-- **Social sharing** — WhatsApp, Facebook
-- Previous/Next article navigation
+- **Social sharing** — Copy Link (clipboard + toast), native Share API (mobile), WhatsApp, Facebook
+- **Reading time** — estimated from word count (200 WPM), shown in metadata bar
+- **Previous/Next navigation** — uses localStorage article list when available, falls back to server-side adjacent articles API (`GET /api/articles/:id/adjacent`) for direct-link visitors
 - Clickable topic badges → filtered feed
 
 ### ErrorBoundary
@@ -157,21 +163,23 @@ Flag-based locale selector. Now shows a `Loader2` spinner during language change
 
 Tabbed dashboard at `/settings` (requires login):
 
-1. **Overview & Stats** — KPI cards, area/pie/bar charts, AI coverage radial gauges (Recharts)
-2. **Scraper Controls** — AI feature toggles, manual scrape triggers, purge
+1. **Overview & Stats** — KPI cards, area/pie/bar charts, AI coverage radial gauges, topic distribution, article freshness (Recharts)
+2. **Scraper Controls** — AI feature toggles (DB-persisted), manual scrape trigger, emergency banner management, URL blacklist manager, danger zone (purge)
 3. **Scheduled Tasks** — cron expression editor for all three background jobs
-4. **Source Management** — CRUD for news sources, per-source scraping config, filters, bulk actions
-5. **Sunday Editions** — Edition list, edit, regenerate image/audio, purge
+4. **Source Management** — CRUD for news sources, per-source scraping config, filters, bulk actions, cross-source article search
+5. **Sunday Editions** — Edition list with draft/publish workflow, edit, regenerate image/audio, search/filter, purge
+6. **Topics** — Topic CRUD with translations (EN/ES/HT), merge duplicates, article counts
 
 SettingsPage is now an **orchestrator** that lazy-loads 5 tab components via `React.lazy()`:
 
 | Sub-component | Path | Responsibility |
 |---------------|------|----------------|
-| `OverviewStats.tsx` | `settings/OverviewStats.tsx` | KPI cards, charts, AI coverage |
-| `ScraperControls.tsx` | `settings/ScraperControls.tsx` | Manual scrape triggers, AI toggles, purge |
+| `OverviewStats.tsx` | `settings/OverviewStats.tsx` | KPI cards, charts, AI coverage, freshness, topic stats |
+| `ScraperControls.tsx` | `settings/ScraperControls.tsx` | Manual scrape, AI toggles, emergency banner, blacklist, purge |
 | `ScheduledTasks.tsx` | `settings/ScheduledTasks.tsx` | Cron editors for 3 jobs |
-| `SourceManagement.tsx` | `settings/SourceManagement.tsx` | Source CRUD, filters, bulk actions |
-| `SundayEditionsAdmin.tsx` | `settings/SundayEditionsAdmin.tsx` | Edition list, edit, regenerate, purge |
+| `SourceManagement.tsx` | `settings/SourceManagement.tsx` | Source CRUD, filters, bulk actions, article search |
+| `SundayEditionsAdmin.tsx` | `settings/SundayEditionsAdmin.tsx` | Edition list, draft/publish, edit, regenerate, search, purge |
+| `TopicManagement.tsx` | `settings/TopicManagement.tsx` | Topic CRUD, translations, merge |
 
 Each tab is wrapped in `React.Suspense` with a `Skeleton` fallback. Shared TypeScript interfaces live in `settings/types.ts`. This decomposition reduced the SettingsPage chunk from **522 KB to 39 KB**.
 
@@ -183,8 +191,10 @@ Article management table at `/settings/source/[sourceId]`:
 
 - **Source navigation** — `←` / `→` arrows step through sources by ID
 - **DataTable** (TanStack React Table) with persistent `pageSize` and column visibility via `localStorage`
-- Clickable title → opens article in new tab
-- Clickable thumbnail/AI image → full-screen lightbox
+- **Server-side search** — search by title, URL, or ID across all articles in the source
+- Clickable title → opens article in new tab; blocked articles show "Blocked" badge
+- Clickable thumbnail/AI image → unified `ImageLightbox`
+- **Block/unblock articles** — toggle via row action menu (uses `is_blocked` column)
 
 ### ArticleEditDialog
 
@@ -246,9 +256,10 @@ Fonts: `Lora` (regular, italic, bold) + `Playfair Display` (bold) via Google Fon
 
 ## Styling & Theming
 
-- **Tailwind CSS 4** — utility-first, no config file (CSS-based config)
-- **CSS variables** in `global.css` — light/dark mode via `ModeToggle.tsx`, persisted to `localStorage`
-- **Accent color**: pastel orange `#FFB88C`
+- **Tailwind CSS 4** — utility-first with `@theme inline` CSS-based config
+- **CSS variables** in `global.css` — oklch color space, light/dark mode via `ModeToggle.tsx`, persisted to `localStorage`
+- **Design tokens**: paper/ink newspaper palette, semantic status colors (`--success`, `--warning`), footer tokens, social brand tokens (`--social-whatsapp`, `--social-facebook`)
+- **Accent color**: warm orange defined in oklch (`--accent: oklch(0.88 0.11 62)`)
 
 ## Responsive Design
 
@@ -288,9 +299,16 @@ Dynamic OG meta tags per page type:
 
 ## Accessibility
 
-- Lightbox prevents body scroll when open (`overflow: hidden`)
+- **Skip navigation** link at top of `BaseLayout.astro` — visible on focus, jumps to `#main-content`
+- **Unified lightbox** (`ImageLightbox.tsx`) — native `<dialog>`, focus trap (Tab cycles within buttons), Escape to close, focus restored to trigger element, scroll lock
+- **Semantic topic badges** — `<a>` links wrapping `<Badge>` components (not `<span onClick>`)
+- **Sunday Edition cards** — `<a href>` instead of `<div onClick>` for keyboard accessibility
+- **Search input** has `aria-label` for screen readers
+- **Language names** have `lang` attributes (`lang="es"`, `lang="ht"`)
+- **i18n for UI chrome** — LoginDialog, LoginButton, Header, ModeToggle, LanguageSwitcher all use translation keys
 - Footer external links show an `ExternalLink` icon to indicate outbound navigation
 - Dark mode: `ModeToggle` reads from DOM `classList` on init (no flash of wrong theme)
+- Sunday Edition audio: `autoplay={false}` (WCAG 1.4.2)
 
 ## UX Improvements
 

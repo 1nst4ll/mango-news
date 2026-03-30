@@ -4,7 +4,7 @@
 
 All endpoints return JSON. Errors use the shape `{ "error": "description" }`.
 
-**Route organization:** The API is organized into route modules: `auth`, `articles`, `sources`, `scraping`, `sundayEditions`, `stats`, `settings`, `rss`. Each module is in `backend/src/routes/`.
+**Route organization:** The API is organized into route modules: `auth`, `articles`, `sources`, `scraping`, `sundayEditions`, `stats`, `settings`, `topics`, `rss`. Each module is in `backend/src/routes/`.
 
 ## Authentication
 
@@ -173,8 +173,9 @@ Articles for a specific source, with pagination and AI-status filtering.
 - `sortBy` (default: `publication_date`) — allowed values: `id`, `title`, `publication_date`, `created_at`
 - `sortOrder` (`ASC`|`DESC`, default: `DESC`)
 - `filterByAiStatus`: `missing_summary`, `missing_tags`, `missing_image`, `missing_translations`, `has_summary`, `has_tags`, `has_image`, `has_translations`
+- `search` — server-side search by title (ILIKE), source URL, or exact article ID
 
-**Response `200`:** Array of article summaries. `X-Total-Count` header contains the total count.
+**Response `200`:** Array of article summaries (includes `is_blocked` field). `X-Total-Count` header contains the total count.
 
 ---
 
@@ -271,11 +272,31 @@ Delete an article and its topic links.
 
 ---
 
+### `GET /api/articles/admin/search` 🔒
+
+Search articles across all sources (includes blocked articles). Admin only.
+
+**Query parameters:** `q` (search term, min 2 chars), `limit` (default: `20`, max: `50`)
+
+**Response `200`:** Array of `{ id, title, source_url, is_blocked, publication_date, source_name, source_id }`.
+
+---
+
+### `GET /api/articles/:id/adjacent`
+
+Get the previous and next articles by publication date (for navigation). Public.
+
+**Response `200`:** `{ "prev": { "id": 1, "title": "..." } | null, "next": { "id": 2, "title": "..." } | null }`
+
+---
+
 ### `PUT /api/articles/:id/block` 🔒
 
-Block an article from appearing in the public feed.
+Toggle block status for an article. Blocked articles are hidden from the public feed.
 
-**Response `200`:** `{ "message": "Article 1 blocked successfully." }`
+**Body:** `{ "blocked": true }` — set `true` to block, `false` to unblock. Defaults to `true` if omitted.
+
+**Response `200`:** `{ "message": "Article 1 blocked successfully.", "is_blocked": true }`
 
 ---
 
@@ -423,11 +444,11 @@ Manually trigger Sunday Edition generation.
 
 ### `GET /api/sunday-editions`
 
-List Sunday Editions (paginated). Public.
+List Sunday Editions (paginated). Public (only published editions by default).
 
-**Query parameters:** `page` (default: `1`), `limit` (default: `15`)
+**Query parameters:** `page` (default: `1`), `limit` (default: `15`), `include_drafts=true` (admin: include draft editions)
 
-**Response `200`:** Array with `X-Total-Count` header. Each item: `{ id, title, summary, narration_url, image_url, publication_date, created_at }`.
+**Response `200`:** Array with `X-Total-Count` header. Each item: `{ id, title, summary, narration_url, image_url, publication_date, status, created_at }`.
 
 ---
 
@@ -443,7 +464,7 @@ Get a single Sunday Edition. Public.
 
 Update a Sunday Edition. Admin only.
 
-**Body:** Any subset of `{ "title": "string", "summary": "string", "image_url": "string", "publication_date": "ISO 8601 string" }`.
+**Body:** Any subset of `{ "title": "string", "summary": "string", "image_url": "string", "publication_date": "ISO 8601 string", "status": "draft" | "published" }`.
 
 **Response `200`:** Updated Sunday Edition object.
 
@@ -491,6 +512,57 @@ Payload is validated with Zod (`TaskId: string`, `TaskStatus: completed|failed|p
 
 ---
 
+## Topic Management
+
+### `GET /api/admin/topics` 🔒
+
+List all topics with article counts. Returns topics sorted alphabetically.
+
+**Response `200`:**
+```json
+[{ "id": 1, "name": "Politics", "name_es": "Política", "name_ht": "Politik", "article_count": 42 }]
+```
+
+---
+
+### `POST /api/admin/topics` 🔒
+
+Create a new topic.
+
+**Body:** `{ "name": "string", "name_es": "string | null", "name_ht": "string | null" }`
+
+**Response `201`:** Created topic object. `409` if name already exists.
+
+---
+
+### `PUT /api/admin/topics/:id` 🔒
+
+Update a topic's name or translations.
+
+**Body:** Any subset of `{ "name": "string", "name_es": "string | null", "name_ht": "string | null" }`.
+
+**Response `200`:** Updated topic object. `409` if name conflicts.
+
+---
+
+### `DELETE /api/admin/topics/:id` 🔒
+
+Delete a topic and remove all article associations (articles are not deleted).
+
+**Response `200`:** `{ "message": "Topic \"Politics\" deleted." }`
+
+---
+
+### `POST /api/admin/topics/merge` 🔒
+
+Merge one topic into another — moves all article associations from source to target (deduplicates), then deletes the source topic. Transactional.
+
+**Body:** `{ "sourceId": 1, "targetId": 2 }`
+
+**Response `200`:** `{ "message": "Topic \"Sport\" merged successfully." }`
+
+---
+
 ## Settings
 
 ### `GET /api/settings/scheduler` 🔒
@@ -503,10 +575,17 @@ Get current cron schedules and feature toggles.
   "main_scraper_frequency": "0 * * * *",
   "missing_ai_frequency": "*/20 * * * *",
   "sunday_edition_frequency": "0 0 * * 0",
+  "main_scraper_enabled": true,
+  "missing_ai_enabled": true,
+  "sunday_edition_enabled": true,
   "enable_scheduled_missing_summary": true,
   "enable_scheduled_missing_tags": true,
   "enable_scheduled_missing_image": true,
-  "enable_scheduled_missing_translations": true
+  "enable_scheduled_missing_translations": true,
+  "enable_manual_ai_summary": true,
+  "enable_manual_ai_tags": true,
+  "enable_manual_ai_image": true,
+  "enable_manual_ai_translations": true
 }
 ```
 
@@ -546,6 +625,34 @@ Update emergency banner settings. Admin only. Values are stored in the `applicat
 
 ---
 
+### `GET /api/settings/blacklist` 🔒
+
+Get the current URL blacklist (URLs excluded from scraping).
+
+**Response `200`:** Array of URL strings.
+
+---
+
+### `POST /api/settings/blacklist` 🔒
+
+Add a URL to the blacklist.
+
+**Body:** `{ "url": "https://example.com/page-to-exclude" }`
+
+**Response `200`:** `{ "message": "URL added to blacklist.", "count": 28 }`. `409` if already blacklisted.
+
+---
+
+### `DELETE /api/settings/blacklist` 🔒
+
+Remove a URL from the blacklist.
+
+**Body:** `{ "url": "https://example.com/page-to-exclude" }`
+
+**Response `200`:** `{ "message": "URL removed from blacklist.", "count": 27 }`. `404` if not found.
+
+---
+
 ## Statistics
 
 ### `GET /api/stats` 🔒
@@ -558,7 +665,11 @@ Database statistics for the admin dashboard.
   "totalArticles": 1234,
   "totalSources": 8,
   "articlesPerSource": [{ "source_name": "string", "article_count": 150 }],
-  "articlesPerYear": [{ "year": 2025, "article_count": 800 }]
+  "articlesPerYear": [{ "year": 2025, "article_count": 800 }],
+  "sundayEditionStats": { "total": 10, "withAudio": 8, "withImage": 10, "oldest": "...", "newest": "..." },
+  "aiCoverage": { "withSummary": 1100, "withTags": 950, "withImage": 800, "withTranslations": 700, "total": 1234 },
+  "topicStats": [{ "name": "Politics", "article_count": 150 }],
+  "freshness": { "last24h": 5, "last7d": 35, "last30d": 120, "blockedCount": 3 }
 }
 ```
 

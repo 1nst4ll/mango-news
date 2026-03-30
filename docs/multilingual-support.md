@@ -58,17 +58,31 @@ const { t, currentLocale } = useTranslations();
 
 ### Language Switcher
 
-`LanguageSwitcher.tsx` shows a flag for the current locale. Selecting a language navigates to the locale-prefixed equivalent of the current page and saves the preference to `localStorage` under the key `preferredLocale`.
+`LanguageSwitcher.tsx` shows a flag for the current locale. Selecting a language navigates to the locale-prefixed equivalent of the current page and saves the preference to both `localStorage` and a `preferredLocale` cookie (for server-side detection). Language names display with proper `lang` attributes for screen readers.
 
 ### Language Persistence
 
 The chosen language is persisted across visits:
 
-1. When the user selects a language, `preferredLocale` is saved to `localStorage`
-2. The root page (`/`) reads this value on load and redirects to `/{locale}/` accordingly
-3. If no preference is stored (first visit) or JavaScript is disabled, the default redirect is `/en/`
+1. When the user selects a language, `preferredLocale` is saved to `localStorage` and as a cookie
+2. **Server-side middleware** (`middleware.ts`) intercepts requests to `/` and redirects based on:
+   - The `preferredLocale` cookie (returning visitors) → instant redirect, no flash
+   - The `Accept-Language` header (first-time visitors) → auto-detect browser language
+   - Fallback to English if no match
+3. The root `index.astro` page serves as a JS fallback only (for edge cases where middleware doesn't apply)
 
-This means returning visitors automatically land in their last-chosen language without needing to switch again.
+This means returning visitors get an instant server-side redirect with no white flash or JavaScript dependency.
+
+### Translated UI Chrome
+
+All user-facing UI strings across the following components use translation keys (not hardcoded English):
+
+- `LoginDialog.tsx` — login, email, password, remember me, signing in
+- `LoginButton.tsx` — my account, settings, sign out
+- `Header.tsx` — open/close menu
+- `ModeToggle.tsx` — toggle theme
+- `LanguageSwitcher.tsx` — change language
+- Share buttons — copy link, link copied, share
 
 ### Display Logic
 
