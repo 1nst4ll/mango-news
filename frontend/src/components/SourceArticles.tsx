@@ -83,6 +83,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   });
   const [pageCount, setPageCount] = useState(0); // Total number of pages
   const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
 
   const handleProcessAi = async (articleId: number, featureType: 'summary' | 'tags' | 'image' | 'translations') => {
@@ -281,10 +283,11 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   }, [sourceId, apiUrl]);
 
 
-  const fetchArticles = async (page: number, limit: number) => {
+  const fetchArticles = async (page: number, limit: number, search?: string) => {
     setLoading(true);
     try {
-      const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles?page=${page + 1}&limit=${limit}`;
+      const searchParam = (search ?? debouncedSearch) ? `&search=${encodeURIComponent(search ?? debouncedSearch)}` : '';
+      const fetchUrl = `${apiUrl}/api/sources/${sourceId}/articles?page=${page + 1}&limit=${limit}${searchParam}`;
       console.log(`[Frontend] Fetching articles from: ${fetchUrl}`);
       const response = await fetch(fetchUrl);
       if (!response.ok) {
@@ -307,9 +310,18 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     }
   };
 
+  // Debounce search term
   useEffect(() => {
-    fetchArticles(pageIndex, pageSize);
-  }, [sourceId, pageIndex, pageSize]);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPageIndex(0); // Reset to first page on new search
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchArticles(pageIndex, pageSize, debouncedSearch);
+  }, [sourceId, pageIndex, pageSize, debouncedSearch]);
 
   // New handler function to process all missing AI data for a source
   const handleProcessAllMissingAi = async () => {
@@ -573,6 +585,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
               pageSize={pageSize}
               totalCount={totalCount}
               storageKey={STORAGE_KEY}
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
               onPaginationChange={({ pageIndex, pageSize }) => {
                 setPageIndex(pageIndex);
                 setPageSize(pageSize);

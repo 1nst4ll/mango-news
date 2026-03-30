@@ -55,6 +55,8 @@ interface DataTableProps<TData, TValue> {
   totalCount?: number;
   onPaginationChange: (pagination: { pageIndex: number; pageSize: number }) => void;
   onRowSelectionChange?: (selectedRows: TData[]) => void;
+  onSearchChange?: (searchTerm: string) => void;
+  searchValue?: string;
   bulkActions?: React.ReactNode;
   storageKey?: string;
 }
@@ -68,6 +70,8 @@ export function DataTable<TData, TValue>({
   totalCount,
   onPaginationChange,
   onRowSelectionChange,
+  onSearchChange,
+  searchValue,
   bulkActions,
   storageKey,
 }: DataTableProps<TData, TValue>) {
@@ -153,11 +157,15 @@ export function DataTable<TData, TValue>({
     <div>
         <div className="flex items-center py-4">
             <Input
-            placeholder="Filter by title, ID, or topics..."
-            value={globalFilter ?? ""}
-            onChange={(event) =>
-                setGlobalFilter(event.target.value)
-            }
+            placeholder="Search by title, ID, or URL..."
+            value={onSearchChange ? (searchValue ?? "") : (globalFilter ?? "")}
+            onChange={(event) => {
+                if (onSearchChange) {
+                  onSearchChange(event.target.value)
+                } else {
+                  setGlobalFilter(event.target.value)
+                }
+            }}
             className="max-w-sm"
             />
             <DropdownMenu>

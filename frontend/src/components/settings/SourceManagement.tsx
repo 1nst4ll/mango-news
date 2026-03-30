@@ -110,22 +110,51 @@ const SourceManagement: React.FC<SourceManagementProps> = ({
         />
         {articleSearching && <p className="text-sm text-muted-foreground mt-2">Searching...</p>}
         {articleSearchResults.length > 0 && (
-          <div className="mt-3 space-y-1 max-h-64 overflow-y-auto">
+          <div className="mt-3 space-y-1 max-h-80 overflow-y-auto">
             {articleSearchResults.map(article => (
-              <a
+              <div
                 key={article.id}
-                href={`/settings/source/${article.source_id}`}
                 className="flex items-center justify-between p-2 rounded hover:bg-muted text-sm group"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {article.is_blocked && <Badge variant="destructive" className="text-[10px] px-1 py-0">Blocked</Badge>}
-                    <span className="truncate font-medium">{article.title}</span>
+                    <a
+                      href={`/en/article/${article.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate font-medium hover:underline text-primary"
+                    >
+                      {article.title}
+                    </a>
                   </div>
-                  <span className="text-xs text-muted-foreground">{article.source_name} {article.publication_date ? `· ${new Date(article.publication_date).toLocaleDateString()}` : ''}</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>ID: {article.id}</span>
+                    <span>·</span>
+                    <a
+                      href={`/settings/source/${article.source_id}`}
+                      className="hover:underline"
+                    >
+                      {article.source_name}
+                    </a>
+                    {article.publication_date && (
+                      <>
+                        <span>·</span>
+                        <span>{new Date(article.publication_date).toLocaleDateString()}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2" />
-              </a>
+                <a
+                  href={article.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2"
+                  title="Open source URL"
+                >
+                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                </a>
+              </div>
             ))}
           </div>
         )}

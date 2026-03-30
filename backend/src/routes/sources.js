@@ -50,6 +50,7 @@ router.get('/:sourceId/articles', async (req, res) => {
   const sortBy    = ALLOWED_SORT_COLUMNS.includes(rawSortBy)                        ? rawSortBy    : 'publication_date';
   const sortOrder = ALLOWED_SORT_ORDERS.includes(rawSortOrder.toUpperCase())        ? rawSortOrder.toUpperCase() : 'DESC';
   const filterByAiStatus = req.query.filterByAiStatus;
+  const searchTerm = req.query.search;
   const page  = Math.max(1, parseInt(req.query.page)  || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
   const offset = (page - 1) * limit;
@@ -63,6 +64,12 @@ router.get('/:sourceId/articles', async (req, res) => {
 
   const queryParams = [sourceId];
   let paramIndex = 2;
+
+  if (searchTerm && searchTerm.trim().length > 0) {
+    baseQuery += ` AND (a.title ILIKE $${paramIndex} OR a.source_url ILIKE $${paramIndex} OR CAST(a.id AS TEXT) = $${paramIndex + 1})`;
+    queryParams.push(`%${searchTerm.trim()}%`, searchTerm.trim());
+    paramIndex += 2;
+  }
 
   if (filterByAiStatus) {
     switch (filterByAiStatus) {
