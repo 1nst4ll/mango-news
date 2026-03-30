@@ -25,6 +25,13 @@ export interface ArticleStats {
   articlesPerYear: { year: number; article_count: number }[];
   sundayEditionStats?: SundayEditionStatsData;
   aiCoverage?: AiCoverageData;
+  topicStats?: { name: string; article_count: number }[];
+  freshness?: {
+    last24h: number;
+    last7d: number;
+    last30d: number;
+    blockedCount: number;
+  };
 }
 
 export interface Source {
@@ -80,6 +87,7 @@ export interface SundayEditionAdmin {
   publication_date: string;
   created_at: string;
   updated_at: string;
+  status?: 'draft' | 'published';
 }
 
 export const emptyModalForm: ModalFormData = {

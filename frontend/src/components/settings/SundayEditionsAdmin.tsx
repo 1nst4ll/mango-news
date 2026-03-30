@@ -29,6 +29,7 @@ export interface SundayEditionsAdminProps {
   handleRegenerateImage: (id: number) => void;
   handleRegenerateAudio: (id: number) => void;
   handleDeleteSundayEdition: (id: number) => void;
+  handleToggleStatus: (id: number, newStatus: 'draft' | 'published') => void;
   setLightboxImage: (v: { src: string; alt: string } | null) => void;
 }
 
@@ -52,6 +53,7 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
   handleRegenerateImage,
   handleRegenerateAudio,
   handleDeleteSundayEdition,
+  handleToggleStatus,
   setLightboxImage,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -211,6 +213,13 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
                             {edition.title}
                           </a>
                           <Badge variant="secondary" className="text-xs flex-shrink-0">ID: {edition.id}</Badge>
+                          <Badge
+                            variant={edition.status === 'draft' ? 'outline' : 'default'}
+                            className={`text-xs flex-shrink-0 cursor-pointer ${edition.status === 'draft' ? 'text-warning border-warning' : ''}`}
+                            onClick={() => handleToggleStatus(edition.id, edition.status === 'draft' ? 'published' : 'draft')}
+                          >
+                            {edition.status === 'draft' ? 'Draft' : 'Published'}
+                          </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mb-1">
                           Published: {new Date(edition.publication_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}

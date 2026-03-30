@@ -262,6 +262,60 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
   }
 });
 
+// Admin search across all articles (includes blocked)
+router.get('/admin/search', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { q, limit: rawLimit } = req.query;
+  const searchLimit = Math.min(50, Math.max(1, parseInt(rawLimit) || 20));
+  if (!q || q.trim().length < 2) return res.json([]);
+
+  try {
+    const result = await pool.query(`
+      SELECT a.id, a.title, a.source_url, a.is_blocked, a.publication_date,
+             s.name AS source_name, a.source_id
+      FROM articles a
+      LEFT JOIN sources s ON a.source_id = s.id
+      WHERE a.title ILIKE $1 OR a.source_url ILIKE $1
+      ORDER BY a.publication_date DESC
+      LIMIT $2
+    `, [`%${q.trim()}%`, searchLimit]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET /api/articles/admin/search - Error:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Get adjacent articles (prev/next by publication date) for navigation
+router.get('/:id/adjacent', async (req, res) => {
+  const articleId = req.params.id;
+  try {
+    // Get current article's publication date
+    const current = await pool.query('SELECT publication_date FROM articles WHERE id = $1', [articleId]);
+    if (current.rows.length === 0) return res.status(404).json({ error: 'Article not found.' });
+    const pubDate = current.rows[0].publication_date;
+
+    const [prevResult, nextResult] = await Promise.all([
+      pool.query(
+        `SELECT id, title FROM articles WHERE is_blocked = FALSE AND (publication_date < $1 OR (publication_date = $1 AND id < $2)) ORDER BY publication_date DESC, id DESC LIMIT 1`,
+        [pubDate, articleId]
+      ),
+      pool.query(
+        `SELECT id, title FROM articles WHERE is_blocked = FALSE AND (publication_date > $1 OR (publication_date = $1 AND id > $2)) ORDER BY publication_date ASC, id ASC LIMIT 1`,
+        [pubDate, articleId]
+      ),
+    ]);
+
+    res.json({
+      prev: prevResult.rows[0] || null,
+      next: nextResult.rows[0] || null,
+    });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET /api/articles/${articleId}/adjacent - Error:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Toggle block status for a single article by ID
 router.put('/:id/block', authenticateToken, requireRole('admin'), async (req, res) => {
   const articleId = req.params.id;

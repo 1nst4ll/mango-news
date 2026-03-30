@@ -143,23 +143,30 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   const [lightboxImages, setLightboxImages] = useState<GalleryImage[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
+  const [adjacentArticles, setAdjacentArticles] = useState<{ prev: { id: number; title: string } | null; next: { id: number; title: string } | null }>({ prev: null, next: null });
+
   useEffect(() => {
     // Load article list from localStorage
     const storedList = localStorage.getItem('articleList');
     if (storedList) {
       try {
         const parsedList = JSON.parse(storedList);
-        if (Array.isArray(parsedList)) {
+        if (Array.isArray(parsedList) && parsedList.length > 0) {
           setArticleList(parsedList);
           const currentIndex = parsedList.indexOf(parseInt(id));
           setCurrentArticleIndex(currentIndex);
+          return; // localStorage has data, no need for API fallback
         }
       } catch (e) {
         console.error("Failed to parse articleList from localStorage", e);
-        setArticleList([]);
-        setCurrentArticleIndex(-1);
       }
     }
+    // Fallback: fetch adjacent articles from API for direct-link visitors
+    const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+    fetch(`${apiUrl}/api/articles/${id}/adjacent`)
+      .then(res => res.ok ? res.json() : { prev: null, next: null })
+      .then(data => setAdjacentArticles(data))
+      .catch(() => {});
   }, [id]);
 
   const navigateToArticle = useCallback((articleId: number) => {
@@ -558,7 +565,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
           </Button>
         </div>
-        {articleList.length > 0 && (
+        {articleList.length > 0 ? (
           <div className="flex justify-between mt-8">
             <Button
               onClick={handlePrevious}
@@ -570,6 +577,23 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             <Button
               onClick={handleNext}
               disabled={currentArticleIndex >= articleList.length - 1}
+              variant="outline"
+            >
+              {t.next_article || 'Next Article'} <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        ) : (adjacentArticles.prev || adjacentArticles.next) && (
+          <div className="flex justify-between mt-8">
+            <Button
+              onClick={() => adjacentArticles.prev && navigateToArticle(adjacentArticles.prev.id)}
+              disabled={!adjacentArticles.prev}
+              variant="outline"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" /> {t.previous_article || 'Previous Article'}
+            </Button>
+            <Button
+              onClick={() => adjacentArticles.next && navigateToArticle(adjacentArticles.next.id)}
+              disabled={!adjacentArticles.next}
               variant="outline"
             >
               {t.next_article || 'Next Article'} <ChevronRight className="h-4 w-4 ml-2" />

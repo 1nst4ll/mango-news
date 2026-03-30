@@ -156,4 +156,46 @@ router.put('/emergency', authenticateToken, requireRole('admin'), async (req, re
   }
 });
 
+// Blacklist management
+const fs = require('fs').promises;
+const path = require('path');
+const { getBlacklist, loadUrlBlacklist } = require('../configLoader');
+const BLACKLIST_PATH = path.join(__dirname, '../../config/blacklist.json');
+
+router.get('/blacklist', authenticateToken, async (req, res) => {
+  res.json(getBlacklist());
+});
+
+router.post('/blacklist', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL is required.' });
+  try {
+    const current = getBlacklist();
+    if (current.includes(url.trim())) return res.status(409).json({ error: 'URL already blacklisted.' });
+    current.push(url.trim());
+    await fs.writeFile(BLACKLIST_PATH, JSON.stringify(current, null, 2));
+    await loadUrlBlacklist();
+    res.json({ message: 'URL added to blacklist.', count: current.length });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST /api/settings/blacklist - Error:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.delete('/blacklist', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL is required.' });
+  try {
+    const current = getBlacklist();
+    const filtered = current.filter(u => u !== url);
+    if (filtered.length === current.length) return res.status(404).json({ error: 'URL not found in blacklist.' });
+    await fs.writeFile(BLACKLIST_PATH, JSON.stringify(filtered, null, 2));
+    await loadUrlBlacklist();
+    res.json({ message: 'URL removed from blacklist.', count: filtered.length });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - DELETE /api/settings/blacklist - Error:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;

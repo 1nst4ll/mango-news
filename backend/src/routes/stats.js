@@ -66,8 +66,38 @@ statsRouter.get('/', authenticateToken, async (req, res) => {
       total: totalArticles,
     };
 
+    // Topic distribution: top topics by article count
+    const topicStatsResult = await pool.query(`
+      SELECT t.name, COUNT(at.article_id) AS article_count
+      FROM topics t
+      JOIN article_topics at ON t.id = at.topic_id
+      GROUP BY t.name
+      ORDER BY article_count DESC
+      LIMIT 15
+    `);
+    const topicStats = topicStatsResult.rows.map(row => ({
+      name: row.name,
+      article_count: parseInt(row.article_count, 10),
+    }));
+
+    // Article freshness: articles added in last 24h, 7d, 30d
+    const freshnessResult = await pool.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') AS last_24h,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS last_7d,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') AS last_30d,
+        COUNT(*) FILTER (WHERE is_blocked = TRUE) AS blocked_count
+      FROM articles
+    `);
+    const freshness = {
+      last24h: parseInt(freshnessResult.rows[0].last_24h, 10),
+      last7d: parseInt(freshnessResult.rows[0].last_7d, 10),
+      last30d: parseInt(freshnessResult.rows[0].last_30d, 10),
+      blockedCount: parseInt(freshnessResult.rows[0].blocked_count, 10),
+    };
+
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Total: ${totalArticles} articles, ${totalSources} sources, ${sundayEditionStats.total} editions`);
-    res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear, sundayEditionStats, aiCoverage });
+    res.json({ totalArticles, totalSources, articlesPerSource, articlesPerYear, sundayEditionStats, aiCoverage, topicStats, freshness });
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - GET ${endpoint} - Error:`, err);
     res.status(500).json({ error: 'Internal Server Error' });

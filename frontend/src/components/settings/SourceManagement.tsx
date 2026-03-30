@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -6,12 +6,23 @@ import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Badge } from "../ui/badge";
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Search, ExternalLink } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Skeleton } from "../ui/skeleton";
+import { apiFetch } from '../../lib/api';
 import type { Source } from './types';
+
+interface SearchResult {
+  id: number;
+  title: string;
+  source_url: string;
+  source_name: string;
+  source_id: number;
+  is_blocked: boolean;
+  publication_date: string | null;
+}
 
 export interface SourceManagementProps {
   sources: Source[];
@@ -64,7 +75,66 @@ const SourceManagement: React.FC<SourceManagementProps> = ({
   handleDeleteArticlesForSource,
   handleDeleteSource,
 }) => {
+  const [articleSearchQuery, setArticleSearchQuery] = useState('');
+  const [articleSearchResults, setArticleSearchResults] = useState<SearchResult[]>([]);
+  const [articleSearching, setArticleSearching] = useState(false);
+
+  const handleArticleSearch = useCallback(async (query: string) => {
+    setArticleSearchQuery(query);
+    if (query.trim().length < 2) { setArticleSearchResults([]); return; }
+    setArticleSearching(true);
+    try {
+      const res = await apiFetch(`/api/articles/admin/search?q=${encodeURIComponent(query.trim())}&limit=15`);
+      if (res.ok) setArticleSearchResults(await res.json());
+    } catch { /* ignore */ } finally {
+      setArticleSearching(false);
+    }
+  }, []);
+
   return (
+    <>
+    {/* Global Article Search */}
+    <Card className="mb-6 pt-4">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Search className="h-4 w-4" />
+          Article Search
+        </CardTitle>
+        <CardDescription>Search across all sources by title or URL.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Input
+          placeholder="Search articles across all sources..."
+          value={articleSearchQuery}
+          onChange={(e) => handleArticleSearch(e.target.value)}
+        />
+        {articleSearching && <p className="text-sm text-muted-foreground mt-2">Searching...</p>}
+        {articleSearchResults.length > 0 && (
+          <div className="mt-3 space-y-1 max-h-64 overflow-y-auto">
+            {articleSearchResults.map(article => (
+              <a
+                key={article.id}
+                href={`/settings/source/${article.source_id}`}
+                className="flex items-center justify-between p-2 rounded hover:bg-muted text-sm group"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {article.is_blocked && <Badge variant="destructive" className="text-[10px] px-1 py-0">Blocked</Badge>}
+                    <span className="truncate font-medium">{article.title}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{article.source_name} {article.publication_date ? `· ${new Date(article.publication_date).toLocaleDateString()}` : ''}</span>
+                </div>
+                <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2" />
+              </a>
+            ))}
+          </div>
+        )}
+        {articleSearchQuery.trim().length >= 2 && !articleSearching && articleSearchResults.length === 0 && (
+          <p className="text-sm text-muted-foreground mt-2">No articles found.</p>
+        )}
+      </CardContent>
+    </Card>
+
     <Card className="mb-6 pt-4">
       <CardHeader>
         <div className="flex items-center justify-between pb-2">
@@ -242,6 +312,7 @@ const SourceManagement: React.FC<SourceManagementProps> = ({
         )}
       </CardContent>
     </Card>
+    </>
   );
 };
 

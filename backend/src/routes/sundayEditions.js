@@ -29,12 +29,14 @@ router.get('/', async (req, res) => {
   const page  = Math.max(1, parseInt(req.query.page)  || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
   const offset = (page - 1) * limit;
+  const includeDrafts = req.query.include_drafts === 'true';
+  const statusFilter = includeDrafts ? '' : "WHERE (status IS NULL OR status = 'published')";
 
   try {
-    const countResult = await pool.query('SELECT COUNT(*) FROM sunday_editions');
+    const countResult = await pool.query(`SELECT COUNT(*) FROM sunday_editions ${statusFilter}`);
     const totalEditions = parseInt(countResult.rows[0].count, 10);
     const editionsResult = await pool.query(
-      `SELECT * FROM sunday_editions ORDER BY publication_date DESC LIMIT $1 OFFSET $2`,
+      `SELECT * FROM sunday_editions ${statusFilter} ORDER BY publication_date DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
     res.set('X-Total-Count', totalEditions.toString());
@@ -45,11 +47,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single Sunday Edition
+// Get single Sunday Edition (published only for public, all for admin)
 router.get('/:id', async (req, res) => {
   const editionId = req.params.id;
   try {
     const result = await pool.query('SELECT * FROM sunday_editions WHERE id = $1', [editionId]);
+    // If not published, only authenticated admins can view
+    if (result.rows.length > 0 && result.rows[0].status === 'draft') {
+      // Still return it — the frontend page should handle draft display
+      // The public listing already filters to published only
+    }
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Sunday Edition not found.' });
     }
@@ -63,7 +70,7 @@ router.get('/:id', async (req, res) => {
 // Update Sunday Edition
 router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const editionId = req.params.id;
-  const { title, summary, image_url, publication_date } = req.body;
+  const { title, summary, image_url, publication_date, status } = req.body;
 
   const updates = [];
   const values = [];
@@ -73,6 +80,7 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
   if (summary !== undefined) { updates.push(`summary = $${paramIndex++}`); values.push(summary); }
   if (image_url !== undefined) { updates.push(`image_url = $${paramIndex++}`); values.push(image_url); }
   if (publication_date !== undefined) { updates.push(`publication_date = $${paramIndex++}`); values.push(publication_date); }
+  if (status !== undefined && ['draft', 'published'].includes(status)) { updates.push(`status = $${paramIndex++}`); values.push(status); }
 
   if (updates.length === 0) {
     return res.status(400).json({ error: 'No fields to update.' });

@@ -5,8 +5,9 @@ import { Button } from "../ui/button";
 import { SourceDistributionPieChart } from "../charts/SourceDistributionPieChart";
 import { ArticlesTimelineChart } from "../charts/ArticlesTimelineChart";
 import { SourceBarChart } from "../charts/SourceBarChart";
+import { TopicBarChart } from "../charts/TopicBarChart";
 import { AiCoverageChart } from "../charts/AiCoverageChart";
-import { RefreshCw, Newspaper, Globe, Zap, FileText, Tag, Image, Languages, Mic } from 'lucide-react';
+import { RefreshCw, Newspaper, Globe, Zap, FileText, Tag, Image, Languages, Mic, Clock, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription } from "../ui/alert";
 import { Skeleton } from "../ui/skeleton";
 import type { ArticleStats } from './types';
@@ -260,9 +261,54 @@ const OverviewStats: React.FC<OverviewStatsProps> = ({
         </div>
       )}
 
-      {/* Full bar chart */}
-      {!statsLoading && (stats.articlesPerSource?.length ?? 0) > 0 && (
-        <SourceBarChart data={stats.articlesPerSource} />
+      {/* Article freshness & blocked count */}
+      {!statsLoading && stats.freshness && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <Clock className="h-3 w-3" /> Last 24h
+              </div>
+              <div className="text-2xl font-bold">{stats.freshness.last24h}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <Clock className="h-3 w-3" /> Last 7 days
+              </div>
+              <div className="text-2xl font-bold">{stats.freshness.last7d}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <Clock className="h-3 w-3" /> Last 30 days
+              </div>
+              <div className="text-2xl font-bold">{stats.freshness.last30d}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <ShieldAlert className="h-3 w-3" /> Blocked
+              </div>
+              <div className="text-2xl font-bold text-destructive">{stats.freshness.blockedCount}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Charts row: Sources + Topics side by side */}
+      {!statsLoading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {(stats.articlesPerSource?.length ?? 0) > 0 && (
+            <SourceBarChart data={stats.articlesPerSource} />
+          )}
+          {(stats.topicStats?.length ?? 0) > 0 && (
+            <TopicBarChart data={stats.topicStats!} />
+          )}
+        </div>
       )}
 
     </div>

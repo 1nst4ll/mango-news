@@ -231,7 +231,7 @@ const SettingsPage: React.FC = () => {
   const fetchSundayEditions = async () => {
     setSundayEditionsLoading(true);
     try {
-      const response = await apiFetch('/api/sunday-editions?limit=100');
+      const response = await apiFetch('/api/sunday-editions?limit=100&include_drafts=true');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data: SundayEditionAdmin[] = await response.json();
       setSundayEditions(data);
@@ -357,6 +357,21 @@ const SettingsPage: React.FC = () => {
       toast.error("Update Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
     } finally {
       setSundayEditionSaving(false);
+    }
+  };
+
+  const handleToggleSundayEditionStatus = async (id: number, newStatus: 'draft' | 'published') => {
+    try {
+      const response = await apiFetch(`/api/sunday-editions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) throw new Error('Failed to update status');
+      setSundayEditions(prev => prev.map(e => e.id === id ? { ...e, status: newStatus } : e));
+      toast.success(`Edition ${newStatus === 'published' ? 'published' : 'set to draft'}`);
+    } catch {
+      toast.error('Failed to update status');
     }
   };
 
@@ -890,6 +905,7 @@ const SettingsPage: React.FC = () => {
             handleRegenerateImage={handleRegenerateImage}
             handleRegenerateAudio={handleRegenerateAudio}
             handleDeleteSundayEdition={handleDeleteSundayEdition}
+            handleToggleStatus={handleToggleSundayEditionStatus}
             setLightboxImage={setLightboxImage}
           />
           </React.Suspense>

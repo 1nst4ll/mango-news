@@ -4,8 +4,9 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import { Input } from "../ui/input";
+import { Badge } from "../ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertTriangle, Megaphone } from 'lucide-react';
+import { AlertTriangle, Megaphone, ShieldBan, X, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
 
@@ -43,6 +44,10 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
   const [emergencyLoading, setEmergencyLoading] = useState(false);
   const [emergencySaving, setEmergencySaving] = useState(false);
 
+  const [blacklist, setBlacklist] = useState<string[]>([]);
+  const [blacklistLoading, setBlacklistLoading] = useState(false);
+  const [newBlacklistUrl, setNewBlacklistUrl] = useState('');
+
   useEffect(() => {
     const fetchEmergency = async () => {
       setEmergencyLoading(true);
@@ -57,7 +62,17 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
         setEmergencyLoading(false);
       }
     };
+    const fetchBlacklist = async () => {
+      setBlacklistLoading(true);
+      try {
+        const res = await apiFetch('/api/settings/blacklist');
+        if (res.ok) setBlacklist(await res.json());
+      } catch { /* ignore */ } finally {
+        setBlacklistLoading(false);
+      }
+    };
     fetchEmergency();
+    fetchBlacklist();
   }, []);
 
   const handleSaveEmergency = async () => {
@@ -75,6 +90,34 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
     } finally {
       setEmergencySaving(false);
     }
+  };
+
+  const handleAddBlacklistUrl = async () => {
+    if (!newBlacklistUrl.trim()) return;
+    try {
+      const res = await apiFetch('/api/settings/blacklist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: newBlacklistUrl.trim() }),
+      });
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Failed'); return; }
+      setBlacklist(prev => [...prev, newBlacklistUrl.trim()]);
+      setNewBlacklistUrl('');
+      toast.success('URL added to blacklist');
+    } catch { toast.error('Failed to add URL'); }
+  };
+
+  const handleRemoveBlacklistUrl = async (url: string) => {
+    try {
+      const res = await apiFetch('/api/settings/blacklist', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) { toast.error('Failed to remove URL'); return; }
+      setBlacklist(prev => prev.filter(u => u !== url));
+      toast.success('URL removed from blacklist');
+    } catch { toast.error('Failed to remove URL'); }
   };
 
   return (
@@ -158,6 +201,49 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
             {emergencySaving ? 'Saving…' : 'Save Banner Settings'}
           </Button>
         </CardFooter>
+      </Card>
+
+      {/* URL Blacklist */}
+      <Card className="pt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 pb-1">
+            <ShieldBan className="h-5 w-5" />
+            URL Blacklist
+          </CardTitle>
+          <CardDescription>URLs excluded from scraping. {blacklist.length} URL{blacklist.length !== 1 ? 's' : ''} blacklisted.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {blacklistLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://example.com/page-to-exclude"
+                  value={newBlacklistUrl}
+                  onChange={(e) => setNewBlacklistUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddBlacklistUrl()}
+                  className="flex-1"
+                />
+                <Button onClick={handleAddBlacklistUrl} size="sm" variant="outline" disabled={!newBlacklistUrl.trim()}>
+                  <Plus className="h-4 w-4 mr-1" /> Add
+                </Button>
+              </div>
+              {blacklist.length > 0 && (
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {blacklist.map(url => (
+                    <div key={url} className="flex items-center justify-between gap-2 p-1.5 rounded hover:bg-muted text-xs group">
+                      <span className="truncate flex-1 text-muted-foreground">{url}</span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 flex-shrink-0" onClick={() => handleRemoveBlacklistUrl(url)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* Danger Zone */}
