@@ -17,7 +17,7 @@
 
 const { generateText } = require('ai');
 const { createGroq } = require('@ai-sdk/groq');
-const { getAiModels } = require('../configLoader');
+const { getAiModels, getPrompt } = require('../configLoader');
 
 // Initialize Groq provider via Vercel AI SDK
 const groq = createGroq({
@@ -261,20 +261,7 @@ const generateSummary = async (content) => {
 
     const { text, finishReason, usage } = await generateText({
       model: groq(summaryModel),
-      system: `You are a professional news editor for Mango News, a news aggregator serving the Turks and Caicos Islands (TCI). Generate a concise, SEO-optimized summary of the provided article.
-
-Requirements:
-- Length: 80-100 words (strictly enforced)
-- Focus on the 5 W's: Who, What, When, Where, Why
-- Lead with the most newsworthy information
-- Include 2-3 relevant keywords naturally for SEO
-- Use markdown bold (**text**) to highlight 1-2 key facts, names, or figures
-- Write in active voice with an engaging, professional tone
-- End with a complete sentence
-- Do not include URLs, links, or hashtags
-- Do not use AI-typical phrases like "This article discusses..." or "In summary..."
-
-Output: Return ONLY the summary text, no preamble or explanations.`,
+      system: getPrompt('prompt_summary') || 'Summarize this news article in 80-100 words.',
       prompt: truncatedContent,
       temperature: 0.5,
       maxOutputTokens: CONFIG.MAX_TOKENS.SUMMARY,
@@ -317,17 +304,7 @@ const assignTopics = async (content) => {
   return withRetry(async () => {
     const { text } = await generateText({
       model: groq(getAiModels().TOPICS),
-      system: `Classify the following news article into exactly 3 topics from the provided list. Analyze the main subject, secondary themes, and overall context.
-
-Available topics: ${TOPICS_LIST.join(', ')}
-
-Rules:
-1. Select exactly 3 topics, ordered by relevance (most relevant first)
-2. Topics MUST be from the provided list (exact match required)
-3. If fewer than 3 topics clearly apply, select the closest relevant alternatives
-4. Consider both explicit and implicit themes in the content
-
-Output format: Return ONLY a comma-separated list of 3 topics (e.g., "Politics, Economy, Local News"). No additional text.`,
+      system: (getPrompt('prompt_topics') || 'Classify into 3 topics from: {{topics_list}}').replace('{{topics_list}}', TOPICS_LIST.join(', ')),
       prompt: truncatedContent,
       temperature: 0.3,
       maxOutputTokens: CONFIG.MAX_TOKENS.TOPICS,
@@ -377,54 +354,22 @@ const translateText = async (text, targetLanguageCode, type = 'general') => {
   let maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_CONTENT;
   let maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_CONTENT;
 
+  const applyVars = (tpl) => (tpl || '')
+    .replace(/\{\{language_name\}\}/g, languageName)
+    .replace(/\{\{language_guideline\}\}/g, languageSpecificGuideline);
+
   if (type === 'title') {
-    systemPrompt = `Translate this news headline into ${languageName} for a Caribbean audience.
-
-Guidelines:
-- Keep the translation concise and punchy, suitable for a headline
-- Preserve proper nouns (names of people, places, organizations) unless they have standard translations
-- Maintain the urgency and news value of the original
-- Avoid literal word-for-word translation; prioritize natural ${languageName} phrasing
-${languageSpecificGuideline}
-
-Output: Return ONLY the translated headline, nothing else.`;
+    systemPrompt = applyVars(getPrompt('prompt_translation_title') || `Translate this news headline into ${languageName}.`);
     maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_TITLE;
     maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_TITLE;
   } else if (type === 'summary') {
-    systemPrompt = `Translate this news summary into ${languageName} for readers in the Caribbean region.
-
-Guidelines:
-- Preserve the original meaning, tone, and length
-- Maintain markdown formatting (including **bold text**)
-- Keep proper nouns intact unless they have established translations
-- Use natural ${languageName} phrasing rather than literal translation
-- End with a complete sentence
-${languageSpecificGuideline}
-
-Output: Return ONLY the translated summary, no preamble or notes.`;
+    systemPrompt = applyVars(getPrompt('prompt_translation_summary') || `Translate this news summary into ${languageName}.`);
     maxContentLength = CONFIG.MAX_CONTENT_LENGTH.TRANSLATION_SUMMARY;
     maxTokens = CONFIG.MAX_TOKENS.TRANSLATION_SUMMARY;
   } else if (type === 'raw_content') {
-    systemPrompt = `Translate this news article content into ${languageName} for Caribbean readers.
-
-Guidelines:
-- Maintain all original formatting: paragraphs, line breaks, and markdown
-- Preserve proper nouns (names, places, organizations) unless they have standard translations
-- Use natural, fluent ${languageName} rather than literal translation
-- Keep the same paragraph structure as the original
-- Preserve any quotes as direct translations
-${languageSpecificGuideline}
-
-Output: Return ONLY the translated content, maintaining the exact structure of the original.`;
+    systemPrompt = applyVars(getPrompt('prompt_translation_content') || `Translate this article into ${languageName}.`);
   } else {
-    systemPrompt = `Translate the following text into ${languageName} for a Caribbean audience.
-
-Guidelines:
-- Use natural ${languageName} phrasing
-- Preserve proper nouns unless they have standard translations
-${languageSpecificGuideline}
-
-Output: Return ONLY the translated text, nothing else.`;
+    systemPrompt = applyVars(getPrompt('prompt_translation_general') || `Translate the following text into ${languageName}.`);
   }
 
   // Truncate if needed
@@ -505,7 +450,7 @@ const getTopicTranslation = async (topicName, targetLanguageCode) => {
 const optimizeImagePrompt = async (summary) => {
   if (!summary) {
     console.log('[AI Service] No summary provided for image prompt optimization. Using generic TCI scene.');
-    return 'Professional news photograph of Grace Bay Beach in Providenciales, Turks and Caicos Islands, crystal-clear turquoise Caribbean waters, pristine white sand beach, tropical palm trees swaying, bright sunny Caribbean day, local Caribbean people with dark skin tones enjoying the beach, photorealistic news photography, high resolution, 16:9 aspect ratio';
+    return getPrompt('prompt_image_fallback') || 'Professional news photograph of Grace Bay Beach in Providenciales, Turks and Caicos Islands, crystal-clear turquoise Caribbean waters, photorealistic news photography, 16:9 aspect ratio';
   }
 
   console.log('[AI Service] Optimizing image prompt...');
@@ -531,38 +476,7 @@ const optimizeImagePrompt = async (summary) => {
   return withRetry(async () => {
     const { text: optimizedPrompt, finishReason } = await generateText({
       model: groq(getAiModels().PROMPT_OPTIMIZATION),
-      system: `You are a visual journalist for Mango News in the Turks and Caicos Islands (TCI). Create a UNIQUE image prompt that accurately represents the news article.
-
-TURKS AND CAICOS CONTEXT (use when relevant):
-- Main Islands: Providenciales (Provo), Grand Turk (capital), Salt Cay, South Caicos, Middle Caicos, North Caicos, Parrot Cay
-- Landmarks: Grace Bay Beach, Chalk Sound National Park, Grand Turk Lighthouse, Cockburn Town, The Bight, Long Bay Beach, Sapodilla Bay
-- Government: House of Assembly, Government Complex in Grand Turk, Governor's Beach
-- Culture: Junkanoo festivals, ripsaw music, conch fishing heritage, salt industry history
-- Economy: Tourism, offshore finance, fishing, construction
-- Architecture: Bermudian-style colonial buildings, modern resorts, traditional island homes
-- Nature: Turquoise waters, coral reefs, flamingos, iguanas, mangroves, salt flats
-
-SCENE MAPPING (match article topic):
-- Government/Politics → House of Assembly, Government Complex, official meetings, Caribbean officials in formal attire
-- Crime/Justice → Magistrate's Court, Royal Turks and Caicos Islands Police, legal proceedings (NO graphic content)
-- Business/Economy → Downtown Providenciales, Grace Bay resorts, construction sites, fishing boats, local markets
-- Health → Cheshire Hall Medical Centre, Turks and Caicos Hospital, medical staff
-- Education → TCI Community College, local schools, students in uniforms
-- Tourism → Grace Bay Beach, resorts, snorkeling, diving, tourists and locals
-- Environment → National parks, coral reefs, wetlands, hurricanes, coastal erosion
-- Community → Local festivals, churches, neighborhood gatherings, Junkanoo celebrations
-- Infrastructure → Providenciales International Airport, roads, utilities, development projects
-- Fishing → Conch diving, fishing boats, Blue Hills fishing village, seafood markets
-
-CHARACTER REPRESENTATION (CRITICAL):
-- Depict local Turks and Caicos Islanders (Belongers) with dark skin tones
-- Show diverse ages and appropriate professional attire
-- Respectful, dignified representation
-
-OUTPUT: Generate a 50-80 word prompt:
-[Specific TCI scene/location], [article-specific details], [local people if relevant], [Caribbean lighting - bright sun, golden hour, or dramatic storm clouds as appropriate], photorealistic news photography, 16:9 aspect ratio
-
-FORBIDDEN: Generic beaches (unless topic is tourism/beaches), text/logos/watermarks, identifiable faces, violence, abstract art`,
+      system: getPrompt('prompt_image') || 'You are a visual journalist. Create a concise image generation prompt for this news article.',
       prompt: `Generate an image prompt for this TCI news article:\n\n${truncatedSummary}`,
       temperature: 0.7,
       maxOutputTokens: CONFIG.MAX_TOKENS.IMAGE_PROMPT,
@@ -574,7 +488,7 @@ FORBIDDEN: Generic beaches (unless topic is tourism/beaches), text/logos/waterma
 
     if (!optimizedPrompt) {
       console.warn('[AI Service] Failed to generate optimized prompt, using fallback');
-      return 'Professional news photograph of Cockburn Town waterfront in Grand Turk, Turks and Caicos Islands, colonial Bermudian architecture, Caribbean blue sky, local islanders, photorealistic, 16:9 aspect ratio';
+      return getPrompt('prompt_image_fallback') || 'Professional news photograph of Cockburn Town waterfront in Grand Turk, Turks and Caicos Islands, colonial Bermudian architecture, Caribbean blue sky, local islanders, photorealistic, 16:9 aspect ratio';
     }
 
     console.log(`[AI Service] Generated optimized prompt (${optimizedPrompt.length} chars): ${optimizedPrompt.substring(0, 100)}...`);
@@ -624,32 +538,7 @@ const generateWeeklySummary = async (articles) => {
   return withRetry(async () => {
     const { text } = await generateText({
       model: groq(getAiModels().SUMMARY),
-      system: `You are the lead editor of Mango News Sunday Edition, the premiere weekly news digest for the Turks and Caicos Islands. Compile the provided weekly articles into an engaging, professional news broadcast script.
-
-Content Structure:
-1. Opening: Start with "Welcome to this week's Sunday Edition. It is brought to you by mango.tc. Your one-stop shop for everything TCI!"
-2. Lead Stories: Follow with the most impactful news of the week
-3. Thematic Grouping: Group related stories together with smooth transitions
-4. Closing: End with a forward-looking statement or community-focused note
-
-Style Requirements:
-- Tone: Authoritative yet warm, professional but accessible to TCI residents
-- Voice: Third-person, active voice throughout
-- Language: Clear, broadcast-ready English optimized for text-to-speech
-- Length: 4,000-4,200 characters (critical for audio generation limits)
-
-Formatting:
-- Use paragraphs to separate distinct topics
-- Use **bold** for names, key figures, and important facts
-- Use bullet points sparingly, only for short lists
-- Include smooth transitions between topics (e.g., "In other news...", "Meanwhile...", "Turning to...")
-
-Constraints:
-- Do NOT include: URLs, hashtags, email addresses, or call-to-action phrases
-- Do NOT use phrases like "This week we saw..." or "Let's take a look at..."
-- Do NOT use asterisk characters (*) outside of markdown bold syntax
-- MUST end with a complete sentence
-- MUST stay within the character limit for audio processing`,
+      system: getPrompt('prompt_weekly_summary') || 'You are the lead editor of Mango News Sunday Edition. Compile the weekly articles into a professional broadcast script of 4,000-4,200 characters.',
       prompt: `Weekly Articles to summarize:\n\n${articleContents}`,
       temperature: 0.6,
       maxOutputTokens: 1200,

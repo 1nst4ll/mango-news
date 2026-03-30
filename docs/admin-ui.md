@@ -2,7 +2,7 @@
 
 **Access:** `/settings` (requires login)
 
-The Settings page is the control center for sources, scraping, AI, scheduling, Sunday Editions, and topics. It contains 6 tabs, each lazy-loaded as a separate sub-component under `components/settings/` (shared types in `settings/types.ts`).
+The Settings page is the control center for sources, scraping, AI, scheduling, Sunday Editions, and topics. It contains 7 tabs, each lazy-loaded as a separate sub-component under `components/settings/` (shared types in `settings/types.ts`).
 
 ## Overview & Stats Tab
 
@@ -61,7 +61,7 @@ Admin-controlled banner management (inline in this tab):
 
 ### URL Blacklist
 
-Manage URLs excluded from scraping (previously required editing `config/blacklist.json` directly):
+Manage URLs excluded from scraping. Entries are stored in the `url_blacklist` PostgreSQL table (previously a local `config/blacklist.json` file):
 - **Add URL** — input + add button, with Enter key support
 - **Remove URL** — hover to reveal delete button per entry
 - **Count display** — shows total blacklisted URLs
@@ -178,6 +178,87 @@ Requires running the `add_status_to_sunday_editions.sql` migration to add the `s
 
 - **Purge All Sunday Editions** — deletes all editions (confirmation required)
 
+## AI Models Tab
+
+Configure all AI model selections, per-model image parameters, system prompts, and TTS settings. The tab contains four stacked sections.
+
+### Text Generation Models (Groq)
+
+Four dropdowns selecting which Groq model is used for each task:
+
+| Dropdown | Task |
+|----------|------|
+| Summary Model | Article summarisation |
+| Translation Model | Article translation (EN→ES, EN→HT) |
+| Topics / Tagging Model | AI topic classification |
+| Image Prompt Optimisation Model | Prompt refinement before image generation |
+
+Each dropdown shows the current selection and the system default below it. Available models include Llama 3.3 70B Versatile, Llama 3.1 8B Instant, Llama 3.1 70B, Llama Guard 3 8B, Gemma 2 9B, and others.
+
+### Image Generation Model (fal.ai)
+
+Single dropdown selecting which fal.ai model generates article and Sunday Edition images. Available models:
+
+| Model | Provider |
+|-------|----------|
+| FLUX.1 Dev / Pro / Schnell / FLUX.2 Turbo | Black Forest Labs |
+| FLUX Pro Ultra | Black Forest Labs |
+| Imagen4 / Nano Banana 2 | Google |
+| GPT Image 1.5 | OpenAI via fal.ai |
+| Ideogram V3 | Ideogram |
+| Recraft V3 / V4 Pro | Recraft |
+
+Click **Save Model Settings** to persist both the Groq and image model selections at once.
+
+### Per-Model Image Settings
+
+Accordion with one panel per fal.ai image model. Each panel renders fields from the model's schema — only settings supported by that model are shown. Field types include dropdowns (enums), number inputs (with min/max), and toggles (booleans).
+
+**Common settings by model type:**
+
+| Model family | Key parameters |
+|---|---|
+| FLUX.1 Dev / Pro | `image_size`, `num_inference_steps`, `guidance_scale`, `output_format` |
+| FLUX Pro Ultra | `aspect_ratio`, `output_format`, `raw` (boolean) |
+| FLUX.2 Turbo | `image_size`, `num_inference_steps`, `output_format` |
+| Imagen4 / Nano Banana 2 | `aspect_ratio`, `output_format`, `safety_filter_level` |
+| GPT Image 1.5 | `size` (`1024×1024` / `1024×1536` / `1536×1024`), `quality`, `output_format` |
+| Ideogram V3 | `aspect_ratio`, `style`, `output_format`, `color_palette` |
+| Recraft V3 / V4 Pro | `image_size`, `style`, `output_format` |
+
+Each accordion panel has **Save** and **Reset to Default** buttons that operate independently per model. Uses `GET/PUT /api/settings/image-settings`.
+
+### AI Prompts
+
+Accordion with one panel per AI system prompt. Prompts are stored in the `application_settings` table and editable without a restart.
+
+| Prompt key | Used by |
+|---|---|
+| `prompt_summary` | Article summarisation |
+| `prompt_topics` | Topic classification — uses `{{topics_list}}` |
+| `prompt_translation` | Body translation — uses `{{language_name}}`, `{{language_guideline}}` |
+| `prompt_translation_title` | Title/summary translation — same variables |
+| `prompt_image` | Image prompt generation |
+| `prompt_image_fallback` | Fallback prompt when Groq returns empty |
+| `prompt_weekly_summary` | Sunday Edition weekly digest |
+| `prompt_tts_cleanup` | Text cleanup before TTS narration |
+
+Each panel has a monospace resizable textarea with a character counter, an **Unsaved** badge when edited, and **Save** / **Revert** buttons per prompt. Uses `GET /api/settings/prompts` and `PUT /api/settings/prompts/:key`.
+
+### TTS Settings
+
+Configure the text-to-speech provider and voice used for Sunday Edition audio narration.
+
+**Provider selector:** Choose between three providers:
+
+| Provider | Type | Notes |
+|---|---|---|
+| Unreal Speech | Async | MP3 delivered via webhook callback; supports bitrate, speed (−1 to 1), pitch (0.5–1.5) |
+| fal.ai — Gemini TTS | Sync | Audio uploaded to S3 immediately; 30 available voices |
+| fal.ai — MiniMax Speech-02 HD | Sync | Audio uploaded to S3 immediately; 17 voices, adjustable speed |
+
+Each provider shows only its relevant controls. Uses `GET/PUT /api/settings/tts`.
+
 ## Topics Tab
 
 Manage the topic taxonomy used for AI-powered article classification.
@@ -220,7 +301,7 @@ Admin-controlled banner that appears above the Header on all public pages. Manag
 
 ## Component Architecture
 
-`SettingsPage.tsx` is an orchestrator that lazy-loads 6 tab sub-components via `React.lazy()`:
+`SettingsPage.tsx` is an orchestrator that lazy-loads 7 tab sub-components via `React.lazy()`:
 
 | Sub-component | Path | Tab |
 |---------------|------|-----|
@@ -230,6 +311,15 @@ Admin-controlled banner that appears above the Header on all public pages. Manag
 | `SourceManagement.tsx` | `components/settings/` | Source Management |
 | `SundayEditionsAdmin.tsx` | `components/settings/` | Sunday Editions |
 | `TopicManagement.tsx` | `components/settings/` | Topics |
+| `AIModels.tsx` | `components/settings/` | AI Models |
+
+The `AIModels` tab itself composes three further sub-components:
+
+| Sub-component | Role |
+|---------------|------|
+| `ImageModelSettings.tsx` | Per-model image parameter editor |
+| `PromptsSettings.tsx` | System prompt editor (accordion) |
+| `TTSSettings.tsx` | TTS provider and voice configuration |
 
 Shared TypeScript interfaces live in `components/settings/types.ts`. Each tab is wrapped in `React.Suspense` with a `Skeleton` fallback.
 

@@ -490,9 +490,19 @@ Regenerate the AI image for a Sunday Edition. Admin only. Rate-limited by the ex
 
 Regenerate the audio narration for a Sunday Edition. Admin only. Rate-limited by the expensive limiter (20 requests/hour).
 
-**Response `200`:** `{ "message": "Audio regeneration initiated.", "task_id": "string" }`
+The response shape depends on the active TTS provider (configured in Settings → AI Models → TTS Settings):
 
-The audio is generated asynchronously via Unreal Speech. The `task_id` can be used to track progress. The `narration_url` on the Sunday Edition will be updated when the callback is received.
+**UnrealSpeech (async):**
+```json
+{ "message": "Audio regeneration initiated.", "task_id": "abc123" }
+```
+The `task_id` tracks the async job. The `narration_url` on the Sunday Edition is set when `POST /api/unreal-speech-callback` fires.
+
+**fal.ai Gemini TTS / fal.ai MiniMax (sync):**
+```json
+{ "message": "Audio regeneration initiated.", "narration_url": "https://s3.../sunday-edition-uuid.mp3" }
+```
+Audio is generated synchronously and uploaded to S3; `narration_url` is set immediately.
 
 ---
 
@@ -627,7 +637,7 @@ Update emergency banner settings. Admin only. Values are stored in the `applicat
 
 ### `GET /api/settings/blacklist` 🔒
 
-Get the current URL blacklist (URLs excluded from scraping).
+Get the current URL blacklist (URLs excluded from scraping). Backed by the `url_blacklist` PostgreSQL table.
 
 **Response `200`:** Array of URL strings.
 
@@ -635,7 +645,7 @@ Get the current URL blacklist (URLs excluded from scraping).
 
 ### `POST /api/settings/blacklist` 🔒
 
-Add a URL to the blacklist.
+Add a URL to the blacklist. Stored in the `url_blacklist` table.
 
 **Body:** `{ "url": "https://example.com/page-to-exclude" }`
 
@@ -650,6 +660,192 @@ Remove a URL from the blacklist.
 **Body:** `{ "url": "https://example.com/page-to-exclude" }`
 
 **Response `200`:** `{ "message": "URL removed from blacklist.", "count": 27 }`. `404` if not found.
+
+---
+
+### `GET /api/settings/ai-models` 🔒
+
+Get AI model configuration — current selections, defaults, and available options.
+
+**Response `200`:**
+```json
+{
+  "current": {
+    "SUMMARY": "llama-3.3-70b-versatile",
+    "TRANSLATION": "llama-3.3-70b-versatile",
+    "TOPICS": "llama-3.3-70b-versatile",
+    "PROMPT_OPTIMIZATION": "llama-3.3-70b-versatile",
+    "IMAGE": "fal-ai/flux/dev"
+  },
+  "defaults": {
+    "SUMMARY": "llama-3.3-70b-versatile",
+    "TRANSLATION": "llama-3.3-70b-versatile",
+    "TOPICS": "llama-3.3-70b-versatile",
+    "PROMPT_OPTIMIZATION": "llama-3.3-70b-versatile",
+    "IMAGE": "fal-ai/flux/dev"
+  },
+  "options": {
+    "groq": [
+      { "id": "llama-3.3-70b-versatile", "label": "Llama 3.3 70B Versatile" },
+      { "id": "llama-3.1-8b-instant", "label": "Llama 3.1 8B Instant" }
+    ],
+    "image": [
+      { "id": "fal-ai/flux/dev", "label": "FLUX.1 Dev" },
+      { "id": "fal-ai/ideogram/v3", "label": "Ideogram V3" }
+    ]
+  }
+}
+```
+
+---
+
+### `PUT /api/settings/ai-models` 🔒
+
+Update AI model selections. All fields optional. Persisted to `application_settings` table and reloaded into the in-memory cache immediately.
+
+**Body:**
+```json
+{
+  "summary": "llama-3.3-70b-versatile",
+  "translation": "llama-3.3-70b-versatile",
+  "topics": "llama-3.1-8b-instant",
+  "prompt": "llama-3.3-70b-versatile",
+  "image": "fal-ai/ideogram/v3"
+}
+```
+
+**Response `200`:** `{ "message": "AI model settings saved." }`
+
+---
+
+### `GET /api/settings/image-settings` 🔒
+
+Get per-model image generation parameters and the field schema for each model.
+
+**Response `200`:**
+```json
+{
+  "settings": {
+    "fal-ai/flux/dev": { "image_size": "landscape_4_3", "num_inference_steps": 28, "guidance_scale": 3.5, "output_format": "jpeg" },
+    "fal-ai/ideogram/v3": { "aspect_ratio": "16:9", "style": "REALISTIC", "output_format": "jpeg" }
+  },
+  "schemas": {
+    "fal-ai/flux/dev": [
+      { "key": "image_size", "label": "Image Size", "type": "select", "options": ["square_hd", "landscape_4_3", "landscape_16_9", ...] },
+      { "key": "num_inference_steps", "label": "Inference Steps", "type": "number", "min": 1, "max": 50 }
+    ],
+    "fal-ai/ideogram/v3": [
+      { "key": "aspect_ratio", "label": "Aspect Ratio", "type": "select", "options": ["1:1", "16:9", "4:3", ...] },
+      { "key": "style", "label": "Style", "type": "select", "options": ["AUTO", "REALISTIC", "DESIGN", "ANIME"] }
+    ]
+  }
+}
+```
+
+---
+
+### `PUT /api/settings/image-settings` 🔒
+
+Save per-model image generation parameters. Persisted to `application_settings` and reloaded immediately.
+
+**Body:**
+```json
+{
+  "modelId": "fal-ai/flux/dev",
+  "settings": { "image_size": "landscape_16_9", "num_inference_steps": 28, "output_format": "jpeg" }
+}
+```
+
+**Response `200`:** `{ "message": "Image settings saved for fal-ai/flux/dev." }`
+
+---
+
+### `GET /api/settings/tts` 🔒
+
+Get TTS (text-to-speech) configuration for Sunday Edition audio narration.
+
+**Response `200`:**
+```json
+{
+  "current": {
+    "provider": "unrealspeech",
+    "unrealspeech_voice_id": "Scarlett",
+    "unrealspeech_bitrate": "192k",
+    "unrealspeech_speed": 0,
+    "unrealspeech_pitch": 1,
+    "fal_gemini_voice": "Aoede",
+    "fal_minimax_voice": "English_Graceful_Lady",
+    "fal_minimax_speed": 1.0
+  },
+  "defaults": { "...same keys with default values..." },
+  "options": {
+    "providers": [
+      { "id": "unrealspeech", "label": "Unreal Speech" },
+      { "id": "fal-gemini", "label": "fal.ai — Gemini TTS" },
+      { "id": "fal-minimax", "label": "fal.ai — MiniMax Speech-02 HD" }
+    ],
+    "unrealspeech_voices": ["Scarlett", "Dan", "Liv", "Will", "Amy", "Josh"],
+    "unrealspeech_bitrates": ["64k", "128k", "192k", "256k", "320k"],
+    "fal_gemini_voices": ["Aoede", "Charon", "Fenrir", ...],
+    "fal_minimax_voices": ["English_Graceful_Lady", "English_ReporterMale", ...]
+  }
+}
+```
+
+---
+
+### `PUT /api/settings/tts` 🔒
+
+Update TTS settings. All fields optional. Persisted to `application_settings` and reloaded immediately.
+
+**Body:**
+```json
+{
+  "provider": "fal-gemini",
+  "fal_gemini_voice": "Aoede"
+}
+```
+
+**Response `200`:** `{ "message": "TTS settings saved." }`
+
+---
+
+### `GET /api/settings/prompts` 🔒
+
+Get all AI system prompts and their metadata (label + description with template variable hints).
+
+**Response `200`:**
+```json
+{
+  "prompts": {
+    "prompt_summary": "You are a news summarizer...",
+    "prompt_topics": "You are a news topic classifier...",
+    "prompt_translation": "You are a professional translator...",
+    "prompt_translation_title": "Translate the following headline...",
+    "prompt_image": "You are an AI image prompt engineer...",
+    "prompt_image_fallback": "A photorealistic news photograph...",
+    "prompt_weekly_summary": "You are a CNN news anchor...",
+    "prompt_tts_cleanup": "Clean up the following text for TTS..."
+  },
+  "meta": {
+    "prompt_summary": { "label": "Article Summary", "description": "No template variables." },
+    "prompt_topics": { "label": "Topic Classification", "description": "Uses {{topics_list}} — replaced with the current topic list." },
+    "prompt_translation": { "label": "Article Translation", "description": "Uses {{language_name}} and {{language_guideline}}." }
+  }
+}
+```
+
+---
+
+### `PUT /api/settings/prompts/:key` 🔒
+
+Update a single AI system prompt. Persisted to `application_settings` and reloaded immediately.
+
+**URL param:** `key` — one of the prompt keys (e.g. `prompt_summary`, `prompt_topics`, `prompt_translation`).
+
+**Body:** `{ "value": "Updated prompt text..." }`
+
+**Response `200`:** `{ "message": "Prompt saved: prompt_summary." }`. `400` if key is invalid.
 
 ---
 

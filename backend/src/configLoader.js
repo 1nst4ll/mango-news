@@ -157,6 +157,46 @@ function getImageSettingsForModel(modelId) {
   return _imageSettings[modelId] || {};
 }
 
+// ============================================================================
+// AI Prompts
+// ============================================================================
+
+const PROMPT_KEYS = [
+  'prompt_summary',
+  'prompt_topics',
+  'prompt_translation_title',
+  'prompt_translation_summary',
+  'prompt_translation_content',
+  'prompt_translation_general',
+  'prompt_image',
+  'prompt_image_fallback',
+  'prompt_weekly_summary',
+];
+
+let _prompts = {};
+
+async function loadPrompts() {
+  try {
+    const result = await pool.query(
+      `SELECT setting_name, setting_value FROM application_settings WHERE setting_name = ANY($1)`,
+      [PROMPT_KEYS]
+    );
+    _prompts = result.rows.reduce((acc, r) => { acc[r.setting_name] = r.setting_value; return acc; }, {});
+    console.log(`[Config] Loaded ${Object.keys(_prompts).length} prompts from DB`);
+  } catch (error) {
+    console.error('[Config] Error loading prompts from DB:', error);
+    _prompts = {};
+  }
+}
+
+function getPrompt(key) {
+  return _prompts[key] || null;
+}
+
+function getPrompts() {
+  return _prompts;
+}
+
 module.exports = {
   loadUrlBlacklist,
   getBlacklist,
@@ -170,4 +210,8 @@ module.exports = {
   getImageSettings,
   getImageSettingsForModel,
   IMAGE_SETTINGS_DEFAULTS,
+  loadPrompts,
+  getPrompt,
+  getPrompts,
+  PROMPT_KEYS,
 };

@@ -157,7 +157,7 @@ router.put('/emergency', authenticateToken, requireRole('admin'), async (req, re
 });
 
 // Blacklist management + AI model settings + TTS settings + Image settings
-const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS, loadTtsSettings, getTtsSettings, TTS_DEFAULTS, loadImageSettings, getImageSettings, IMAGE_SETTINGS_DEFAULTS } = require('../configLoader');
+const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS, loadTtsSettings, getTtsSettings, TTS_DEFAULTS, loadImageSettings, getImageSettings, IMAGE_SETTINGS_DEFAULTS, loadPrompts, getPrompts, PROMPT_KEYS } = require('../configLoader');
 
 // ============================================================================
 // AI Model Settings
@@ -385,6 +385,56 @@ router.put('/image-settings', authenticateToken, requireRole('admin'), async (re
     console.error(`[ERROR] PUT /api/settings/image-settings:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+// ============================================================================
+// AI Prompts
+// ============================================================================
+
+const PROMPT_META = {
+  prompt_summary:              { label: 'Article Summary',          description: 'Generates the 80-100 word article summary. No template variables.' },
+  prompt_topics:               { label: 'Topic Classification',     description: 'Classifies article into topics. Use {{topics_list}} for the available topics.' },
+  prompt_translation_title:    { label: 'Translation — Headline',   description: 'Translates article headlines. Use {{language_name}} and {{language_guideline}}.' },
+  prompt_translation_summary:  { label: 'Translation — Summary',    description: 'Translates article summaries. Use {{language_name}} and {{language_guideline}}.' },
+  prompt_translation_content:  { label: 'Translation — Article Body', description: 'Translates full article content. Use {{language_name}} and {{language_guideline}}.' },
+  prompt_translation_general:  { label: 'Translation — General',    description: 'Fallback translation prompt. Use {{language_name}} and {{language_guideline}}.' },
+  prompt_image:                { label: 'Image Prompt Optimiser',   description: 'Creates a fal.ai image prompt from the article summary. No template variables.' },
+  prompt_image_fallback:       { label: 'Image Prompt Fallback',    description: 'Used when no article summary is available. Plain text prompt, no variables.' },
+  prompt_weekly_summary:       { label: 'Sunday Edition Script',    description: 'Generates the weekly broadcast script. No template variables.' },
+};
+
+router.get('/prompts', authenticateToken, async (req, res) => {
+  try {
+    res.json({ prompts: getPrompts(), meta: PROMPT_META });
+  } catch (err) {
+    console.error(`[ERROR] GET /api/settings/prompts:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/prompts/:key', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+  if (!PROMPT_KEYS.includes(key)) return res.status(400).json({ error: 'Unknown prompt key.' });
+  if (typeof value !== 'string' || !value.trim()) return res.status(400).json({ error: 'value is required.' });
+  try {
+    await pool.query(
+      `INSERT INTO application_settings (setting_name, setting_value) VALUES ($1, $2)
+       ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+      [key, value]
+    );
+    await loadPrompts();
+    res.json({ message: 'Prompt updated.', key });
+  } catch (err) {
+    console.error(`[ERROR] PUT /api/settings/prompts/${key}:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.post('/prompts/:key/reset', authenticateToken, requireRole('admin'), async (req, res) => {
+  // Resets to the seeded default by re-running the seed value — client should store defaults locally
+  // For simplicity, this endpoint is a no-op placeholder; actual reset is done via PUT with the default value
+  res.status(501).json({ error: 'Use PUT /api/settings/prompts/:key with the default value to reset.' });
 });
 
 // ============================================================================

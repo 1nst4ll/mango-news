@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
 import TTSSettings from './TTSSettings';
 import ImageModelSettings from './ImageModelSettings';
+import PromptsSettings from './PromptsSettings';
 
 interface ModelOption {
   id: string;
@@ -182,6 +183,9 @@ const AIModels: React.FC = () => {
 
       {/* Per-model Image Settings */}
       <ImageModelSettings />
+
+      {/* AI Prompts */}
+      <PromptsSettings />
 
       {/* TTS Settings */}
       <TTSSettings />

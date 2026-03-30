@@ -7,12 +7,14 @@ A weekly AI-generated news digest with audio narration, published every Sunday a
 Every Sunday at midnight (configurable), the system:
 
 1. Collects all articles published in the past 7 days
-2. Generates a CNN anchor-style summary via Groq (up to 2,900 characters)
-3. Sends the text to Unreal Speech API for MP3 narration (async)
-4. Generates a header image via fal.ai FLUX.2 Turbo
+2. Generates a CNN anchor-style summary via Groq (configurable model, configurable prompt)
+3. Generates audio narration via the active TTS provider (configured in Settings → AI Models → TTS Settings)
+4. Generates a header image via the configured fal.ai image model
 5. Saves the result to the `sunday_editions` table
 
-The audio generation is asynchronous — Unreal Speech calls back to `POST /api/unreal-speech-callback` when the MP3 is ready, which updates the record with the `narration_url`.
+Audio generation behaviour depends on the provider:
+- **Unreal Speech** — async. Unreal Speech calls back to `POST /api/unreal-speech-callback` when the MP3 is ready, which then sets `narration_url`.
+- **fal.ai Gemini TTS / MiniMax** — sync. Audio is uploaded to S3 immediately and `narration_url` is set before the record is saved.
 
 ## Database Schema
 
@@ -37,16 +39,43 @@ CREATE TABLE sunday_editions (
 ```
 createSundayEdition()
 ├── fetchWeeklyArticles()            — query past 7 days of articles
-├── generateSundayEditionSummary()   — Groq Llama 3.3 70B (aiService)
-├── generateSundayEditionImage()     — fal.ai FLUX.2 Turbo → S3
-├── generateNarration()              — Unreal Speech API (async)
+├── generateSundayEditionSummary()   — Groq (model from AI Models settings)
+├── generateSundayEditionImage()     — fal.ai (model from AI Models settings) → S3
+├── generateNarration()              — dispatches to active TTS provider
+│   ├── _generateNarrationUnrealSpeech()  — async, returns { type: 'task', id }
+│   ├── _generateNarrationFalGemini()     — sync, returns { type: 'url', url }
+│   └── _generateNarrationFalMinimax()    — sync, returns { type: 'url', url }
 └── INSERT into sunday_editions
 ```
 
-**Required environment variable:**
+**Required environment variables:**
 ```env
-UNREAL_SPEECH_API_KEY=your_key   # omit to skip audio narration
+UNREAL_SPEECH_API_KEY=your_key   # required if using Unreal Speech provider
+FAL_KEY=your_key                 # required if using fal.ai TTS providers
 ```
+
+## TTS Providers
+
+TTS provider and settings are configured in Settings → AI Models → TTS Settings. The active provider is stored in `application_settings` and loaded into memory at startup.
+
+### Unreal Speech (async)
+
+- Calls the Unreal Speech REST API with the cleaned narration text
+- Returns a `task_id` — the record is saved with `narration_url = NULL` and `unreal_speech_task_id` set
+- Unreal Speech POSTs to `POST /api/unreal-speech-callback` when the MP3 is ready, which sets `narration_url`
+- Configurable: **voice** (Scarlett, Dan, Liv, Will, Amy, Josh), **bitrate** (64k–320k), **speed** (−1 to 1), **pitch** (0.5–1.5)
+
+### fal.ai — Gemini TTS (sync)
+
+- Calls `fal-ai/gemini-tts` via `@fal-ai/client`
+- Audio binary is downloaded and uploaded to S3; `narration_url` is set immediately
+- Configurable: **voice** (30 options including Aoede, Charon, Fenrir, Kore, and others)
+
+### fal.ai — MiniMax Speech-02 HD (sync)
+
+- Calls `fal-ai/minimax/speech-02-hd` via `@fal-ai/client`
+- Audio binary is downloaded and uploaded to S3; `narration_url` is set immediately
+- Configurable: **voice** (17 options including English_Graceful_Lady, English_ReporterMale), **speed** (0.5–2.0)
 
 ## Schedule
 
@@ -84,7 +113,14 @@ GET /api/sunday-editions/:id
 }
 ```
 
-**Audio callback** (called by Unreal Speech):
+**Regenerate audio** (authenticated):
+```http
+POST /api/sunday-editions/:id/regenerate-audio
+Authorization: Bearer YOUR_TOKEN
+```
+Response shape depends on the active TTS provider. Unreal Speech returns `{ "task_id": "..." }`; fal.ai providers return `{ "narration_url": "https://..." }`.
+
+**Audio callback** (called by Unreal Speech — not for client use):
 ```http
 POST /api/unreal-speech-callback
 ```
