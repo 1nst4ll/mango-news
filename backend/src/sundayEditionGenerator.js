@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
+const { fal } = require('@fal-ai/client');
 
 // Import shared database pool to prevent connection exhaustion and reduce memory
 const { pool } = require('./db');
@@ -13,8 +14,13 @@ const imageService = require('./services/imageService');
 // Import shared S3 service
 const { uploadToS3 } = require('./services/s3Service');
 
+// Import TTS settings
+const { getTtsSettings } = require('./configLoader');
+
 const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
 const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/synthesisTasks';
+
+fal.config({ credentials: process.env.FAL_KEY });
 
 if (!UNREAL_SPEECH_API_KEY) {
     console.error('[ERROR] UNREAL_SPEECH_API_KEY is not set in environment variables.');
@@ -98,57 +104,110 @@ function stripMarkdown(markdownText) {
     return plainText;
 }
 
+/**
+ * Generate narration audio for a Sunday Edition summary.
+ * Returns { type: 'task', id } for async providers (UnrealSpeech)
+ * or { type: 'url', url } for synchronous providers (fal.ai).
+ * Returns null on failure.
+ */
 async function generateNarration(summary) {
+    const tts = getTtsSettings();
+    const plainText = stripMarkdown(summary);
+
+    if (tts.provider === 'fal-gemini') {
+        return _generateNarrationFalGemini(plainText, tts);
+    }
+    if (tts.provider === 'fal-minimax') {
+        return _generateNarrationFalMinimax(plainText, tts);
+    }
+    // Default: unreal-speech
+    return _generateNarrationUnrealSpeech(plainText, tts);
+}
+
+async function _generateNarrationUnrealSpeech(plainText, tts) {
     if (!UNREAL_SPEECH_API_KEY) {
-        console.error('[ERROR] Unreal Speech API key is missing. Cannot generate narration.');
+        console.error('[ERROR] UNREAL_SPEECH_API_KEY is not set. Cannot generate narration.');
         return null;
     }
-
-    // Strip Markdown for narration
-    const plainTextSummary = stripMarkdown(summary);
-
-    // Truncate summary to ensure it does not exceed Unreal Speech API's 4250 character limit
-    const truncatedSummary = plainTextSummary.length > 4250 ? plainTextSummary.substring(0, 4250) : plainTextSummary;
-    if (plainTextSummary.length > 4250) {
-        console.warn(`[WARNING] Truncating summary for Unreal Speech API from ${plainTextSummary.length} to ${truncatedSummary.length} characters.`);
+    const truncated = plainText.length > 4250 ? plainText.substring(0, 4250) : plainText;
+    if (plainText.length > 4250) {
+        console.warn(`[WARNING] Truncating summary for Unreal Speech from ${plainText.length} to ${truncated.length} chars.`);
     }
-
     const callbackUrl = `${process.env.PUBLIC_API_URL || 'https://mango-news.onrender.com'}/api/unreal-speech-callback`;
-
     const requestBody = {
-        Text: truncatedSummary, // Use truncated and plain text summary
-        VoiceId: "Charlotte", // As requested
-        Bitrate: "192k",
-        Speed: 0,
-        Pitch: 1,
-        CallbackUrl: callbackUrl, // Add callback URL
+        Text: truncated,
+        VoiceId: tts.us_voice,
+        Bitrate: tts.us_bitrate,
+        Speed: tts.us_speed,
+        Pitch: tts.us_pitch,
+        CallbackUrl: callbackUrl,
     };
-    console.log(`[INFO] Sending to Unreal Speech API: ${JSON.stringify(requestBody)}`);
-
+    console.log(`[TTS] UnrealSpeech request: voice=${tts.us_voice} speed=${tts.us_speed} pitch=${tts.us_pitch}`);
     try {
         const response = await axios.post(UNREAL_SPEECH_API_URL, requestBody, {
-            headers: {
-                'Authorization': `Bearer ${UNREAL_SPEECH_API_KEY}`,
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Authorization': `Bearer ${UNREAL_SPEECH_API_KEY}`, 'Content-Type': 'application/json' }
         });
-
-        console.log(`[INFO] Unreal Speech API response status: ${response.status}`);
-        console.log(`[INFO] Unreal Speech API response data: ${JSON.stringify(response.data)}`);
-        console.log(`[INFO] Unreal Speech API response headers: ${JSON.stringify(response.headers)}`);
-
         const synthesisTask = response.data.SynthesisTask;
         if (!synthesisTask || !synthesisTask.TaskId) {
-            console.error(`[ERROR] Unreal Speech API response did not contain SynthesisTask or TaskId. Details: ${JSON.stringify(response.data)}`);
+            console.error(`[ERROR] UnrealSpeech did not return TaskId: ${JSON.stringify(response.data)}`);
             return null;
         }
-
-        // Return the TaskId. The actual audio URL will be handled by the callback.
-        return synthesisTask.TaskId;
-
+        return { type: 'task', id: synthesisTask.TaskId };
     } catch (error) {
-        const errorMessage = error.response ? (error.response.data ? JSON.stringify(error.response.data.toString('utf8')) : `Status: ${error.response.status}`) : error.message;
-        console.error(`[ERROR] Error generating narration or downloading audio from Unreal Speech: ${errorMessage}`);
+        const msg = error.response ? JSON.stringify(error.response.data) : error.message;
+        console.error(`[ERROR] UnrealSpeech narration failed: ${msg}`);
+        return null;
+    }
+}
+
+async function _generateNarrationFalGemini(plainText, tts) {
+    if (!process.env.FAL_KEY) {
+        console.error('[ERROR] FAL_KEY is not set. Cannot generate narration via fal.ai.');
+        return null;
+    }
+    const truncated = plainText.length > 5000 ? plainText.substring(0, 5000) : plainText;
+    console.log(`[TTS] fal Gemini TTS: voice=${tts.fal_gemini_voice}`);
+    try {
+        const result = await fal.subscribe('fal-ai/gemini-tts', {
+            input: { prompt: truncated, voice: tts.fal_gemini_voice, output_format: 'mp3' },
+            logs: false,
+        });
+        const audioUrl = result?.data?.audio?.url;
+        if (!audioUrl) { console.error('[ERROR] fal Gemini TTS returned no audio URL'); return null; }
+        const audioResponse = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+        const s3Url = await uploadToS3(Buffer.from(audioResponse.data), 'sunday-editions/audio', `sunday-edition-${uuidv4()}.mp3`, 'audio/mpeg');
+        if (!s3Url) { console.error('[ERROR] Failed to upload fal Gemini audio to S3'); return null; }
+        return { type: 'url', url: s3Url };
+    } catch (error) {
+        console.error(`[ERROR] fal Gemini TTS failed: ${error.message}`);
+        return null;
+    }
+}
+
+async function _generateNarrationFalMinimax(plainText, tts) {
+    if (!process.env.FAL_KEY) {
+        console.error('[ERROR] FAL_KEY is not set. Cannot generate narration via fal.ai.');
+        return null;
+    }
+    const truncated = plainText.length > 5000 ? plainText.substring(0, 5000) : plainText;
+    console.log(`[TTS] fal MiniMax TTS: voice=${tts.fal_minimax_voice} speed=${tts.fal_minimax_speed}`);
+    try {
+        const result = await fal.subscribe('fal-ai/minimax/speech-02-hd', {
+            input: {
+                text: truncated,
+                voice_setting: { voice_id: tts.fal_minimax_voice, speed: tts.fal_minimax_speed },
+                output_format: 'url',
+            },
+            logs: false,
+        });
+        const audioUrl = result?.data?.audio?.url;
+        if (!audioUrl) { console.error('[ERROR] fal MiniMax TTS returned no audio URL'); return null; }
+        const audioResponse = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+        const s3Url = await uploadToS3(Buffer.from(audioResponse.data), 'sunday-editions/audio', `sunday-edition-${uuidv4()}.mp3`, 'audio/mpeg');
+        if (!s3Url) { console.error('[ERROR] Failed to upload fal MiniMax audio to S3'); return null; }
+        return { type: 'url', url: s3Url };
+    } catch (error) {
+        console.error(`[ERROR] fal MiniMax TTS failed: ${error.message}`);
         return null;
     }
 }
@@ -190,13 +249,17 @@ async function createSundayEdition() {
         }
 
         console.log('[INFO] Attempting to generate narration...');
-        const unrealSpeechTaskId = await generateNarration(summary);
-        if (!unrealSpeechTaskId) {
-            console.error('Failed to initiate narration generation with Unreal Speech. Aborting Sunday Edition generation.');
+        const narrationResult = await generateNarration(summary);
+        if (!narrationResult) {
+            console.error('Failed to generate narration. Aborting Sunday Edition generation.');
             await client.query('ROLLBACK');
             return { success: false, message: 'Failed to initiate narration generation.' };
         }
-        console.log(`[INFO] Narration generation initiated with TaskId: ${unrealSpeechTaskId}`);
+        // async provider (UnrealSpeech): stores taskId, URL set later via callback
+        // sync provider (fal.ai): stores URL immediately, no taskId
+        const unrealSpeechTaskId = narrationResult.type === 'task' ? narrationResult.id : null;
+        const narrationUrl      = narrationResult.type === 'url'  ? narrationResult.url : null;
+        console.log(`[INFO] Narration result: type=${narrationResult.type} id=${unrealSpeechTaskId || narrationResult.url}`);
 
         const title = `Mango News Sunday Edition - ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
 
@@ -230,21 +293,21 @@ async function createSundayEdition() {
             console.log(`Sunday Edition for today already exists (ID: ${editionId}). Updating.`);
             const updateQuery = `
                 UPDATE sunday_editions
-                SET title = $1, summary = $2, narration_url = NULL, image_url = $3, unreal_speech_task_id = $4, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $5
+                SET title = $1, summary = $2, narration_url = $3, image_url = $4, unreal_speech_task_id = $5, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $6
                 RETURNING id;
             `;
-            const result = await client.query(updateQuery, [title, summary, imageUrl, unrealSpeechTaskId, editionId]);
+            const result = await client.query(updateQuery, [title, summary, narrationUrl, imageUrl, unrealSpeechTaskId, editionId]);
             newEditionId = result.rows[0].id;
         } else {
             // Edition does not exist, insert new one
             console.log('No Sunday Edition for today found. Inserting new one.');
             const insertQuery = `
                 INSERT INTO sunday_editions (title, summary, narration_url, image_url, publication_date, unreal_speech_task_id)
-                VALUES ($1, $2, NULL, $3, $4, $5)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id;
             `;
-            const result = await client.query(insertQuery, [title, summary, imageUrl, today, unrealSpeechTaskId]);
+            const result = await client.query(insertQuery, [title, summary, narrationUrl, imageUrl, today, unrealSpeechTaskId]);
             newEditionId = result.rows[0].id;
         }
 

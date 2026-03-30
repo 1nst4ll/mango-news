@@ -60,10 +60,61 @@ function getAiModels() {
   return _aiModels;
 }
 
+// ============================================================================
+// TTS Settings
+// ============================================================================
+
+const TTS_DEFAULTS = {
+  provider:          'unreal-speech', // 'unreal-speech' | 'fal-gemini' | 'fal-minimax'
+  us_voice:          'Charlotte',
+  us_speed:          0,
+  us_pitch:          1,
+  us_bitrate:        '192k',
+  fal_gemini_voice:  'Kore',
+  fal_minimax_voice: 'Wise_Woman',
+  fal_minimax_speed: 1,
+};
+
+let _ttsSettings = { ...TTS_DEFAULTS };
+
+async function loadTtsSettings() {
+  try {
+    const result = await pool.query(
+      `SELECT setting_name, setting_value FROM application_settings
+       WHERE setting_name IN (
+         'tts_provider','tts_us_voice','tts_us_speed','tts_us_pitch','tts_us_bitrate',
+         'tts_fal_gemini_voice','tts_fal_minimax_voice','tts_fal_minimax_speed'
+       )`
+    );
+    const rows = result.rows.reduce((acc, r) => { acc[r.setting_name] = r.setting_value; return acc; }, {});
+    _ttsSettings = {
+      provider:          rows.tts_provider          || TTS_DEFAULTS.provider,
+      us_voice:          rows.tts_us_voice           || TTS_DEFAULTS.us_voice,
+      us_speed:          rows.tts_us_speed           != null ? parseFloat(rows.tts_us_speed) : TTS_DEFAULTS.us_speed,
+      us_pitch:          rows.tts_us_pitch           != null ? parseFloat(rows.tts_us_pitch) : TTS_DEFAULTS.us_pitch,
+      us_bitrate:        rows.tts_us_bitrate         || TTS_DEFAULTS.us_bitrate,
+      fal_gemini_voice:  rows.tts_fal_gemini_voice   || TTS_DEFAULTS.fal_gemini_voice,
+      fal_minimax_voice: rows.tts_fal_minimax_voice  || TTS_DEFAULTS.fal_minimax_voice,
+      fal_minimax_speed: rows.tts_fal_minimax_speed  != null ? parseFloat(rows.tts_fal_minimax_speed) : TTS_DEFAULTS.fal_minimax_speed,
+    };
+    console.log('[Config] TTS settings loaded:', JSON.stringify(_ttsSettings));
+  } catch (error) {
+    console.error('[Config] Error loading TTS settings from DB:', error);
+    _ttsSettings = { ...TTS_DEFAULTS };
+  }
+}
+
+function getTtsSettings() {
+  return _ttsSettings;
+}
+
 module.exports = {
   loadUrlBlacklist,
   getBlacklist,
   loadAiModels,
   getAiModels,
   AI_MODEL_DEFAULTS,
+  loadTtsSettings,
+  getTtsSettings,
+  TTS_DEFAULTS,
 };

@@ -156,8 +156,8 @@ router.put('/emergency', authenticateToken, requireRole('admin'), async (req, re
   }
 });
 
-// Blacklist management + AI model settings
-const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS } = require('../configLoader');
+// Blacklist management + AI model settings + TTS settings
+const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS, loadTtsSettings, getTtsSettings, TTS_DEFAULTS } = require('../configLoader');
 
 // ============================================================================
 // AI Model Settings
@@ -175,12 +175,17 @@ const GROQ_MODELS = [
 ];
 
 const FAL_IMAGE_MODELS = [
-  { id: 'fal-ai/flux-2/turbo',   label: 'FLUX.2 Turbo (fast, recommended)' },
-  { id: 'fal-ai/flux-2-pro',     label: 'FLUX.2 Pro (highest quality)' },
-  { id: 'fal-ai/flux-2-flex',    label: 'FLUX.2 Flex' },
-  { id: 'fal-ai/flux/dev',       label: 'FLUX.1 Dev' },
-  { id: 'fal-ai/flux/schnell',   label: 'FLUX.1 Schnell (fastest)' },
-  { id: 'fal-ai/flux-pro/v1.1',  label: 'FLUX1.1 Pro' },
+  // FLUX
+  { id: 'fal-ai/flux-2/turbo',                  label: 'FLUX.2 Turbo (fast, recommended)' },
+  { id: 'fal-ai/flux-2-pro',                    label: 'FLUX.2 Pro (highest quality)' },
+  { id: 'fal-ai/flux-2-flex',                   label: 'FLUX.2 Flex (text rendering)' },
+  { id: 'fal-ai/flux/dev',                      label: 'FLUX.1 Dev' },
+  { id: 'fal-ai/flux/schnell',                  label: 'FLUX.1 Schnell (fastest)' },
+  { id: 'fal-ai/flux-pro/v1.1',                 label: 'FLUX1.1 Pro' },
+  // Text-in-image specialists
+  { id: 'fal-ai/ideogram/v3',                   label: 'Ideogram V3 (best text in image)' },
+  { id: 'fal-ai/recraft-v3',                    label: 'Recraft V3 (text + vector)' },
+  { id: 'fal-ai/recraft/v4/pro/text-to-image',  label: 'Recraft V4 Pro (text + composition)' },
 ];
 
 router.get('/ai-models', authenticateToken, async (req, res) => {
@@ -219,6 +224,103 @@ router.put('/ai-models', authenticateToken, requireRole('admin'), async (req, re
     res.json({ message: 'AI model settings updated.', current: getAiModels() });
   } catch (err) {
     console.error(`[ERROR] PUT /api/settings/ai-models:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ============================================================================
+// TTS Settings
+// ============================================================================
+
+const UNREAL_SPEECH_VOICES = [
+  { id: 'Charlotte', label: 'Charlotte (Female)' },
+  { id: 'Dan',       label: 'Dan (Young Male)' },
+  { id: 'Will',      label: 'Will (Mature Male)' },
+  { id: 'Scarlett',  label: 'Scarlett (Young Female)' },
+  { id: 'Liv',       label: 'Liv (Young Female)' },
+  { id: 'Amy',       label: 'Amy (Mature Female)' },
+];
+
+const UNREAL_SPEECH_BITRATES = ['64k', '96k', '128k', '192k', '256k', '320k'];
+
+const FAL_GEMINI_VOICES = [
+  'Aoede','Charon','Fenrir','Kore','Puck',
+  'Achernar','Achird','Algenib','Algieba','Alnilam',
+  'Autonoe','Callirrhoe','Despina','Enceladus','Erinome',
+  'Gacrux','Iapetus','Laomedeia','Leda','Orus',
+  'Pulcherrima','Rasalgethi','Sadachbia','Sadaltager','Schedar',
+  'Sulafat','Umbriel','Vindemiatrix','Zephyr','Zubenelgenubi',
+].map(v => ({ id: v, label: v }));
+
+const FAL_MINIMAX_VOICES = [
+  { id: 'Wise_Woman',       label: 'Wise Woman' },
+  { id: 'Friendly_Person',  label: 'Friendly Person' },
+  { id: 'Inspirational_girl', label: 'Inspirational Girl' },
+  { id: 'Deep_Voice_Man',   label: 'Deep Voice Man' },
+  { id: 'Calm_Woman',       label: 'Calm Woman' },
+  { id: 'Casual_Guy',       label: 'Casual Guy' },
+  { id: 'Lively_Girl',      label: 'Lively Girl' },
+  { id: 'Patient_Man',      label: 'Patient Man' },
+  { id: 'Young_Knight',     label: 'Young Knight' },
+  { id: 'Determined_Man',   label: 'Determined Man' },
+  { id: 'Lovely_Girl',      label: 'Lovely Girl' },
+  { id: 'Decent_Boy',       label: 'Decent Boy' },
+  { id: 'Imposing_Manner',  label: 'Imposing Manner' },
+  { id: 'Elegant_Man',      label: 'Elegant Man' },
+  { id: 'Abbess',           label: 'Abbess' },
+  { id: 'Sweet_Girl_2',     label: 'Sweet Girl' },
+  { id: 'Exuberant_Girl',   label: 'Exuberant Girl' },
+];
+
+router.get('/tts', authenticateToken, async (req, res) => {
+  try {
+    res.json({
+      current: getTtsSettings(),
+      defaults: TTS_DEFAULTS,
+      options: {
+        providers: [
+          { id: 'unreal-speech', label: 'UnrealSpeech (async, webhook)' },
+          { id: 'fal-gemini',    label: 'fal.ai — Gemini TTS (sync)' },
+          { id: 'fal-minimax',   label: 'fal.ai — MiniMax Speech-02 HD (sync)' },
+        ],
+        us_voices:   UNREAL_SPEECH_VOICES,
+        us_bitrates: UNREAL_SPEECH_BITRATES,
+        fal_gemini_voices:  FAL_GEMINI_VOICES,
+        fal_minimax_voices: FAL_MINIMAX_VOICES,
+      },
+    });
+  } catch (err) {
+    console.error(`[ERROR] GET /api/settings/tts:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/tts', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { provider, us_voice, us_speed, us_pitch, us_bitrate, fal_gemini_voice, fal_minimax_voice, fal_minimax_speed } = req.body;
+  const updates = {
+    tts_provider:          provider,
+    tts_us_voice:          us_voice,
+    tts_us_speed:          us_speed != null ? String(us_speed) : undefined,
+    tts_us_pitch:          us_pitch != null ? String(us_pitch) : undefined,
+    tts_us_bitrate:        us_bitrate,
+    tts_fal_gemini_voice:  fal_gemini_voice,
+    tts_fal_minimax_voice: fal_minimax_voice,
+    tts_fal_minimax_speed: fal_minimax_speed != null ? String(fal_minimax_speed) : undefined,
+  };
+  try {
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        await pool.query(
+          `INSERT INTO application_settings (setting_name, setting_value) VALUES ($1, $2)
+           ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+          [key, value]
+        );
+      }
+    }
+    await loadTtsSettings();
+    res.json({ message: 'TTS settings updated.', current: getTtsSettings() });
+  } catch (err) {
+    console.error(`[ERROR] PUT /api/settings/tts:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

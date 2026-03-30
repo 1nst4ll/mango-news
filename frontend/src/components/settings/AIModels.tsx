@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Bot, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import TTSSettings from './TTSSettings';
 
 interface ModelOption {
   id: string;
@@ -177,6 +178,9 @@ const AIModels: React.FC = () => {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* TTS Settings */}
+      <TTSSettings />
     </div>
   );
 };

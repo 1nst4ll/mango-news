@@ -181,15 +181,23 @@ router.post('/:id/regenerate-audio', authenticateToken, requireRole('admin'), ex
       return res.status(404).json({ error: 'Sunday Edition not found.' });
     }
     const { generateNarration } = require('../sundayEditionGenerator');
-    const taskId = await generateNarration(result.rows[0].summary);
-    if (!taskId) {
-      return res.status(500).json({ error: 'Audio generation failed to initiate.' });
+    const narrationResult = await generateNarration(result.rows[0].summary);
+    if (!narrationResult) {
+      return res.status(500).json({ error: 'Audio generation failed.' });
     }
-    await pool.query(
-      'UPDATE sunday_editions SET narration_url = NULL, unreal_speech_task_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [taskId, editionId]
-    );
-    res.json({ message: 'Audio regeneration initiated. It will be available shortly via callback.', task_id: taskId });
+    if (narrationResult.type === 'task') {
+      await pool.query(
+        'UPDATE sunday_editions SET narration_url = NULL, unreal_speech_task_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [narrationResult.id, editionId]
+      );
+      res.json({ message: 'Audio regeneration initiated. It will be available shortly via callback.', task_id: narrationResult.id });
+    } else {
+      await pool.query(
+        'UPDATE sunday_editions SET narration_url = $1, unreal_speech_task_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [narrationResult.url, editionId]
+      );
+      res.json({ message: 'Audio regenerated successfully.', narration_url: narrationResult.url });
+    }
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - POST /api/sunday-editions/${editionId}/regenerate-audio - Error:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
