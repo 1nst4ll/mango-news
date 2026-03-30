@@ -25,7 +25,8 @@ export type Article = {
     ai_image_path: string | null;
     topics_es: string | null; // Spanish translated topics (comma-separated string)
     topics_ht: string | null; // Haitian Creole translated topics (comma-separated string)
-    publication_date: string | null; // Add publication_date
+    publication_date: string | null;
+    is_blocked: boolean;
   }
 
   type ActionHandlers = {
@@ -34,9 +35,10 @@ export type Article = {
     handleRescrapeArticle: (articleId: number) => void;
     handleEditArticle: (articleId: number) => void;
     handleImageClick: (url: string) => void;
+    handleToggleBlock: (articleId: number, blocked: boolean) => void;
   };
   
-  export const getColumns = ({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick }: ActionHandlers): ColumnDef<Article>[] => [
+  export const getColumns = ({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick, handleToggleBlock }: ActionHandlers): ColumnDef<Article>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -88,7 +90,12 @@ export type Article = {
       },
     cell: ({ row }) => {
         const article = row.original
-        return <a href={`/article/${article.id}`} target="_blank" rel="noopener noreferrer" className="min-w-[200px] break-words whitespace-pre-wrap block hover:underline text-primary">{article.title}</a>
+        return (
+          <div className="min-w-[200px]">
+            {article.is_blocked && <Badge variant="destructive" className="text-xs mb-1">Blocked</Badge>}
+            <a href={`/article/${article.id}`} target="_blank" rel="noopener noreferrer" className="break-words whitespace-pre-wrap block hover:underline text-primary">{article.title}</a>
+          </div>
+        )
     }
   },
   {
@@ -189,8 +196,11 @@ export type Article = {
             <DropdownMenuItem onClick={() => handleProcessAi(article.id, 'translations')}>Rerun Translations</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleRescrapeArticle(article.id)}>Rescrape Article</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleEditArticle(article.id)}>Edit Article</DropdownMenuItem> {/* New menu item for editing */}
+            <DropdownMenuItem onClick={() => handleEditArticle(article.id)}>Edit Article</DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleToggleBlock(article.id, !article.is_blocked)}>
+              {article.is_blocked ? 'Unblock Article' : 'Block Article'}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleDeleteArticle(article.id)} className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

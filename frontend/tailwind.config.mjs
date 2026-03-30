@@ -17,11 +17,7 @@ export default {
           },
         },
       }),
-      colors: {
-        accent: {
-          DEFAULT: '#FFB88C', // Pastel orange accent
-        },
-      },
+      /* Accent color defined via oklch CSS variables in global.css */
     },
   },
   plugins: [

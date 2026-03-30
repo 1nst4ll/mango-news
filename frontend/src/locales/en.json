@@ -59,5 +59,18 @@
   "related_articles": "Related Articles",
   "sunday_edition": "Sunday Edition",
   "sunday_edition_summary_for_week": "This is a weekly digest of news from TCI brought to you by mango.tc News for the week of",
-  "retry": "Retry"
+  "retry": "Retry",
+  "login": "Login",
+  "email": "Email",
+  "password": "Password",
+  "remember_me": "Remember me for 30 days",
+  "signing_in": "Signing in...",
+  "sign_in": "Sign In",
+  "login_description": "Enter your email and password to access your account.",
+  "my_account": "My Account",
+  "sign_out": "Sign out",
+  "open_menu": "Open menu",
+  "close_menu": "Close menu",
+  "toggle_theme": "Toggle theme",
+  "change_language": "Change language"
 }

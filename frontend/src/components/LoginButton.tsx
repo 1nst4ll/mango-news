@@ -10,6 +10,7 @@ import {
 } from './ui/dropdown-menu';
 import { User, Settings, LogOut } from 'lucide-react';
 import { LoginDialog } from './LoginDialog';
+import useTranslations from '../lib/hooks/useTranslations';
 
 interface LoginButtonProps {
   isLoggedIn: boolean;
@@ -18,6 +19,7 @@ interface LoginButtonProps {
 
 export function LoginButton({ isLoggedIn, setIsLoggedIn }: LoginButtonProps) {
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const { t } = useTranslations();
 
   const handleLogout = async () => {
     const apiUrl = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:3000';
@@ -46,21 +48,21 @@ export function LoginButton({ isLoggedIn, setIsLoggedIn }: LoginButtonProps) {
         <DropdownMenuContent align="end" className="w-48">
           {isLoggedIn ? (
             <>
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{t.my_account || 'My Account'}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => { window.location.href = '/settings'; }}>
                 <Settings className="h-4 w-4" />
-                Settings
+                {t.settings || 'Settings'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                 <LogOut className="h-4 w-4" />
-                Sign out
+                {t.sign_out || 'Sign out'}
               </DropdownMenuItem>
             </>
           ) : (
             <DropdownMenuItem onClick={() => setIsLoginDialogOpen(true)}>
               <User className="h-4 w-4" />
-              Login
+              {t.login || 'Login'}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

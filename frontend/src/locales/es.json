@@ -59,5 +59,18 @@
   "related_articles": "Artículos Relacionados",
   "sunday_edition": "Edición Dominical",
   "sunday_edition_summary_for_week": "Este es un resumen semanal de noticias de TCI presentado por mango.tc News para la semana de",
-  "retry": "Reintentar"
+  "retry": "Reintentar",
+  "login": "Iniciar sesión",
+  "email": "Correo electrónico",
+  "password": "Contraseña",
+  "remember_me": "Recordarme por 30 días",
+  "signing_in": "Iniciando sesión...",
+  "sign_in": "Iniciar sesión",
+  "login_description": "Ingrese su correo electrónico y contraseña para acceder a su cuenta.",
+  "my_account": "Mi Cuenta",
+  "sign_out": "Cerrar sesión",
+  "open_menu": "Abrir menú",
+  "close_menu": "Cerrar menú",
+  "toggle_theme": "Cambiar tema",
+  "change_language": "Cambiar idioma"
 }

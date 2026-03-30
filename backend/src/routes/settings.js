@@ -9,7 +9,7 @@ router.get('/scheduler', authenticateToken, async (req, res) => {
   try {
     const settingsResult = await pool.query(
       `SELECT setting_name, setting_value FROM application_settings
-       WHERE setting_name IN ('main_scraper_frequency', 'missing_ai_frequency', 'enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations', 'sunday_edition_frequency', 'main_scraper_enabled', 'missing_ai_enabled', 'sunday_edition_enabled')`
+       WHERE setting_name IN ('main_scraper_frequency', 'missing_ai_frequency', 'enable_scheduled_missing_summary', 'enable_scheduled_missing_tags', 'enable_scheduled_missing_image', 'enable_scheduled_missing_translations', 'sunday_edition_frequency', 'main_scraper_enabled', 'missing_ai_enabled', 'sunday_edition_enabled', 'enable_manual_ai_summary', 'enable_manual_ai_tags', 'enable_manual_ai_image', 'enable_manual_ai_translations')`
     );
 
     const settings = settingsResult.rows.reduce((acc, row) => {
@@ -28,6 +28,10 @@ router.get('/scheduler', authenticateToken, async (req, res) => {
       main_scraper_enabled: settings.main_scraper_enabled !== undefined ? settings.main_scraper_enabled === 'true' : true,
       missing_ai_enabled: settings.missing_ai_enabled !== undefined ? settings.missing_ai_enabled === 'true' : true,
       sunday_edition_enabled: settings.sunday_edition_enabled !== undefined ? settings.sunday_edition_enabled === 'true' : true,
+      enable_manual_ai_summary: settings.enable_manual_ai_summary !== undefined ? settings.enable_manual_ai_summary === 'true' : true,
+      enable_manual_ai_tags: settings.enable_manual_ai_tags !== undefined ? settings.enable_manual_ai_tags === 'true' : true,
+      enable_manual_ai_image: settings.enable_manual_ai_image !== undefined ? settings.enable_manual_ai_image === 'true' : true,
+      enable_manual_ai_translations: settings.enable_manual_ai_translations !== undefined ? settings.enable_manual_ai_translations === 'true' : true,
     };
 
     console.log(`[INFO] ${new Date().toISOString()} - GET ${endpoint} - Fetched settings`);
@@ -46,6 +50,10 @@ router.get('/scheduler', authenticateToken, async (req, res) => {
          main_scraper_enabled: true,
          missing_ai_enabled: true,
          sunday_edition_enabled: true,
+         enable_manual_ai_summary: true,
+         enable_manual_ai_tags: true,
+         enable_manual_ai_image: true,
+         enable_manual_ai_translations: true,
        });
     } else {
       res.status(500).json({ error: 'Internal Server Error' });
@@ -83,6 +91,10 @@ router.post('/scheduler', authenticateToken, requireRole('admin'), async (req, r
     if (main_scraper_enabled !== undefined) await upsert('main_scraper_enabled', String(main_scraper_enabled));
     if (missing_ai_enabled !== undefined) await upsert('missing_ai_enabled', String(missing_ai_enabled));
     if (sunday_edition_enabled !== undefined) await upsert('sunday_edition_enabled', String(sunday_edition_enabled));
+    if (req.body.enable_manual_ai_summary !== undefined) await upsert('enable_manual_ai_summary', String(req.body.enable_manual_ai_summary));
+    if (req.body.enable_manual_ai_tags !== undefined) await upsert('enable_manual_ai_tags', String(req.body.enable_manual_ai_tags));
+    if (req.body.enable_manual_ai_image !== undefined) await upsert('enable_manual_ai_image', String(req.body.enable_manual_ai_image));
+    if (req.body.enable_manual_ai_translations !== undefined) await upsert('enable_manual_ai_translations', String(req.body.enable_manual_ai_translations));
 
     await client.query('COMMIT');
 

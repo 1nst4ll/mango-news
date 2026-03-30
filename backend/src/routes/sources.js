@@ -106,10 +106,11 @@ router.get('/:sourceId/articles', async (req, res) => {
         ARRAY_REMOVE(ARRAY_AGG(t.name), NULL) AS ai_tags,
         a.topics_es,
         a.topics_ht,
-        a.publication_date
+        a.publication_date,
+        a.is_blocked
     ${baseQuery}
     GROUP BY
-        a.id, a.title, a.source_url, a.thumbnail_url, a.summary, a.ai_image_path, a.topics_es, a.topics_ht, a.publication_date
+        a.id, a.title, a.source_url, a.thumbnail_url, a.summary, a.ai_image_path, a.topics_es, a.topics_ht, a.publication_date, a.is_blocked
     ORDER BY
         ${sortBy} ${sortOrder}
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}

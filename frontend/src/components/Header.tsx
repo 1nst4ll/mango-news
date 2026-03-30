@@ -37,7 +37,7 @@ const Header: React.FC = () => {
           <div className="flex-none">
             <Button variant="ghost" size="icon" onClick={toggleMobileMenu} className="text-sidebar-foreground">
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              <span className="sr-only">{isMobileMenuOpen ? 'Close menu' : 'Open menu'}</span>
+              <span className="sr-only">{isMobileMenuOpen ? (t.close_menu || 'Close menu') : (t.open_menu || 'Open menu')}</span>
             </Button>
           </div>
           {/* Center: Logo */}

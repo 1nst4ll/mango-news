@@ -232,7 +232,22 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     fetchArticles(pageIndex, pageSize); // Refresh articles after a successful save
   };
 
-  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick: setLightboxUrl });
+  const handleToggleBlock = async (articleId: number, blocked: boolean) => {
+    try {
+      const response = await apiFetch(`/api/articles/${articleId}/block`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked }),
+      });
+      if (!response.ok) throw new Error('Failed to update block status');
+      toast.success(`Article ${blocked ? 'blocked' : 'unblocked'}`);
+      fetchArticles(pageIndex, pageSize);
+    } catch {
+      toast.error('Failed to update block status');
+    }
+  };
+
+  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick: setLightboxUrl, handleToggleBlock });
 
   // Fetch source settings
   useEffect(() => {

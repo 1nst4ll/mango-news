@@ -13,6 +13,7 @@ import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { Alert, AlertDescription } from './ui/alert';
 import { Loader2 } from 'lucide-react';
+import useTranslations from '../lib/hooks/useTranslations';
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslations();
 
   const handleLogin = async () => {
     setError('');
@@ -66,15 +68,15 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
     <Dialog open={isOpen} onOpenChange={open => { if (!open) setError(''); setIsOpen(open); }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Login</DialogTitle>
+          <DialogTitle>{t.login || 'Login'}</DialogTitle>
           <DialogDescription>
-            Enter your username and password to access the admin features.
+            {t.login_description || 'Enter your email and password to access your account.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="username">Email</Label>
+            <Label htmlFor="username">{t.email || 'Email'}</Label>
             <Input
               id="username"
               type="email"
@@ -86,7 +88,7 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t.password || 'Password'}</Label>
             <Input
               id="password"
               type="password"
@@ -105,7 +107,7 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
               disabled={loading}
             />
             <Label htmlFor="rememberMe" className="cursor-pointer font-normal">
-              Remember me for 30 days
+              {t.remember_me || 'Remember me for 30 days'}
             </Label>
           </div>
           {error && (
@@ -118,7 +120,7 @@ export function LoginDialog({ isOpen, setIsOpen, onLoginSuccess }: LoginDialogPr
         <DialogFooter>
           <Button type="submit" onClick={handleLogin} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? 'Signing in…' : 'Login'}
+            {loading ? (t.signing_in || 'Signing in…') : (t.login || 'Login')}
           </Button>
         </DialogFooter>
       </DialogContent>

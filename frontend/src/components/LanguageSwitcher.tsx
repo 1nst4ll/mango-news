@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
 import { Globe, Loader2 } from 'lucide-react';
+import useTranslations from '../lib/hooks/useTranslations';
 
 interface Language {
   code: string;
@@ -19,6 +20,7 @@ const LanguageSwitcher: React.FC = () => {
   const [currentLocale, setCurrentLocale] = useState('en');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslations();
 
   useEffect(() => {
     // Get the current locale from the URL path (Astro i18n prefix)
@@ -74,7 +76,7 @@ const LanguageSwitcher: React.FC = () => {
           ) : (
             <img src={currentLanguage.flag} alt={currentLanguage.name} className="h-5 w-5" />
           )}
-          <span className="sr-only">Change language</span>
+          <span className="sr-only">{t.change_language || 'Change language'}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-2">
@@ -87,7 +89,7 @@ const LanguageSwitcher: React.FC = () => {
               onClick={() => handleLanguageChange(lang.code)}
             >
               <img src={lang.flag} alt={lang.name} className="h-5 w-5 mr-2" />
-              {lang.name}
+              <span lang={lang.code}>{lang.name}</span>
             </Button>
           ))}
         </div>

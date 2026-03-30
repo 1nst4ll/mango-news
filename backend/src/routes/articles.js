@@ -262,19 +262,21 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
   }
 });
 
-// Block a single article by ID
+// Toggle block status for a single article by ID
 router.put('/:id/block', authenticateToken, requireRole('admin'), async (req, res) => {
   const articleId = req.params.id;
   const endpoint = `/api/articles/${articleId}/block`;
+  const { blocked } = req.body;
+  const newBlockedState = blocked !== undefined ? blocked : true;
   try {
-    const result = await pool.query('UPDATE articles SET is_blocked = TRUE WHERE id = $1 RETURNING id', [articleId]);
+    const result = await pool.query('UPDATE articles SET is_blocked = $2 WHERE id = $1 RETURNING id, is_blocked', [articleId, newBlockedState]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Article not found.' });
     }
-    console.log(`[INFO] ${new Date().toISOString()} - PUT ${endpoint} - Successfully blocked article with ID ${articleId}.`);
-    res.json({ message: `Article ${articleId} blocked successfully.` });
+    console.log(`[INFO] ${new Date().toISOString()} - PUT ${endpoint} - Article ${articleId} is_blocked set to ${newBlockedState}.`);
+    res.json({ message: `Article ${articleId} ${newBlockedState ? 'blocked' : 'unblocked'} successfully.`, is_blocked: result.rows[0].is_blocked });
   } catch (err) {
-    console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error blocking article with ID ${articleId}:`, err);
+    console.error(`[ERROR] ${new Date().toISOString()} - PUT ${endpoint} - Error updating block status for article ${articleId}:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

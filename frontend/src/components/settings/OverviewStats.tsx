@@ -97,7 +97,7 @@ const OverviewStats: React.FC<OverviewStatsProps> = ({
                   {stats.totalSources ?? 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-emerald-500 font-medium">{activeSources} active</span>
+                  <span className="text-success font-medium">{activeSources} active</span>
                   {(stats.totalSources ?? 0) - activeSources > 0 && (
                     <span> / {(stats.totalSources ?? 0) - activeSources} inactive</span>
                   )}
@@ -164,11 +164,11 @@ const OverviewStats: React.FC<OverviewStatsProps> = ({
               </div>
               <div className="flex gap-4 text-sm">
                 <span>
-                  <span className="font-medium text-green-600">{stats.sundayEditionStats?.withImage ?? 0}</span>
+                  <span className="font-medium text-success">{stats.sundayEditionStats?.withImage ?? 0}</span>
                   <span className="text-muted-foreground ml-1">with image</span>
                 </span>
                 <span>
-                  <span className="font-medium text-green-600">{stats.sundayEditionStats?.withAudio ?? 0}</span>
+                  <span className="font-medium text-success">{stats.sundayEditionStats?.withAudio ?? 0}</span>
                   <span className="text-muted-foreground ml-1">with audio</span>
                 </span>
                 {(stats.sundayEditionStats?.total ?? 0) > 0 && stats.sundayEditionStats?.newest && (

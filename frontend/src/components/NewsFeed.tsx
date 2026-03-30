@@ -348,7 +348,7 @@ function NewsFeed({
         <Alert className="text-center">
           <Loader2 className="h-4 w-4 animate-spin mx-auto" />
           <AlertTitle className="text-xl font-semibold">{t.loading}</AlertTitle>
-          <AlertDescription className="text-gray-600">{t.loading_latest_news}</AlertDescription>
+          <AlertDescription className="text-muted-foreground">{t.loading_latest_news}</AlertDescription>
         </Alert>
       </div>
     );
@@ -378,7 +378,7 @@ function NewsFeed({
         <Alert className="text-center">
           <Info className="h-4 w-4 mx-auto" />
           <AlertTitle className="text-xl font-semibold">{t.no_articles_found}</AlertTitle>
-          <AlertDescription className="text-gray-600">
+          <AlertDescription className="text-muted-foreground">
             {t.try_adjusting_filters || "Try adjusting your filters or check back later."}
           </AlertDescription>
         </Alert>
@@ -392,7 +392,7 @@ function NewsFeed({
         <div key={dateKey}>
           {index > 0 && (
             <div className="relative my-8">
-              <hr className="border-t border-gray-300" />
+              <hr className="border-t border-border" />
             </div>
           )}
           <h2 className="text-2xl font-bold mb-4">{dateKey}</h2>
@@ -418,11 +418,9 @@ function NewsFeed({
 
                   return (
                     <Card key={`sunday-${edition.id}`} className="flex flex-col h-full border-2 border-accent">
-                      <div
-                        className="block cursor-pointer"
-                        onClick={() => {
-                          window.location.href = `/${currentLocale}/sunday-edition/${edition.id}`;
-                        }}
+                      <a
+                        href={`/${currentLocale}/sunday-edition/${edition.id}`}
+                        className="block"
                       >
                         {edition.image_url && (
                           <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
@@ -430,7 +428,7 @@ function NewsFeed({
                             <a
                               href={`/${currentLocale}/sunday-edition`}
                               onClick={(e) => e.stopPropagation()}
-                              className="absolute top-2 left-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded"
+                              className="absolute top-2 left-2 bg-accent hover:bg-accent/80 text-accent-foreground text-xs font-bold px-2 py-1 rounded"
                             >
                               {t.sunday_edition}
                             </a>
@@ -449,7 +447,7 @@ function NewsFeed({
                         <CardContent className="flex-grow px-6 pb-4">
                           <p className="text-foreground mb-2">{sundayEditionInfo}</p>
                         </CardContent>
-                      </div>
+                      </a>
                       {edition.narration_url && (
                         <CardContent className="px-6 pb-4 pt-0"> {/* Added pt-0 to reduce extra padding */}
                           <div className="mt-4">
@@ -509,21 +507,21 @@ function NewsFeed({
                           <div className="relative w-full h-48 overflow-hidden rounded-t-xl">
                             <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-full object-cover" loading="lazy" />
                             {displayTopics && displayTopics.length > 0 && (
-                              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-foreground/70 to-transparent">
                                 <div className="flex flex-wrap gap-1">
                                   {displayTopics.map(topic => (
-                                    <Badge
+                                    <a
                                       key={topic}
-                                      variant="secondary"
-                                      className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
-                                      onClick={(e) => {
-                                        e.stopPropagation(); // Prevent click from propagating to the parent article link
-                                        e.preventDefault(); // Prevent the default action of the parent <a> tag
-                                        window.location.href = `/${currentLocale}/news/topic/${encodeURIComponent(topic)}`;
-                                      }}
+                                      href={`/${currentLocale}/news/topic/${encodeURIComponent(topic)}`}
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      {topic}
-                                    </Badge>
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-accent-foreground bg-accent hover:bg-accent/80 cursor-pointer"
+                                      >
+                                        {topic}
+                                      </Badge>
+                                    </a>
                                   ))}
                                 </div>
                               </div>
@@ -605,14 +603,14 @@ function NewsFeed({
           <Alert className="text-center">
             <Loader2 className="h-4 w-4 animate-spin mx-auto" />
             <AlertTitle className="text-xl font-semibold">{t.loading}</AlertTitle>
-            <AlertDescription className="text-gray-600">{t.loading_latest_news}</AlertDescription>
+            <AlertDescription className="text-muted-foreground">{t.loading_latest_news}</AlertDescription>
           </Alert>
         )}
         {!hasMore && articles.length > 0 && !loading && (
           <Alert className="text-center">
             <Info className="h-4 w-4 mx-auto" />
             <AlertTitle className="text-xl font-semibold">{t.no_more_articles || "No more articles to load."}</AlertTitle>
-            <AlertDescription className="text-gray-600">
+            <AlertDescription className="text-muted-foreground">
               {t.all_articles_loaded || "You've reached the end of the news feed."}
             </AlertDescription>
           </Alert>

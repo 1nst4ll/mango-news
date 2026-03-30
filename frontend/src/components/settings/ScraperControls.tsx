@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
+import { Input } from "../ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Megaphone } from 'lucide-react';
+import { toast } from 'sonner';
+import { apiFetch } from '../../lib/api';
 
 export interface ScraperControlsProps {
   enableGlobalAiSummary: boolean;
@@ -16,10 +19,8 @@ export interface ScraperControlsProps {
   enableGlobalAiTranslations: boolean;
   setEnableGlobalAiTranslations: (v: boolean) => void;
   loading: boolean;
-  sundayEditionLoading: boolean;
   purgeLoading: boolean;
   handleTriggerScraper: () => void;
-  handleGenerateSundayEdition: () => void;
   handlePurgeArticles: () => void;
 }
 
@@ -33,12 +34,49 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
   enableGlobalAiTranslations,
   setEnableGlobalAiTranslations,
   loading,
-  sundayEditionLoading,
   purgeLoading,
   handleTriggerScraper,
-  handleGenerateSundayEdition,
   handlePurgeArticles,
 }) => {
+  const [emergencyEnabled, setEmergencyEnabled] = useState(false);
+  const [emergencyText, setEmergencyText] = useState('');
+  const [emergencyLoading, setEmergencyLoading] = useState(false);
+  const [emergencySaving, setEmergencySaving] = useState(false);
+
+  useEffect(() => {
+    const fetchEmergency = async () => {
+      setEmergencyLoading(true);
+      try {
+        const res = await apiFetch('/api/settings/emergency');
+        if (res.ok) {
+          const data = await res.json();
+          setEmergencyEnabled(data.enabled);
+          setEmergencyText(data.text || '');
+        }
+      } catch { /* ignore */ } finally {
+        setEmergencyLoading(false);
+      }
+    };
+    fetchEmergency();
+  }, []);
+
+  const handleSaveEmergency = async () => {
+    setEmergencySaving(true);
+    try {
+      const res = await apiFetch('/api/settings/emergency', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: emergencyEnabled, text: emergencyText }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      toast.success('Emergency Banner Updated');
+    } catch {
+      toast.error('Failed to update emergency banner');
+    } finally {
+      setEmergencySaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Manual Scrape */}
@@ -46,7 +84,7 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
         <CardHeader>
           <CardTitle className="pb-1">Manual Scrape</CardTitle>
           <CardDescription>
-            These AI options are saved per-browser and apply to the next manual scrape run below.
+            These AI options apply to the next manual scrape run below.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -81,30 +119,58 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
         </CardFooter>
       </Card>
 
-      {/* Sunday Edition */}
+      {/* Emergency Banner */}
       <Card className="pt-4">
         <CardHeader>
-          <CardTitle className="pb-1">Sunday Edition</CardTitle>
-          <CardDescription>Manually generate this week's Sunday edition digest.</CardDescription>
+          <CardTitle className="flex items-center gap-2 pb-1">
+            <Megaphone className="h-5 w-5" />
+            Emergency Banner
+          </CardTitle>
+          <CardDescription>Display an urgent alert banner at the top of the public site.</CardDescription>
         </CardHeader>
+        <CardContent>
+          {emergencyLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="emergencyEnabled"
+                  checked={emergencyEnabled}
+                  onCheckedChange={setEmergencyEnabled}
+                />
+                <Label htmlFor="emergencyEnabled">{emergencyEnabled ? 'Banner is visible' : 'Banner is hidden'}</Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emergencyText">Banner Message</Label>
+                <Input
+                  id="emergencyText"
+                  placeholder="Enter emergency alert message..."
+                  value={emergencyText}
+                  onChange={(e) => setEmergencyText(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
         <CardFooter className="pt-2">
-          <Button onClick={handleGenerateSundayEdition} disabled={sundayEditionLoading} variant="outline">
-            {sundayEditionLoading ? 'Generating…' : 'Generate Sunday Edition'}
+          <Button onClick={handleSaveEmergency} disabled={emergencySaving || emergencyLoading} variant="outline">
+            {emergencySaving ? 'Saving…' : 'Save Banner Settings'}
           </Button>
         </CardFooter>
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200 pt-4">
+      <Card className="border-destructive/30 pt-4">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
+          <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
             Danger Zone
           </CardTitle>
           <CardDescription>These actions are irreversible. Proceed with caution.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between rounded-md border border-red-200 p-4">
+          <div className="flex items-center justify-between rounded-md border border-destructive/30 p-4">
             <div>
               <p className="font-medium text-sm">Purge All Articles</p>
               <p className="text-xs text-muted-foreground">Permanently deletes every article in the database.</p>

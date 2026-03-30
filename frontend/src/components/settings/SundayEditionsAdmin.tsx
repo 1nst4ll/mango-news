@@ -68,19 +68,19 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground">With Image</p>
-            <p className="text-2xl font-bold text-green-600">{sundayEditions.filter(e => e.image_url).length}</p>
+            <p className="text-2xl font-bold text-success">{sundayEditions.filter(e => e.image_url).length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground">With Audio</p>
-            <p className="text-2xl font-bold text-green-600">{sundayEditions.filter(e => e.narration_url).length}</p>
+            <p className="text-2xl font-bold text-success">{sundayEditions.filter(e => e.narration_url).length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground">Pending Audio</p>
-            <p className="text-2xl font-bold text-amber-600">{sundayEditions.filter(e => !e.narration_url).length}</p>
+            <p className="text-2xl font-bold text-warning">{sundayEditions.filter(e => !e.narration_url).length}</p>
           </CardContent>
         </Card>
       </div>
@@ -196,14 +196,14 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
                         </p>
                         <div className="flex items-center gap-3 text-xs">
                           {edition.image_url ? (
-                            <span className="text-green-600 font-medium">Image: Yes</span>
+                            <span className="text-success font-medium">Image: Yes</span>
                           ) : (
-                            <span className="text-amber-600 font-medium">Image: Missing</span>
+                            <span className="text-warning font-medium">Image: Missing</span>
                           )}
                           {edition.narration_url ? (
-                            <span className="text-green-600 font-medium">Audio: Yes</span>
+                            <span className="text-success font-medium">Audio: Yes</span>
                           ) : (
-                            <span className="text-amber-600 font-medium">Audio: Pending</span>
+                            <span className="text-warning font-medium">Audio: Pending</span>
                           )}
                           <span className="text-muted-foreground">{edition.summary?.length ?? 0} chars</span>
                         </div>

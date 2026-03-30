@@ -397,13 +397,13 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         </Button>
       </div>
 
-      <article className="prose prose-base sm:prose-lg dark:prose-invert max-w-3xl mx-auto font-serif text-gray-800 dark:text-gray-200">
+      <article className="prose prose-base sm:prose-lg dark:prose-invert max-w-3xl mx-auto font-serif text-foreground">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold !leading-tight mb-4 font-sans">
           {displayTitle || (currentLocale !== 'en' ? `${article.title} (${getFallbackMessage(currentLocale)})` : article.title)}
         </h1>
-        <div className="text-sm text-gray-600 dark:text-gray-400 mb-6 border-b border-t border-gray-300 dark:border-gray-700 py-2">
+        <div className="text-sm text-muted-foreground mb-6 border-b border-t border-border py-2">
           <p className="mb-1">
-            <span className="font-semibold">{t.source}:</span> <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600 dark:text-blue-400">{article.source_url}</a>
+            <span className="font-semibold">{t.source}:</span> <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">{article.source_url}</a>
           </p>
           <p className="mb-1">
             {article.author && (
@@ -428,7 +428,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
             {displayTopics.map(topic => (
               <a href={`/${currentLocale}/news/topic/${topic.toLowerCase().replace(/\s+/g, '-')}`} key={topic}>
-                <Badge variant="secondary" className="text-white bg-blue-500 hover:bg-blue-600 cursor-pointer">
+                <Badge variant="secondary" className="text-accent-foreground bg-accent hover:bg-accent/80 cursor-pointer">
                   {topic}
                 </Badge>
               </a>
@@ -504,7 +504,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
             </>
           )}
         </dialog>
-        <div className="mt-8 pt-4 border-t border-gray-300 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="mt-8 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             size="sm"
             onClick={() => {
@@ -513,7 +513,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
               window.open(whatsappUrl, '_blank');
             }}
-            className="bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+            className="bg-social-whatsapp hover:bg-social-whatsapp-hover text-white text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
           >
             <MessageCircleMore className="h-4 w-4 mr-1" /> {t.share_on_whatsapp}
           </Button>
@@ -524,7 +524,7 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
               const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
               window.open(facebookUrl, '_blank');
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
+            className="bg-social-facebook hover:bg-social-facebook-hover text-white text-xs sm:text-sm whitespace-normal h-auto min-h-[2rem] py-2"
           >
             <Facebook className="h-4 w-4 mr-1" /> {t.share_on_facebook}
           </Button>

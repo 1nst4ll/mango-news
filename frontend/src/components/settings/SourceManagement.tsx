@@ -152,7 +152,7 @@ const SourceManagement: React.FC<SourceManagementProps> = ({
                         </Badge>
                         <Badge variant="outline" className="text-xs">{source.scraping_method || 'opensource'}</Badge>
                         {sourceScrapeResult[source.id] && (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                          <Badge variant="outline" className="text-xs text-success border-success/30">
                             {sourceScrapeResult[source.id]}
                           </Badge>
                         )}
@@ -212,13 +212,13 @@ const SourceManagement: React.FC<SourceManagementProps> = ({
                           <DropdownMenuItem
                             onClick={() => handleDeleteArticlesForSource(source.id)}
                             disabled={sourceArticleDeletionLoading[source.id]}
-                            className="text-red-600"
+                            className="text-destructive"
                           >
                             {sourceArticleDeletionLoading[source.id] ? 'Deleting…' : 'Delete Articles'}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => openEditModal(source)}>Edit Source</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteSource(source.id)} className="text-red-600">
+                          <DropdownMenuItem onClick={() => handleDeleteSource(source.id)} className="text-destructive">
                             Delete Source
                           </DropdownMenuItem>
                         </DropdownMenuContent>

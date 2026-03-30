@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { useState, useEffect } from 'react';
 import NewsFeed from './NewsFeed';
 import { Input } from './ui/input';
@@ -66,6 +64,7 @@ export default function IndexPage({ sources }: IndexPageProps) {
           <Input
             type="text"
             placeholder={t.search_articles_placeholder}
+            aria-label={t.search_articles_placeholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => {

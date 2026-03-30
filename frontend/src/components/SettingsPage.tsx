@@ -161,6 +161,11 @@ const SettingsPage: React.FC = () => {
         if (data.main_scraper_enabled !== undefined) setMainScraperEnabled(data.main_scraper_enabled);
         if (data.missing_ai_enabled !== undefined) setMissingAiEnabled(data.missing_ai_enabled);
         if (data.sunday_edition_enabled !== undefined) setSundayEditionEnabled(data.sunday_edition_enabled);
+        // Load manual scrape AI toggles from DB (previously stored in localStorage)
+        if (data.enable_manual_ai_summary !== undefined) setEnableGlobalAiSummary(data.enable_manual_ai_summary);
+        if (data.enable_manual_ai_tags !== undefined) setEnableGlobalAiTags(data.enable_manual_ai_tags);
+        if (data.enable_manual_ai_image !== undefined) setEnableGlobalAiImage(data.enable_manual_ai_image);
+        if (data.enable_manual_ai_translations !== undefined) setEnableGlobalAiTranslations(data.enable_manual_ai_translations);
       } catch (error: unknown) {
         toast.error("Error Loading Schedule Settings", {
           description: error instanceof Error ? error.message : 'An unknown error occurred.',
@@ -171,31 +176,8 @@ const SettingsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const s = localStorage.getItem('enableGlobalAiSummary');
-    if (s !== null) setEnableGlobalAiSummary(JSON.parse(s));
-    const t = localStorage.getItem('enableGlobalAiTags');
-    if (t !== null) setEnableGlobalAiTags(JSON.parse(t));
-    const im = localStorage.getItem('enableGlobalAiImage');
-    if (im !== null) setEnableGlobalAiImage(JSON.parse(im));
-    const tr = localStorage.getItem('enableGlobalAiTranslations');
-    if (tr !== null) setEnableGlobalAiTranslations(JSON.parse(tr));
-
     fetchStats();
   }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('enableGlobalAiSummary', JSON.stringify(enableGlobalAiSummary));
-  }, [enableGlobalAiSummary]);
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('enableGlobalAiTags', JSON.stringify(enableGlobalAiTags));
-  }, [enableGlobalAiTags]);
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('enableGlobalAiImage', JSON.stringify(enableGlobalAiImage));
-  }, [enableGlobalAiImage]);
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('enableGlobalAiTranslations', JSON.stringify(enableGlobalAiTranslations));
-  }, [enableGlobalAiTranslations]);
 
   useEffect(() => { fetchSources(); }, []);
   useEffect(() => { fetchSundayEditions(); }, []);
@@ -512,6 +494,10 @@ const SettingsPage: React.FC = () => {
           enable_scheduled_missing_translations: enableScheduledMissingTranslations,
           sunday_edition_frequency: sundayEditionFrequency,
           sunday_edition_enabled: sundayEditionEnabled,
+          enable_manual_ai_summary: enableGlobalAiSummary,
+          enable_manual_ai_tags: enableGlobalAiTags,
+          enable_manual_ai_image: enableGlobalAiImage,
+          enable_manual_ai_translations: enableGlobalAiTranslations,
         }),
       });
       const res = await response.json();
@@ -522,6 +508,51 @@ const SettingsPage: React.FC = () => {
     } finally {
       setSavingSchedule(false);
     }
+  };
+
+  // Persist manual AI toggles to DB when changed
+  const saveManualAiToggles = async (summary: boolean, tags: boolean, image: boolean, translations: boolean) => {
+    try {
+      await apiFetch('/api/settings/scheduler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          main_scraper_frequency: mainScraperFrequency,
+          main_scraper_enabled: mainScraperEnabled,
+          missing_ai_frequency: missingAiFrequency,
+          missing_ai_enabled: missingAiEnabled,
+          enable_scheduled_missing_summary: enableScheduledMissingSummary,
+          enable_scheduled_missing_tags: enableScheduledMissingTags,
+          enable_scheduled_missing_image: enableScheduledMissingImage,
+          enable_scheduled_missing_translations: enableScheduledMissingTranslations,
+          sunday_edition_frequency: sundayEditionFrequency,
+          sunday_edition_enabled: sundayEditionEnabled,
+          enable_manual_ai_summary: summary,
+          enable_manual_ai_tags: tags,
+          enable_manual_ai_image: image,
+          enable_manual_ai_translations: translations,
+        }),
+      });
+    } catch {
+      // Silently fail — toggles will still be correct in memory for the current session
+    }
+  };
+
+  const handleSetEnableGlobalAiSummary = (v: boolean) => {
+    setEnableGlobalAiSummary(v);
+    saveManualAiToggles(v, enableGlobalAiTags, enableGlobalAiImage, enableGlobalAiTranslations);
+  };
+  const handleSetEnableGlobalAiTags = (v: boolean) => {
+    setEnableGlobalAiTags(v);
+    saveManualAiToggles(enableGlobalAiSummary, v, enableGlobalAiImage, enableGlobalAiTranslations);
+  };
+  const handleSetEnableGlobalAiImage = (v: boolean) => {
+    setEnableGlobalAiImage(v);
+    saveManualAiToggles(enableGlobalAiSummary, enableGlobalAiTags, v, enableGlobalAiTranslations);
+  };
+  const handleSetEnableGlobalAiTranslations = (v: boolean) => {
+    setEnableGlobalAiTranslations(v);
+    saveManualAiToggles(enableGlobalAiSummary, enableGlobalAiTags, enableGlobalAiImage, v);
   };
 
   // ---------------------------------------------------------------------------
@@ -761,18 +792,16 @@ const SettingsPage: React.FC = () => {
           <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
           <ScraperControls
             enableGlobalAiSummary={enableGlobalAiSummary}
-            setEnableGlobalAiSummary={setEnableGlobalAiSummary}
+            setEnableGlobalAiSummary={handleSetEnableGlobalAiSummary}
             enableGlobalAiTags={enableGlobalAiTags}
-            setEnableGlobalAiTags={setEnableGlobalAiTags}
+            setEnableGlobalAiTags={handleSetEnableGlobalAiTags}
             enableGlobalAiImage={enableGlobalAiImage}
-            setEnableGlobalAiImage={setEnableGlobalAiImage}
+            setEnableGlobalAiImage={handleSetEnableGlobalAiImage}
             enableGlobalAiTranslations={enableGlobalAiTranslations}
-            setEnableGlobalAiTranslations={setEnableGlobalAiTranslations}
+            setEnableGlobalAiTranslations={handleSetEnableGlobalAiTranslations}
             loading={loading}
-            sundayEditionLoading={sundayEditionLoading}
             purgeLoading={purgeLoading}
             handleTriggerScraper={handleTriggerScraper}
-            handleGenerateSundayEdition={handleGenerateSundayEdition}
             handlePurgeArticles={handlePurgeArticles}
           />
           </React.Suspense>
@@ -910,7 +939,7 @@ const SettingsPage: React.FC = () => {
                     onChange={handleModalInputChange}
                     required
                     placeholder="https://example.com/news"
-                    className={urlError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                    className={urlError ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
                   {urlError && <p className="text-xs text-destructive">{urlError}</p>}
                 </div>
