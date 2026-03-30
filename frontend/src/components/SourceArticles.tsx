@@ -6,7 +6,7 @@ import { DataTable } from "./ui/data-table";
 import { getColumns, Article } from "./columns";
 import { toast } from "sonner";
 import { Loader2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { useSingleImageLightbox } from "./ui/ImageLightbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,8 +66,8 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
   const [isArticleEditDialogOpen, setIsArticleEditDialogOpen] = useState(false);
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
 
-  // State for image lightbox
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  // Image lightbox
+  const { openLightbox, lightboxElement } = useSingleImageLightbox();
 
   // Bulk delete state
   const [selectedArticles, setSelectedArticles] = useState<Article[]>([]);
@@ -249,7 +249,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
     }
   };
 
-  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick: setLightboxUrl, handleToggleBlock });
+  const columns = getColumns({ handleProcessAi, handleDeleteArticle, handleRescrapeArticle, handleEditArticle, handleImageClick: (url: string) => openLightbox(url), handleToggleBlock });
 
   // Fetch source settings
   useEffect(() => {
@@ -635,19 +635,7 @@ const SourceArticles: React.FC<SourceArticlesProps> = ({ sourceId }) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Image lightbox */}
-      <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) setLightboxUrl(null); }}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 flex items-center justify-center bg-black/90 border-none">
-          <DialogTitle className="sr-only">Image Preview</DialogTitle>
-          {lightboxUrl && (
-            <img
-              src={lightboxUrl}
-              alt=""
-              className="max-w-full max-h-[90vh] object-contain rounded-md"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {lightboxElement}
     </Card>
   );
 };

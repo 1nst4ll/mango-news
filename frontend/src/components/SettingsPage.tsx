@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useSingleImageLightbox } from "./ui/ImageLightbox";
 
 import {
   type Source,
@@ -27,6 +28,7 @@ const ScraperControls = React.lazy(() => import('./settings/ScraperControls'));
 const ScheduledTasks = React.lazy(() => import('./settings/ScheduledTasks'));
 const SourceManagement = React.lazy(() => import('./settings/SourceManagement'));
 const SundayEditionsAdminTab = React.lazy(() => import('./settings/SundayEditionsAdmin'));
+const TopicManagement = React.lazy(() => import('./settings/TopicManagement'));
 
 // ---------------------------------------------------------------------------
 // Component
@@ -87,7 +89,7 @@ const SettingsPage: React.FC = () => {
   const [sundayEditionPurgeLoading, setSundayEditionPurgeLoading] = useState(false);
   const [sundayEditionImageLoading, setSundayEditionImageLoading] = useState<{ [key: number]: boolean }>({});
   const [sundayEditionAudioLoading, setSundayEditionAudioLoading] = useState<{ [key: number]: boolean }>({});
-  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null);
+  const { openLightbox, lightboxElement } = useSingleImageLightbox();
 
   // Confirmation dialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -778,6 +780,7 @@ const SettingsPage: React.FC = () => {
           <TabsTrigger value="scheduled" className="flex-shrink-0">Scheduled Tasks</TabsTrigger>
           <TabsTrigger value="sources" className="flex-shrink-0">Source Management</TabsTrigger>
           <TabsTrigger value="sunday-editions" className="flex-shrink-0">Sunday Editions</TabsTrigger>
+          <TabsTrigger value="topics" className="flex-shrink-0">Topics</TabsTrigger>
         </TabsList>
 
         {/* TAB 1 — Overview & Stats */}
@@ -906,8 +909,15 @@ const SettingsPage: React.FC = () => {
             handleRegenerateAudio={handleRegenerateAudio}
             handleDeleteSundayEdition={handleDeleteSundayEdition}
             handleToggleStatus={handleToggleSundayEditionStatus}
-            setLightboxImage={setLightboxImage}
+            setLightboxImage={(v: { src: string; alt: string } | null) => { if (v) openLightbox(v.src, v.alt); }}
           />
+          </React.Suspense>
+        </TabsContent>
+
+        {/* TAB 6 — Topic Management */}
+        <TabsContent value="topics">
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <TopicManagement />
           </React.Suspense>
         </TabsContent>
       </Tabs>
@@ -1102,28 +1112,8 @@ const SettingsPage: React.FC = () => {
         </Dialog>
       )}
 
-      {/* ================================================================
-          Image Lightbox
-      ================================================================ */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer"
-          onClick={() => setLightboxImage(null)}
-        >
-          <button
-            onClick={() => setLightboxImage(null)}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors z-10"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-          <img
-            src={lightboxImage.src}
-            alt={lightboxImage.alt}
-            onClick={e => e.stopPropagation()}
-            className="max-w-[90vw] max-h-[90vh] object-contain cursor-default rounded-lg"
-          />
-        </div>
-      )}
+      {/* Unified Image Lightbox */}
+      {lightboxElement}
 
       {/* ================================================================
           Confirmation Dialog

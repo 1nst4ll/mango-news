@@ -11,8 +11,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./ui/breadcrumb"; // Import Breadcrumb components
-import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight, X, ZoomIn, Link2, Share2 } from 'lucide-react';
+import { MessageCircleMore, Facebook, Loader2, XCircle, Info, ChevronLeft, ChevronRight, ZoomIn, Link2, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageLightbox, type LightboxImage } from './ui/ImageLightbox';
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Import Alert components
 import useTranslations from '../lib/hooks/useTranslations'; // Import the shared hook
@@ -137,10 +138,9 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
   const [loadingRelated, setLoadingRelated] = useState<boolean>(false);
   const [relatedError, setRelatedError] = useState<string | null>(null);
 
-  // Global lightbox for all article images
+  // Global lightbox for all article images (including thumbnail)
   const contentRef = useRef<HTMLDivElement>(null);
-  const lightboxRef = useRef<HTMLDialogElement>(null);
-  const [lightboxImages, setLightboxImages] = useState<GalleryImage[]>([]);
+  const [lightboxImages, setLightboxImages] = useState<LightboxImage[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const [adjacentArticles, setAdjacentArticles] = useState<{ prev: { id: number; title: string } | null; next: { id: number; title: string } | null }>({ prev: null, next: null });
@@ -257,49 +257,36 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
     return t.translation_not_available.replace('{language}', langName);
   };
 
-  // Wire up lightbox click handlers on all <img> in article content
-  // (must be before early returns to satisfy React hook ordering rules)
+  // Wire up lightbox: collect all images (thumbnail + article content images)
   useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
-    // Small delay to ensure dangerouslySetInnerHTML has rendered
     const timer = setTimeout(() => {
+      const allImages: LightboxImage[] = [];
+      // Include the thumbnail as the first lightbox image
+      if (article?.thumbnail_url) {
+        allImages.push({ src: article.thumbnail_url, alt: displayTitle || article.title });
+      }
+      // Collect all content images
       const imgs = container.querySelectorAll('img');
-      const allImages: GalleryImage[] = [];
       imgs.forEach(img => {
         allImages.push({ src: img.getAttribute('src') || '', alt: img.getAttribute('alt') || '' });
       });
       setLightboxImages(allImages);
 
+      // Wire click handlers on content images (offset by 1 if thumbnail exists)
+      const offset = article?.thumbnail_url ? 1 : 0;
       imgs.forEach((img, idx) => {
         img.style.cursor = 'pointer';
         img.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
-          setLightboxIdx(idx);
-          lightboxRef.current?.showModal();
-          document.body.style.overflow = 'hidden';
+          setLightboxIdx(idx + offset);
         };
       });
     }, 50);
     return () => clearTimeout(timer);
-  }, [article, currentLocale]);
-
-  // Lightbox keyboard navigation + scroll lock cleanup
-  useEffect(() => {
-    const dialog = lightboxRef.current;
-    if (!dialog) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setLightboxIdx(null); dialog.close(); document.body.style.overflow = ''; }
-      if (e.key === 'ArrowRight') setLightboxIdx(i => i !== null ? (i + 1) % lightboxImages.length : 0);
-      if (e.key === 'ArrowLeft') setLightboxIdx(i => i !== null ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0);
-    };
-    dialog.addEventListener('keydown', handleKeyDown);
-    return () => {
-      dialog.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
-  }, [lightboxImages.length]);
+  }, [article, currentLocale, displayTitle]);
 
   if (loading) {
     return (
@@ -436,7 +423,13 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
         </div>
         <div className="relative md:float-right md:w-1/2 md:ml-8 mb-6 clear-both">
           {article.thumbnail_url && (
-            <img src={article.thumbnail_url} alt={displayTitle || article.title} className="w-full h-auto rounded-lg shadow-lg object-cover" loading="lazy" />
+            <img
+              src={article.thumbnail_url}
+              alt={displayTitle || article.title}
+              className="w-full h-auto rounded-lg shadow-lg object-cover cursor-pointer"
+              loading="lazy"
+              onClick={() => setLightboxIdx(0)}
+            />
           )}
           <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
             {displayTopics.map(topic => (
@@ -456,67 +449,13 @@ const ArticleDetail = ({ id }: ArticleDetailProps) => {
           )}
         </div>
 
-        {/* Global lightbox for all article images */}
-        <dialog
-          ref={lightboxRef}
-          onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); document.body.style.overflow = ''; }}
-          style={{
-            position: 'fixed', inset: 0, width: '100vw', height: '100vh',
-            maxWidth: '100vw', maxHeight: '100vh', margin: 0, padding: 0,
-            border: 'none', background: 'rgba(0,0,0,0.88)', overflow: 'hidden',
-          }}
-        >
-          {lightboxIdx !== null && lightboxImages[lightboxIdx] && (
-            <>
-              <button
-                onClick={() => { setLightboxIdx(null); lightboxRef.current?.close(); document.body.style.overflow = ''; }}
-                style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              {lightboxImages.length > 1 && (
-                <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}
-                  className="text-white/70 text-sm tabular-nums">
-                  {lightboxIdx + 1} / {lightboxImages.length}
-                </div>
-              )}
-
-              {lightboxImages.length > 1 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => i !== null ? (i - 1 + lightboxImages.length) % lightboxImages.length : 0); }}
-                  style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
-                  className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
-                  aria-label="Previous"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
-              )}
-
-              {lightboxImages.length > 1 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => i !== null ? (i + 1) % lightboxImages.length : 0); }}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 20 }}
-                  className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
-                  aria-label="Next"
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </button>
-              )}
-
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <img
-                  src={getFullResSrc(lightboxImages[lightboxIdx].src)}
-                  alt={lightboxImages[lightboxIdx].alt}
-                  onClick={e => e.stopPropagation()}
-                  style={{ maxWidth: '88vw', maxHeight: '100vh', objectFit: 'contain', pointerEvents: 'auto', cursor: 'default' }}
-                />
-              </div>
-            </>
-          )}
-        </dialog>
+        {/* Unified image lightbox */}
+        <ImageLightbox
+          images={lightboxImages.map(img => ({ src: getFullResSrc(img.src), alt: img.alt }))}
+          currentIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+          onNavigate={setLightboxIdx}
+        />
         <div className="mt-8 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Button
             size="sm"

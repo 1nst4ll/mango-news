@@ -24,6 +24,7 @@ const scrapingRoutes = require('./routes/scraping');
 const sundayEditionsRoutes = require('./routes/sundayEditions');
 const { statsRouter: statsRoutes, aiServiceRouter: aiServiceRoutes } = require('./routes/stats');
 const settingsRoutes = require('./routes/settings');
+const topicsRoutes = require('./routes/topics');
 const rssRoutes = require('./routes/rss');
 
 const app = express();
@@ -146,6 +147,9 @@ app.use('/api/ai-service', aiServiceRoutes);
 
 // Settings: /api/settings/scheduler
 app.use('/api/settings', settingsRoutes);
+
+// Topics admin: /api/admin/topics
+app.use('/api/admin/topics', topicsRoutes);
 
 // RSS: /api/rss
 app.use('/api/rss', rssRoutes);
