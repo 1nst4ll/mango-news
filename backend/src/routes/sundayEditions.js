@@ -23,6 +23,21 @@ router.post('/generate', authenticateToken, requireRole('admin'), expensiveLimit
   }
 });
 
+// Check if status column exists (cached after first check)
+let _hasStatusColumn = null;
+async function hasStatusColumn() {
+  if (_hasStatusColumn !== null) return _hasStatusColumn;
+  try {
+    const result = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'sunday_editions' AND column_name = 'status'`
+    );
+    _hasStatusColumn = result.rows.length > 0;
+  } catch {
+    _hasStatusColumn = false;
+  }
+  return _hasStatusColumn;
+}
+
 // List Sunday Editions
 router.get('/', async (req, res) => {
   const endpoint = '/api/sunday-editions';
@@ -30,7 +45,8 @@ router.get('/', async (req, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
   const offset = (page - 1) * limit;
   const includeDrafts = req.query.include_drafts === 'true';
-  const statusFilter = includeDrafts ? '' : "WHERE (status IS NULL OR status = 'published')";
+  const statusColumnExists = await hasStatusColumn();
+  const statusFilter = (!includeDrafts && statusColumnExists) ? "WHERE (status IS NULL OR status = 'published')" : '';
 
   try {
     const countResult = await pool.query(`SELECT COUNT(*) FROM sunday_editions ${statusFilter}`);
@@ -80,7 +96,8 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
   if (summary !== undefined) { updates.push(`summary = $${paramIndex++}`); values.push(summary); }
   if (image_url !== undefined) { updates.push(`image_url = $${paramIndex++}`); values.push(image_url); }
   if (publication_date !== undefined) { updates.push(`publication_date = $${paramIndex++}`); values.push(publication_date); }
-  if (status !== undefined && ['draft', 'published'].includes(status)) { updates.push(`status = $${paramIndex++}`); values.push(status); }
+  const statusCol = await hasStatusColumn();
+  if (statusCol && status !== undefined && ['draft', 'published'].includes(status)) { updates.push(`status = $${paramIndex++}`); values.push(status); }
 
   if (updates.length === 0) {
     return res.status(400).json({ error: 'No fields to update.' });
