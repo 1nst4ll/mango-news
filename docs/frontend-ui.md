@@ -62,6 +62,7 @@ frontend/src/
 ├── middleware.ts               # Server-side locale redirect (cookie + Accept-Language)
 ├── pages/                     # Astro file-based routing
 │   ├── index.astro            # Fallback redirect (middleware handles server-side)
+│   ├── 404.astro              # Custom 404 page (SSR, returns 404 status)
 │   ├── settings.astro         # Admin settings
 │   ├── article/[id].astro     # Article (non-locale fallback)
 │   ├── [lang]/                # Locale-prefixed routes (es, ht)
@@ -140,12 +141,15 @@ Full Sunday Edition view at `/sunday-edition/[id]` (renders `SundayEditionDetail
 
 Full article view at `/article/[id]`:
 
+- **SSR resilience** — article fetch is wrapped in try-catch. If the backend is unreachable during SSR (cold start, timeout), the page still renders with generic meta tags and the client-side `ArticleDetail` React component retries the fetch from the browser. Non-existent articles (404) redirect to `/404`
 - **Image lightbox** — unified `ImageLightbox` component with focus trap, arrow key navigation, Escape to close, focus restoration. Thumbnail + all content images in one gallery
 - **Wix CDN** — resize parameters stripped to load full-resolution images
 - **Social sharing** — Copy Link (clipboard + toast), native Share API (mobile), WhatsApp, Facebook
 - **Reading time** — estimated from word count (200 WPM), shown in metadata bar
 - **Previous/Next navigation** — uses localStorage article list when available, falls back to server-side adjacent articles API (`GET /api/articles/:id/adjacent`) for direct-link visitors
 - Clickable topic badges → filtered feed
+
+> **SSR hook ordering:** `displayTitle` and `getTranslatedText` are defined before all `useEffect` hooks in `ArticleDetail.tsx`. This is required because React SSR evaluates `useEffect` dependency arrays eagerly — placing `const` declarations after conditional returns causes a Temporal Dead Zone `ReferenceError` during server-side rendering.
 
 ### ErrorBoundary
 

@@ -148,6 +148,23 @@ Then reprocess translations via the article dropdown (Rerun Translations) or bul
 
 ## Frontend
 
+### Article pages return 500 Internal Server Error
+
+**Cause:** The Astro SSR fetch to the backend throws an uncaught exception (network timeout, cold start, DNS failure). Unlike the homepage (which wraps SSR fetches in try-catch and loads articles client-side), the article pages previously had an unprotected `fetch()` call that crashed the entire render.
+
+**Fix applied:** Both article pages (`article/[id].astro` and `[lang]/article/[id].astro`) now wrap the backend fetch in try-catch. If SSR fails, the page renders with generic meta tags and the `ArticleDetail` client component retries the fetch from the browser.
+
+**If it recurs:**
+1. Check Render logs for the specific SSR error
+2. Verify `PUBLIC_API_URL` is set correctly in Render dashboard (must be the backend URL)
+3. Check that the backend service is awake — Render free tier spins down after inactivity
+
+### "Cannot access 'displayTitle' before initialization" (SSR)
+
+**Cause:** React SSR evaluates `useEffect` dependency arrays eagerly, even though callbacks are not executed. If a `const` variable is used in a dependency array but declared after conditional early returns, JavaScript's Temporal Dead Zone throws a `ReferenceError`.
+
+**Fix:** In `ArticleDetail.tsx`, `displayTitle` and `getTranslatedText` must be defined before all `useEffect` hooks. Do not move them after conditional returns.
+
 ### Page not displaying / blank screen
 
 1. Verify the frontend server is running: `npm run dev` in `frontend/`
