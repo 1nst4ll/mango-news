@@ -36,6 +36,46 @@ Mango News is a news aggregation platform for Turks and Caicos Islands (~45,000 
 - Removed dead 2001 date workaround
 - Dark/light mode persistence fix (no flash on load)
 
+### UI/UX Audit — Design System & Accessibility (Completed)
+
+Comprehensive audit covering visual design, accessibility, user journeys, and admin settings cohesiveness.
+
+**Quick Wins (20 items):**
+- Skip-navigation link (WCAG 2.4.1), aria-labels, lang attributes on language names
+- Sunday Edition autoplay disabled (WCAG 1.4.2)
+- Replaced 20+ hardcoded Tailwind colors with oklch design tokens (footer, NewsFeed, ArticleDetail, SundayEditionDetail, admin components)
+- Added semantic color tokens: `--success`, `--warning`, `--footer-*`, `--social-whatsapp`, `--social-facebook`
+- Internationalized LoginDialog, LoginButton, Header, ModeToggle, LanguageSwitcher (14 new keys in en/es/ht)
+- Removed duplicate Google Fonts @import (kept `<link>` tags with preconnect)
+- Removed hardcoded `#FFB88C` hex from tailwind.config.mjs (oklch version in global.css is authoritative)
+- Topic badges converted from `<span onClick>` to semantic `<a>` links
+- Sunday Edition cards converted from `<div onClick>` to `<a href>`
+
+**P1 Admin Improvements (4 items):**
+- Removed duplicate "Generate Sunday Edition" from Scraper Controls (now only in Sunday Editions tab)
+- Moved global AI toggles from localStorage to `application_settings` DB table (auto-save on toggle)
+- Added Emergency Banner management form (Switch + text input) to Scraper Controls tab
+- Added article block/unblock toggle to article management (leveraging existing `is_blocked` DB column)
+
+**P2 Features (6 items):**
+- Topic navigation bar on index page (scrollable pills fetched from `/api/topics`)
+- Copy Link + native Web Share API buttons on article and Sunday Edition detail pages
+- Reading time estimate in article metadata bar (calculated from word count at 200 WPM)
+- Search/filter in Sunday Editions admin tab
+- Server-side locale redirect middleware (`middleware.ts`) using cookie + Accept-Language header (eliminates redirect flash)
+- Real AI coverage metrics from actual article data (replaced "configured capacity" proxy)
+
+**P3 Features (8 items):**
+- Server-side prev/next article navigation fallback (`GET /api/articles/:id/adjacent`) for direct-link visitors
+- Cross-source article search in admin Source Management tab (`GET /api/articles/admin/search`)
+- Topic stats chart + article freshness KPIs (last 24h/7d/30d) + blocked count in Overview dashboard
+- URL blacklist management UI with add/remove (was file-system only)
+- Sunday Edition draft/publish workflow (new `status` column, public listing filters to published)
+- Unified `ImageLightbox` component (focus trap, keyboard nav, focus restoration) replacing 3 separate implementations
+- Article thumbnail now opens in lightbox (was not clickable)
+- Server-side search in Source Articles DataTable (title, URL, or ID across all pages)
+- Topic management CRUD — new "Topics" tab (6th tab) with add/edit/delete/merge, translations
+
 ---
 
 ## Phase 3: Growth (Next)
@@ -223,6 +263,89 @@ Mango News is a news aggregation platform for Turks and Caicos Islands (~45,000 
 ---
 
 ## Phase 4: Scale (Future)
+
+### Admin: User & Role Management — Priority: MEDIUM
+
+**Description:** CRUD for admin users with role assignment. The `users` table already has a `role` column (default `'admin'`) but no management UI exists.
+
+**Implementation:**
+- New admin tab or section in Settings for user listing
+- Create/edit/delete users with role selection (admin, editor, viewer)
+- Password change from UI (currently requires DB access)
+- Role-based access: editors can manage articles but not sources/settings, viewers are read-only
+
+**Effort:** 1 week
+
+---
+
+### Admin: AI Cost Dashboard — Priority: MEDIUM
+
+**Description:** Track API usage and costs across Groq (summaries/tags/translations), image generation, and Unreal Speech (audio).
+
+**Implementation:**
+- New `api_usage_log` table: `id, service (groq/image/speech), endpoint, tokens_used, cost_estimate, created_at`
+- Log each AI call in aiService.js and sundayEditionGenerator.js
+- Dashboard card in Overview tab showing daily/weekly/monthly spend by service
+- Alert threshold when approaching budget limits
+
+**Effort:** 2 weeks
+
+---
+
+### Admin: Scraper Run History & Logs — Priority: HIGH
+
+**Description:** Persistent timeline of scraper runs with timestamps, source, articles found/added, errors. Currently only toast notifications during runs with no history.
+
+**Implementation:**
+- New `scraper_runs` table: `id, source_id, started_at, completed_at, status (success/error), articles_found, articles_added, error_message`
+- Log each run in scraper.js
+- New section in Overview tab or dedicated "Logs" tab showing recent runs
+- Filter by source, date range, status
+
+**Effort:** 2 weeks
+
+---
+
+### Admin: SettingsPage State Refactor — Priority: MEDIUM
+
+**Description:** SettingsPage.tsx has 57 state variables in a single component. Extract to `useReducer` with typed actions or React Context to improve maintainability and prevent state bugs.
+
+**Implementation:**
+- Define a `SettingsState` type and `SettingsAction` discriminated union
+- Extract state + dispatch into `useSettingsReducer()` hook or `SettingsContext`
+- Each tab component receives state slice + dispatch instead of 15-38 individual props
+- No UI changes — purely internal refactor
+
+**Effort:** 2 weeks
+
+---
+
+### Admin: Keyboard Shortcuts — Priority: LOW
+
+**Description:** Power-user efficiency improvements for the single admin.
+
+**Implementation:**
+- Cmd/Ctrl+S to save in any form/dialog
+- Escape to close dialogs (already works for shadcn dialogs)
+- Arrow keys or number keys to switch tabs
+- Use a lightweight hotkey library or native `keydown` listener
+
+**Effort:** 3 days
+
+---
+
+### Admin: Bulk Article Re-Translation — Priority: LOW
+
+**Description:** Select multiple articles in the DataTable and trigger batch translation processing.
+
+**Implementation:**
+- Add "Rerun Translations" to bulk action bar in SourceArticles (alongside existing bulk delete)
+- Call `POST /api/articles/:id/process-ai` with `featureType: "translations"` for each selected article
+- Progress indicator showing completed/total
+
+**Effort:** 2 days
+
+---
 
 ### H1. Cross-Platform News Widget for Mango Jobs
 
