@@ -17,6 +17,7 @@ const { v4: uuidv4 } = require('uuid');
 
 // Import centralized AI service for prompt optimization and shared utilities
 const aiService = require('./aiService');
+const { getAiModels } = require('../configLoader');
 
 // Import shared S3 service
 const { uploadToS3 } = require('./s3Service');
@@ -31,10 +32,7 @@ fal.config({
 // ============================================================================
 
 const CONFIG = {
-  // fal.ai model configuration
-  // Using FLUX.2 Turbo for ultra-fast generation (~6s per image, 8-step distilled inference)
-  // Alternative models: 'fal-ai/flux-2' (dev), 'fal-ai/flux-2-pro' (highest quality)
-  MODEL: process.env.FAL_IMAGE_MODEL || 'fal-ai/flux-2/turbo',
+  // Model is loaded dynamically from DB via configLoader.getAiModels().IMAGE
   // Image dimensions - using preset for better compatibility with FLUX.2
   // Options: square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, landscape_16_9
   IMAGE_SIZE: process.env.FAL_IMAGE_SIZE || 'landscape_16_9',
@@ -77,7 +75,8 @@ const generateAIImage = async (title, summary, folder = 'ai-images') => {
 
     // Use shared withRetry from AI service
     return await aiService.withRetry(async () => {
-      console.log(`[Image Service] Generating image with fal.ai model: ${CONFIG.MODEL}`);
+      const imageModel = getAiModels().IMAGE;
+      console.log(`[Image Service] Generating image with fal.ai model: ${imageModel}`);
       console.log(`[Image Service] Settings: ${CONFIG.IMAGE_SIZE}, guidance ${CONFIG.GUIDANCE_SCALE}`);
 
       // Build image_size parameter - use preset string or custom dimensions
@@ -85,7 +84,7 @@ const generateAIImage = async (title, summary, folder = 'ai-images') => {
         ? { width: CONFIG.IMAGE_WIDTH, height: CONFIG.IMAGE_HEIGHT }
         : CONFIG.IMAGE_SIZE;
 
-      const result = await fal.subscribe(CONFIG.MODEL, {
+      const result = await fal.subscribe(imageModel, {
         input: {
           prompt: optimizedPrompt,
           image_size: imageSize,

@@ -29,6 +29,7 @@ const ScheduledTasks = React.lazy(() => import('./settings/ScheduledTasks'));
 const SourceManagement = React.lazy(() => import('./settings/SourceManagement'));
 const SundayEditionsAdminTab = React.lazy(() => import('./settings/SundayEditionsAdmin'));
 const TopicManagement = React.lazy(() => import('./settings/TopicManagement'));
+const AIModels = React.lazy(() => import('./settings/AIModels'));
 
 // ---------------------------------------------------------------------------
 // Component
@@ -781,6 +782,7 @@ const SettingsPage: React.FC = () => {
           <TabsTrigger value="sources" className="flex-shrink-0">Source Management</TabsTrigger>
           <TabsTrigger value="sunday-editions" className="flex-shrink-0">Sunday Editions</TabsTrigger>
           <TabsTrigger value="topics" className="flex-shrink-0">Topics</TabsTrigger>
+          <TabsTrigger value="ai-models" className="flex-shrink-0">AI Models</TabsTrigger>
         </TabsList>
 
         {/* TAB 1 — Overview & Stats */}
@@ -918,6 +920,13 @@ const SettingsPage: React.FC = () => {
         <TabsContent value="topics">
           <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
           <TopicManagement />
+          </React.Suspense>
+        </TabsContent>
+
+        {/* TAB 7 — AI Models */}
+        <TabsContent value="ai-models">
+          <React.Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <AIModels />
           </React.Suspense>
         </TabsContent>
       </Tabs>

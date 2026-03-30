@@ -17,6 +17,7 @@
 
 const { generateText } = require('ai');
 const { createGroq } = require('@ai-sdk/groq');
+const { getAiModels } = require('../configLoader');
 
 // Initialize Groq provider via Vercel AI SDK
 const groq = createGroq({
@@ -28,15 +29,7 @@ const groq = createGroq({
 // ============================================================================
 
 const CONFIG = {
-  // Model configuration - using Groq's Llama models exclusively
-  // See https://console.groq.com/docs/models for available models
-  // Using llama-3.3-70b-versatile for all tasks for consistency and quality
-  MODELS: {
-    SUMMARY: process.env.AI_SUMMARY_MODEL || 'llama-3.3-70b-versatile',
-    TRANSLATION: process.env.AI_TRANSLATION_MODEL || 'llama-3.3-70b-versatile',
-    TOPICS: process.env.AI_TOPICS_MODEL || 'llama-3.1-8b-instant',
-    PROMPT_OPTIMIZATION: process.env.AI_PROMPT_MODEL || 'llama-3.3-70b-versatile',
-  },
+  // Models are loaded dynamically from DB via configLoader.getAiModels()
   // Retry configuration
   MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES) || 3,
   RETRY_DELAY_MS: parseInt(process.env.AI_RETRY_DELAY) || 1000,
@@ -263,10 +256,11 @@ const generateSummary = async (content) => {
   await checkRateLimit();
 
   return withRetry(async () => {
-    console.log(`[AI Service] Using model: ${CONFIG.MODELS.SUMMARY}`);
+    const summaryModel = getAiModels().SUMMARY;
+    console.log(`[AI Service] Using model: ${summaryModel}`);
 
     const { text, finishReason, usage } = await generateText({
-      model: groq(CONFIG.MODELS.SUMMARY),
+      model: groq(summaryModel),
       system: `You are a professional news editor for Mango News, a news aggregator serving the Turks and Caicos Islands (TCI). Generate a concise, SEO-optimized summary of the provided article.
 
 Requirements:
@@ -322,7 +316,7 @@ const assignTopics = async (content) => {
 
   return withRetry(async () => {
     const { text } = await generateText({
-      model: groq(CONFIG.MODELS.TOPICS),
+      model: groq(getAiModels().TOPICS),
       system: `Classify the following news article into exactly 3 topics from the provided list. Analyze the main subject, secondary themes, and overall context.
 
 Available topics: ${TOPICS_LIST.join(', ')}
@@ -440,11 +434,12 @@ Output: Return ONLY the translated text, nothing else.`;
 
   await checkRateLimit();
 
+  const translationModel = getAiModels().TRANSLATION;
   const translation = await withRetry(async () => {
-    console.log(`[AI Service] Using model for translation: ${CONFIG.MODELS.TRANSLATION}`);
+    console.log(`[AI Service] Using model for translation: ${translationModel}`);
 
     const { text: translatedText, finishReason, usage } = await generateText({
-      model: groq(CONFIG.MODELS.TRANSLATION),
+      model: groq(translationModel),
       system: systemPrompt,
       prompt: truncatedText,
       temperature: 0.3,
@@ -535,7 +530,7 @@ const optimizeImagePrompt = async (summary) => {
 
   return withRetry(async () => {
     const { text: optimizedPrompt, finishReason } = await generateText({
-      model: groq(CONFIG.MODELS.PROMPT_OPTIMIZATION),
+      model: groq(getAiModels().PROMPT_OPTIMIZATION),
       system: `You are a visual journalist for Mango News in the Turks and Caicos Islands (TCI). Create a UNIQUE image prompt that accurately represents the news article.
 
 TURKS AND CAICOS CONTEXT (use when relevant):
@@ -628,7 +623,7 @@ const generateWeeklySummary = async (articles) => {
 
   return withRetry(async () => {
     const { text } = await generateText({
-      model: groq(CONFIG.MODELS.SUMMARY),
+      model: groq(getAiModels().SUMMARY),
       system: `You are the lead editor of Mango News Sunday Edition, the premiere weekly news digest for the Turks and Caicos Islands. Compile the provided weekly articles into an engaging, professional news broadcast script.
 
 Content Structure:

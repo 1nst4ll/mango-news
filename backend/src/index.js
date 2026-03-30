@@ -12,6 +12,7 @@ const { scheduleScraper } = require('./scraper');
 // Shared resource pools
 const { pool, testConnection, closePool } = require('./db');
 const { closeBrowser } = require('./browserPool');
+const { loadAiModels } = require('./configLoader');
 
 // Rate limiters
 const { generalLimiter } = require('./middleware/rateLimiter');
@@ -169,8 +170,9 @@ app.use((err, req, res, next) => {
 // ============================================================================
 // SERVER START
 // ============================================================================
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`[INFO] ${new Date().toISOString()} - Backend server listening on port ${port}`);
+  await loadAiModels();
 });
 
 // ============================================================================

@@ -156,27 +156,95 @@ router.put('/emergency', authenticateToken, requireRole('admin'), async (req, re
   }
 });
 
-// Blacklist management
-const fs = require('fs').promises;
-const path = require('path');
-const { getBlacklist, loadUrlBlacklist } = require('../configLoader');
-const BLACKLIST_PATH = path.join(__dirname, '../../config/blacklist.json');
+// Blacklist management + AI model settings
+const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS } = require('../configLoader');
+
+// ============================================================================
+// AI Model Settings
+// ============================================================================
+
+const GROQ_MODELS = [
+  { id: 'llama-3.3-70b-versatile',             label: 'Llama 3.3 70B (versatile)' },
+  { id: 'llama-3.1-8b-instant',                label: 'Llama 3.1 8B (instant)' },
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout 17B (preview)' },
+  { id: 'qwen/qwen3-32b',                      label: 'Qwen3 32B (preview)' },
+  { id: 'openai/gpt-oss-120b',                 label: 'GPT OSS 120B' },
+  { id: 'openai/gpt-oss-20b',                  label: 'GPT OSS 20B' },
+  { id: 'groq/compound',                       label: 'Groq Compound' },
+  { id: 'groq/compound-mini',                  label: 'Groq Compound Mini' },
+];
+
+const FAL_IMAGE_MODELS = [
+  { id: 'fal-ai/flux-2/turbo',   label: 'FLUX.2 Turbo (fast, recommended)' },
+  { id: 'fal-ai/flux-2-pro',     label: 'FLUX.2 Pro (highest quality)' },
+  { id: 'fal-ai/flux-2-flex',    label: 'FLUX.2 Flex' },
+  { id: 'fal-ai/flux/dev',       label: 'FLUX.1 Dev' },
+  { id: 'fal-ai/flux/schnell',   label: 'FLUX.1 Schnell (fastest)' },
+  { id: 'fal-ai/flux-pro/v1.1',  label: 'FLUX1.1 Pro' },
+];
+
+router.get('/ai-models', authenticateToken, async (req, res) => {
+  try {
+    res.json({
+      current: getAiModels(),
+      defaults: AI_MODEL_DEFAULTS,
+      options: { groq: GROQ_MODELS, image: FAL_IMAGE_MODELS },
+    });
+  } catch (err) {
+    console.error(`[ERROR] GET /api/settings/ai-models:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/ai-models', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { summary, translation, topics, prompt, image } = req.body;
+  const allowed = {
+    ai_model_summary:     summary,
+    ai_model_translation: translation,
+    ai_model_topics:      topics,
+    ai_model_prompt:      prompt,
+    ai_model_image:       image,
+  };
+  try {
+    for (const [key, value] of Object.entries(allowed)) {
+      if (value !== undefined) {
+        await pool.query(
+          `INSERT INTO application_settings (setting_name, setting_value) VALUES ($1, $2)
+           ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+          [key, value]
+        );
+      }
+    }
+    await loadAiModels();
+    res.json({ message: 'AI model settings updated.', current: getAiModels() });
+  } catch (err) {
+    console.error(`[ERROR] PUT /api/settings/ai-models:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ============================================================================
 
 router.get('/blacklist', authenticateToken, async (req, res) => {
-  res.json(getBlacklist());
+  try {
+    const result = await pool.query('SELECT url FROM url_blacklist ORDER BY created_at');
+    res.json(result.rows.map(r => r.url));
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - GET /api/settings/blacklist - Error:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 router.post('/blacklist', authenticateToken, requireRole('admin'), async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL is required.' });
   try {
-    const current = getBlacklist();
-    if (current.includes(url.trim())) return res.status(409).json({ error: 'URL already blacklisted.' });
-    current.push(url.trim());
-    await fs.writeFile(BLACKLIST_PATH, JSON.stringify(current, null, 2));
+    await pool.query('INSERT INTO url_blacklist (url) VALUES ($1)', [url.trim()]);
     await loadUrlBlacklist();
-    res.json({ message: 'URL added to blacklist.', count: current.length });
+    const count = (await pool.query('SELECT COUNT(*) FROM url_blacklist')).rows[0].count;
+    res.json({ message: 'URL added to blacklist.', count: parseInt(count) });
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'URL already blacklisted.' });
     console.error(`[ERROR] ${new Date().toISOString()} - POST /api/settings/blacklist - Error:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
@@ -186,12 +254,11 @@ router.delete('/blacklist', authenticateToken, requireRole('admin'), async (req,
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL is required.' });
   try {
-    const current = getBlacklist();
-    const filtered = current.filter(u => u !== url);
-    if (filtered.length === current.length) return res.status(404).json({ error: 'URL not found in blacklist.' });
-    await fs.writeFile(BLACKLIST_PATH, JSON.stringify(filtered, null, 2));
+    const result = await pool.query('DELETE FROM url_blacklist WHERE url = $1', [url]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'URL not found in blacklist.' });
     await loadUrlBlacklist();
-    res.json({ message: 'URL removed from blacklist.', count: filtered.length });
+    const count = (await pool.query('SELECT COUNT(*) FROM url_blacklist')).rows[0].count;
+    res.json({ message: 'URL removed from blacklist.', count: parseInt(count) });
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - DELETE /api/settings/blacklist - Error:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
