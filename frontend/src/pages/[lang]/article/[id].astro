@@ -20,21 +20,25 @@ try {
 } catch (error) {
   console.error('Failed to fetch sources:', error);
 }
-const articleResponse = await fetch(`${apiUrl}/api/articles/${id}`);
 
 let article = null;
-if (articleResponse.ok) {
-  article = await articleResponse.json();
-} else {
-  console.error(`Failed to fetch article with ID ${id}: ${articleResponse.status} ${articleResponse.statusText}`);
-  // Redirect to a 404 page or display an error
-  return Astro.redirect('/404'); // Assuming a /404 page exists
+try {
+  const articleResponse = await fetch(`${apiUrl}/api/articles/${id}`);
+  if (articleResponse.ok) {
+    article = await articleResponse.json();
+  } else if (articleResponse.status === 404) {
+    return Astro.redirect('/404');
+  }
+} catch (error) {
+  console.error(`Failed to fetch article with ID ${id}:`, error);
+  // SSR fetch failed (network error, timeout, etc.)
+  // Page will still render — ArticleDetail client component will retry the fetch
 }
 
-// Construct the page title
-const pageTitle = article.title;
-const pageDescription = article.summary || (article.raw_content ? article.raw_content.substring(0, 160) + '...' : 'Read this article on mango.tc news');
-const thumbnailUrl = article.thumbnail_url;
+// Construct the page title (fallback to generic values if SSR fetch failed)
+const pageTitle = article?.title || 'Article';
+const pageDescription = article?.summary || (article?.raw_content ? article.raw_content.substring(0, 160) + '...' : 'Read this article on mango.tc news');
+const thumbnailUrl = article?.thumbnail_url;
 const ogImageUrl = thumbnailUrl ? (thumbnailUrl.startsWith('http') ? thumbnailUrl : `${Astro.url.origin}${thumbnailUrl.startsWith('/') ? '' : '/'}${thumbnailUrl}`) : null;
 
 // Extract width and height from the thumbnail_url if available

@@ -10,13 +10,23 @@ const { id } = Astro.params;
 
 // Fetch article data server-side
 const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
-const articleResponse = await fetch(`${apiUrl}/api/articles/${id}`);
-const article = await articleResponse.json();
 
-// Construct the page title
-const pageTitle = `${article.title}`;
-const pageDescription = article.summary || (article.content ? article.content.substring(0, 160) + '...' : 'Read this article on mango.tc news');
-const ogImageUrl = article.image_url;
+let article = null;
+try {
+  const articleResponse = await fetch(`${apiUrl}/api/articles/${id}`);
+  if (articleResponse.ok) {
+    article = await articleResponse.json();
+  } else if (articleResponse.status === 404) {
+    return Astro.redirect('/404');
+  }
+} catch (error) {
+  console.error(`Failed to fetch article with ID ${id}:`, error);
+}
+
+// Construct the page title (fallback to generic values if SSR fetch failed)
+const pageTitle = article?.title || 'Article';
+const pageDescription = article?.summary || (article?.raw_content ? article.raw_content.substring(0, 160) + '...' : 'Read this article on mango.tc news');
+const ogImageUrl = article?.thumbnail_url;
 const ogUrl = Astro.url.href;
 const ogType = "article";
 ---
