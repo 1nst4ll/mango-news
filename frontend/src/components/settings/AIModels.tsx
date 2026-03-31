@@ -11,7 +11,8 @@ import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import {
-  FileText, Languages, Tag, ImageIcon, Mic, ChevronDown, ChevronRight, RotateCcw,
+  FileText, Languages, Tag, ImageIcon, Mic,
+  ChevronDown, ChevronRight, RotateCcw, Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
@@ -74,9 +75,10 @@ function ModelSelect({
   label: string; value: string; onChange: (v: string) => void;
   options: ModelOption[]; defaultValue: string;
 }) {
+  const isDirty = value !== defaultValue;
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label className="text-xs">{label}</Label>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="max-w-sm"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -85,7 +87,11 @@ function ModelSelect({
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs text-muted-foreground">Default: {defaultValue}</p>
+      {isDirty && (
+        <p className="text-[11px] text-muted-foreground">
+          Default: <span className="font-mono">{defaultValue}</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -138,11 +144,8 @@ function PromptEditor({
               >
                 <RotateCcw className="h-3 w-3 mr-1" />Revert
               </Button>
-              <Button
-                size="sm"
-                onClick={onSave} disabled={saving || !isDirty}
-              >
-                {saving ? 'Saving…' : 'Save prompt'}
+              <Button size="sm" onClick={onSave} disabled={saving || !isDirty}>
+                {saving ? 'Saving...' : 'Save prompt'}
               </Button>
             </div>
           </div>
@@ -164,7 +167,7 @@ const AIModels: React.FC = () => {
   const [topics, setTopics] = useState('');
   const [promptModel, setPromptModel] = useState('');
   const [image, setImage] = useState('');
-  const [savingSection, setSavingSection] = useState<string | null>(null);
+  const [savingModels, setSavingModels] = useState(false);
 
   // Image settings
   const [imageData, setImageData] = useState<ImageSettingsData | null>(null);
@@ -212,7 +215,12 @@ const AIModels: React.FC = () => {
         setImage(m.current.IMAGE);
 
         setImageData(i);
-        setImageEdits(JSON.parse(JSON.stringify(i.current)));
+        // Initialise edits: merge defaults with current for every model
+        const allEdits: Record<string, Record<string, unknown>> = {};
+        for (const modelId of Object.keys(i.schemas)) {
+          allEdits[modelId] = { ...(i.defaults[modelId] ?? {}), ...(i.current[modelId] ?? {}) };
+        }
+        setImageEdits(allEdits);
 
         setPromptsData(p);
         setPromptEdits({ ...p.prompts });
@@ -236,11 +244,31 @@ const AIModels: React.FC = () => {
     load();
   }, []);
 
+  // ── Dirty tracking ────────────────────────────────────────────────────────
+
+  const modelsAreDirty = modelsData != null && (
+    summary !== modelsData.current.SUMMARY ||
+    translation !== modelsData.current.TRANSLATION ||
+    topics !== modelsData.current.TOPICS ||
+    promptModel !== modelsData.current.PROMPT_OPTIMIZATION ||
+    image !== modelsData.current.IMAGE
+  );
+
+  const ttsIsDirty = ttsData != null && (
+    provider !== ttsData.current.provider ||
+    usVoice !== ttsData.current.us_voice ||
+    usSpeed !== ttsData.current.us_speed ||
+    usPitch !== ttsData.current.us_pitch ||
+    usBitrate !== ttsData.current.us_bitrate ||
+    falGeminiVoice !== ttsData.current.fal_gemini_voice ||
+    falMinimaxVoice !== ttsData.current.fal_minimax_voice ||
+    falMinimaxSpeed !== ttsData.current.fal_minimax_speed
+  );
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  // Saves all model selections — idempotent, safe to call from any section
-  const saveModels = async (section: string) => {
-    setSavingSection(section);
+  const saveModelsHandler = async () => {
+    setSavingModels(true);
     try {
       const res = await apiFetch('/api/settings/ai-models', {
         method: 'PUT',
@@ -250,11 +278,19 @@ const AIModels: React.FC = () => {
         }),
       });
       if (!res.ok) throw new Error();
+      // Update baseline so dirty tracking clears
+      setModelsData(prev => prev ? {
+        ...prev,
+        current: {
+          SUMMARY: summary, TRANSLATION: translation, TOPICS: topics,
+          PROMPT_OPTIMIZATION: promptModel, IMAGE: image,
+        },
+      } : prev);
       toast.success('Model settings saved');
     } catch {
       toast.error('Failed to save model settings');
     } finally {
-      setSavingSection(null);
+      setSavingModels(false);
     }
   };
 
@@ -267,6 +303,11 @@ const AIModels: React.FC = () => {
         body: JSON.stringify({ modelId: image, settings: imageEdits[image] }),
       });
       if (!res.ok) throw new Error();
+      // Update baseline for this model
+      setImageData(prev => prev ? {
+        ...prev,
+        current: { ...prev.current, [image]: { ...imageEdits[image] } },
+      } : prev);
       toast.success('Image settings saved');
     } catch {
       toast.error('Failed to save image settings');
@@ -277,13 +318,20 @@ const AIModels: React.FC = () => {
 
   const resetImageSettings = () => {
     if (!imageData) return;
-    setImageEdits(prev => ({ ...prev, [image]: { ...imageData.defaults[image] } }));
+    setImageEdits(prev => ({
+      ...prev,
+      [image]: { ...(imageData.defaults[image] ?? {}) },
+    }));
   };
 
   const setImageField = (key: string, value: unknown) => {
     setImageEdits(prev => ({
       ...prev,
-      [image]: { ...(prev[image] ?? {}), [key]: value },
+      [image]: {
+        ...(imageData?.defaults[image] ?? {}),
+        ...(prev[image] ?? {}),
+        [key]: value,
+      },
     }));
   };
 
@@ -319,6 +367,15 @@ const AIModels: React.FC = () => {
         }),
       });
       if (!res.ok) throw new Error();
+      // Update baseline so dirty tracking clears
+      setTtsData(prev => prev ? {
+        ...prev,
+        current: {
+          provider, us_voice: usVoice, us_speed: usSpeed, us_pitch: usPitch, us_bitrate: usBitrate,
+          fal_gemini_voice: falGeminiVoice,
+          fal_minimax_voice: falMinimaxVoice, fal_minimax_speed: falMinimaxSpeed,
+        },
+      } : prev);
       toast.success('TTS settings saved');
     } catch {
       toast.error('Failed to save TTS settings');
@@ -329,13 +386,24 @@ const AIModels: React.FC = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  if (loading) return <p className="text-sm text-muted-foreground p-4">Loading…</p>;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="rounded-lg border bg-card p-6 animate-pulse">
+            <div className="h-5 w-48 bg-muted rounded mb-3" />
+            <div className="h-4 w-72 bg-muted rounded mb-4" />
+            <div className="h-9 w-80 bg-muted rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (!modelsData || !imageData || !promptsData || !ttsData) return null;
 
   const groqOptions = modelsData.options.groq;
   const imageOptions = modelsData.options.image;
 
-  // Helper: render a PromptEditor for a given key
   const promptEditor = (key: string) => {
     const meta = promptsData.meta[key];
     if (!meta) return null;
@@ -355,110 +423,85 @@ const AIModels: React.FC = () => {
   };
 
   const currentImageSchema = imageData.schemas[image];
-  const currentImageEdits = imageEdits[image] ?? {};
+  const currentImageEdits = imageEdits[image] ?? imageData.defaults[image] ?? {};
 
   return (
     <div className="space-y-4">
 
-      {/* ── 1. Summarisation ──────────────────────────────────────────────── */}
+      {/* ── Card 1: Text Generation (3 internal sections) ─────────────────── */}
       <Card className="pt-4">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 pb-1">
-            <FileText className="h-5 w-5" />
-            Summarisation
-          </CardTitle>
+          <CardTitle className="pb-1">Text Generation</CardTitle>
           <CardDescription>
-            Generates article summaries and the weekly Sunday Edition digest.
+            Groq language models for summarisation, translation, and topic classification.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <ModelSelect
-            label="Groq Model"
-            value={summary} onChange={setSummary}
-            options={groqOptions}
-            defaultValue={modelsData.defaults.SUMMARY}
-          />
-          <div className="space-y-2">
-            {promptEditor('prompt_summary')}
-            {promptEditor('prompt_weekly_summary')}
-          </div>
+        <CardContent className="space-y-6">
+
+          {/* Summarisation */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">Summarisation</h4>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Article summaries and the weekly Sunday Edition digest.
+            </p>
+            <ModelSelect
+              label="Model" value={summary} onChange={setSummary}
+              options={groqOptions} defaultValue={modelsData.defaults.SUMMARY}
+            />
+            <div className="space-y-2">
+              {promptEditor('prompt_summary')}
+              {promptEditor('prompt_weekly_summary')}
+            </div>
+          </section>
+
+          <div className="border-t" />
+
+          {/* Translation */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Languages className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">Translation</h4>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Translates articles to Spanish and Haitian Creole.
+            </p>
+            <ModelSelect
+              label="Model" value={translation} onChange={setTranslation}
+              options={groqOptions} defaultValue={modelsData.defaults.TRANSLATION}
+            />
+            <div className="space-y-2">
+              {promptEditor('prompt_translation')}
+              {promptEditor('prompt_translation_title')}
+            </div>
+          </section>
+
+          <div className="border-t" />
+
+          {/* Topic Classification */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">Topic Classification</h4>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Assigns topic tags for filtering and discovery.
+            </p>
+            <ModelSelect
+              label="Model" value={topics} onChange={setTopics}
+              options={groqOptions} defaultValue={modelsData.defaults.TOPICS}
+            />
+            <div className="space-y-2">
+              {promptEditor('prompt_topics')}
+            </div>
+          </section>
+
         </CardContent>
-        <CardFooter>
-          <Button
-            onClick={() => saveModels('summary')}
-            disabled={savingSection === 'summary'}
-          >
-            {savingSection === 'summary' ? 'Saving…' : 'Save'}
-          </Button>
-        </CardFooter>
       </Card>
 
-      {/* ── 2. Translation ────────────────────────────────────────────────── */}
-      <Card className="pt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 pb-1">
-            <Languages className="h-5 w-5" />
-            Translation
-          </CardTitle>
-          <CardDescription>
-            Translates article content to Spanish and Haitian Creole.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ModelSelect
-            label="Groq Model"
-            value={translation} onChange={setTranslation}
-            options={groqOptions}
-            defaultValue={modelsData.defaults.TRANSLATION}
-          />
-          <div className="space-y-2">
-            {promptEditor('prompt_translation')}
-            {promptEditor('prompt_translation_title')}
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            onClick={() => saveModels('translation')}
-            disabled={savingSection === 'translation'}
-          >
-            {savingSection === 'translation' ? 'Saving…' : 'Save'}
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* ── 3. Topic Classification ───────────────────────────────────────── */}
-      <Card className="pt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 pb-1">
-            <Tag className="h-5 w-5" />
-            Topic Classification
-          </CardTitle>
-          <CardDescription>
-            Assigns topic tags to each article for filtering and discovery.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ModelSelect
-            label="Groq Model"
-            value={topics} onChange={setTopics}
-            options={groqOptions}
-            defaultValue={modelsData.defaults.TOPICS}
-          />
-          <div className="space-y-2">
-            {promptEditor('prompt_topics')}
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            onClick={() => saveModels('topics')}
-            disabled={savingSection === 'topics'}
-          >
-            {savingSection === 'topics' ? 'Saving…' : 'Save'}
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* ── 4. Image Generation ───────────────────────────────────────────── */}
+      {/* ── Card 2: Image Generation ─────────────────────────────────────── */}
       <Card className="pt-4">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 pb-1">
@@ -466,37 +509,35 @@ const AIModels: React.FC = () => {
             Image Generation
           </CardTitle>
           <CardDescription>
-            Creates AI-generated thumbnails for articles and Sunday Editions.
+            AI-generated thumbnails for articles and Sunday Editions.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
 
-          {/* Prompt optimisation sub-section */}
-          <div className="space-y-3">
+          {/* Prompt optimisation */}
+          <section className="space-y-3">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
                 Prompt Optimisation
               </p>
               <p className="text-xs text-muted-foreground">
-                Groq model that rewrites article context into an image-generation prompt.
+                Groq model that rewrites article context into an image prompt.
               </p>
             </div>
             <ModelSelect
-              label="Groq Model"
-              value={promptModel} onChange={setPromptModel}
-              options={groqOptions}
-              defaultValue={modelsData.defaults.PROMPT_OPTIMIZATION}
+              label="Model" value={promptModel} onChange={setPromptModel}
+              options={groqOptions} defaultValue={modelsData.defaults.PROMPT_OPTIMIZATION}
             />
             <div className="space-y-2">
               {promptEditor('prompt_image')}
               {promptEditor('prompt_image_fallback')}
             </div>
-          </div>
+          </section>
 
           <div className="border-t" />
 
-          {/* Image model + inline settings */}
-          <div className="space-y-3">
+          {/* Generation model + inline settings */}
+          <section className="space-y-3">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
                 Generation Model
@@ -506,19 +547,16 @@ const AIModels: React.FC = () => {
               </p>
             </div>
             <ModelSelect
-              label="Image Model"
-              value={image} onChange={setImage}
-              options={imageOptions}
-              defaultValue={modelsData.defaults.IMAGE}
+              label="Image Model" value={image} onChange={setImage}
+              options={imageOptions} defaultValue={modelsData.defaults.IMAGE}
             />
 
-            {/* Settings for currently selected model */}
             {currentImageSchema && currentImageSchema.fields.length > 0 && (
               <div className="rounded-md border bg-muted/20 p-4 space-y-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   {currentImageSchema.label} — Settings
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {currentImageSchema.fields.map(field => (
                     <div key={field.key} className="space-y-1.5">
                       <Label className="text-xs">{field.label}</Label>
@@ -563,7 +601,7 @@ const AIModels: React.FC = () => {
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" onClick={saveImageSettings} disabled={savingImageSettings}>
-                    {savingImageSettings ? 'Saving…' : 'Save Settings'}
+                    {savingImageSettings ? 'Saving...' : 'Save Settings'}
                   </Button>
                   <Button size="sm" variant="outline" onClick={resetImageSettings} disabled={savingImageSettings}>
                     Reset to Default
@@ -571,20 +609,12 @@ const AIModels: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
         </CardContent>
-        <CardFooter>
-          <Button
-            onClick={() => saveModels('image')}
-            disabled={savingSection === 'image'}
-          >
-            {savingSection === 'image' ? 'Saving…' : 'Save Model Selections'}
-          </Button>
-        </CardFooter>
       </Card>
 
-      {/* ── 5. Audio Narration (TTS) ──────────────────────────────────────── */}
+      {/* ── Card 3: Audio Narration (TTS) ────────────────────────────────── */}
       <Card className="pt-4">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 pb-1">
@@ -592,7 +622,7 @@ const AIModels: React.FC = () => {
             Audio Narration
           </CardTitle>
           <CardDescription>
-            Text-to-speech provider and voice for the Sunday Edition audio narration.
+            Text-to-speech for Sunday Edition audio.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -643,7 +673,7 @@ const AIModels: React.FC = () => {
                     type="number" min={-1} max={1} step={0.1} value={usSpeed}
                     onChange={e => setUsSpeed(parseFloat(e.target.value))}
                   />
-                  <p className="text-xs text-muted-foreground">−1 (slow) to 1 (fast), 0 = normal</p>
+                  <p className="text-xs text-muted-foreground">-1 (slow) to 1 (fast), 0 = normal</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Pitch</Label>
@@ -655,7 +685,7 @@ const AIModels: React.FC = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Asynchronous — audio is delivered via webhook callback, usually within a few seconds.
+                Asynchronous -- audio delivered via webhook callback.
               </p>
             </div>
           )}
@@ -663,7 +693,7 @@ const AIModels: React.FC = () => {
           {provider === 'fal-gemini' && (
             <div className="rounded-md border bg-muted/20 p-4 space-y-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                fal.ai — Gemini TTS Settings
+                fal.ai -- Gemini TTS Settings
               </p>
               <div className="space-y-1.5 max-w-xs">
                 <Label>Voice</Label>
@@ -677,7 +707,7 @@ const AIModels: React.FC = () => {
                 </Select>
               </div>
               <p className="text-xs text-muted-foreground">
-                Synchronous — audio is ready immediately and uploaded to S3, no webhook needed.
+                Synchronous -- audio ready immediately, uploaded to S3.
               </p>
             </div>
           )}
@@ -685,7 +715,7 @@ const AIModels: React.FC = () => {
           {provider === 'fal-minimax' && (
             <div className="rounded-md border bg-muted/20 p-4 space-y-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                fal.ai — MiniMax Speech-02 HD Settings
+                fal.ai -- MiniMax Speech-02 HD Settings
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -709,7 +739,7 @@ const AIModels: React.FC = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Synchronous — audio is ready immediately and uploaded to S3, no webhook needed.
+                Synchronous -- audio ready immediately, uploaded to S3.
               </p>
             </div>
           )}
@@ -719,12 +749,27 @@ const AIModels: React.FC = () => {
           </div>
 
         </CardContent>
-        <CardFooter>
-          <Button onClick={saveTts} disabled={savingTts}>
-            {savingTts ? 'Saving…' : 'Save TTS Settings'}
-          </Button>
-        </CardFooter>
+        {ttsIsDirty && (
+          <CardFooter>
+            <Button onClick={saveTts} disabled={savingTts}>
+              {savingTts ? 'Saving...' : 'Save TTS Settings'}
+            </Button>
+          </CardFooter>
+        )}
       </Card>
+
+      {/* ── Sticky save bar for model selections ─────────────────────────── */}
+      {modelsAreDirty && (
+        <div className="sticky bottom-0 z-10 rounded-lg border bg-background/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            You have unsaved model changes
+          </p>
+          <Button onClick={saveModelsHandler} disabled={savingModels}>
+            <Save className="h-4 w-4 mr-2" />
+            {savingModels ? 'Saving...' : 'Save Model Settings'}
+          </Button>
+        </div>
+      )}
 
     </div>
   );
