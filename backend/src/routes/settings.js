@@ -157,7 +157,7 @@ router.put('/emergency', authenticateToken, requireRole('admin'), async (req, re
 });
 
 // Blacklist management + AI model settings + TTS settings + Image settings
-const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS, loadTtsSettings, getTtsSettings, TTS_DEFAULTS, loadImageSettings, getImageSettings, IMAGE_SETTINGS_DEFAULTS, loadPrompts, getPrompts, PROMPT_KEYS } = require('../configLoader');
+const { loadUrlBlacklist, loadAiModels, getAiModels, AI_MODEL_DEFAULTS, loadTtsSettings, getTtsSettings, TTS_DEFAULTS, loadPodcastSettings, getPodcastSettings, PODCAST_DEFAULTS, loadImageSettings, getImageSettings, IMAGE_SETTINGS_DEFAULTS, loadPrompts, getPrompts, PROMPT_KEYS } = require('../configLoader');
 
 // ============================================================================
 // AI Model Settings
@@ -400,7 +400,8 @@ const PROMPT_META = {
   prompt_translation_general:  { label: 'Translation — General',    description: 'Fallback translation prompt. Use {{language_name}} and {{language_guideline}}.' },
   prompt_image:                { label: 'Image Prompt Optimiser',   description: 'Creates a fal.ai image prompt from the article summary. No template variables.' },
   prompt_image_fallback:       { label: 'Image Prompt Fallback',    description: 'Used when no article summary is available. Plain text prompt, no variables.' },
-  prompt_weekly_summary:       { label: 'Sunday Edition Script',    description: 'Generates the weekly broadcast script. No template variables.' },
+  prompt_weekly_summary:       { label: 'Sunday Edition Script',    description: 'Generates the weekly broadcast script (monologue mode). No template variables.' },
+  prompt_weekly_podcast:       { label: 'Podcast Script',           description: 'Generates the two-host conversational podcast script. Speaker IDs must match podcast settings.' },
 };
 
 router.get('/prompts', authenticateToken, async (req, res) => {
@@ -534,6 +535,67 @@ router.put('/tts', authenticateToken, requireRole('admin'), async (req, res) => 
   }
 });
 
+// ============================================================================
+// Podcast Settings
+// ============================================================================
+
+const PODCAST_GEMINI_MODELS = [
+  { id: 'gemini-2.5-flash-tts', label: 'Gemini 2.5 Flash TTS ($0.50/1M input)' },
+  { id: 'gemini-2.5-pro-tts',   label: 'Gemini 2.5 Pro TTS ($1.00/1M input)' },
+];
+
+router.get('/podcast', authenticateToken, async (req, res) => {
+  try {
+    res.json({
+      current: getPodcastSettings(),
+      defaults: PODCAST_DEFAULTS,
+      options: {
+        formats: [
+          { id: 'monologue', label: 'Single narrator (classic Sunday Edition)' },
+          { id: 'podcast',   label: 'Two-host podcast (The Mango Rundown)' },
+        ],
+        gemini_voices: FAL_GEMINI_VOICES,
+        gemini_models: PODCAST_GEMINI_MODELS,
+      },
+    });
+  } catch (err) {
+    console.error(`[ERROR] GET /api/settings/podcast:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/podcast', authenticateToken, requireRole('admin'), async (req, res) => {
+  const { format, host1_voice, host1_id, host2_voice, host2_id, gemini_model, temperature, style_instructions } = req.body;
+  const updates = {
+    sunday_edition_format:      format,
+    podcast_host1_voice:        host1_voice,
+    podcast_host1_id:           host1_id,
+    podcast_host2_voice:        host2_voice,
+    podcast_host2_id:           host2_id,
+    podcast_gemini_model:       gemini_model,
+    podcast_temperature:        temperature != null ? String(temperature) : undefined,
+    podcast_style_instructions: style_instructions,
+  };
+  try {
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        await pool.query(
+          `INSERT INTO application_settings (setting_name, setting_value) VALUES ($1, $2)
+           ON CONFLICT (setting_name) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
+          [key, value]
+        );
+      }
+    }
+    await loadPodcastSettings();
+    res.json({ message: 'Podcast settings updated.', current: getPodcastSettings() });
+  } catch (err) {
+    console.error(`[ERROR] PUT /api/settings/podcast:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ============================================================================
+// URL Blacklist
 // ============================================================================
 
 router.get('/blacklist', authenticateToken, async (req, res) => {

@@ -88,6 +88,8 @@ export interface SundayEditionAdmin {
   created_at: string;
   updated_at: string;
   status?: 'draft' | 'published';
+  podcast_script?: string | null;
+  edition_format?: 'monologue' | 'podcast' | null;
 }
 
 export const emptyModalForm: ModalFormData = {

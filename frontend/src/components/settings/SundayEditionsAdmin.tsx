@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
-import { RefreshCw, AlertTriangle, FileText, ImagePlus, Volume2, Search } from 'lucide-react';
+import { RefreshCw, AlertTriangle, FileText, ImagePlus, Volume2, Search, Mic } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "../ui/skeleton";
 import type { SundayEditionAdmin } from './types';
@@ -20,6 +20,7 @@ export interface SundayEditionsAdminProps {
   sundayEditionPurgeLoading: boolean;
   sundayEditionImageLoading: { [key: number]: boolean };
   sundayEditionAudioLoading: { [key: number]: boolean };
+  sundayEditionScriptLoading: { [key: number]: boolean };
   handleGenerateSundayEdition: () => void;
   fetchSundayEditions: () => void;
   handlePurgeSundayEditions: () => void;
@@ -28,6 +29,7 @@ export interface SundayEditionsAdminProps {
   handleSaveSundayEdition: (id: number) => void;
   handleRegenerateImage: (id: number) => void;
   handleRegenerateAudio: (id: number) => void;
+  handleRegenerateScript: (id: number) => void;
   handleDeleteSundayEdition: (id: number) => void;
   handleToggleStatus: (id: number, newStatus: 'draft' | 'published') => void;
   setLightboxImage: (v: { src: string; alt: string } | null) => void;
@@ -44,6 +46,7 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
   sundayEditionPurgeLoading,
   sundayEditionImageLoading,
   sundayEditionAudioLoading,
+  sundayEditionScriptLoading,
   handleGenerateSundayEdition,
   fetchSundayEditions,
   handlePurgeSundayEditions,
@@ -52,6 +55,7 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
   handleSaveSundayEdition,
   handleRegenerateImage,
   handleRegenerateAudio,
+  handleRegenerateScript,
   handleDeleteSundayEdition,
   handleToggleStatus,
   setLightboxImage,
@@ -220,6 +224,11 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
                           >
                             {edition.status === 'draft' ? 'Draft' : 'Published'}
                           </Badge>
+                          {edition.edition_format === 'podcast' && (
+                            <Badge variant="secondary" className="text-xs flex-shrink-0 bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300">
+                              <Mic className="h-3 w-3 mr-1" /> Podcast
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mb-1">
                           Published: {new Date(edition.publication_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
@@ -292,6 +301,23 @@ const SundayEditionsAdminTab: React.FC<SundayEditionsAdminProps> = ({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Regenerate audio narration</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 w-8 p-0"
+                              disabled={!!sundayEditionScriptLoading[edition.id]}
+                              onClick={() => handleRegenerateScript(edition.id)}
+                            >
+                              {sundayEditionScriptLoading[edition.id]
+                                ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                : <Mic className="h-3.5 w-3.5" />
+                              }
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Regenerate podcast script</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>

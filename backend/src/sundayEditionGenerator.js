@@ -14,8 +14,8 @@ const imageService = require('./services/imageService');
 // Import shared S3 service
 const { uploadToS3 } = require('./services/s3Service');
 
-// Import TTS settings
-const { getTtsSettings } = require('./configLoader');
+// Import TTS and podcast settings
+const { getTtsSettings, getPodcastSettings } = require('./configLoader');
 
 const UNREAL_SPEECH_API_KEY = process.env.UNREAL_SPEECH_API_KEY;
 const UNREAL_SPEECH_API_URL = 'https://api.v8.unrealspeech.com/synthesisTasks';
@@ -212,6 +212,50 @@ async function _generateNarrationFalMinimax(plainText, tts) {
     }
 }
 
+/**
+ * Generate multi-speaker podcast narration via fal.ai Gemini TTS.
+ * Uses the speakers array for two-host dialogue.
+ * @param {string} podcastScript - Formatted script with "SpeakerId: dialogue" lines
+ * @returns {{ type: 'url', url: string } | null}
+ */
+async function _generateNarrationFalGeminiPodcast(podcastScript) {
+    if (!process.env.FAL_KEY) {
+        console.error('[ERROR] FAL_KEY is not set. Cannot generate podcast narration via fal.ai.');
+        return null;
+    }
+    const podcastConfig = getPodcastSettings();
+    const truncated = podcastScript.length > 45000 ? podcastScript.substring(0, 45000) : podcastScript;
+    if (podcastScript.length > 45000) {
+        console.warn(`[WARNING] Truncating podcast script from ${podcastScript.length} to 45000 chars.`);
+    }
+    console.log(`[TTS] fal Gemini TTS Podcast: host1=${podcastConfig.host1_voice}(${podcastConfig.host1_id}), host2=${podcastConfig.host2_voice}(${podcastConfig.host2_id}), model=${podcastConfig.gemini_model}, script=${truncated.length} chars`);
+    try {
+        const result = await fal.subscribe('fal-ai/gemini-tts', {
+            input: {
+                prompt: truncated,
+                speakers: [
+                    { voice: podcastConfig.host1_voice, speaker_id: podcastConfig.host1_id },
+                    { voice: podcastConfig.host2_voice, speaker_id: podcastConfig.host2_id },
+                ],
+                model: podcastConfig.gemini_model || 'gemini-2.5-flash-tts',
+                style_instructions: podcastConfig.style_instructions || '',
+                temperature: podcastConfig.temperature || 1.0,
+                output_format: 'mp3',
+            },
+            logs: false,
+        });
+        const audioUrl = result?.data?.audio?.url;
+        if (!audioUrl) { console.error('[ERROR] fal Gemini TTS Podcast returned no audio URL'); return null; }
+        const audioResponse = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+        const s3Url = await uploadToS3(Buffer.from(audioResponse.data), 'sunday-editions/audio', `sunday-edition-podcast-${uuidv4()}.mp3`, 'audio/mpeg');
+        if (!s3Url) { console.error('[ERROR] Failed to upload podcast audio to S3'); return null; }
+        return { type: 'url', url: s3Url };
+    } catch (error) {
+        console.error(`[ERROR] fal Gemini TTS Podcast failed: ${error.message}`);
+        return null;
+    }
+}
+
 // OPTIMIZED: Use centralized AI service for translations with caching and retry
 const generateAITranslation = async (text, targetLanguageCode, type = 'general') => {
     try {
@@ -241,15 +285,46 @@ async function createSundayEdition() {
             return { success: false, message: 'No articles found for the past week.' };
         }
 
-        const summary = await generateSundayEditionSummary(articles);
-        if (summary === "Summary generation failed.") {
-            console.error('Failed to generate summary. Aborting Sunday Edition generation.');
-            await client.query('ROLLBACK');
-            return { success: false, message: 'Failed to generate summary.' };
+        const podcastConfig = getPodcastSettings();
+        const isPodcast = podcastConfig.format === 'podcast';
+        let summary, podcastScript = null, editionFormat = 'monologue';
+
+        if (isPodcast) {
+            // PODCAST MODE: Generate two-host script, then derive display summary
+            console.log('[INFO] Generating podcast script (two-host format)...');
+            podcastScript = await aiService.generatePodcastScript(articles);
+            if (!podcastScript || podcastScript === 'Podcast script generation failed.' || podcastScript === 'No sufficient article content.') {
+                console.error('Failed to generate podcast script. Aborting Sunday Edition generation.');
+                await client.query('ROLLBACK');
+                return { success: false, message: 'Failed to generate podcast script.' };
+            }
+            console.log(`[INFO] Podcast script generated: ${podcastScript.length} chars`);
+
+            console.log('[INFO] Generating display summary from podcast script...');
+            summary = await aiService.generatePodcastDisplaySummary(podcastScript);
+            if (!summary || summary === 'Summary generation failed.') {
+                console.warn('[WARN] Failed to generate display summary, using fallback.');
+                summary = 'This week on The Mango Rundown, Kayo and Nala discuss the latest news from the Turks and Caicos Islands. Listen to the full episode above.';
+            }
+            editionFormat = 'podcast';
+        } else {
+            // MONOLOGUE MODE: Existing single-narrator pipeline
+            summary = await generateSundayEditionSummary(articles);
+            if (summary === "Summary generation failed.") {
+                console.error('Failed to generate summary. Aborting Sunday Edition generation.');
+                await client.query('ROLLBACK');
+                return { success: false, message: 'Failed to generate summary.' };
+            }
         }
 
         console.log('[INFO] Attempting to generate narration...');
-        const narrationResult = await generateNarration(summary);
+        let narrationResult;
+        if (isPodcast) {
+            // Podcast mode always uses Gemini TTS multi-speaker
+            narrationResult = await _generateNarrationFalGeminiPodcast(podcastScript);
+        } else {
+            narrationResult = await generateNarration(summary);
+        }
         if (!narrationResult) {
             console.error('Failed to generate narration. Aborting Sunday Edition generation.');
             await client.query('ROLLBACK');
@@ -293,21 +368,23 @@ async function createSundayEdition() {
             console.log(`Sunday Edition for today already exists (ID: ${editionId}). Updating.`);
             const updateQuery = `
                 UPDATE sunday_editions
-                SET title = $1, summary = $2, narration_url = $3, image_url = $4, unreal_speech_task_id = $5, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $6
+                SET title = $1, summary = $2, narration_url = $3, image_url = $4,
+                    unreal_speech_task_id = $5, podcast_script = $6, edition_format = $7,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $8
                 RETURNING id;
             `;
-            const result = await client.query(updateQuery, [title, summary, narrationUrl, imageUrl, unrealSpeechTaskId, editionId]);
+            const result = await client.query(updateQuery, [title, summary, narrationUrl, imageUrl, unrealSpeechTaskId, podcastScript, editionFormat, editionId]);
             newEditionId = result.rows[0].id;
         } else {
             // Edition does not exist, insert new one
             console.log('No Sunday Edition for today found. Inserting new one.');
             const insertQuery = `
-                INSERT INTO sunday_editions (title, summary, narration_url, image_url, publication_date, unreal_speech_task_id)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO sunday_editions (title, summary, narration_url, image_url, publication_date, unreal_speech_task_id, podcast_script, edition_format)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING id;
             `;
-            const result = await client.query(insertQuery, [title, summary, narrationUrl, imageUrl, today, unrealSpeechTaskId]);
+            const result = await client.query(insertQuery, [title, summary, narrationUrl, imageUrl, today, unrealSpeechTaskId, podcastScript, editionFormat]);
             newEditionId = result.rows[0].id;
         }
 
@@ -330,7 +407,8 @@ module.exports = {
     fetchWeeklyArticles,
     generateSundayEditionSummary,
     generateNarration,
-    generateAIImage, // Exported for potential external use, though primarily internal
-    generateAITranslation, // Exported for potential external use
-    uploadToS3 // Exported for potential external use
+    _generateNarrationFalGeminiPodcast,
+    generateAIImage,
+    generateAITranslation,
+    uploadToS3
 };

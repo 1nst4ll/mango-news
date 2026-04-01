@@ -86,7 +86,7 @@ router.get('/:id', async (req, res) => {
 // Update Sunday Edition
 router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
   const editionId = req.params.id;
-  const { title, summary, image_url, publication_date, status } = req.body;
+  const { title, summary, image_url, publication_date, status, podcast_script } = req.body;
 
   const updates = [];
   const values = [];
@@ -96,6 +96,7 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
   if (summary !== undefined) { updates.push(`summary = $${paramIndex++}`); values.push(summary); }
   if (image_url !== undefined) { updates.push(`image_url = $${paramIndex++}`); values.push(image_url); }
   if (publication_date !== undefined) { updates.push(`publication_date = $${paramIndex++}`); values.push(publication_date); }
+  if (podcast_script !== undefined) { updates.push(`podcast_script = $${paramIndex++}`); values.push(podcast_script); }
   const statusCol = await hasStatusColumn();
   if (statusCol && status !== undefined && ['draft', 'published'].includes(status)) { updates.push(`status = $${paramIndex++}`); values.push(status); }
 
@@ -172,16 +173,27 @@ router.post('/:id/regenerate-image', authenticateToken, requireRole('admin'), ex
   }
 });
 
-// Regenerate audio narration
+// Regenerate audio narration (format-aware: podcast uses multi-speaker TTS)
 router.post('/:id/regenerate-audio', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
   const editionId = req.params.id;
   try {
-    const result = await pool.query('SELECT id, summary FROM sunday_editions WHERE id = $1', [editionId]);
+    const result = await pool.query('SELECT id, summary, podcast_script, edition_format FROM sunday_editions WHERE id = $1', [editionId]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Sunday Edition not found.' });
     }
-    const { generateNarration } = require('../sundayEditionGenerator');
-    const narrationResult = await generateNarration(result.rows[0].summary);
+    const edition = result.rows[0];
+    let narrationResult;
+
+    if (edition.edition_format === 'podcast' && edition.podcast_script) {
+      // Podcast mode: use multi-speaker Gemini TTS
+      const { _generateNarrationFalGeminiPodcast } = require('../sundayEditionGenerator');
+      narrationResult = await _generateNarrationFalGeminiPodcast(edition.podcast_script);
+    } else {
+      // Monologue mode: use standard TTS provider
+      const { generateNarration } = require('../sundayEditionGenerator');
+      narrationResult = await generateNarration(edition.summary);
+    }
+
     if (!narrationResult) {
       return res.status(500).json({ error: 'Audio generation failed.' });
     }
@@ -200,6 +212,44 @@ router.post('/:id/regenerate-audio', authenticateToken, requireRole('admin'), ex
     }
   } catch (err) {
     console.error(`[ERROR] ${new Date().toISOString()} - POST /api/sunday-editions/${editionId}/regenerate-audio - Error:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Regenerate podcast script (re-runs AI script generation from current articles)
+router.post('/:id/regenerate-script', authenticateToken, requireRole('admin'), expensiveLimiter, async (req, res) => {
+  const editionId = req.params.id;
+  try {
+    const result = await pool.query('SELECT id FROM sunday_editions WHERE id = $1', [editionId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Sunday Edition not found.' });
+    }
+
+    const { fetchWeeklyArticles } = require('../sundayEditionGenerator');
+    const aiService = require('../services/aiService');
+
+    const articles = await fetchWeeklyArticles();
+    if (articles.length === 0) {
+      return res.status(400).json({ error: 'No articles found for the past week.' });
+    }
+
+    const podcastScript = await aiService.generatePodcastScript(articles);
+    if (!podcastScript || podcastScript === 'Podcast script generation failed.' || podcastScript === 'No sufficient article content.') {
+      return res.status(500).json({ error: 'Podcast script generation failed.' });
+    }
+
+    const summary = await aiService.generatePodcastDisplaySummary(podcastScript);
+
+    await pool.query(
+      `UPDATE sunday_editions SET summary = $1, podcast_script = $2, edition_format = 'podcast', updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+      [summary || 'Summary generation failed.', podcastScript, editionId]
+    );
+
+    const updated = await pool.query('SELECT * FROM sunday_editions WHERE id = $1', [editionId]);
+    console.log(`[INFO] Regenerated podcast script for edition ${editionId}: ${podcastScript.length} chars`);
+    res.json({ message: 'Podcast script regenerated successfully.', edition: updated.rows[0] });
+  } catch (err) {
+    console.error(`[ERROR] ${new Date().toISOString()} - POST /api/sunday-editions/${editionId}/regenerate-script - Error:`, err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

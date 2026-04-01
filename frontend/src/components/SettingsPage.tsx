@@ -90,6 +90,7 @@ const SettingsPage: React.FC = () => {
   const [sundayEditionPurgeLoading, setSundayEditionPurgeLoading] = useState(false);
   const [sundayEditionImageLoading, setSundayEditionImageLoading] = useState<{ [key: number]: boolean }>({});
   const [sundayEditionAudioLoading, setSundayEditionAudioLoading] = useState<{ [key: number]: boolean }>({});
+  const [sundayEditionScriptLoading, setSundayEditionScriptLoading] = useState<{ [key: number]: boolean }>({});
   const { openLightbox, lightboxElement } = useSingleImageLightbox();
 
   // Confirmation dialog
@@ -405,6 +406,23 @@ const SettingsPage: React.FC = () => {
       toast.error("Audio Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
     } finally {
       setSundayEditionAudioLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleRegenerateScript = async (id: number) => {
+    setSundayEditionScriptLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      const response = await apiFetch(`/api/sunday-editions/${id}/regenerate-script`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to regenerate script');
+      toast.success("Script Regenerated", { description: data.message });
+      if (data.edition) {
+        setSundayEditions(prev => prev.map(e => e.id === id ? { ...e, ...data.edition } : e));
+      }
+    } catch (error: unknown) {
+      toast.error("Script Error", { description: error instanceof Error ? error.message : 'An unknown error occurred.' });
+    } finally {
+      setSundayEditionScriptLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -901,6 +919,7 @@ const SettingsPage: React.FC = () => {
             sundayEditionPurgeLoading={sundayEditionPurgeLoading}
             sundayEditionImageLoading={sundayEditionImageLoading}
             sundayEditionAudioLoading={sundayEditionAudioLoading}
+            sundayEditionScriptLoading={sundayEditionScriptLoading}
             handleGenerateSundayEdition={handleGenerateSundayEdition}
             fetchSundayEditions={fetchSundayEditions}
             handlePurgeSundayEditions={handlePurgeSundayEditions}
@@ -909,6 +928,7 @@ const SettingsPage: React.FC = () => {
             handleSaveSundayEdition={handleSaveSundayEdition}
             handleRegenerateImage={handleRegenerateImage}
             handleRegenerateAudio={handleRegenerateAudio}
+            handleRegenerateScript={handleRegenerateScript}
             handleDeleteSundayEdition={handleDeleteSundayEdition}
             handleToggleStatus={handleToggleSundayEditionStatus}
             setLightboxImage={(v: { src: string; alt: string } | null) => { if (v) openLightbox(v.src, v.alt); }}

@@ -67,6 +67,19 @@ interface TtsData {
   };
 }
 
+interface PodcastData {
+  current: {
+    format: string; host1_voice: string; host1_id: string;
+    host2_voice: string; host2_id: string; gemini_model: string;
+    temperature: number; style_instructions: string;
+  };
+  defaults: Record<string, string | number>;
+  options: {
+    formats: ModelOption[]; gemini_voices: ModelOption[];
+    gemini_models: ModelOption[];
+  };
+}
+
 // ── Shared sub-components ──────────────────────────────────────────────────
 
 function ModelSelect({
@@ -192,20 +205,33 @@ const AIModels: React.FC = () => {
   const [falMinimaxSpeed, setFalMinimaxSpeed] = useState(1);
   const [savingTts, setSavingTts] = useState(false);
 
+  // Podcast
+  const [podcastData, setPodcastData] = useState<PodcastData | null>(null);
+  const [podFormat, setPodFormat] = useState('monologue');
+  const [podHost1Voice, setPodHost1Voice] = useState('Charon');
+  const [podHost1Id, setPodHost1Id] = useState('Kayo');
+  const [podHost2Voice, setPodHost2Voice] = useState('Kore');
+  const [podHost2Id, setPodHost2Id] = useState('Nala');
+  const [podModel, setPodModel] = useState('gemini-2.5-flash-tts');
+  const [podTemp, setPodTemp] = useState(1.0);
+  const [podStyle, setPodStyle] = useState('');
+  const [savingPodcast, setSavingPodcast] = useState(false);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [mRes, iRes, pRes, tRes] = await Promise.all([
+        const [mRes, iRes, pRes, tRes, podRes] = await Promise.all([
           apiFetch('/api/settings/ai-models'),
           apiFetch('/api/settings/image-settings'),
           apiFetch('/api/settings/prompts'),
           apiFetch('/api/settings/tts'),
+          apiFetch('/api/settings/podcast'),
         ]);
-        if (!mRes.ok || !iRes.ok || !pRes.ok || !tRes.ok) throw new Error('Failed to load');
+        if (!mRes.ok || !iRes.ok || !pRes.ok || !tRes.ok || !podRes.ok) throw new Error('Failed to load');
 
-        const [m, i, p, t]: [AiModelsData, ImageSettingsData, PromptsData, TtsData] =
-          await Promise.all([mRes.json(), iRes.json(), pRes.json(), tRes.json()]);
+        const [m, i, p, t, pod]: [AiModelsData, ImageSettingsData, PromptsData, TtsData, PodcastData] =
+          await Promise.all([mRes.json(), iRes.json(), pRes.json(), tRes.json(), podRes.json()]);
 
         setModelsData(m);
         setSummary(m.current.SUMMARY);
@@ -235,6 +261,16 @@ const AIModels: React.FC = () => {
         setFalGeminiVoice(t.current.fal_gemini_voice);
         setFalMinimaxVoice(t.current.fal_minimax_voice);
         setFalMinimaxSpeed(t.current.fal_minimax_speed);
+
+        setPodcastData(pod);
+        setPodFormat(pod.current.format);
+        setPodHost1Voice(pod.current.host1_voice);
+        setPodHost1Id(pod.current.host1_id);
+        setPodHost2Voice(pod.current.host2_voice);
+        setPodHost2Id(pod.current.host2_id);
+        setPodModel(pod.current.gemini_model);
+        setPodTemp(pod.current.temperature);
+        setPodStyle(pod.current.style_instructions);
       } catch {
         toast.error('Failed to load AI settings');
       } finally {
@@ -263,6 +299,17 @@ const AIModels: React.FC = () => {
     falGeminiVoice !== ttsData.current.fal_gemini_voice ||
     falMinimaxVoice !== ttsData.current.fal_minimax_voice ||
     falMinimaxSpeed !== ttsData.current.fal_minimax_speed
+  );
+
+  const podcastIsDirty = podcastData != null && (
+    podFormat !== podcastData.current.format ||
+    podHost1Voice !== podcastData.current.host1_voice ||
+    podHost1Id !== podcastData.current.host1_id ||
+    podHost2Voice !== podcastData.current.host2_voice ||
+    podHost2Id !== podcastData.current.host2_id ||
+    podModel !== podcastData.current.gemini_model ||
+    podTemp !== podcastData.current.temperature ||
+    podStyle !== podcastData.current.style_instructions
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -384,6 +431,35 @@ const AIModels: React.FC = () => {
     }
   };
 
+  const savePodcast = async () => {
+    setSavingPodcast(true);
+    try {
+      const res = await apiFetch('/api/settings/podcast', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format: podFormat, host1_voice: podHost1Voice, host1_id: podHost1Id,
+          host2_voice: podHost2Voice, host2_id: podHost2Id, gemini_model: podModel,
+          temperature: podTemp, style_instructions: podStyle,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setPodcastData(prev => prev ? {
+        ...prev,
+        current: {
+          format: podFormat, host1_voice: podHost1Voice, host1_id: podHost1Id,
+          host2_voice: podHost2Voice, host2_id: podHost2Id, gemini_model: podModel,
+          temperature: podTemp, style_instructions: podStyle,
+        },
+      } : prev);
+      toast.success('Podcast settings saved');
+    } catch {
+      toast.error('Failed to save podcast settings');
+    } finally {
+      setSavingPodcast(false);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -399,7 +475,7 @@ const AIModels: React.FC = () => {
       </div>
     );
   }
-  if (!modelsData || !imageData || !promptsData || !ttsData) return null;
+  if (!modelsData || !imageData || !promptsData || !ttsData || !podcastData) return null;
 
   const groqOptions = modelsData.options.groq;
   const imageOptions = modelsData.options.image;
@@ -753,6 +829,129 @@ const AIModels: React.FC = () => {
           <CardFooter>
             <Button onClick={saveTts} disabled={savingTts}>
               {savingTts ? 'Saving...' : 'Save TTS Settings'}
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
+
+      {/* ── Card 4: Podcast Settings ──────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mic className="h-5 w-5" /> Podcast Settings
+          </CardTitle>
+          <CardDescription>
+            Configure the two-host podcast format ("The Mango Rundown") for Sunday Editions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+
+          {/* Format toggle */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Edition Format</Label>
+            <Select value={podFormat} onValueChange={setPodFormat}>
+              <SelectTrigger className="max-w-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {podcastData.options.formats.map(f => (
+                  <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {podFormat === 'podcast' && (
+            <>
+              {/* Host 1 */}
+              <div className="rounded-md border p-4 space-y-3">
+                <p className="text-sm font-medium">Host 1 — Kayo (Anchor)</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Voice</Label>
+                    <Select value={podHost1Voice} onValueChange={setPodHost1Voice}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {podcastData.options.gemini_voices.map(v => (
+                          <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Speaker ID</Label>
+                    <Input value={podHost1Id} onChange={e => setPodHost1Id(e.target.value)} className="max-w-48" placeholder="Kayo" />
+                    <p className="text-[11px] text-muted-foreground">Must match the name prefix in the podcast prompt</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Host 2 */}
+              <div className="rounded-md border p-4 space-y-3">
+                <p className="text-sm font-medium">Host 2 — Nala (Color Commentator)</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Voice</Label>
+                    <Select value={podHost2Voice} onValueChange={setPodHost2Voice}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {podcastData.options.gemini_voices.map(v => (
+                          <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Speaker ID</Label>
+                    <Input value={podHost2Id} onChange={e => setPodHost2Id(e.target.value)} className="max-w-48" placeholder="Nala" />
+                    <p className="text-[11px] text-muted-foreground">Must match the name prefix in the podcast prompt</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Model & Temperature */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">TTS Model</Label>
+                  <Select value={podModel} onValueChange={setPodModel}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {podcastData.options.gemini_models.map(m => (
+                        <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Temperature ({podTemp})</Label>
+                  <Input type="number" min={0} max={2} step={0.1} value={podTemp}
+                    onChange={e => setPodTemp(parseFloat(e.target.value) || 1)} className="max-w-32" />
+                </div>
+              </div>
+
+              {/* Style Instructions */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Style Instructions</Label>
+                <textarea
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono min-h-[100px] resize-y"
+                  value={podStyle}
+                  onChange={e => setPodStyle(e.target.value)}
+                  maxLength={4000}
+                  placeholder="Caribbean news podcast style guidance for Gemini TTS..."
+                />
+                <p className="text-[11px] text-muted-foreground">{podStyle.length}/4,000 characters</p>
+              </div>
+
+              {/* Podcast prompt editor */}
+              <div className="space-y-2">
+                {promptEditor('prompt_weekly_podcast')}
+              </div>
+            </>
+          )}
+
+        </CardContent>
+        {podcastIsDirty && (
+          <CardFooter>
+            <Button onClick={savePodcast} disabled={savingPodcast}>
+              {savingPodcast ? 'Saving...' : 'Save Podcast Settings'}
             </Button>
           </CardFooter>
         )}

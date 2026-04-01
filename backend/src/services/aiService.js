@@ -548,6 +548,75 @@ const generateWeeklySummary = async (articles) => {
   });
 };
 
+/**
+ * Generate podcast script from weekly articles (two-host conversational format)
+ * @param {Array<{title: string, summary: string}>} articles - Array of article objects
+ * @returns {Promise<string>} - Multi-speaker podcast script
+ */
+const generatePodcastScript = async (articles) => {
+  console.log('[AI Service] Generating podcast script...');
+
+  const maxInputLength = 120000;
+  const maxArticlesToProcess = 50;
+
+  let articleContents = '';
+  let articlesProcessed = 0;
+
+  for (const article of articles) {
+    if (articlesProcessed >= maxArticlesToProcess) break;
+    if (article.summary && article.summary.length > 50) {
+      const contentToAdd = `Title: ${article.title}\nSummary: ${article.summary}\n\n`;
+      if ((articleContents + contentToAdd).length > maxInputLength) break;
+      articleContents += contentToAdd;
+      articlesProcessed++;
+    }
+  }
+
+  if (articleContents.length === 0) {
+    console.warn('[AI Service] No sufficient article content for podcast script');
+    return 'No sufficient article content.';
+  }
+
+  console.log(`[AI Service] Generating podcast script from ${articlesProcessed} articles (${articleContents.length} chars input)`);
+
+  await checkRateLimit();
+
+  return withRetry(async () => {
+    const { text } = await generateText({
+      model: groq(getAiModels().SUMMARY),
+      system: getPrompt('prompt_weekly_podcast') || 'You are a podcast script writer. Write a 15-minute two-host conversational podcast script about the provided news articles. Format: "Kayo: dialogue\\nNala: dialogue". Target 22,000-24,000 characters.',
+      prompt: `Weekly Articles for the podcast:\n\n${articleContents}`,
+      temperature: 0.7,
+      maxOutputTokens: 8000,
+    });
+
+    return text || 'Podcast script generation failed.';
+  }, 3, 2000);
+};
+
+/**
+ * Generate a clean display summary from a podcast script
+ * @param {string} podcastScript - The multi-speaker podcast script
+ * @returns {Promise<string>} - Clean editorial summary for website display
+ */
+const generatePodcastDisplaySummary = async (podcastScript) => {
+  console.log('[AI Service] Generating display summary from podcast script...');
+
+  await checkRateLimit();
+
+  return withRetry(async () => {
+    const { text } = await generateText({
+      model: groq(getAiModels().SUMMARY),
+      system: 'You are a news editor. Condense the following podcast transcript into a 2,500-3,000 character editorial news summary suitable for website display. Remove all speaker names and dialogue formatting. Combine key points into flowing paragraphs. Use **bold** for names, key figures, and important facts. Include smooth transitions between topics. Do not include speaker labels, dialogue markers, or any reference to the podcast format. Write in third-person, professional news style.',
+      prompt: `Podcast transcript to summarize:\n\n${podcastScript.substring(0, 30000)}`,
+      temperature: 0.4,
+      maxOutputTokens: 1000,
+    });
+
+    return text || 'Summary generation failed.';
+  });
+};
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -594,6 +663,8 @@ module.exports = {
   getTopicTranslation,
   optimizeImagePrompt,
   generateWeeklySummary,
+  generatePodcastScript,
+  generatePodcastDisplaySummary,
 
   // Data exports
   TOPICS_LIST,

@@ -11,7 +11,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./ui/breadcrumb";
-import { MessageCircleMore, Facebook, ChevronLeft, Link2, Share2 } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { MessageCircleMore, Facebook, ChevronLeft, Link2, Share2, Mic } from 'lucide-react';
 import { toast } from 'sonner';
 import useTranslations from '../lib/hooks/useTranslations';
 
@@ -22,6 +23,8 @@ interface SundayEdition {
   narration_url: string | null;
   image_url: string | null;
   publication_date: string;
+  podcast_script?: string | null;
+  edition_format?: 'monologue' | 'podcast' | null;
 }
 
 interface SundayEditionDetailProps {
@@ -81,6 +84,35 @@ const SundayEditionDetail: React.FC<SundayEditionDetailProps> = ({ edition, lang
           <div className="mb-6">
             <AudioPlayer src={edition.narration_url} autoplay={false} />
           </div>
+        )}
+        {edition.podcast_script && (
+          <Accordion type="single" collapsible className="mb-6 not-prose">
+            <AccordionItem value="transcript" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  <Mic className="h-4 w-4" /> View Podcast Transcript
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2">
+                  {edition.podcast_script.split('\n').filter(line => line.trim()).map((line, i) => {
+                    const match = line.match(/^(\w+):\s*(.*)/);
+                    if (!match) return <p key={i} className="text-sm text-muted-foreground py-1 px-3">{line}</p>;
+                    const [, speaker, text] = match;
+                    const isHost1 = speaker.toLowerCase() === 'kayo';
+                    return (
+                      <div key={i} className={`rounded-md px-3 py-2 ${isHost1 ? 'bg-blue-50 dark:bg-blue-950/30' : 'bg-violet-50 dark:bg-violet-950/30'}`}>
+                        <span className={`text-xs font-bold uppercase tracking-wide ${isHost1 ? 'text-blue-600 dark:text-blue-400' : 'text-violet-600 dark:text-violet-400'}`}>
+                          {speaker}
+                        </span>
+                        <p className="text-sm mt-0.5">{text}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
         <div className="article-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displaySummary) }}></div>
         <div className="mt-8 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-2">

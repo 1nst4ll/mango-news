@@ -109,6 +109,55 @@ function getTtsSettings() {
 }
 
 // ============================================================================
+// Podcast Settings
+// ============================================================================
+
+const PODCAST_DEFAULTS = {
+  format:             'monologue', // 'monologue' | 'podcast'
+  host1_voice:        'Charon',
+  host1_id:           'Kayo',
+  host2_voice:        'Kore',
+  host2_id:           'Nala',
+  gemini_model:       'gemini-2.5-flash-tts',
+  temperature:        1.0,
+  style_instructions: 'Caribbean news podcast. Two hosts with natural, warm delivery. Kayo speaks with measured authority — smooth baritone, deliberate pacing, slight pauses before key points. Nala is brighter and animated — voice rises with excitement, quick interjections. Both speak with Caribbean English cadence. Natural conversational energy. Professional but never robotic.',
+};
+
+let _podcastSettings = { ...PODCAST_DEFAULTS };
+
+async function loadPodcastSettings() {
+  try {
+    const result = await pool.query(
+      `SELECT setting_name, setting_value FROM application_settings
+       WHERE setting_name IN (
+         'sunday_edition_format','podcast_host1_voice','podcast_host1_id',
+         'podcast_host2_voice','podcast_host2_id','podcast_gemini_model',
+         'podcast_temperature','podcast_style_instructions'
+       )`
+    );
+    const rows = result.rows.reduce((acc, r) => { acc[r.setting_name] = r.setting_value; return acc; }, {});
+    _podcastSettings = {
+      format:             rows.sunday_edition_format     || PODCAST_DEFAULTS.format,
+      host1_voice:        rows.podcast_host1_voice       || PODCAST_DEFAULTS.host1_voice,
+      host1_id:           rows.podcast_host1_id          || PODCAST_DEFAULTS.host1_id,
+      host2_voice:        rows.podcast_host2_voice       || PODCAST_DEFAULTS.host2_voice,
+      host2_id:           rows.podcast_host2_id          || PODCAST_DEFAULTS.host2_id,
+      gemini_model:       rows.podcast_gemini_model      || PODCAST_DEFAULTS.gemini_model,
+      temperature:        rows.podcast_temperature       != null ? parseFloat(rows.podcast_temperature) : PODCAST_DEFAULTS.temperature,
+      style_instructions: rows.podcast_style_instructions || PODCAST_DEFAULTS.style_instructions,
+    };
+    console.log('[Config] Podcast settings loaded:', JSON.stringify({ ...(_podcastSettings), style_instructions: '...' }));
+  } catch (error) {
+    console.error('[Config] Error loading podcast settings from DB:', error);
+    _podcastSettings = { ...PODCAST_DEFAULTS };
+  }
+}
+
+function getPodcastSettings() {
+  return _podcastSettings;
+}
+
+// ============================================================================
 // Per-model Image Generation Settings
 // ============================================================================
 
@@ -171,6 +220,7 @@ const PROMPT_KEYS = [
   'prompt_image',
   'prompt_image_fallback',
   'prompt_weekly_summary',
+  'prompt_weekly_podcast',
 ];
 
 let _prompts = {};
@@ -206,6 +256,9 @@ module.exports = {
   loadTtsSettings,
   getTtsSettings,
   TTS_DEFAULTS,
+  loadPodcastSettings,
+  getPodcastSettings,
+  PODCAST_DEFAULTS,
   loadImageSettings,
   getImageSettings,
   getImageSettingsForModel,

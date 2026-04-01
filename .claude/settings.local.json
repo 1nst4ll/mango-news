@@ -4,7 +4,13 @@
       "Bash(npm install:*)",
       "Bash(npm uninstall:*)",
       "Bash(node -e:*)",
-      "WebFetch(domain:fal.ai)"
+      "WebFetch(domain:fal.ai)",
+      "Bash(npx ctx7@latest library \"fal.ai gemini tts\" \"multi-speaker podcast generation with speakers array\")",
+      "Bash(npx ctx7@latest docs \"/websites/fal_ai_models\" \"gemini tts multi-speaker speakers array speaker_id voice podcast\")",
+      "Bash(npx ctx7@latest docs \"/websites/ai_google_dev_gemini-api\" \"gemini TTS multi-speaker text to speech speakers array podcast dialogue\")",
+      "Bash(npx ctx7@latest docs \"//websites/fal_ai_models\" \"gemini tts multi-speaker speakers array\")",
+      "Bash(npx ctx7@latest docs \"//websites/ai_google_dev_gemini-api\" \"gemini TTS multi-speaker text to speech podcast\")",
+      "WebFetch(domain:ai.google.dev)"
     ]
   }
 }
