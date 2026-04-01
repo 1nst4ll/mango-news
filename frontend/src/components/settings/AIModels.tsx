@@ -858,20 +858,16 @@ const AIModels: React.FC = () => {
                 </div>
               </section>
 
-              {(ttsIsDirty || podcastIsDirty) && (
-                <div className="flex gap-2 pt-2">
-                  {ttsIsDirty && (
-                    <Button onClick={saveTts} disabled={savingTts}>
-                      {savingTts ? 'Saving...' : 'Save TTS Settings'}
-                    </Button>
-                  )}
-                  {podcastIsDirty && (
-                    <Button onClick={savePodcast} disabled={savingPodcast} variant={ttsIsDirty ? 'outline' : 'default'}>
-                      {savingPodcast ? 'Saving...' : 'Save Format'}
-                    </Button>
-                  )}
-                </div>
-              )}
+              <div className="flex gap-2 pt-2">
+                <Button onClick={saveTts} disabled={savingTts || !ttsIsDirty}>
+                  {savingTts ? 'Saving...' : 'Save TTS Settings'}
+                </Button>
+                {podcastIsDirty && (
+                  <Button onClick={savePodcast} disabled={savingPodcast} variant="outline">
+                    {savingPodcast ? 'Saving...' : 'Save Format'}
+                  </Button>
+                )}
+              </div>
             </>
           )}
 
@@ -994,13 +990,11 @@ const AIModels: React.FC = () => {
                 </div>
               </section>
 
-              {podcastIsDirty && (
-                <div className="pt-2">
-                  <Button onClick={savePodcast} disabled={savingPodcast}>
-                    {savingPodcast ? 'Saving...' : 'Save Podcast Settings'}
-                  </Button>
-                </div>
-              )}
+              <div className="pt-2">
+                <Button onClick={savePodcast} disabled={savingPodcast || !podcastIsDirty}>
+                  {savingPodcast ? 'Saving...' : 'Save Podcast Settings'}
+                </Button>
+              </div>
             </>
           )}
 
