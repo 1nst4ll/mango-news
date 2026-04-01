@@ -690,271 +690,321 @@ const AIModels: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* ── Card 3: Audio Narration (TTS) ────────────────────────────────── */}
+      {/* ── Card 3: Sunday Edition Audio ─────────────────────────────────── */}
       <Card className="pt-4">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 pb-1">
             <Mic className="h-5 w-5" />
-            Audio Narration
+            Sunday Edition Audio
           </CardTitle>
           <CardDescription>
-            Text-to-speech for Sunday Edition audio.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-
-          <div className="space-y-1.5 max-w-sm">
-            <Label>Provider</Label>
-            <Select value={provider} onValueChange={setProvider}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ttsData.options.providers.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {provider === 'unreal-speech' && (
-            <div className="rounded-md border bg-muted/20 p-4 space-y-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Unreal Speech Settings
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Voice</Label>
-                  <Select value={usVoice} onValueChange={setUsVoice}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ttsData.options.us_voices.map(v => (
-                        <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Bitrate</Label>
-                  <Select value={usBitrate} onValueChange={setUsBitrate}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ttsData.options.us_bitrates.map(b => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Speed</Label>
-                  <Input
-                    type="number" min={-1} max={1} step={0.1} value={usSpeed}
-                    onChange={e => setUsSpeed(parseFloat(e.target.value))}
-                  />
-                  <p className="text-xs text-muted-foreground">-1 (slow) to 1 (fast), 0 = normal</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Pitch</Label>
-                  <Input
-                    type="number" min={0.5} max={1.5} step={0.05} value={usPitch}
-                    onChange={e => setUsPitch(parseFloat(e.target.value))}
-                  />
-                  <p className="text-xs text-muted-foreground">0.5 (low) to 1.5 (high), 1 = normal</p>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Asynchronous -- audio delivered via webhook callback.
-              </p>
-            </div>
-          )}
-
-          {provider === 'fal-gemini' && (
-            <div className="rounded-md border bg-muted/20 p-4 space-y-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                fal.ai -- Gemini TTS Settings
-              </p>
-              <div className="space-y-1.5 max-w-xs">
-                <Label>Voice</Label>
-                <Select value={falGeminiVoice} onValueChange={setFalGeminiVoice}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ttsData.options.fal_gemini_voices.map(v => (
-                      <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Synchronous -- audio ready immediately, uploaded to S3.
-              </p>
-            </div>
-          )}
-
-          {provider === 'fal-minimax' && (
-            <div className="rounded-md border bg-muted/20 p-4 space-y-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                fal.ai -- MiniMax Speech-02 HD Settings
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Voice</Label>
-                  <Select value={falMinimaxVoice} onValueChange={setFalMinimaxVoice}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ttsData.options.fal_minimax_voices.map(v => (
-                        <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Speed</Label>
-                  <Input
-                    type="number" min={0.5} max={2} step={0.1} value={falMinimaxSpeed}
-                    onChange={e => setFalMinimaxSpeed(parseFloat(e.target.value))}
-                  />
-                  <p className="text-xs text-muted-foreground">0.5 (slow) to 2.0 (fast), 1 = normal</p>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Synchronous -- audio ready immediately, uploaded to S3.
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {promptEditor('prompt_tts_cleanup')}
-          </div>
-
-        </CardContent>
-        {ttsIsDirty && (
-          <CardFooter>
-            <Button onClick={saveTts} disabled={savingTts}>
-              {savingTts ? 'Saving...' : 'Save TTS Settings'}
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
-
-      {/* ── Card 4: Podcast Settings ──────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5" /> Podcast Settings
-          </CardTitle>
-          <CardDescription>
-            Configure the two-host podcast format ("The Mango Rundown") for Sunday Editions.
+            Choose the audio format for Sunday Editions and configure its settings.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
 
-          {/* Format toggle */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Edition Format</Label>
+          {/* Format toggle — always visible */}
+          <div className="space-y-1.5 max-w-sm">
+            <Label>Edition Format</Label>
             <Select value={podFormat} onValueChange={setPodFormat}>
-              <SelectTrigger className="max-w-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {podcastData.options.formats.map(f => (
                   <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              {podFormat === 'monologue'
+                ? 'Single-narrator CNN-style digest using a text-to-speech provider.'
+                : 'Two-host conversational podcast ("The Mango Rundown") via Gemini TTS multi-speaker.'}
+            </p>
           </div>
 
-          {podFormat === 'podcast' && (
+          <div className="border-t" />
+
+          {/* ── Monologue settings ──────────────────────────────────────────── */}
+          {podFormat === 'monologue' && (
             <>
-              {/* Host 1 */}
-              <div className="rounded-md border p-4 space-y-3">
-                <p className="text-sm font-medium">Host 1 — Kayo (Anchor)</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Voice</Label>
-                    <Select value={podHost1Voice} onValueChange={setPodHost1Voice}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {podcastData.options.gemini_voices.map(v => (
-                          <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Speaker ID</Label>
-                    <Input value={podHost1Id} onChange={e => setPodHost1Id(e.target.value)} className="max-w-48" placeholder="Kayo" />
-                    <p className="text-[11px] text-muted-foreground">Must match the name prefix in the podcast prompt</p>
-                  </div>
+              <section className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                    TTS Provider
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Voice engine for single-narrator audio generation.
+                  </p>
                 </div>
-              </div>
 
-              {/* Host 2 */}
-              <div className="rounded-md border p-4 space-y-3">
-                <p className="text-sm font-medium">Host 2 — Nala (Color Commentator)</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Voice</Label>
-                    <Select value={podHost2Voice} onValueChange={setPodHost2Voice}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {podcastData.options.gemini_voices.map(v => (
-                          <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Speaker ID</Label>
-                    <Input value={podHost2Id} onChange={e => setPodHost2Id(e.target.value)} className="max-w-48" placeholder="Nala" />
-                    <p className="text-[11px] text-muted-foreground">Must match the name prefix in the podcast prompt</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Model & Temperature */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">TTS Model</Label>
-                  <Select value={podModel} onValueChange={setPodModel}>
+                <div className="space-y-1.5 max-w-sm">
+                  <Label>Provider</Label>
+                  <Select value={provider} onValueChange={setProvider}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {podcastData.options.gemini_models.map(m => (
-                        <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
+                      {ttsData.options.providers.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Temperature ({podTemp})</Label>
-                  <Input type="number" min={0} max={2} step={0.1} value={podTemp}
-                    onChange={e => setPodTemp(parseFloat(e.target.value) || 1)} className="max-w-32" />
+
+                {provider === 'unreal-speech' && (
+                  <div className="rounded-md border bg-muted/20 p-4 space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Unreal Speech Settings
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>Voice</Label>
+                        <Select value={usVoice} onValueChange={setUsVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ttsData.options.us_voices.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Bitrate</Label>
+                        <Select value={usBitrate} onValueChange={setUsBitrate}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ttsData.options.us_bitrates.map(b => (
+                              <SelectItem key={b} value={b}>{b}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Speed</Label>
+                        <Input
+                          type="number" min={-1} max={1} step={0.1} value={usSpeed}
+                          onChange={e => setUsSpeed(parseFloat(e.target.value))}
+                        />
+                        <p className="text-xs text-muted-foreground">-1 (slow) to 1 (fast), 0 = normal</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Pitch</Label>
+                        <Input
+                          type="number" min={0.5} max={1.5} step={0.05} value={usPitch}
+                          onChange={e => setUsPitch(parseFloat(e.target.value))}
+                        />
+                        <p className="text-xs text-muted-foreground">0.5 (low) to 1.5 (high), 1 = normal</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Asynchronous -- audio delivered via webhook callback.
+                    </p>
+                  </div>
+                )}
+
+                {provider === 'fal-gemini' && (
+                  <div className="rounded-md border bg-muted/20 p-4 space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      fal.ai -- Gemini TTS Settings
+                    </p>
+                    <div className="space-y-1.5 max-w-xs">
+                      <Label>Voice</Label>
+                      <Select value={falGeminiVoice} onValueChange={setFalGeminiVoice}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ttsData.options.fal_gemini_voices.map(v => (
+                            <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Synchronous -- audio ready immediately, uploaded to S3.
+                    </p>
+                  </div>
+                )}
+
+                {provider === 'fal-minimax' && (
+                  <div className="rounded-md border bg-muted/20 p-4 space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      fal.ai -- MiniMax Speech-02 HD Settings
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>Voice</Label>
+                        <Select value={falMinimaxVoice} onValueChange={setFalMinimaxVoice}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ttsData.options.fal_minimax_voices.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Speed</Label>
+                        <Input
+                          type="number" min={0.5} max={2} step={0.1} value={falMinimaxSpeed}
+                          onChange={e => setFalMinimaxSpeed(parseFloat(e.target.value))}
+                        />
+                        <p className="text-xs text-muted-foreground">0.5 (slow) to 2.0 (fast), 1 = normal</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Synchronous -- audio ready immediately, uploaded to S3.
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {promptEditor('prompt_tts_cleanup')}
                 </div>
-              </div>
+              </section>
 
-              {/* Style Instructions */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">Style Instructions</Label>
-                <textarea
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono min-h-[100px] resize-y"
-                  value={podStyle}
-                  onChange={e => setPodStyle(e.target.value)}
-                  maxLength={4000}
-                  placeholder="Caribbean news podcast style guidance for Gemini TTS..."
-                />
-                <p className="text-[11px] text-muted-foreground">{podStyle.length}/4,000 characters</p>
-              </div>
+              {(ttsIsDirty || podcastIsDirty) && (
+                <div className="flex gap-2 pt-2">
+                  {ttsIsDirty && (
+                    <Button onClick={saveTts} disabled={savingTts}>
+                      {savingTts ? 'Saving...' : 'Save TTS Settings'}
+                    </Button>
+                  )}
+                  {podcastIsDirty && (
+                    <Button onClick={savePodcast} disabled={savingPodcast} variant={ttsIsDirty ? 'outline' : 'default'}>
+                      {savingPodcast ? 'Saving...' : 'Save Format'}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
 
-              {/* Podcast prompt editor */}
-              <div className="space-y-2">
-                {promptEditor('prompt_weekly_podcast')}
-              </div>
+          {/* ── Podcast settings ───────────────────────────────────────────── */}
+          {podFormat === 'podcast' && (
+            <>
+              {/* Host 1 */}
+              <section className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                    Host Configuration
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Gemini TTS multi-speaker voices. Each host needs a voice and a speaker ID matching the script prompt.
+                  </p>
+                </div>
+
+                <div className="rounded-md border p-4 space-y-3">
+                  <p className="text-sm font-medium">Host 1 — Kayo (Anchor)</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Voice</Label>
+                      <Select value={podHost1Voice} onValueChange={setPodHost1Voice}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {podcastData.options.gemini_voices.map(v => (
+                            <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Speaker ID</Label>
+                      <Input value={podHost1Id} onChange={e => setPodHost1Id(e.target.value)} className="max-w-48" placeholder="Kayo" />
+                      <p className="text-[11px] text-muted-foreground">Must match the name prefix in the podcast prompt</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-md border p-4 space-y-3">
+                  <p className="text-sm font-medium">Host 2 — Nala (Color Commentator)</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Voice</Label>
+                      <Select value={podHost2Voice} onValueChange={setPodHost2Voice}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {podcastData.options.gemini_voices.map(v => (
+                            <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Speaker ID</Label>
+                      <Input value={podHost2Id} onChange={e => setPodHost2Id(e.target.value)} className="max-w-48" placeholder="Nala" />
+                      <p className="text-[11px] text-muted-foreground">Must match the name prefix in the podcast prompt</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <div className="border-t" />
+
+              {/* TTS Model & Generation */}
+              <section className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                    Audio Generation
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Gemini TTS model and style for multi-speaker synthesis.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">TTS Model</Label>
+                    <Select value={podModel} onValueChange={setPodModel}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {podcastData.options.gemini_models.map(m => (
+                          <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Temperature ({podTemp})</Label>
+                    <Input type="number" min={0} max={2} step={0.1} value={podTemp}
+                      onChange={e => setPodTemp(parseFloat(e.target.value) || 1)} className="max-w-32" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Style Instructions</Label>
+                  <textarea
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono min-h-[100px] resize-y"
+                    value={podStyle}
+                    onChange={e => setPodStyle(e.target.value)}
+                    maxLength={4000}
+                    placeholder="Caribbean news podcast style guidance for Gemini TTS..."
+                  />
+                  <p className="text-[11px] text-muted-foreground">{podStyle.length}/4,000 characters</p>
+                </div>
+              </section>
+
+              <div className="border-t" />
+
+              {/* Prompts */}
+              <section className="space-y-3">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                    Prompts
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {promptEditor('prompt_weekly_podcast')}
+                  {promptEditor('prompt_tts_cleanup')}
+                </div>
+              </section>
+
+              {podcastIsDirty && (
+                <div className="pt-2">
+                  <Button onClick={savePodcast} disabled={savingPodcast}>
+                    {savingPodcast ? 'Saving...' : 'Save Podcast Settings'}
+                  </Button>
+                </div>
+              )}
             </>
           )}
 
         </CardContent>
-        {podcastIsDirty && (
-          <CardFooter>
-            <Button onClick={savePodcast} disabled={savingPodcast}>
-              {savingPodcast ? 'Saving...' : 'Save Podcast Settings'}
-            </Button>
-          </CardFooter>
-        )}
       </Card>
 
       {/* ── Sticky save bar for model selections ─────────────────────────── */}
